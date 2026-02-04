@@ -1,7 +1,7 @@
 # PRD: Project Chorus 🎵
 
 **代号**: Chorus
-**文档版本**: 0.5 (Draft)
+**文档版本**: 0.11 (Draft)
 **创建日期**: 2026-02-04
 **更新日期**: 2026-02-04
 **状态**: 讨论中
@@ -35,21 +35,21 @@
 
 **一句话**：Agent 自动知道一切，人类不用重复解释。
 
-#### 2. 👁️ Team Activity Stream（团队活动流）
+#### 2. 🔄 AI-DLC Workflow（AI 驱动的开发工作流）
 
-**痛点**：多人/多 Agent 开发时，不知道其他人在做什么，容易冲突或重复劳动。
+**痛点**：人类要手动规划需求、拆解任务、分配工作，AI 只能被动执行。
 
-**杀手体验**：实时看到所有人和 Agent 的工作动态，包括任务进展、代码变更、评论讨论。系统自动检测冲突（如两个 Agent 同时修改同一文件）并预警。
+**杀手体验**：AI 主动提议 PRD、任务拆解、技术方案，人类只需审批验证。完整闭环：**Idea → Proposal → Document/Task → 执行 → 验证**。
 
-**一句话**：人和 Agent 的工作透明可见，冲突提前预警。
+**一句话**：AI 提议，人类验证，角色反转。
 
-#### 3. 📜 Decision Trail（决策追溯链）
+#### 3. 👁️ Multi-Agent Awareness（多 Agent 协同感知）
 
-**痛点**："这个架构为什么这样设计？" 没人记得，也查不到。
+**痛点**：多个 Agent 各自工作，互不知晓，容易冲突或重复劳动。
 
-**杀手体验**：每个技术决策、架构选择都有记录，包括讨论过程、参与者、最终结论。新人或新 Agent 可以快速理解项目历史。
+**杀手体验**：所有 Agent 的工作动态实时可见，共享知识库保持信息同步，系统自动检测冲突（如两个 Agent 同时修改同一文件）并预警。
 
-**一句话**：每个决策都有来龙去脉，项目知识永不丢失。
+**一句话**：Agent 不再孤岛，团队协作透明可见。
 
 ---
 
@@ -95,7 +95,7 @@ Chorus 的设计基于 **AI-DLC（AI-Driven Development Lifecycle）**——AWS 
 
 | AI-DLC 核心原则 | Chorus 实现 |
 |---------------|------------|
-| **Reversed Conversation** | PM Agent 提议任务 → 人类验证 → Personal Agent 执行 |
+| **Reversed Conversation** | PM Agent 提议任务 → 人类验证 → Developer Agent 执行 |
 | 持续的上下文传递 | 知识库 + 任务关联 + 阶段上下文 |
 | Mob Elaboration | 人类在平台上验证/调整 AI 的提议 |
 | AI 是协作者 | PM Agent 参与规划，不只是执行 |
@@ -209,26 +209,92 @@ Chorus 模式（AI-DLC）：
 - PM Agent 是可选的，作为平台上的一个用户存在
 - 人类仍然是主要的决策者
 
-### 3.2 核心组件
+### 3.2.5 Agent-First 设计理念
 
-#### 3.2.1 任务系统
+**Chorus 本质上是一个面向 Agent 的平台**。Agent 可以执行几乎所有操作，仅有少数关键动作保留给人类：
+
+| 操作 | Agent | Human | 说明 |
+|-----|:-----:|:-----:|------|
+| 创建/编辑 Idea | ✓ | ✓ | |
+| 创建/编辑 Document | ✓ | ✓ | |
+| 创建/编辑 Task | ✓ | ✓ | |
+| 创建 Proposal | ✓ | ✓ | |
+| **审批 Proposal** | ✗ | ✓ | 人类验证 AI 提议 |
+| 更新 Task 状态 → To Verify | ✓ | ✓ | Agent 完成后提交验证 |
+| **验证 Task (To Verify → Done)** | ✗ | ✓ | 人类确认工作质量 |
+| 添加评论 | ✓ | ✓ | |
+| 查询知识库 | ✓ | ✓ | |
+| 删除自己创建的内容 | ✓ | ✓ | |
+| **删除他人创建的内容** | ✗ | ✓ | 管理权限 |
+| **创建/管理 Agent** | ✗ | ✓ | 安全边界 |
+| **创建/管理 API Key** | ✗ | ✓ | 安全边界 |
+
+**设计原则**：
+- **Agent 是一等公民**：平台 API 和 UI 优先考虑 Agent 的使用体验
+- **人类是守门人**：关键决策点（审批、验证、权限管理）保留人类控制
+- **最小权限原则**：Agent 只能删除自己创建的内容，不能越权操作
+
+### 3.2 信息层级结构
+
+```
+Chorus Platform
+├── Dashboard              ← 全局概览（跨项目统计、快捷入口）
+├── Projects               ← 项目列表
+│   └── [Project]          ← 单个项目
+│       ├── Overview       ← 项目概览（PRD摘要、进度、关键指标）
+│       ├── Knowledge      ← 知识库（PRD、决策、任务、评论等统一查询）
+│       ├── Documents      ← 文档列表（PRD、技术设计等）
+│       ├── Proposals      ← 提议列表（PM Agent 在此项目的提议）
+│       ├── Tasks          ← Kanban 看板（4列：Todo/In Progress/To Verify/Done）
+│       └── Activity       ← 项目活动流（仅项目级）
+├── Agents                 ← Agent 管理（查看所有 Agent、创建者、权限）
+└── Settings               ← 平台设置（API Key 管理）
+```
+
+**层级说明**：
+- **Project** 是核心容器，所有业务数据（Tasks、Proposals、Knowledge、Activity）都属于特定 Project
+- **Dashboard** 提供跨项目的聚合视图和快捷入口
+- **Activity** 目前仅支持项目级，未来可扩展全局 Activity
+- 用户需先进入 Project Overview，再访问具体功能
+
+### 3.3 核心组件
+
+#### 3.3.1 任务系统
 - 任务 CRUD、状态管理
 - 任务依赖关系（DAG）
 - 分配给人或 Agent
 - 评论和讨论（类似 GitHub Issue）
 
-#### 3.2.2 知识库（Project Brain）
+**Kanban 四阶段工作流**（体现 AI-DLC 人类验证理念）：
+```
+Todo → In Progress → To Verify → Done
+       (Agent 执行)  (人类验证)
+```
+- **Todo**: 待开始的任务
+- **In Progress**: Agent 正在执行
+- **To Verify**: Agent 完成，等待人类验证
+- **Done**: 人类确认通过
+
+#### 3.3.2 知识库（Project Knowledge）
+
+知识库是**项目级的统一信息查询入口**，Agent 调用 `chorus_query_knowledge` 时，本质上是在查询该项目的所有结构化信息。
+
+**知识库包含**：
+- **PRD 内容**: 产品需求、功能定义、验收标准
 - **项目上下文**: 目标、约束、技术栈、架构决策
-- **任务图谱**: 任务及其依赖关系
+- **任务信息**: 任务列表、状态、描述、历史
+- **评论与讨论**: 任务评论、设计讨论
 - **决策日志**: 为什么这样决定，当时的考量
 - **代码索引**: 代码结构、模块职责（可选，与 Git 集成）
 
-#### 3.2.3 通知与协调
-- **活动流**: 谁在做什么，刚完成什么
+**查询范围**：知识库严格限定在 Project 级别，跨项目查询不支持。
+
+#### 3.3.3 通知与协调
+- **活动流**: 谁在做什么，刚完成什么（项目级，未来可扩展全局）
 - **@mention**: 通知相关方
 - **冲突检测**: 多 Agent 修改同一区域时预警
 
-#### 3.2.4 PM Agent 支持（核心功能）
+#### 3.3.4 PM Agent 支持（核心功能）
 
 **PM Agent 是 Chorus 的核心差异化**，实现 AI-DLC 的 "Reversed Conversation"。
 
@@ -243,10 +309,11 @@ Chorus 模式（AI-DLC）：
 | 角色 | Skill 文件 | MCP 工具 | 职责 |
 |-----|-----------|---------|------|
 | **PM Agent** | `skill/pm/SKILL.md` | `chorus_pm_*` | 需求分析、任务拆解、提议、追踪 |
-| **Personal Agent** | `skill/personal/SKILL.md` | `chorus_*` | 执行任务、报告工作 |
+| **Developer Agent** | `skill/developer/SKILL.md` | `chorus_*` | 执行任务、报告工作 |
 
 **PM Agent 专属 MCP 工具**：
-- `chorus_pm_create_proposal` - 创建任务提议
+- `chorus_pm_get_ideas` - 获取项目的 Ideas（人类输入）
+- `chorus_pm_create_proposal` - 创建提议（PRD 提议 / 任务拆分提议 / 其他）
 - `chorus_pm_get_proposals` - 获取提议状态
 - `chorus_pm_analyze_progress` - 分析项目进度
 - `chorus_pm_identify_risks` - 识别风险和阻塞
@@ -266,7 +333,7 @@ Claude Code (PM 角色)              Chorus 平台
        │                         自动创建任务
 ```
 
-### 3.3 Claude Code 集成方案（首要支持）
+### 3.4 Claude Code 集成方案（首要支持）
 
 ```
 Claude Code 接入 Chorus 的三层机制：
@@ -343,54 +410,105 @@ Claude Code 接入 Chorus 的三层机制：
 - [ ] Git commit关联
 - [ ] 自动提取工作摘要
 
-#### F5: PM Agent 支持（平台能力）
-**描述**: 平台提供 API 和 UI 支持 AI-DLC 的 Reversed Conversation
+#### F5: Idea → Proposal → Document/Task 工作流
+**描述**: 平台支持从原始想法到最终产出的完整链路，实现 AI-DLC 的 Reversed Conversation
 
-**MVP 策略**: PM Agent 通过 Claude Code 实现（用户用 Claude Code 扮演 PM 角色），平台提供支持的基础设施。
+**核心概念**：
 
-**用户故事**:
-- 作为 PM（用 Claude Code），我可以创建"任务提议"供人类审批
-- 作为人类，我在 Web UI 上看到待审批的任务提议，可以批准/调整/拒绝
-- 作为人类，批准后任务自动创建
+| 实体 | 说明 | 来源 |
+|-----|------|------|
+| **Idea** | 人类原始输入（文本、图片、文件） | 人类创建 |
+| **Proposal** | 提议过程，有输入有输出 | Agent 创建 |
+| **Document** | PRD、技术设计文档等 | Proposal 产物 |
+| **Task** | 任务项 | Proposal 产物 |
 
-**功能点**:
-- [ ] 任务提议 API（`chorus_create_proposal`）
-- [ ] 提议数据模型（status: pending/approved/rejected）
-- [ ] Web UI 审批界面
-- [ ] 批准后自动创建任务
+**Proposal 的本质**：
+- Proposal **没有固定类型**，由输入和输出决定其性质
+- 输入 Ideas → 输出 Document(PRD) = "PRD 提议"
+- 输入 Document(PRD) → 输出 Tasks = "任务拆分提议"
+- 输入 Document(PRD) → 输出 Document(Tech Design) = "技术方案提议"
 
-**工作流**:
+**完整时间线（可追踪）**：
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  1. 人类与 Claude Code 对话                                  │
-│     "帮我规划用户认证功能的实现"                              │
+│  Ideas → Proposal → Document(PRD) → Proposal → Tasks       │
+│            │                           │                    │
+│            │                           └→ Document(Tech)    │
+│            └→ Document(其他)                                 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**用户故事**:
+- 作为人类，我可以在项目中添加 Ideas（文本、图片、文件）
+- 作为 PM Agent，我可以基于 Ideas 创建 PRD 提议
+- 作为人类，我审批 PRD 提议，批准后生成 Document
+- 作为 PM Agent，我可以基于 PRD Document 创建任务拆分提议
+- 作为人类，我审批任务拆分提议，批准后生成 Tasks
+- 作为任何人，我可以追溯整条链路：这个 Task 来自哪个 Proposal，那个 Proposal 基于哪个 Document/Idea
+
+**功能点**:
+- [ ] Idea CRUD API（支持文本、附件）
+- [ ] Proposal API（输入/输出模型）
+- [ ] Document CRUD API（PRD、技术设计等）
+- [ ] 链路追溯 API
+- [ ] Web UI：Ideas 列表、Proposal 审批、Document 查看
+- [ ] 批准后自动创建 Document 或 Tasks
+
+**详细工作流**:
+```
+┌─────────────────────────────────────────────────────────────┐
+│  1. 人类创建 Ideas                                           │
+│     - 文本："我想做一个用户认证功能"                          │
+│     - 上传：竞品截图、设计草图                                │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│  2. Claude Code (作为 PM Agent)                              │
-│     - 分析需求                                              │
-│     - 调用 chorus_query_knowledge 获取项目上下文             │
-│     - 调用 chorus_create_proposal 创建任务提议               │
+│  2. PM Agent 创建 PRD Proposal                               │
+│     - 输入：Ideas                                            │
+│     - 输出：Document(PRD) 草稿                               │
+│     - 调用 chorus_pm_create_proposal                         │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│  3. Chorus Web UI - 审批界面                                 │
-│     📋 新提议：用户认证功能实现                               │
-│     Task 1: 设计认证数据模型                                 │
-│     Task 2: 实现 OAuth 集成                                  │
-│     Task 3: 实现邮箱密码登录                                 │
-│     ...                                                     │
-│     [✓ 批准] [✏️ 调整] [✗ 拒绝]                              │
+│  3. 人类审批 PRD Proposal                                    │
+│     [✓ 批准] → 创建 Document(PRD)                            │
+│     [✏️ 修改] → 返回修改                                     │
+│     [✗ 拒绝] → 标记拒绝                                      │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│  4. 批准后                                                   │
-│     - 任务自动创建，状态为 todo                              │
+│  4. PM Agent 创建 Task Breakdown Proposal                    │
+│     - 输入：Document(PRD)                                    │
+│     - 输出：Tasks 列表                                       │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│  5. 人类审批 Task Breakdown Proposal                         │
+│     [✓ 批准] → 创建 Tasks                                    │
 │     - Personal Agents 可以领取执行                           │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 **关键点**：平台不内置 LLM 调用，PM 的"智能"由 Claude Code 提供。
+
+#### F5.5: Agent 管理页面
+**描述**: 全局视图展示组织内所有 Agent 及其权限
+
+**功能点**:
+- [ ] Agent 列表（名称、状态、角色标签）
+- [ ] 创建者信息（谁创建了这个 Agent）
+- [ ] 权限标签显示（PM Agent / Developer Agent）
+- [ ] 最后活跃时间
+- [ ] Agent 可以同时拥有多个角色
+
+#### F5.6: API Key 管理（Settings）
+**描述**: 管理 Agent 的 API Key，支持角色分配
+
+**功能点**:
+- [ ] API Key 列表（名称、状态、关联角色）
+- [ ] 创建 API Key 模态框
+- [ ] 角色选择（可多选：PM Agent / Developer Agent）
+- [ ] Key 复制、删除、撤销
 
 ### 4.2 P1 - 应该有
 
@@ -448,13 +566,15 @@ Claude Code 接入 Chorus 的三层机制：
 │                 Next.js App (:3000)                     │
 │  ┌───────────────────────────────────────────────────┐  │
 │  │  Pages (React Server Components)                  │  │
-│  │  Kanban看板 │ 任务列表 │ 知识库浏览 │ 活动流       │  │
+│  │  Dashboard │ Projects │ Kanban │ Documents        │  │
+│  │  Proposals │ Knowledge │ Activity │ Agents        │  │
+│  │  Settings                                         │  │
 │  └───────────────────────────────────────────────────┘  │
 │  ┌───────────────────────────────────────────────────┐  │
 │  │  API Routes                                       │  │
-│  │    /api/projects/*  - REST API (Web 调用)         │  │
-│  │    /api/tasks/*     - REST API (Web 调用)         │  │
-│  │    /api/mcp         - MCP HTTP 端点 (Agent 调用)  │  │
+│  │    /api/projects/*   - 项目/任务/文档/提议        │  │
+│  │    /api/agents/*     - Agent 管理                 │  │
+│  │    /api/mcp          - MCP HTTP 端点 (Agent 调用) │  │
 │  └───────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────┘
                           │
@@ -545,17 +665,23 @@ export async function POST(req: Request) {
 
 **MCP 工具列表**：
 
-| 工具 | 描述 |
-|-----|------|
-| `chorus_get_project` | 获取项目背景信息 |
-| `chorus_get_task` | 获取任务详情和上下文 |
-| `chorus_list_tasks` | 列出任务 |
-| `chorus_query_knowledge` | 查询知识库 |
-| `chorus_update_task` | 更新任务状态 |
-| `chorus_add_comment` | 添加任务评论 |
-| `chorus_report_work` | 报告工作完成 |
-| `chorus_get_activity` | 获取最近活动 |
-| `chorus_checkin` | 心跳签到 |
+| 工具 | 描述 | 角色 |
+|-----|------|------|
+| `chorus_get_project` | 获取项目背景信息 | All |
+| `chorus_query_knowledge` | 统一查询知识库（Ideas/Docs/Tasks） | All |
+| `chorus_get_ideas` | 获取项目的 Ideas 列表 | PM |
+| `chorus_get_documents` | 获取项目的 Documents 列表 | All |
+| `chorus_get_document` | 获取单个 Document 详情 | All |
+| `chorus_pm_create_proposal` | 创建提议（PRD/任务拆分等） | PM |
+| `chorus_pm_get_proposals` | 获取提议列表和状态 | PM |
+| `chorus_get_task` | 获取任务详情和上下文 | All |
+| `chorus_list_tasks` | 列出任务 | All |
+| `chorus_update_task` | 更新任务状态 | Developer |
+| `chorus_submit_for_verify` | 提交任务等待人类验证 (→ to_verify) | Developer |
+| `chorus_add_comment` | 添加评论 | All |
+| `chorus_report_work` | 报告工作完成 | Developer |
+| `chorus_get_activity` | 获取项目活动流 | All |
+| `chorus_checkin` | 心跳签到 | All |
 
 ---
 
@@ -587,12 +713,14 @@ export async function POST(req: Request) {
 
 | 模块 | 功能 | 优先级 |
 |-----|------|-------|
-| **知识库** | 项目上下文存储、查询 | P0 |
-| **任务系统** | CRUD、状态、评论、审批流 | P0 |
+| **Ideas** | 人类输入（文本、附件）、CRUD | P0 |
+| **Proposals** | 提议工作流（输入→输出）、审批 | P0 |
+| **Documents** | PRD、技术设计等文档管理 | P0 |
+| **Tasks** | CRUD、状态、Kanban | P0 |
+| **Knowledge** | 统一查询（Ideas、Documents、Tasks、Proposals） | P0 |
 | **MCP Server** | Claude Code 集成 | P0 |
-| **Web UI** | Kanban 看板、任务列表、知识库、审批界面 | P0 |
-| **PM Agent** | 需求分析、任务拆解、提议生成 | P0 |
-| **活动流** | 最近操作记录 | P1 |
+| **Web UI** | Ideas、Proposals 审批、Documents、Kanban | P0 |
+| **活动流** | 项目级操作记录 | P1 |
 
 **认证与多租户**:
 - ✅ 多租户：数据库层面支持（company_id 字段），MVP 阶段单租户使用
@@ -634,7 +762,8 @@ datasource db {
 
 // 租户
 model Company {
-  id        String   @id @default(uuid())
+  id        Int      @id @default(autoincrement())
+  uuid      String   @unique @default(uuid())
   name      String
   createdAt DateTime @default(now())
 
@@ -642,6 +771,8 @@ model Company {
   agents     Agent[]
   apiKeys    ApiKey[]
   projects   Project[]
+  ideas      Idea[]
+  documents  Document[]
   tasks      Task[]
   proposals  Proposal[]
   activities Activity[]
@@ -649,8 +780,9 @@ model Company {
 
 // 用户（人类，OIDC 登录）
 model User {
-  id        String   @id @default(uuid())
-  companyId String
+  id        Int      @id @default(autoincrement())
+  uuid      String   @unique @default(uuid())
+  companyId Int
   company   Company  @relation(fields: [companyId], references: [id])
   oidcSub   String   @unique    // OIDC subject
   email     String?
@@ -662,13 +794,15 @@ model User {
 
 // Agent（Claude Code 等）
 model Agent {
-  id        String   @id @default(uuid())
-  companyId String
+  id        Int      @id @default(autoincrement())
+  uuid      String   @unique @default(uuid())
+  companyId Int
   company   Company  @relation(fields: [companyId], references: [id])
   name      String
-  role      String   @default("personal")  // pm | personal
-  ownerId   String?
+  roles     String[] @default(["developer"])  // pm | developer（可多选）
+  ownerId   Int?
   owner     User?    @relation(fields: [ownerId], references: [id])
+  lastActiveAt DateTime?
   createdAt DateTime @default(now())
 
   apiKeys   ApiKey[]
@@ -676,12 +810,13 @@ model Agent {
 
 // API Key（独立管理，支持轮换和撤销）
 model ApiKey {
-  id        String    @id @default(uuid())
-  companyId String
+  id        Int       @id @default(autoincrement())
+  uuid      String    @unique @default(uuid())
+  companyId Int
   company   Company   @relation(fields: [companyId], references: [id])
-  agentId   String
+  agentId   Int
   agent     Agent     @relation(fields: [agentId], references: [id])
-  key       String    @unique    // 实际的 API Key
+  key       String    @unique    // 实际的 API Key（哈希存储）
   name      String?              // 可选的描述名称
   lastUsed  DateTime?
   expiresAt DateTime?
@@ -691,68 +826,119 @@ model ApiKey {
 
 // 项目
 model Project {
-  id          String   @id @default(uuid())
-  companyId   String
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  companyId   Int
   company     Company  @relation(fields: [companyId], references: [id])
   name        String
   description String?
-  context     Json?    // 项目上下文/知识库
   createdAt   DateTime @default(now())
 
+  ideas      Idea[]
+  documents  Document[]
   tasks      Task[]
   proposals  Proposal[]
   activities Activity[]
 }
 
-// 任务
+// 想法（人类原始输入）
+model Idea {
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  companyId   Int
+  company     Company  @relation(fields: [companyId], references: [id])
+  projectId   Int
+  project     Project  @relation(fields: [projectId], references: [id])
+  content     String?  // 文本内容
+  attachments Json?    // 附件列表 [{type, url, name}]
+  createdBy   Int      // User ID
+  createdAt   DateTime @default(now())
+}
+
+// 文档（PRD、技术设计等，Proposal 产物）
+model Document {
+  id          Int       @id @default(autoincrement())
+  uuid        String    @unique @default(uuid())
+  companyId   Int
+  company     Company   @relation(fields: [companyId], references: [id])
+  projectId   Int
+  project     Project   @relation(fields: [projectId], references: [id])
+  type        String    // prd | tech_design | adr | ...
+  title       String
+  content     String?   // Markdown 内容
+  version     Int       @default(1)
+  proposalId  Int?      // 来源 Proposal（可追溯）
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// 任务（Proposal 产物或人工创建）
 model Task {
-  id           String   @id @default(uuid())
-  companyId    String
+  id           Int      @id @default(autoincrement())
+  uuid         String   @unique @default(uuid())
+  companyId    Int
   company      Company  @relation(fields: [companyId], references: [id])
-  projectId    String
+  projectId    Int
   project      Project  @relation(fields: [projectId], references: [id])
   title        String
   description  String?
-  status       String   @default("todo")  // todo | in_progress | done
+  status       String   @default("todo")  // todo | in_progress | to_verify | done
   assigneeType String?  // user | agent
-  assigneeId   String?
+  assigneeId   Int?
+  proposalId   Int?     // 来源 Proposal（可追溯，可选）
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   activities Activity[]
 }
 
-// 任务提议（PM Agent 创建，人类审批）
+// 提议（Agent 创建，人类审批，连接输入和输出）
 model Proposal {
-  id          String   @id @default(uuid())
-  companyId   String
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  companyId   Int
   company     Company  @relation(fields: [companyId], references: [id])
-  projectId   String
+  projectId   Int
   project     Project  @relation(fields: [projectId], references: [id])
   title       String
   description String?
-  tasks       Json     // 提议的任务列表
-  status      String   @default("pending")  // pending | approved | rejected
-  createdBy   String   // PM Agent ID
-  reviewedBy  String?  // User ID who approved/rejected
+
+  // 输入（Proposal 基于什么创建）
+  inputType   String   // idea | document
+  inputIds    Json     // 关联的输入 ID 列表（数字 ID 数组）
+
+  // 输出（Proposal 产出什么）
+  outputType  String   // document | task
+  outputData  Json     // 提议的内容（Document 草稿或 Task 列表）
+
+  // 状态与审批
+  status      String   @default("pending")  // pending | approved | rejected | revised
+  createdBy   Int      // Agent ID
+  reviewedBy  Int?     // User ID
   reviewedAt  DateTime?
   createdAt   DateTime @default(now())
 }
 
-// 活动流
+// 活动流（项目级）
 model Activity {
-  id        String   @id @default(uuid())
-  companyId String
-  company   Company  @relation(fields: [companyId], references: [id])
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id])
-  taskId    String?
-  task      Task?    @relation(fields: [taskId], references: [id])
-  actorType String   // user | agent
-  actorId   String
-  action    String   // created | updated | commented | proposal_created | proposal_approved | ...
-  payload   Json?
-  createdAt DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  uuid       String   @unique @default(uuid())
+  companyId  Int
+  company    Company  @relation(fields: [companyId], references: [id])
+  projectId  Int
+  project    Project  @relation(fields: [projectId], references: [id])
+  // 关联实体（可选，用于追溯）
+  ideaId     Int?
+  documentId Int?
+  proposalId Int?
+  taskId     Int?
+  task       Task?    @relation(fields: [taskId], references: [id])
+  // 操作信息
+  actorType  String   // user | agent
+  actorId    Int
+  action     String   // idea_created | proposal_created | proposal_approved | document_created | task_created | ...
+  payload    Json?
+  createdAt  DateTime @default(now())
 }
 ```
 
@@ -786,19 +972,38 @@ chorus/
 ├── src/
 │   ├── app/                    # Next.js App Router
 │   │   ├── layout.tsx
-│   │   ├── page.tsx            # 首页
+│   │   ├── page.tsx            # Dashboard（全局概览）
 │   │   ├── projects/
+│   │   │   ├── page.tsx        # 项目列表
 │   │   │   └── [id]/
-│   │   │       ├── page.tsx         # 项目详情
-│   │   │       ├── board/page.tsx   # Kanban 看板
-│   │   │       └── knowledge/page.tsx
+│   │   │       ├── page.tsx           # Project Overview（入口）
+│   │   │       ├── knowledge/page.tsx # 知识库
+│   │   │       ├── documents/page.tsx # 文档列表
+│   │   │       ├── documents/[docId]/page.tsx # 文档详情
+│   │   │       ├── proposals/page.tsx # 提议列表
+│   │   │       ├── tasks/page.tsx     # Kanban 看板
+│   │   │       └── activity/page.tsx  # 项目活动流
+│   │   ├── agents/
+│   │   │   └── page.tsx        # Agent 管理（全局）
+│   │   ├── settings/
+│   │   │   └── page.tsx        # 平台设置（全局）
 │   │   └── api/                # API Routes
 │   │       ├── projects/
-│   │       │   └── route.ts
-│   │       ├── tasks/
-│   │       │   └── route.ts
+│   │       │   ├── route.ts
+│   │       │   └── [id]/
+│   │       │       ├── route.ts
+│   │       │       ├── knowledge/route.ts
+│   │       │       ├── documents/route.ts
+│   │       │       ├── documents/[docId]/route.ts
+│   │       │       ├── proposals/route.ts
+│   │       │       ├── tasks/route.ts
+│   │       │       └── activity/route.ts
 │   │       ├── agents/
-│   │       │   └── route.ts
+│   │       │   ├── route.ts          # GET/POST /api/agents
+│   │       │   └── [id]/route.ts     # GET/PATCH/DELETE /api/agents/[id]
+│   │       ├── api-keys/
+│   │       │   ├── route.ts          # GET/POST /api/api-keys
+│   │       │   └── [id]/route.ts     # DELETE/revoke
 │   │       ├── auth/
 │   │       │   └── route.ts
 │   │       └── mcp/            # MCP HTTP 端点
@@ -816,11 +1021,24 @@ chorus/
 │   ├── pm/                     # PM Agent 专用
 │   │   ├── SKILL.md
 │   │   └── HEARTBEAT.md
-│   └── personal/               # Personal Agent 专用
+│   └── developer/              # Developer Agent 专用
 │       ├── SKILL.md
 │       └── HEARTBEAT.md
 └── .env.example
 ```
+
+**路由说明**：
+- `/` - Dashboard（全局概览，显示跨项目统计）
+- `/projects` - 项目列表
+- `/projects/[id]` - Project Overview（项目入口页）
+- `/projects/[id]/knowledge` - 知识库
+- `/projects/[id]/documents` - 文档列表
+- `/projects/[id]/documents/[docId]` - 文档详情/预览
+- `/projects/[id]/proposals` - 提议列表
+- `/projects/[id]/tasks` - Kanban 看板（4列：Todo/In Progress/To Verify/Done）
+- `/projects/[id]/activity` - 项目活动流
+- `/agents` - Agent 管理（查看所有 Agent、创建者、权限）
+- `/settings` - 平台设置（API Key 管理）
 
 ---
 
@@ -872,8 +1090,10 @@ chorus/
 | AI-DLC | AI-Driven Development Lifecycle，AWS 提出的 AI 原生开发方法论 |
 | Bolt | AI-DLC 中的短周期迭代单位（小时/天），替代传统 Sprint |
 | Reversed Conversation | AI 提议、人类验证的交互模式 |
-| Personal Agent | 个人使用的AI编程助手（如Claude Code） |
-| PM Agent | 可选的项目管理 Agent，作为平台参与者协助管理 |
+| To Verify | 任务完成后等待人类验证的状态，体现 AI-DLC 人类验证理念 |
+| Agent-First | Chorus 设计理念：Agent 是一等公民，可执行几乎所有操作，仅关键决策保留人类 |
+| Developer Agent | 执行开发任务的 AI 助手（如 Claude Code），负责编码、报告工作 |
+| PM Agent | 项目管理 Agent，负责需求分析、任务拆解、提议创建 |
 | 知识库 | 项目的统一信息存储，包括上下文、决策、代码理解等 |
 | MCP | Model Context Protocol，Anthropic 的 Agent 工具协议 |
 | Skill | 教会 Agent 如何使用平台的 markdown 说明文件 |
@@ -904,3 +1124,9 @@ chorus/
 | 0.3 | 2026-02-04 | AI Assistant | 更名为 Project Chorus |
 | 0.4 | 2026-02-04 | AI Assistant | 单进程架构：MCP 通过 HTTP 集成到 Next.js |
 | 0.5 | 2026-02-04 | AI Assistant | PM Agent 作为核心功能，Agent 角色区分，API Key 独立表 |
+| 0.6 | 2026-02-04 | AI Assistant | 明确信息层级结构：Project 为核心容器，Knowledge/Activity 项目级 |
+| 0.7 | 2026-02-04 | AI Assistant | Idea→Proposal→Document/Task 工作流，新增 Idea/Document 实体，Proposal 输入输出模型 |
+| 0.8 | 2026-02-04 | AI Assistant | 数据模型统一使用双 ID 模式：数字 id（主键）+ uuid（外部暴露） |
+| 0.9 | 2026-02-04 | AI Assistant | 基于 UI 设计补充：新增 To Verify 任务状态、Documents 独立导航、Agent/Settings 页面详细功能 |
+| 0.10 | 2026-02-04 | AI Assistant | 新增 Agent-First 设计理念：明确 Agent vs Human 权限矩阵，更新架构图和 API 路由 |
+| 0.11 | 2026-02-04 | AI Assistant | 重新定义三大杀手级功能：Zero Context Injection、AI-DLC Workflow、Multi-Agent Awareness |

@@ -1,6 +1,6 @@
 # Project Chorus - 技术架构文档
 
-**版本**: 1.0
+**版本**: 1.1
 **更新日期**: 2026-02-04
 
 ---
@@ -93,22 +93,20 @@ Chorus 是一个 AI Agent 与人类协作的平台，实现 AI-DLC（AI-Driven D
 │  │   React Pages       │  │        API Routes               │   │
 │  │   (App Router)      │  │                                 │   │
 │  │                     │  │  /api/projects/*                │   │
-│  │  - Dashboard        │  │  /api/tasks/*                   │   │
-│  │  - Kanban Board     │  │  /api/proposals/*               │   │
-│  │  - Task Detail      │  │  /api/knowledge/*               │   │
-│  │  - Knowledge Base   │  │  /api/agents/*                  │   │
-│  │  - Proposal Review  │  │  /api/activities/*              │   │
-│  │  - Activity Feed    │  │  /api/auth/*                    │   │
-│  │                     │  │  /api/mcp    ← MCP HTTP 端点    │   │
+│  │  - Dashboard        │  │  /api/ideas/*                   │   │
+│  │  - Project Overview │  │  /api/documents/*               │   │
+│  │  - Ideas List       │  │  /api/tasks/*                   │   │
+│  │  - Documents List   │  │  /api/proposals/*               │   │
+│  │  - Kanban Board     │  │  /api/agents/*                  │   │
+│  │  - Proposal Review  │  │  /api/auth/*                    │   │
+│  │  - Activity Feed    │  │  /api/mcp    ← MCP HTTP 端点    │   │
 │  └─────────────────────┘  └─────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │                    Service Layer                          │   │
-│  │  - ProjectService                                        │   │
-│  │  - TaskService                                           │   │
-│  │  - ProposalService                                       │   │
-│  │  - KnowledgeService                                      │   │
-│  │  - AgentService                                          │   │
-│  │  - ActivityService                                       │   │
+│  │  - ProjectService      - IdeaService                     │   │
+│  │  - DocumentService     - TaskService                     │   │
+│  │  - ProposalService     - KnowledgeService                │   │
+│  │  - AgentService        - ActivityService                 │   │
 │  │  - MCPService                                            │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────────┐   │
@@ -153,10 +151,11 @@ chorus/
 │   │   ├── projects/
 │   │   │   ├── page.tsx        # 项目列表
 │   │   │   └── [id]/
-│   │   │       ├── page.tsx    # 项目详情
-│   │   │       ├── board/page.tsx      # Kanban 看板
-│   │   │       ├── tasks/page.tsx      # 任务列表
-│   │   │       ├── knowledge/page.tsx  # 知识库
+│   │   │       ├── page.tsx    # 项目 Overview
+│   │   │       ├── ideas/page.tsx      # Ideas 列表
+│   │   │       ├── documents/page.tsx  # Documents 列表
+│   │   │       ├── tasks/page.tsx      # Kanban 看板
+│   │   │       ├── knowledge/page.tsx  # 知识库查询
 │   │   │       ├── proposals/page.tsx  # 提议列表
 │   │   │       └── activity/page.tsx   # 活动流
 │   │   │
@@ -169,17 +168,27 @@ chorus/
 │   │       │   └── [...nextauth]/route.ts
 │   │       ├── projects/
 │   │       │   ├── route.ts    # GET (list), POST (create)
-│   │       │   └── [id]/route.ts
-│   │       ├── tasks/
-│   │       │   ├── route.ts
-│   │       │   └── [id]/route.ts
-│   │       ├── proposals/
-│   │       │   ├── route.ts
 │   │       │   └── [id]/
 │   │       │       ├── route.ts
-│   │       │       └── approve/route.ts
-│   │       ├── knowledge/
-│   │       │   └── route.ts
+│   │       │       ├── ideas/route.ts
+│   │       │       ├── documents/route.ts
+│   │       │       ├── tasks/route.ts
+│   │       │       ├── proposals/route.ts
+│   │       │       ├── knowledge/route.ts
+│   │       │       └── activities/route.ts
+│   │       ├── ideas/
+│   │       │   └── [id]/route.ts
+│   │       ├── documents/
+│   │       │   └── [id]/route.ts
+│   │       ├── tasks/
+│   │       │   └── [id]/
+│   │       │       ├── route.ts
+│   │       │       └── comments/route.ts
+│   │       ├── proposals/
+│   │       │   └── [id]/
+│   │       │       ├── route.ts
+│   │       │       ├── approve/route.ts
+│   │       │       └── reject/route.ts
 │   │       ├── agents/
 │   │       │   ├── route.ts
 │   │       │   └── [id]/
@@ -196,6 +205,14 @@ chorus/
 │   │   │   ├── header.tsx
 │   │   │   ├── sidebar.tsx
 │   │   │   └── nav.tsx
+│   │   ├── idea/
+│   │   │   ├── idea-card.tsx
+│   │   │   ├── idea-form.tsx
+│   │   │   └── idea-list.tsx
+│   │   ├── document/
+│   │   │   ├── document-card.tsx
+│   │   │   ├── document-viewer.tsx
+│   │   │   └── document-list.tsx
 │   │   ├── kanban/
 │   │   │   ├── board.tsx
 │   │   │   ├── column.tsx
@@ -207,10 +224,11 @@ chorus/
 │   │   ├── proposal/
 │   │   │   ├── proposal-card.tsx
 │   │   │   ├── proposal-review.tsx
+│   │   │   ├── proposal-timeline.tsx
 │   │   │   └── approval-buttons.tsx
 │   │   ├── knowledge/
-│   │   │   ├── knowledge-editor.tsx
-│   │   │   └── knowledge-viewer.tsx
+│   │   │   ├── knowledge-search.tsx
+│   │   │   └── knowledge-results.tsx
 │   │   └── activity/
 │   │       ├── activity-feed.tsx
 │   │       └── activity-item.tsx
@@ -223,6 +241,8 @@ chorus/
 │   │
 │   ├── services/               # 业务逻辑层
 │   │   ├── project.service.ts
+│   │   ├── idea.service.ts
+│   │   ├── document.service.ts
 │   │   ├── task.service.ts
 │   │   ├── proposal.service.ts
 │   │   ├── knowledge.service.ts
@@ -236,15 +256,18 @@ chorus/
 │   │   │   ├── index.ts
 │   │   │   ├── personal/       # Personal Agent 工具
 │   │   │   │   ├── get-project.ts
+│   │   │   │   ├── query-knowledge.ts
+│   │   │   │   ├── get-documents.ts
+│   │   │   │   ├── get-document.ts
 │   │   │   │   ├── get-task.ts
 │   │   │   │   ├── list-tasks.ts
 │   │   │   │   ├── update-task.ts
 │   │   │   │   ├── add-comment.ts
 │   │   │   │   ├── report-work.ts
-│   │   │   │   ├── query-knowledge.ts
 │   │   │   │   ├── get-activity.ts
 │   │   │   │   └── checkin.ts
 │   │   │   └── pm/             # PM Agent 工具
+│   │   │       ├── get-ideas.ts
 │   │   │       ├── create-proposal.ts
 │   │   │       ├── get-proposals.ts
 │   │   │       ├── analyze-progress.ts
@@ -275,11 +298,16 @@ chorus/
 
 ### 4.1 ER 图
 
+**ID 设计原则**：所有实体使用双 ID 模式
+- `id`: 数字自增主键（内部 FK 引用）
+- `uuid`: UUID 字符串（外部 API 暴露）
+
 ```
 ┌─────────────┐       ┌─────────────┐       ┌─────────────┐
 │   Company   │───┬───│    User     │       │   Agent     │
 │             │   │   │             │───────│             │
-│  id         │   │   │  id         │       │  id         │
+│  id (Int)   │   │   │  id (Int)   │       │  id (Int)   │
+│  uuid       │   │   │  uuid       │       │  uuid       │
 │  name       │   │   │  companyId  │       │  companyId  │
 │  createdAt  │   │   │  oidcSub    │       │  name       │
 └─────────────┘   │   │  email      │       │  role       │
@@ -289,50 +317,87 @@ chorus/
        │          │   ┌─────────────┐              │
        │          └───│   ApiKey    │──────────────┘
        │              │             │
-       │              │  id         │
+       │              │  id (Int)   │
+       │              │  uuid       │
        │              │  companyId  │
        │              │  agentId    │
        │              │  key        │
-       │              │  name       │
        │              │  lastUsed   │
        │              │  expiresAt  │
        │              │  revokedAt  │
        │              └─────────────┘
        │
-       ├──────────────────────────────────────────┐
-       │                                          │
-┌──────▼──────┐       ┌─────────────┐      ┌──────▼──────┐
-│   Project   │───────│    Task     │      │  Proposal   │
-│             │       │             │      │             │
-│  id         │       │  id         │      │  id         │
-│  companyId  │       │  companyId  │      │  companyId  │
-│  name       │       │  projectId  │      │  projectId  │
-│  description│       │  title      │      │  title      │
-│  context    │       │  description│      │  description│
-│  createdAt  │       │  status     │      │  tasks      │
-└─────────────┘       │  assigneeType      │  status     │
-       │              │  assigneeId │      │  createdBy  │
-       │              │  createdAt  │      │  reviewedBy │
-       │              │  updatedAt  │      │  reviewedAt │
-       │              └─────────────┘      └─────────────┘
-       │                     │
+       ├──────────────────────────────────────────────────────┐
+       │                                                      │
+┌──────▼──────┐                                        ┌──────▼──────┐
+│   Project   │                                        │  Proposal   │
+│             │                                        │             │
+│  id (Int)   │                                        │  id (Int)   │
+│  uuid       │       ┌─────────────┐                  │  uuid       │
+│  companyId  │───────│    Idea     │                  │  companyId  │
+│  name       │       │             │                  │  projectId  │
+│  description│       │  id (Int)   │                  │  title      │
+│  createdAt  │       │  uuid       │                  │  inputType  │
+└─────────────┘       │  companyId  │──────────────────│  inputIds   │
+       │              │  projectId  │                  │  outputType │
+       │              │  content    │                  │  outputData │
+       │              │  attachments│                  │  status     │
+       │              │  createdBy  │                  │  createdBy  │
+       │              └─────────────┘                  │  reviewedBy │
+       │                                               └─────────────┘
+       │              ┌─────────────┐                         │
+       │              │  Document   │◄────────────────────────┘
+       │              │             │     (outputType=document)
+       │              │  id (Int)   │
+       │              │  uuid       │
+       │              │  companyId  │
+       │              │  projectId  │
+       │              │  type       │  (prd | tech_design | adr)
+       │              │  title      │
+       │              │  content    │
+       │              │  version    │
+       │              │  proposalId │
+       │              └─────────────┘
+       │
+       │              ┌─────────────┐
+       ├──────────────│    Task     │◄────────────────────────┐
+       │              │             │     (outputType=task)   │
+       │              │  id (Int)   │                         │
+       │              │  uuid       │                         │
+       │              │  companyId  │                         │
+       │              │  projectId  │                         │
+       │              │  title      │                         │
+       │              │  description│                         │
+       │              │  status     │                         │
+       │              │  assigneeType                         │
+       │              │  assigneeId │                         │
+       │              │  proposalId │─────────────────────────┘
+       │              └─────────────┘
        │                     │
        │              ┌──────▼──────┐
        └──────────────│  Activity   │
                       │             │
-                      │  id         │
+                      │  id (Int)   │
+                      │  uuid       │
                       │  companyId  │
                       │  projectId  │
+                      │  ideaId     │
+                      │  documentId │
+                      │  proposalId │
                       │  taskId     │
                       │  actorType  │
                       │  actorId    │
                       │  action     │
                       │  payload    │
-                      │  createdAt  │
                       └─────────────┘
 ```
 
 ### 4.2 核心实体说明
+
+**通用字段**：
+- `id`: 数字自增主键（`Int @id @default(autoincrement())`）
+- `uuid`: UUID 字符串（`String @unique @default(uuid())`）
+- 内部 FK 使用数字 `id`，外部 API 暴露 `uuid`
 
 #### Company（租户）
 - 多租户隔离的根实体
@@ -354,25 +419,46 @@ chorus/
 - `revokedAt`: 撤销时间
 
 #### Project（项目）
-- 项目容器
-- `context`: JSON 格式的项目知识库
+- 项目容器，所有业务数据的父级
+- 包含 Ideas、Documents、Tasks、Proposals、Activities
+
+#### Idea（想法）
+- 人类原始输入
+- `content`: 文本内容
+- `attachments`: 附件列表（图片、文件等）
+- `createdBy`: 创建者 User ID
+- 作为 Proposal 的输入源
+
+#### Document（文档）
+- Proposal 的产物（PRD、技术设计等）
+- `type`: `prd` | `tech_design` | `adr` | ...
+- `content`: Markdown 格式内容
+- `version`: 版本号
+- `proposalId`: 来源 Proposal（可追溯）
 
 #### Task（任务）
-- 任务实体
+- Proposal 的产物或人工创建
 - `status`: `todo` | `in_progress` | `done`
 - `assigneeType`: `user` | `agent`
 - `assigneeId`: 关联的 User 或 Agent ID
+- `proposalId`: 来源 Proposal（可追溯，可选）
 
 #### Proposal（提议）
-- PM Agent 创建的任务提议
-- `tasks`: JSON 格式的任务列表
-- `status`: `pending` | `approved` | `rejected`
-- 批准后自动创建 Task
+- PM Agent 创建，人类审批，连接输入和输出
+- **输入**：
+  - `inputType`: `idea` | `document`
+  - `inputIds`: 关联的输入 ID 列表（数字 ID 数组）
+- **输出**：
+  - `outputType`: `document` | `task`
+  - `outputData`: 提议的内容（Document 草稿或 Task 列表）
+- `status`: `pending` | `approved` | `rejected` | `revised`
+- 批准后根据 outputType 自动创建 Document 或 Tasks
 
 #### Activity（活动）
-- 活动日志
+- 项目级活动日志
 - `actorType`: `user` | `agent`
-- `action`: `created` | `updated` | `commented` | `proposal_created` | `proposal_approved` | ...
+- `action`: `idea_created` | `proposal_created` | `proposal_approved` | `document_created` | `task_created` | ...
+- 可关联 ideaId、documentId、proposalId、taskId 用于追溯
 
 ---
 
@@ -386,37 +472,47 @@ chorus/
 
 #### 端点概览
 
+**注意**：URL 中的 `:id` 参数使用 `uuid`，内部存储使用数字 `id`。
+
 | 方法 | 路径 | 描述 | 权限 |
 |-----|------|------|------|
 | **Projects** |
 | GET | /api/projects | 项目列表 | User, Agent |
 | POST | /api/projects | 创建项目 | User |
-| GET | /api/projects/:id | 项目详情 | User, Agent |
-| PATCH | /api/projects/:id | 更新项目 | User |
-| DELETE | /api/projects/:id | 删除项目 | User |
+| GET | /api/projects/:uuid | 项目详情 | User, Agent |
+| PATCH | /api/projects/:uuid | 更新项目 | User |
+| DELETE | /api/projects/:uuid | 删除项目 | User |
+| **Ideas** |
+| GET | /api/projects/:uuid/ideas | 项目 Ideas 列表 | User, PM Agent |
+| POST | /api/projects/:uuid/ideas | 创建 Idea | User |
+| GET | /api/ideas/:uuid | Idea 详情 | User, PM Agent |
+| DELETE | /api/ideas/:uuid | 删除 Idea | User |
+| **Documents** |
+| GET | /api/projects/:uuid/documents | 项目 Documents 列表 | User, Agent |
+| GET | /api/documents/:uuid | Document 详情 | User, Agent |
+| PATCH | /api/documents/:uuid | 更新 Document | User |
 | **Tasks** |
-| GET | /api/tasks | 任务列表 | User, Agent |
-| POST | /api/tasks | 创建任务 | User, PM Agent |
-| GET | /api/tasks/:id | 任务详情 | User, Agent |
-| PATCH | /api/tasks/:id | 更新任务 | User, Agent |
-| POST | /api/tasks/:id/comments | 添加评论 | User, Agent |
+| GET | /api/projects/:uuid/tasks | 项目任务列表 | User, Agent |
+| POST | /api/projects/:uuid/tasks | 创建任务（手动） | User |
+| GET | /api/tasks/:uuid | 任务详情 | User, Agent |
+| PATCH | /api/tasks/:uuid | 更新任务 | User, Agent |
+| POST | /api/tasks/:uuid/comments | 添加评论 | User, Agent |
 | **Proposals** |
-| GET | /api/proposals | 提议列表 | User, PM Agent |
-| POST | /api/proposals | 创建提议 | PM Agent |
-| GET | /api/proposals/:id | 提议详情 | User, PM Agent |
-| POST | /api/proposals/:id/approve | 批准提议 | User |
-| POST | /api/proposals/:id/reject | 拒绝提议 | User |
+| GET | /api/projects/:uuid/proposals | 项目提议列表 | User, PM Agent |
+| POST | /api/projects/:uuid/proposals | 创建提议 | PM Agent |
+| GET | /api/proposals/:uuid | 提议详情 | User, PM Agent |
+| POST | /api/proposals/:uuid/approve | 批准提议 | User |
+| POST | /api/proposals/:uuid/reject | 拒绝提议 | User |
 | **Knowledge** |
-| GET | /api/knowledge | 查询知识库 | User, Agent |
-| PUT | /api/knowledge | 更新知识库 | User |
+| GET | /api/projects/:uuid/knowledge | 统一查询知识库 | User, Agent |
 | **Agents** |
 | GET | /api/agents | Agent 列表 | User |
 | POST | /api/agents | 创建 Agent | User |
-| GET | /api/agents/:id | Agent 详情 | User |
-| POST | /api/agents/:id/keys | 创建 API Key | User |
-| DELETE | /api/agents/:id/keys/:keyId | 撤销 API Key | User |
+| GET | /api/agents/:uuid | Agent 详情 | User |
+| POST | /api/agents/:uuid/keys | 创建 API Key | User |
+| DELETE | /api/agents/:uuid/keys/:keyUuid | 撤销 API Key | User |
 | **Activities** |
-| GET | /api/activities | 活动列表 | User, Agent |
+| GET | /api/projects/:uuid/activities | 项目活动列表 | User, Agent |
 
 ### 5.2 MCP API
 
@@ -440,25 +536,36 @@ Header: Authorization: Bearer {api_key}
 | 工具 | 描述 |
 |-----|------|
 | `chorus_get_project` | 获取项目详情和上下文 |
+| `chorus_query_knowledge` | 统一查询知识库（Ideas/Docs/Tasks） |
+| `chorus_get_documents` | 获取项目 Documents 列表 |
+| `chorus_get_document` | 获取单个 Document 详情 |
 | `chorus_get_task` | 获取任务详情 |
 | `chorus_list_tasks` | 列出任务 |
 | `chorus_update_task` | 更新任务状态 |
 | `chorus_add_comment` | 添加任务评论 |
 | `chorus_report_work` | 报告工作完成 |
-| `chorus_query_knowledge` | 查询知识库 |
-| `chorus_get_activity` | 获取最近活动 |
+| `chorus_get_activity` | 获取项目活动流 |
 | `chorus_checkin` | 心跳签到 |
 
 #### PM Agent 工具
 
 | 工具 | 描述 |
 |-----|------|
-| `chorus_pm_create_proposal` | 创建任务提议 |
-| `chorus_pm_get_proposals` | 获取提议状态 |
+| `chorus_pm_get_ideas` | 获取项目 Ideas 列表（人类输入） |
+| `chorus_pm_create_proposal` | 创建提议（PRD/任务拆分等） |
+| `chorus_pm_get_proposals` | 获取提议列表和状态 |
 | `chorus_pm_analyze_progress` | 分析项目进度 |
 | `chorus_pm_identify_risks` | 识别风险和阻塞 |
 
 PM Agent 同时拥有 Personal Agent 的所有工具。
+
+#### Proposal 输入/输出说明
+
+| 场景 | inputType | inputIds | outputType | outputData |
+|-----|-----------|----------|------------|------------|
+| Ideas → PRD | `idea` | Idea IDs | `document` | PRD 草稿 |
+| PRD → Tasks | `document` | Document ID | `task` | Task 列表 |
+| PRD → Tech Design | `document` | Document ID | `document` | 技术设计草稿 |
 
 ---
 
@@ -538,65 +645,76 @@ PM Agent 同时拥有 Personal Agent 的所有工具。
 
 ## 7. 核心流程
 
-### 7.1 Reversed Conversation 工作流
+### 7.1 Reversed Conversation 工作流（Idea → Proposal → Document/Task）
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  1. 人类描述需求                                                 │
-│     "我想实现用户认证功能，支持 OAuth 和邮箱密码登录"              │
+│  1. 人类创建 Ideas                                               │
+│     - 文本："我想实现用户认证功能，支持 OAuth 和邮箱密码登录"        │
+│     - 附件：竞品截图、设计草图等                                   │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  2. PM Agent (Claude Code) 分析                                  │
+│  2. PM Agent 创建 PRD Proposal                                   │
+│     - 获取 Ideas (chorus_pm_get_ideas)                          │
 │     - 读取项目知识库 (chorus_query_knowledge)                    │
-│     - 分析需求                                                  │
-│     - 生成任务拆解                                               │
 │     - 创建提议 (chorus_pm_create_proposal)                       │
+│       inputType: idea, inputIds: [idea1, idea2]                 │
+│       outputType: document, outputData: { PRD 草稿 }             │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  3. Chorus 平台存储提议                                          │
-│     - 状态: pending                                             │
-│     - 通知人类审批                                               │
+│  3. 人类审批 PRD Proposal (Web UI)                               │
+│     - 查看 PRD 草稿                                              │
+│     - 批准 → 创建 Document(PRD)                                  │
+│     - 修改 → 返回修改                                            │
+│     - 拒绝 → 标记拒绝                                            │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  4. 人类审批 (Web UI)                                            │
-│     - 查看提议详情                                               │
-│     - 批准 / 调整 / 拒绝                                         │
+│  4. PM Agent 创建 Task Breakdown Proposal                        │
+│     - 读取 Document(PRD)                                         │
+│     - 创建提议 (chorus_pm_create_proposal)                       │
+│       inputType: document, inputIds: [prd_id]                   │
+│       outputType: task, outputData: { Task 列表 }                │
 └─────────────────────────────────────────────────────────────────┘
                               │
-                     ┌────────┴────────┐
-                     ▼                 ▼
-              ┌──────────┐       ┌──────────┐
-              │  批准    │       │  拒绝    │
-              └────┬─────┘       └────┬─────┘
-                   │                  │
-                   ▼                  ▼
-┌─────────────────────────┐   ┌─────────────────┐
-│  5a. 自动创建任务        │   │  5b. 结束       │
-│      状态: todo          │   │      可重新提议  │
-└────────────┬────────────┘   └─────────────────┘
-             │
-             ▼
+                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  6. Personal Agent 执行                                          │
+│  5. 人类审批 Task Breakdown Proposal (Web UI)                    │
+│     - 查看任务列表                                               │
+│     - 批准 → 创建 Tasks (status: todo)                           │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  6. Personal Agent 执行任务                                       │
 │     - 获取任务 (chorus_get_task)                                 │
+│     - 获取相关文档 (chorus_get_document)                         │
 │     - 执行开发工作                                               │
 │     - 报告完成 (chorus_report_work)                              │
 └─────────────────────────────────────────────────────────────────┘
-             │
-             ▼
+                              │
+                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  7. PM Agent 持续追踪                                            │
 │     - 分析进度 (chorus_pm_analyze_progress)                      │
 │     - 识别风险 (chorus_pm_identify_risks)                        │
-│     - 必要时调整计划                                             │
+│     - 必要时创建新 Proposal 调整计划                              │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+**完整追溯链**：
+```
+Ideas → Proposal → Document(PRD) → Proposal → Tasks
+                       ↓
+               Proposal → Document(Tech Design)
+```
+
+每个 Task/Document 都可以追溯到源头 Proposal 和 Ideas。
 
 ### 7.2 任务状态流转
 
@@ -631,16 +749,32 @@ PM Agent 同时拥有 Personal Agent 的所有工具。
 ### 7.3 提议审批流程
 
 ```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   pending    │────>│   approved   │────>│ Tasks Created│
-└──────────────┘     └──────────────┘     └──────────────┘
-       │
-       │
-       ▼
-┌──────────────┐
-│   rejected   │
-└──────────────┘
+                           ┌──────────────────────────────────────┐
+                           │           outputType 决定            │
+                           │                                      │
+┌──────────────┐     ┌─────▼──────┐     ┌──────────────────────┐  │
+│   pending    │────>│  approved  │────>│  outputType=document │──┼──> 创建 Document
+└──────────────┘     └────────────┘     └──────────────────────┘  │
+       │                                ┌──────────────────────┐  │
+       │                                │  outputType=task     │──┼──> 创建 Tasks
+       │                                └──────────────────────┘  │
+       │                                                          │
+       ▼                                                          │
+┌──────────────┐                                                  │
+│   rejected   │                                                  │
+└──────────────┘                                                  │
+       │                                                          │
+       ▼                                                          │
+┌──────────────┐                                                  │
+│   revised    │─────────────────────────────────────────────────>┘
+└──────────────┘    (修改后重新提交)
 ```
+
+**审批结果**：
+- `approved` + `outputType=document` → 创建 Document，记录 proposalId
+- `approved` + `outputType=task` → 批量创建 Tasks，记录 proposalId
+- `rejected` → 结束，可重新提议
+- `revised` → 修改后重新审批
 
 ---
 
