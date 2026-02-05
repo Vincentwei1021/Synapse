@@ -107,21 +107,29 @@ model Project {
 
 // 想法（人类原始输入）
 model Idea {
-  id          Int      @id @default(autoincrement())
-  uuid        String   @unique @default(uuid())
-  companyId   Int
-  company     Company  @relation(fields: [companyId], references: [id])
-  projectId   Int
-  project     Project  @relation(fields: [projectId], references: [id])
-  title       String
-  content     String?  // 文本内容
-  attachments Json?    // 附件列表 [{type, url, name}]
-  createdBy   Int      // User ID
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           Int       @id @default(autoincrement())
+  uuid         String    @unique @default(uuid())
+  companyId    Int
+  company      Company   @relation(fields: [companyId], references: [id])
+  projectId    Int
+  project      Project   @relation(fields: [projectId], references: [id])
+  title        String
+  content      String?   // 文本内容
+  attachments  Json?     // 附件列表 [{type, url, name}]
+  // 状态和认领 (ARCHITECTURE.md §7.3)
+  status       String    @default("open")  // open | assigned | in_progress | pending_review | completed | closed
+  assigneeType String?   // user | agent
+  assigneeId   Int?      // 认领者 ID
+  assignedAt   DateTime? // 认领时间
+  assignedBy   Int?      // 分配者 User ID（人类分配时记录）
+  createdBy    Int       // User ID
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([companyId])
   @@index([projectId])
+  @@index([status])
+  @@index([assigneeId])
 }
 
 // 文档（PRD、技术设计等，Proposal 产物）
@@ -148,22 +156,25 @@ model Document {
 
 // 任务（Proposal 产物或人工创建）
 model Task {
-  id           Int      @id @default(autoincrement())
-  uuid         String   @unique @default(uuid())
+  id           Int       @id @default(autoincrement())
+  uuid         String    @unique @default(uuid())
   companyId    Int
-  company      Company  @relation(fields: [companyId], references: [id])
+  company      Company   @relation(fields: [companyId], references: [id])
   projectId    Int
-  project      Project  @relation(fields: [projectId], references: [id])
+  project      Project   @relation(fields: [projectId], references: [id])
   title        String
   description  String?
-  status       String   @default("todo")  // todo | in_progress | to_verify | done
-  priority     String   @default("medium") // low | medium | high
-  assigneeType String?  // user | agent
-  assigneeId   Int?
-  proposalId   Int?     // 来源 Proposal（可追溯，可选）
-  createdBy    Int      // User ID 或 Agent ID
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  // 状态和认领 (ARCHITECTURE.md §7.2)
+  status       String    @default("open")  // open | assigned | in_progress | to_verify | done | closed
+  priority     String    @default("medium") // low | medium | high
+  assigneeType String?   // user | agent
+  assigneeId   Int?      // 认领者 ID
+  assignedAt   DateTime? // 认领时间
+  assignedBy   Int?      // 分配者 User ID（人类分配时记录）
+  proposalId   Int?      // 来源 Proposal（可追溯，可选）
+  createdBy    Int       // User ID 或 Agent ID
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   activities Activity[]
 

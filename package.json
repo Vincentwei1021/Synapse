@@ -14,8 +14,9 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "docker:up": "docker compose up -d",
-    "docker:down": "docker compose down",
+    "docker:db": "docker compose up -d db",
+    "docker:up": "docker compose --profile full up -d",
+    "docker:down": "docker compose --profile full down",
     "docker:build": "docker compose build",
     "docker:logs": "docker compose logs -f app"
   },

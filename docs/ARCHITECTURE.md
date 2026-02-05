@@ -106,9 +106,9 @@ Chorus 是一个 AI Agent 与人类协作的平台，实现 AI-DLC（AI-Driven D
 │  │                    Service Layer                          │   │
 │  │  - ProjectService      - IdeaService                     │   │
 │  │  - DocumentService     - TaskService                     │   │
-│  │  - ProposalService     - KnowledgeService                │   │
+│  │  - ProposalService     - CommentService                  │   │
 │  │  - AgentService        - ActivityService                 │   │
-│  │  - MCPService                                            │   │
+│  │  - AssignmentService                                     │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │                    Data Access Layer                      │   │
@@ -122,7 +122,114 @@ Chorus 是一个 AI Agent 与人类协作的平台，实现 AI-DLC（AI-Driven D
                     └───────────────────┘
 ```
 
-### 3.2 目录结构
+### 3.2 Controller-Service-DAO 架构
+
+Chorus 采用经典的三层架构模式，职责清晰分离：
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Controller Layer                              │
+│                    (Next.js API Routes)                          │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  职责:                                                    │   │
+│  │  - 请求/响应处理                                          │   │
+│  │  - 认证/授权检查                                          │   │
+│  │  - 参数验证                                               │   │
+│  │  - 调用 Service 层                                        │   │
+│  │  - 格式化响应                                             │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│  代码位置: src/app/api/**/*.ts                                   │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Service Layer                                 │
+│                    (Business Logic)                              │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  职责:                                                    │   │
+│  │  - 业务逻辑实现                                           │   │
+│  │  - 数据查询和转换                                         │   │
+│  │  - 事务管理                                               │   │
+│  │  - 跨实体操作协调                                         │   │
+│  │  - 状态机验证                                             │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│  代码位置: src/services/*.service.ts                             │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    DAO Layer                                     │
+│                    (Prisma Client)                               │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  职责:                                                    │   │
+│  │  - 数据库操作封装                                         │   │
+│  │  - ORM 映射                                               │   │
+│  │  - 连接池管理                                             │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│  代码位置: src/lib/prisma.ts (单例)                              │
+│            src/generated/prisma/ (生成的客户端)                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 服务层模块
+
+| 服务 | 文件 | 职责 |
+|-----|------|------|
+| ProjectService | `project.service.ts` | 项目 CRUD |
+| IdeaService | `idea.service.ts` | Idea CRUD + 状态流转 + 认领 |
+| TaskService | `task.service.ts` | Task CRUD + 状态流转 + 认领 |
+| DocumentService | `document.service.ts` | Document CRUD |
+| ProposalService | `proposal.service.ts` | Proposal CRUD + 审批流程 |
+| AgentService | `agent.service.ts` | Agent + API Key 管理 |
+| CommentService | `comment.service.ts` | 多态评论 |
+| ActivityService | `activity.service.ts` | 活动日志 |
+| AssignmentService | `assignment.service.ts` | Agent 自助查询（我的任务、可认领） |
+
+#### 代码示例
+
+**Controller (route.ts)**:
+```typescript
+// src/app/api/projects/route.ts
+import { withErrorHandler, parsePagination } from "@/lib/api-handler";
+import { success, paginated, errors } from "@/lib/api-response";
+import { getAuthContext, isUser } from "@/lib/auth";
+import * as projectService from "@/services/project.service";
+
+export const GET = withErrorHandler(async (request) => {
+  const auth = await getAuthContext(request);
+  if (!auth) return errors.unauthorized();
+
+  const { page, pageSize, skip, take } = parsePagination(request);
+  const { projects, total } = await projectService.listProjects({
+    companyId: auth.companyId,
+    skip,
+    take,
+  });
+
+  return paginated(projects, page, pageSize, total);
+});
+```
+
+**Service (*.service.ts)**:
+```typescript
+// src/services/project.service.ts
+import { prisma } from "@/lib/prisma";
+
+export async function listProjects({ companyId, skip, take }) {
+  const [projects, total] = await Promise.all([
+    prisma.project.findMany({
+      where: { companyId },
+      skip,
+      take,
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.project.count({ where: { companyId } }),
+  ]);
+  return { projects, total };
+}
+```
+
+### 3.3 目录结构
 
 ```
 chorus/

@@ -1,5 +1,7 @@
 services:
   app:
+    profiles:
+      - full  # 只在 --profile full 时启动
     build:
       context: .
       dockerfile: Dockerfile
@@ -17,7 +19,7 @@ services:
       - .:/app
       - /app/node_modules
       - /app/.next
-    command: npm run dev
+    command: pnpm run dev
 
   db:
     image: postgres:16-alpine
