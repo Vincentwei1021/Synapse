@@ -2,7 +2,7 @@
 // Agent 服务层 (ARCHITECTURE.md §3.1 Service Layer)
 
 import { prisma } from "@/lib/prisma";
-import { generateApiKey, hashApiKey } from "@/lib/api-key";
+import { generateApiKey } from "@/lib/api-key";
 
 export interface AgentListParams {
   companyId: number;
@@ -15,11 +15,15 @@ export interface AgentCreateParams {
   name: string;
   roles: string[];
   ownerId: number;
+  persona?: string | null;
+  systemPrompt?: string | null;
 }
 
 export interface AgentUpdateParams {
   name?: string;
   roles?: string[];
+  persona?: string | null;
+  systemPrompt?: string | null;
 }
 
 export interface ApiKeyCreateParams {
@@ -41,6 +45,7 @@ export async function listAgents({ companyId, skip, take }: AgentListParams) {
         uuid: true,
         name: true,
         roles: true,
+        persona: true,
         ownerId: true,
         lastActiveAt: true,
         createdAt: true,
@@ -91,13 +96,22 @@ export async function getAgentIdByUuid(companyId: number, uuid: string) {
 }
 
 // 创建 Agent
-export async function createAgent({ companyId, name, roles, ownerId }: AgentCreateParams) {
+export async function createAgent({
+  companyId,
+  name,
+  roles,
+  ownerId,
+  persona,
+  systemPrompt,
+}: AgentCreateParams) {
   return prisma.agent.create({
-    data: { companyId, name, roles, ownerId },
+    data: { companyId, name, roles, ownerId, persona, systemPrompt },
     select: {
       uuid: true,
       name: true,
       roles: true,
+      persona: true,
+      systemPrompt: true,
       ownerId: true,
       createdAt: true,
     },
@@ -113,6 +127,8 @@ export async function updateAgent(id: number, data: AgentUpdateParams) {
       uuid: true,
       name: true,
       roles: true,
+      persona: true,
+      systemPrompt: true,
       ownerId: true,
       lastActiveAt: true,
       createdAt: true,

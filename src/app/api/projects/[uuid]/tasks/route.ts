@@ -54,6 +54,7 @@ export const GET = withErrorHandler<{ uuid: string }>(
           description: true,
           status: true,
           priority: true,
+          storyPoints: true,
           assigneeType: true,
           assigneeId: true,
           assignedAt: true,
@@ -73,6 +74,7 @@ export const GET = withErrorHandler<{ uuid: string }>(
       description: task.description,
       status: task.status,
       priority: task.priority,
+      storyPoints: task.storyPoints,
       assignee: task.assigneeId
         ? {
             type: task.assigneeType,
@@ -120,6 +122,7 @@ export const POST = withErrorHandler<{ uuid: string }>(
       title: string;
       description?: string;
       priority?: string;
+      storyPoints?: number;
     }>(request);
 
     // 验证必填字段
@@ -136,6 +139,14 @@ export const POST = withErrorHandler<{ uuid: string }>(
       });
     }
 
+    // 验证 storyPoints（单位：Agent 小时）
+    const storyPoints = body.storyPoints;
+    if (storyPoints !== undefined && (storyPoints < 0 || storyPoints > 1000)) {
+      return errors.validationError({
+        storyPoints: "Story points must be between 0 and 1000 agent hours",
+      });
+    }
+
     const task = await prisma.task.create({
       data: {
         companyId: auth.companyId,
@@ -144,6 +155,7 @@ export const POST = withErrorHandler<{ uuid: string }>(
         description: body.description?.trim() || null,
         status: "open",
         priority,
+        storyPoints: storyPoints || null,
         createdBy: auth.actorId,
       },
       select: {
@@ -152,6 +164,7 @@ export const POST = withErrorHandler<{ uuid: string }>(
         description: true,
         status: true,
         priority: true,
+        storyPoints: true,
         createdBy: true,
         createdAt: true,
         updatedAt: true,
@@ -164,6 +177,7 @@ export const POST = withErrorHandler<{ uuid: string }>(
       description: task.description,
       status: task.status,
       priority: task.priority,
+      storyPoints: task.storyPoints,
       assignee: null,
       proposalId: null,
       createdBy: task.createdBy,

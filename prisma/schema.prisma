@@ -61,6 +61,9 @@ model Agent {
   company      Company   @relation(fields: [companyId], references: [id])
   name         String
   roles        String[]  @default(["developer"])  // pm | developer（可多选）
+  // Agent 人格定义（Zero Context Injection）
+  persona      String?   // 自定义人格描述（简短）
+  systemPrompt String?   // 完整系统提示（可选，覆盖默认模板）
   ownerId      Int?
   owner        User?     @relation(fields: [ownerId], references: [id])
   lastActiveAt DateTime?
@@ -174,6 +177,7 @@ model Task {
   // 状态和认领 (ARCHITECTURE.md §7.2)
   status       String    @default("open")  // open | assigned | in_progress | to_verify | done | closed
   priority     String    @default("medium") // low | medium | high
+  storyPoints  Float?    // 工作量估算（单位：Agent 小时）
   assigneeType String?   // user | agent
   assigneeId   Int?      // 认领者 ID
   assignedAt   DateTime? // 认领时间

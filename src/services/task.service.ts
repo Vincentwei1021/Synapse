@@ -18,6 +18,7 @@ export interface TaskCreateParams {
   title: string;
   description?: string | null;
   priority?: string;
+  storyPoints?: number | null;  // 工作量估算（单位：Agent 小时）
   proposalId?: number | null;
   createdBy: number;
 }
@@ -34,6 +35,7 @@ export interface TaskUpdateParams {
   description?: string | null;
   status?: string;
   priority?: string;
+  storyPoints?: number | null;  // 工作量估算（单位：Agent 小时）
 }
 
 // Task 状态转换规则 (ARCHITECTURE.md §7.2)
@@ -73,6 +75,7 @@ export async function listTasks({ companyId, projectId, skip, take, status, prio
         description: true,
         status: true,
         priority: true,
+        storyPoints: true,
         assigneeType: true,
         assigneeId: true,
         assignedAt: true,
@@ -116,6 +119,7 @@ export async function createTask(params: TaskCreateParams) {
       description: params.description,
       status: "open",
       priority: params.priority || "medium",
+      storyPoints: params.storyPoints,
       proposalId: params.proposalId,
       createdBy: params.createdBy,
     },
@@ -125,6 +129,7 @@ export async function createTask(params: TaskCreateParams) {
       description: true,
       status: true,
       priority: true,
+      storyPoints: true,
       createdBy: true,
       createdAt: true,
       updatedAt: true,
@@ -188,7 +193,7 @@ export async function createTasksFromProposal(
   projectId: number,
   proposalId: number,
   createdBy: number,
-  tasks: Array<{ title: string; description?: string; priority?: string }>
+  tasks: Array<{ title: string; description?: string; priority?: string; storyPoints?: number }>
 ) {
   const createPromises = tasks.map((task) =>
     prisma.task.create({
@@ -199,6 +204,7 @@ export async function createTasksFromProposal(
         description: task.description || null,
         status: "open",
         priority: task.priority || "medium",
+        storyPoints: task.storyPoints || null,
         proposalId,
         createdBy,
       },

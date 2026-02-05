@@ -49,6 +49,8 @@ export const GET = withErrorHandler<{ uuid: string }>(
       uuid: agent.uuid,
       name: agent.name,
       roles: agent.roles,
+      persona: agent.persona,
+      systemPrompt: agent.systemPrompt,
       ownerId: agent.ownerId,
       lastActiveAt: agent.lastActiveAt?.toISOString() || null,
       apiKeys: agent.apiKeys.map((k) => ({
@@ -90,9 +92,16 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
     const body = await parseBody<{
       name?: string;
       roles?: string[];
+      persona?: string | null;
+      systemPrompt?: string | null;
     }>(request);
 
-    const updateData: { name?: string; roles?: string[] } = {};
+    const updateData: {
+      name?: string;
+      roles?: string[];
+      persona?: string | null;
+      systemPrompt?: string | null;
+    } = {};
 
     if (body.name !== undefined) {
       if (body.name.trim() === "") {
@@ -113,6 +122,14 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
       updateData.roles = body.roles;
     }
 
+    if (body.persona !== undefined) {
+      updateData.persona = body.persona?.trim() || null;
+    }
+
+    if (body.systemPrompt !== undefined) {
+      updateData.systemPrompt = body.systemPrompt?.trim() || null;
+    }
+
     const updated = await prisma.agent.update({
       where: { id: agent.id },
       data: updateData,
@@ -120,6 +137,8 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
         uuid: true,
         name: true,
         roles: true,
+        persona: true,
+        systemPrompt: true,
         ownerId: true,
         lastActiveAt: true,
         createdAt: true,
@@ -130,6 +149,8 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
       uuid: updated.uuid,
       name: updated.name,
       roles: updated.roles,
+      persona: updated.persona,
+      systemPrompt: updated.systemPrompt,
       ownerId: updated.ownerId,
       lastActiveAt: updated.lastActiveAt?.toISOString() || null,
       createdAt: updated.createdAt.toISOString(),

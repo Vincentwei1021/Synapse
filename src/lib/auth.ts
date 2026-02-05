@@ -1,7 +1,7 @@
 // src/lib/auth.ts
 // 认证中间件和工具函数 (ARCHITECTURE.md §6)
 
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { extractApiKey, validateApiKey } from "./api-key";
 import { errors } from "./api-response";
 import type {
@@ -89,12 +89,12 @@ export function requireAuth<T>(
     request: NextRequest,
     context: { params: Promise<T> },
     auth: AuthContext
-  ) => Promise<Response>
+  ) => Promise<NextResponse>
 ) {
   return async (
     request: NextRequest,
     context: { params: Promise<T> }
-  ): Promise<Response> => {
+  ): Promise<NextResponse> => {
     const auth = await getAuthContext(request);
     if (!auth) {
       return errors.unauthorized();
@@ -109,12 +109,12 @@ export function requireUser<T>(
     request: NextRequest,
     context: { params: Promise<T> },
     auth: UserAuthContext
-  ) => Promise<Response>
+  ) => Promise<NextResponse>
 ) {
   return async (
     request: NextRequest,
     context: { params: Promise<T> }
-  ): Promise<Response> => {
+  ): Promise<NextResponse> => {
     const auth = await getAuthContext(request);
     if (!auth) {
       return errors.unauthorized();
@@ -133,12 +133,12 @@ export function requireAgentRole<T>(
     request: NextRequest,
     context: { params: Promise<T> },
     auth: AgentAuthContext
-  ) => Promise<Response>
+  ) => Promise<NextResponse>
 ) {
   return async (
     request: NextRequest,
     context: { params: Promise<T> }
-  ): Promise<Response> => {
+  ): Promise<NextResponse> => {
     const auth = await getAuthContext(request);
     if (!auth) {
       return errors.unauthorized();
@@ -199,12 +199,12 @@ export function requireSuperAdmin<T>(
     request: NextRequest,
     context: { params: Promise<T> },
     auth: SuperAdminAuthContext
-  ) => Promise<Response>
+  ) => Promise<NextResponse>
 ) {
   return async (
     request: NextRequest,
     context: { params: Promise<T> }
-  ): Promise<Response> => {
+  ): Promise<NextResponse> => {
     const auth = await getSuperAdminFromRequest(request);
     if (!auth) {
       return errors.unauthorized("Super Admin authentication required");

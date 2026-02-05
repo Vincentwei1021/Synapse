@@ -267,21 +267,76 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // chorus_checkin - 心跳签到
+  // chorus_checkin - 心跳签到，返回 Agent 人格和待处理任务
   server.registerTool(
     "chorus_checkin",
     {
-      description: "Agent 心跳签到，更新最后活跃时间",
+      description: "Agent 心跳签到，返回 Agent 人格定义、角色和待处理任务。建议在每个 session 开始时调用。",
       inputSchema: z.object({}),
     },
     async () => {
-      await prisma.agent.update({
+      // 更新最后活跃时间并获取 Agent 信息
+      const agent = await prisma.agent.update({
         where: { id: auth.actorId },
         data: { lastActiveAt: new Date() },
+        select: {
+          uuid: true,
+          name: true,
+          roles: true,
+          persona: true,
+          systemPrompt: true,
+        },
       });
 
+      // 获取待处理的 Ideas 和 Tasks
+      const { ideas, tasks } = await assignmentService.getMyAssignments(auth);
+
+      // 构建默认人格（如果未设置自定义人格）
+      const defaultPersonas: Record<string, string> = {
+        pm: `你是一个经验丰富的产品经理 Agent。你的职责是：
+- 分析用户需求，提炼核心问题
+- 将模糊的想法转化为清晰的 PRD
+- 合理拆分任务，估算工作量（以 Agent 小时为单位）
+- 识别风险和依赖关系
+- 与团队保持沟通，推动项目进展
+
+工作风格：务实、注重细节、善于沟通`,
+        developer: `你是一个专业的开发者 Agent。你的职责是：
+- 理解任务需求，编写高质量代码
+- 遵循项目的代码规范和架构约定
+- 完成任务后及时报告进度
+- 遇到问题主动沟通，不做假设
+
+工作风格：严谨、高效、注重代码质量`,
+      };
+
+      // 确定有效的人格
+      let effectivePersona = agent.persona;
+      if (!effectivePersona && agent.roles.length > 0) {
+        effectivePersona = defaultPersonas[agent.roles[0]] || null;
+      }
+
+      const result = {
+        checkinTime: new Date().toISOString(),
+        agent: {
+          uuid: agent.uuid,
+          name: agent.name,
+          roles: agent.roles,
+          persona: effectivePersona,
+          systemPrompt: agent.systemPrompt,
+        },
+        assignments: {
+          ideas: ideas.filter(i => ["assigned", "in_progress"].includes(i.status)),
+          tasks: tasks.filter(t => ["assigned", "in_progress"].includes(t.status)),
+        },
+        pending: {
+          ideasCount: ideas.length,
+          tasksCount: tasks.length,
+        },
+      };
+
       return {
-        content: [{ type: "text", text: `签到成功: ${new Date().toISOString()}` }],
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
       };
     }
   );

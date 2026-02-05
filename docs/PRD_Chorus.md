@@ -1,7 +1,7 @@
 # PRD: Project Chorus 🎵
 
 **代号**: Chorus
-**文档版本**: 0.15 (Draft)
+**文档版本**: 0.16 (Draft)
 **创建日期**: 2026-02-04
 **更新日期**: 2026-02-05
 **状态**: 讨论中
@@ -29,11 +29,17 @@
 
 #### 1. 🧠 Zero Context Injection（零成本上下文注入）
 
-**痛点**：每次开新 Claude Code session，都要花 5-10 分钟解释项目背景。
+**痛点**：每次开新 Claude Code session，都要花 5-10 分钟解释项目背景和 Agent 角色。
 
-**杀手体验**：Agent 开始任务时，自动获取项目背景、任务上下文、前置任务输出、相关决策记录。**0 秒准备，直接开始工作。**
+**杀手体验**：Agent 开始任务时，自动获取：
+- **Agent 人格**：预定义的角色、专长、工作风格
+- **项目背景**：目标、技术栈、架构决策
+- **任务上下文**：任务描述、前置任务输出、相关讨论
+- **待处理事项**：分配给自己的 Ideas/Tasks
 
-**一句话**：Agent 自动知道一切，人类不用重复解释。
+**0 秒准备，直接开始工作。**
+
+**一句话**：Agent 自动知道"我是谁"和"要做什么"，人类不用重复解释。
 
 #### 2. 🔄 AI-DLC Workflow（AI 驱动的开发工作流）
 
@@ -68,6 +74,7 @@ Chorus 的设计基于 **AI-DLC（AI-Driven Development Lifecycle）**——AWS 
 |-----|--------|
 | 人类提示 → AI 执行 | **AI 提议 → 人类验证**（Reversed Conversation） |
 | Sprint（周） | **Bolt（小时/天）** |
+| Story Point = 人天 | **Story Point = Agent 小时** |
 | AI 是工具 | **AI 是协作者** |
 | 改造 Agile | **从第一性原理重新设计** |
 
@@ -89,6 +96,33 @@ Chorus 的设计基于 **AI-DLC（AI-Driven Development Lifecycle）**——AWS 
          ↓ 每个阶段的上下文传递给下一阶段 ↓
 ```
 
+### Agent 小时：全新的工作量衡量标准
+
+**传统 Story Point 的问题**：
+- 以"人天"为单位，假设人类是执行主体
+- 估算依赖经验，主观性强
+- 不适用于 AI Agent 执行的任务
+
+**Agent 小时（Agent Hours）**：
+- **定义**：1 Agent 小时 = 1 个 Agent 持续工作 1 小时的产出
+- **特点**：可量化、可预测、可并行
+- **换算**：传统 1 人天 ≈ 0.5-2 Agent 小时（取决于任务复杂度）
+
+**为什么 Agent 小时更适合 AI-DLC**：
+
+| 维度 | 人天 | Agent 小时 |
+|-----|------|-----------|
+| 执行主体 | 人类 | AI Agent |
+| 可预测性 | 低（依赖个人状态） | 高（Agent 输出稳定） |
+| 并行能力 | 受限（人类精力有限） | 高（多 Agent 并行） |
+| 成本计算 | 薪资成本 | API 调用成本 |
+| 估算依据 | 历史经验 | 任务复杂度 + Token 消耗 |
+
+**Chorus 中的应用**：
+- Task 的 `storyPoints` 字段以 Agent 小时为单位
+- 项目进度以 Agent 小时完成量衡量
+- 资源规划基于 Agent 可用时间
+
 ### Chorus 与 AI-DLC 的关系
 
 **AI-DLC 是方法论，Chorus 是它的完整实现。**
@@ -100,6 +134,7 @@ Chorus 的设计基于 **AI-DLC（AI-Driven Development Lifecycle）**——AWS 
 | Mob Elaboration | 人类在平台上验证/调整 AI 的提议 |
 | AI 是协作者 | PM Agent 参与规划，不只是执行 |
 | 短周期迭代（Bolt） | 轻量任务管理，小时/天级别 |
+| **Agent 小时估算** | Task 工作量以 Agent 小时为单位 |
 
 ### Reversed Conversation 工作流
 
@@ -394,6 +429,25 @@ Claude Code 接入 Chorus 的三层机制：
 - Claude Code 支持 hooks（session start/end）
 - 或通过 CLAUDE.md 指令："每次对话开始前，先执行 chorus_checkin"
 
+**`chorus_checkin` 返回内容**：
+```json
+{
+  "agent": {
+    "name": "PM-Agent-1",
+    "roles": ["pm"],
+    "persona": "你是一个注重用户体验的产品经理...",
+    "systemPrompt": "..."  // 完整系统提示（如有）
+  },
+  "assignments": {
+    "ideas": [...],   // 待处理的 Ideas
+    "tasks": [...]    // 待处理的 Tasks
+  },
+  "notifications": [...] // 未读通知
+}
+```
+
+Agent 收到后可直接进入工作状态，无需人类交代角色和背景。
+
 ---
 
 ## 4. 核心功能（MVP）
@@ -564,23 +618,73 @@ Open → Assigned → In Progress → Pending Review → Completed
 **关键点**：平台不内置 LLM 调用，PM 的"智能"由 Claude Code 提供。
 
 #### F5.5: Agent 管理页面
-**描述**: 全局视图展示组织内所有 Agent 及其权限
+**描述**: 全局视图展示组织内所有 Agent 及其权限和人格定义
 
 **功能点**:
 - [ ] Agent 列表（名称、状态、角色标签）
 - [ ] 创建者信息（谁创建了这个 Agent）
 - [ ] 权限标签显示（PM Agent / Developer Agent）
+- [ ] **Agent 人格定义**（Persona）- 定义 Agent 的行为风格和专长
 - [ ] 最后活跃时间
 - [ ] Agent 可以同时拥有多个角色
 
+**Agent 人格（Persona）机制**：
+
+Agent 人格是预定义的系统提示，在 Agent 连接时自动注入，实现"Zero Context Injection"。
+
+| 字段 | 说明 | 示例 |
+|-----|------|------|
+| `persona` | 自定义人格描述 | "你是一个注重代码质量的资深开发者，偏好简洁的设计..." |
+| `systemPrompt` | 完整系统提示（可选，覆盖默认） | 自定义系统提示 |
+
+**默认人格模板**（按角色）：
+
+**PM Agent 默认人格**：
+```
+你是一个经验丰富的产品经理 Agent。你的职责是：
+- 分析用户需求，提炼核心问题
+- 将模糊的想法转化为清晰的 PRD
+- 合理拆分任务，估算工作量（以 Agent 小时为单位）
+- 识别风险和依赖关系
+- 与团队保持沟通，推动项目进展
+
+工作风格：务实、注重细节、善于沟通
+```
+
+**Developer Agent 默认人格**：
+```
+你是一个专业的开发者 Agent。你的职责是：
+- 理解任务需求，编写高质量代码
+- 遵循项目的代码规范和架构约定
+- 完成任务后及时报告进度
+- 遇到问题主动沟通，不做假设
+
+工作风格：严谨、高效、注重代码质量
+```
+
+**人格注入时机**：
+- Agent 调用 `chorus_checkin` 时，返回其人格定义
+- Agent 可在 session 开始时读取，无需人类重复交代
+
 #### F5.6: API Key 管理（Settings）
-**描述**: 管理 Agent 的 API Key，支持角色分配
+**描述**: 管理 Agent 的 API Key，支持角色分配和人格定义
 
 **功能点**:
 - [ ] API Key 列表（名称、状态、关联角色）
 - [ ] 创建 API Key 模态框
 - [ ] 角色选择（可多选：PM Agent / Developer Agent）
+- [ ] **Agent 人格编辑**（选择默认模板或自定义）
 - [ ] Key 复制、删除、撤销
+
+**创建 Agent 流程**：
+1. 填写 Agent 名称
+2. 选择角色（PM / Developer，可多选）
+3. 设置人格：
+   - 使用默认模板（根据角色自动填充）
+   - 自定义人格描述
+   - 高级：完整自定义系统提示
+4. 生成 API Key
+5. 复制 Key（仅显示一次）
 
 ### 4.2 P1 - 应该有
 
@@ -762,7 +866,7 @@ export async function POST(req: Request) {
 | **评论（公开）** | | |
 | `chorus_add_comment` | 评论 Idea/Proposal/Task/Document | All |
 | **签到（公开）** | | |
-| `chorus_checkin` | 心跳签到 | All |
+| `chorus_checkin` | 心跳签到，返回 Agent 人格定义和待处理任务 | All |
 | **PM 专属** | | |
 | `chorus_pm_create_proposal` | 创建提议（推动项目的关键） | PM |
 | `chorus_claim_idea` | 认领 Idea（open → assigned） | PM |
@@ -907,6 +1011,9 @@ model Agent {
   company   Company  @relation(fields: [companyId], references: [id])
   name      String
   roles     String[] @default(["developer"])  // pm | developer（可多选）
+  // Agent 人格定义（Zero Context Injection）
+  persona      String?  // 自定义人格描述（简短）
+  systemPrompt String?  // 完整系统提示（可选，覆盖默认模板）
   ownerId   Int?
   owner     User?    @relation(fields: [ownerId], references: [id])
   lastActiveAt DateTime?
@@ -998,6 +1105,7 @@ model Task {
   title        String
   description  String?
   priority     String    @default("medium") // low | medium | high
+  storyPoints  Float?    // 工作量估算（单位：Agent 小时）
   // 状态与认领
   status       String    @default("open")  // open | assigned | in_progress | to_verify | done | closed
   assigneeType String?   // user | agent
@@ -1257,6 +1365,8 @@ chorus/
 | Chorus | 合唱团，多声部（人类+Agent）协作的隐喻 |
 | AI-DLC | AI-Driven Development Lifecycle，AWS 提出的 AI 原生开发方法论 |
 | Bolt | AI-DLC 中的短周期迭代单位（小时/天），替代传统 Sprint |
+| **Agent 小时** | 工作量估算单位，1 Agent 小时 = 1 个 Agent 持续工作 1 小时的产出，替代传统人天 |
+| **Story Point** | 在 Chorus 中以 Agent 小时为单位，而非传统的人天 |
 | Reversed Conversation | AI 提议、人类验证的交互模式 |
 | To Verify | 任务完成后等待人类验证的状态，体现 AI-DLC 人类验证理念 |
 | Agent-First | Chorus 设计理念：Agent 是一等公民，可执行几乎所有操作，仅关键决策保留人类 |
@@ -1266,6 +1376,7 @@ chorus/
 | MCP | Model Context Protocol，Anthropic 的 Agent 工具协议 |
 | Skill | 教会 Agent 如何使用平台的 markdown 说明文件 |
 | Heartbeat | Agent 定期检查平台的机制，保持持续参与 |
+| **Persona（人格）** | Agent 的角色定义和行为风格，在 checkin 时自动注入，实现 Zero Context Injection |
 
 ### B. 参考资料
 
@@ -1302,3 +1413,4 @@ chorus/
 | 0.13 | 2026-02-05 | AI Assistant | 新增 Idea/Task 认领机制：6 阶段状态流转，认领/释放工具，Agent 自助查询工具 |
 | 0.14 | 2026-02-05 | AI Assistant | 细化认领方式：人类可 Assign 给自己（所有 Agent 可见）或特定 Agent |
 | 0.15 | 2026-02-05 | AI Assistant | 新增超级用户认证：环境变量配置超级用户，Company 独立 OIDC 配置，邮箱识别登录流程 |
+| 0.16 | 2026-02-05 | AI Assistant | Agent 小时：Story Point 以 Agent 小时为单位；Agent 人格：创建时定义 Persona，checkin 时自动注入 |

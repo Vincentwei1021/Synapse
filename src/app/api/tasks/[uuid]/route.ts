@@ -48,6 +48,7 @@ export const GET = withErrorHandler<{ uuid: string }>(
       description: task.description,
       status: task.status,
       priority: task.priority,
+      storyPoints: task.storyPoints,
       assignee: task.assigneeId
         ? {
             type: task.assigneeType,
@@ -91,6 +92,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
       description?: string;
       status?: string;
       priority?: string;
+      storyPoints?: number | null;
     }>(request);
 
     // 构建更新数据
@@ -99,6 +101,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
       description?: string | null;
       status?: string;
       priority?: string;
+      storyPoints?: number | null;
     } = {};
 
     // 标题更新
@@ -123,6 +126,16 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
         });
       }
       updateData.priority = body.priority;
+    }
+
+    // Story Points 更新（单位：Agent 小时）
+    if (body.storyPoints !== undefined) {
+      if (body.storyPoints !== null && (body.storyPoints < 0 || body.storyPoints > 1000)) {
+        return errors.validationError({
+          storyPoints: "Story points must be between 0 and 1000 agent hours",
+        });
+      }
+      updateData.storyPoints = body.storyPoints;
     }
 
     // 状态更新
@@ -159,6 +172,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
       description: updated.description,
       status: updated.status,
       priority: updated.priority,
+      storyPoints: updated.storyPoints,
       assignee: updated.assigneeId
         ? {
             type: updated.assigneeType,

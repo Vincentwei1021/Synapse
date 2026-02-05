@@ -35,6 +35,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         uuid: true,
         name: true,
         roles: true,
+        persona: true,
         ownerId: true,
         lastActiveAt: true,
         createdAt: true,
@@ -50,6 +51,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     uuid: a.uuid,
     name: a.name,
     roles: a.roles,
+    persona: a.persona,
     ownerId: a.ownerId,
     lastActiveAt: a.lastActiveAt?.toISOString() || null,
     apiKeyCount: a._count.apiKeys,
@@ -74,6 +76,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const body = await parseBody<{
     name: string;
     roles?: string[];
+    persona?: string | null;
+    systemPrompt?: string | null;
   }>(request);
 
   // 验证必填字段
@@ -97,12 +101,16 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       companyId: auth.companyId,
       name: body.name.trim(),
       roles,
+      persona: body.persona?.trim() || null,
+      systemPrompt: body.systemPrompt?.trim() || null,
       ownerId: auth.actorId,
     },
     select: {
       uuid: true,
       name: true,
       roles: true,
+      persona: true,
+      systemPrompt: true,
       ownerId: true,
       createdAt: true,
     },
@@ -112,6 +120,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     uuid: agent.uuid,
     name: agent.name,
     roles: agent.roles,
+    persona: agent.persona,
+    systemPrompt: agent.systemPrompt,
     ownerId: agent.ownerId,
     lastActiveAt: null,
     apiKeyCount: 0,
