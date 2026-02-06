@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import { Building2, Key, Plus, ArrowLeft } from "lucide-react";
 
 export default function NewCompanyPage() {
   const router = useRouter();
+  const t = useTranslations();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
@@ -47,7 +49,7 @@ export default function NewCompanyPage() {
 
       router.push(`/admin/companies/${data.data.uuid}`);
     } catch {
-      setError("Network error. Please try again.");
+      setError(t("admin.networkError"));
     } finally {
       setLoading(false);
     }
@@ -60,7 +62,7 @@ export default function NewCompanyPage() {
         <Link href="/admin/companies">
           <Button variant="ghost" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Companies
+            {t("admin.backToCompanies")}
           </Button>
         </Link>
       </div>
@@ -68,10 +70,10 @@ export default function NewCompanyPage() {
       {/* Title Section */}
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-foreground">
-          Create Company
+          {t("admin.createCompany")}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Set up a new company and configure OIDC authentication
+          {t("admin.createCompanyDesc")}
         </p>
       </div>
 
@@ -89,13 +91,13 @@ export default function NewCompanyPage() {
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
               <CardTitle className="text-sm font-medium">
-                Basic Information
+                {t("admin.basicInfo")}
               </CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Company Name</Label>
+              <Label htmlFor="name">{t("admin.companyName")}</Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -109,7 +111,7 @@ export default function NewCompanyPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="emailDomain">Email Domain</Label>
+              <Label htmlFor="emailDomain">{t("admin.emailDomain")}</Label>
               <Input
                 id="emailDomain"
                 value={formData.emailDomain}
@@ -121,7 +123,7 @@ export default function NewCompanyPage() {
                 disabled={loading}
               />
               <p className="text-xs text-muted-foreground">
-                Users with this email domain will be routed to this company
+                {t("admin.emailDomainHelp")}
               </p>
             </div>
           </CardContent>
@@ -134,20 +136,20 @@ export default function NewCompanyPage() {
               <div className="flex items-center gap-2">
                 <Key className="h-4 w-4" />
                 <CardTitle className="text-sm font-medium">
-                  OIDC Configuration
+                  {t("admin.oidcConfig")}
                 </CardTitle>
               </div>
               <Badge variant="destructive" className="text-[11px]">
-                Required
+                {t("admin.required")}
               </Badge>
             </div>
             <CardDescription>
-              Configure OpenID Connect (PKCE) for single sign-on authentication
+              {t("admin.oidcConfigDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="oidcIssuer">OIDC Issuer URL</Label>
+              <Label htmlFor="oidcIssuer">{t("admin.oidcIssuerUrl")}</Label>
               <Input
                 id="oidcIssuer"
                 type="url"
@@ -155,24 +157,24 @@ export default function NewCompanyPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, oidcIssuer: e.target.value })
                 }
-                placeholder="https://login.microsoftonline.com/tenant-id/v2.0"
+                placeholder={t("admin.oidcIssuerUrlPlaceholder")}
                 required
                 disabled={loading}
               />
               <p className="text-xs text-muted-foreground">
-                The OpenID Connect discovery endpoint URL
+                {t("admin.oidcIssuerUrlHelp")}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="oidcClientId">Client ID</Label>
+              <Label htmlFor="oidcClientId">{t("admin.clientId")}</Label>
               <Input
                 id="oidcClientId"
                 value={formData.oidcClientId}
                 onChange={(e) =>
                   setFormData({ ...formData, oidcClientId: e.target.value })
                 }
-                placeholder="e.g., 12345678-abcd-efgh-ijkl-123456789012"
+                placeholder={t("admin.clientIdPlaceholder")}
                 required
                 disabled={loading}
               />
@@ -193,11 +195,11 @@ export default function NewCompanyPage() {
             }
           >
             <Plus className="mr-2 h-4 w-4" />
-            {loading ? "Creating..." : "Create Company"}
+            {loading ? t("common.creating") : t("admin.createCompany")}
           </Button>
           <Link href="/admin/companies">
             <Button type="button" variant="outline" disabled={loading}>
-              Cancel
+              {t("common.cancel")}
             </Button>
           </Link>
         </div>

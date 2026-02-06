@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   createUserManager,
   getStoredOidcConfig,
@@ -14,8 +15,9 @@ import { Music, Loader2 } from "lucide-react";
 
 export default function OidcCallbackPage() {
   const router = useRouter();
+  const t = useTranslations("login");
   const [error, setError] = useState("");
-  const [status, setStatus] = useState("Processing login...");
+  const [statusKey, setStatusKey] = useState("processingLogin");
 
   // Guard against React Strict Mode double execution
   // Authorization codes are one-time use, so we must prevent double callback processing
@@ -36,12 +38,12 @@ export default function OidcCallbackPage() {
       // Get stored OIDC config
       const oidcConfig = getStoredOidcConfig();
       if (!oidcConfig) {
-        setError("Session expired. Please start login again.");
+        setError(t("sessionExpired"));
         setTimeout(() => router.push("/login"), 2000);
         return;
       }
 
-      setStatus("Completing authentication...");
+      setStatusKey("completingAuth");
 
       // Create UserManager with same config
       const userManager = createUserManager(oidcConfig);
@@ -53,7 +55,7 @@ export default function OidcCallbackPage() {
         throw new Error("No user returned from OIDC provider");
       }
 
-      setStatus("Registering user...");
+      setStatusKey("registeringUser");
 
       // Extract user info from OIDC response
       const userInfo = extractUserInfo(user);
@@ -81,14 +83,14 @@ export default function OidcCallbackPage() {
       // The config is also stored in localStorage for recreating UserManager after page navigation
       initUserManager(oidcConfig);
 
-      setStatus("Login successful! Redirecting...");
+      setStatusKey("loginSuccess");
 
       // Redirect to projects page
       router.push("/projects");
     } catch (err) {
       console.error("OIDC callback error:", err);
       setError(
-        err instanceof Error ? err.message : "Authentication failed"
+        err instanceof Error ? err.message : t("authFailed")
       );
     }
   };
@@ -110,14 +112,14 @@ export default function OidcCallbackPage() {
                 {error}
               </div>
               <Button onClick={() => router.push("/login")} className="w-full">
-                Back to Login
+                {t("backToLogin")}
               </Button>
             </div>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-center gap-3">
                 <Loader2 className="h-5 w-5 animate-spin text-foreground" />
-                <span className="text-sm text-muted-foreground">{status}</span>
+                <span className="text-sm text-muted-foreground">{t(statusKey)}</span>
               </div>
             </div>
           )}

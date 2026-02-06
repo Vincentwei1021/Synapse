@@ -138,7 +138,12 @@
     "clientId": "Client ID",
     "clientIdPlaceholder": "e.g., 12345678-abcd-efgh-ijkl-123456789012",
     "clientIdHelp": "The OAuth 2.0 Client ID (PKCE mode, no secret needed)",
-    "saveChanges": "Save Changes"
+    "saveChanges": "Save Changes",
+    "createCompany": "Create Company",
+    "createCompanyDesc": "Set up a new company and configure OIDC authentication",
+    "emailDomain": "Email Domain",
+    "emailDomainHelp": "Users with this email domain will be routed to this company",
+    "required": "Required"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -307,7 +312,28 @@
     "continue": "Continue",
     "checking": "Checking...",
     "helpText": "Enter your email to sign in or create an account",
-    "networkError": "Network error. Please try again."
+    "networkError": "Network error. Please try again.",
+    "processingLogin": "Processing login...",
+    "sessionExpired": "Session expired. Please start login again.",
+    "completingAuth": "Completing authentication...",
+    "registeringUser": "Registering user...",
+    "loginSuccess": "Login successful! Redirecting...",
+    "authFailed": "Authentication failed",
+    "backToLogin": "Back to Login"
+  },
+  "projectOverview": {
+    "loadingProject": "Loading project...",
+    "notFoundTitle": "Project Not Found",
+    "backToProjects": "Back to Projects",
+    "settings": "Settings",
+    "quickActions": "Quick Actions",
+    "addIdea": "Add Idea",
+    "viewKanban": "View Kanban",
+    "browseDocuments": "Browse Documents",
+    "ideasSubtext": "{open} open, {inProgress} in progress",
+    "tasksSubtext": "{open} open, {toVerify} to verify",
+    "documentsSubtext": "PRDs, specs, notes",
+    "proposalsSubtext": "{pending} pending review"
   },
   "personas": {
     "devPm": "Dev-focused PM",
