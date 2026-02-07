@@ -252,6 +252,25 @@ export default async function ProposalDetailPage({ params }: PageProps) {
             </Card>
           )}
 
+          {/* Rejection Reason */}
+          {proposal.status === "rejected" && proposal.review?.reviewNote && (
+            <Card className="border-[#D32F2F] bg-[#FFEBEE] p-4">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#D32F2F]" />
+                <div>
+                  <h3 className="text-sm font-medium text-[#D32F2F]">{t("proposals.rejectionReason")}</h3>
+                  <p className="mt-1 text-sm text-[#6B6B6B]">{proposal.review.reviewNote}</p>
+                  {proposal.review.reviewedBy && (
+                    <p className="mt-2 text-xs text-[#9A9A9A]">
+                      — {proposal.review.reviewedBy.name}
+                      {proposal.review.reviewedAt && `, ${new Date(proposal.review.reviewedAt).toLocaleDateString()}`}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </Card>
+          )}
+
           {/* Comments */}
           <ProposalComments proposalUuid={proposalUuid} />
 
