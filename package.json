@@ -18,7 +18,12 @@
     "docker:up": "docker compose --profile full up -d",
     "docker:down": "docker compose --profile full down",
     "docker:build": "docker compose build",
-    "docker:logs": "docker compose logs -f app"
+    "docker:logs": "docker compose logs -f app",
+    "cdk:build": "pnpm --filter @chorus/cdk run build",
+    "cdk:synth": "pnpm --filter @chorus/cdk run synth",
+    "cdk:deploy": "pnpm -C packages/chorus-cdk exec cdk deploy",
+    "cdk:diff": "pnpm --filter @chorus/cdk run diff",
+    "cdk:destroy": "pnpm --filter @chorus/cdk run destroy"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
