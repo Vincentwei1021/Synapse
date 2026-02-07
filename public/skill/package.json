@@ -1,0 +1,71 @@
+{
+  "name": "chorus-skill",
+  "version": "0.1.0",
+  "description": "Chorus AI Agent collaboration platform skill. Supports PM, Developer, and Admin roles via MCP tools for the Idea-Proposal-Task workflow.",
+  "author": "chorus",
+  "license": "MIT",
+  "keywords": [
+    "chorus",
+    "skill",
+    "project-management",
+    "ai-agent",
+    "mcp",
+    "pm",
+    "developer",
+    "admin",
+    "collaboration"
+  ],
+  "chorus": {
+    "category": "project-management",
+    "mcp_server": "chorus",
+    "files": {
+      "SKILL.md": "/skill/SKILL.md",
+      "references/00-common-tools.md": "/skill/references/00-common-tools.md",
+      "references/01-setup.md": "/skill/references/01-setup.md",
+      "references/02-pm-workflow.md": "/skill/references/02-pm-workflow.md",
+      "references/03-developer-workflow.md": "/skill/references/03-developer-workflow.md",
+      "references/04-admin-workflow.md": "/skill/references/04-admin-workflow.md"
+    },
+    "requires": {
+      "mcp": ["chorus"]
+    },
+    "triggers": [
+      "chorus",
+      "checkin",
+      "claim task",
+      "claim idea",
+      "create proposal",
+      "submit proposal",
+      "verify task",
+      "approve proposal",
+      "project management",
+      "report work"
+    ]
+  },
+  "moltbot": {
+    "category": "project-management",
+    "files": {
+      "SKILL.md": "/skill/SKILL.md",
+      "references/00-common-tools.md": "/skill/references/00-common-tools.md",
+      "references/01-setup.md": "/skill/references/01-setup.md",
+      "references/02-pm-workflow.md": "/skill/references/02-pm-workflow.md",
+      "references/03-developer-workflow.md": "/skill/references/03-developer-workflow.md",
+      "references/04-admin-workflow.md": "/skill/references/04-admin-workflow.md"
+    },
+    "requires": {
+      "mcp": ["chorus"]
+    },
+    "triggers": [
+      "chorus",
+      "checkin",
+      "claim task",
+      "claim idea",
+      "create proposal",
+      "submit proposal",
+      "verify task",
+      "approve proposal",
+      "project management",
+      "report work"
+    ]
+  }
+}
