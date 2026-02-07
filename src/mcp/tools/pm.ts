@@ -185,6 +185,34 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
         return { content: [{ type: "text", text: "项目不存在" }], isError: true };
       }
 
+      // 如果输入类型是 idea，验证认领者和唯一性
+      if (inputType === "idea") {
+        const assigneeCheck = await proposalService.checkIdeasAssignee(
+          auth.companyUuid,
+          inputUuids,
+          auth.actorUuid,
+          "agent"
+        );
+        if (!assigneeCheck.valid) {
+          return {
+            content: [{ type: "text", text: "只能基于自己认领的 Ideas 创建 Proposal" }],
+            isError: true,
+          };
+        }
+
+        const availabilityCheck = await proposalService.checkIdeasAvailability(
+          auth.companyUuid,
+          inputUuids
+        );
+        if (!availabilityCheck.available) {
+          const usedIdea = availabilityCheck.usedIdeas[0];
+          return {
+            content: [{ type: "text", text: `Idea 已被 Proposal "${usedIdea.proposalTitle}" 使用` }],
+            isError: true,
+          };
+        }
+      }
+
       const proposal = await proposalService.createProposal({
         companyUuid: auth.companyUuid,
         projectUuid,

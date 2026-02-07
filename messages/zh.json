@@ -395,7 +395,15 @@
     "versionHistory": "版本历史",
     "previousVersions": "个历史版本",
     "documentContent": "文档内容...",
-    "saveChanges": "保存更改"
+    "saveChanges": "保存更改",
+    "titleLabel": "标题",
+    "titleRequired": "标题不能为空",
+    "titlePlaceholder": "输入文档标题",
+    "typeLabel": "类型",
+    "uploadMarkdown": "Markdown 文件（可选）",
+    "clickToUpload": "点击上传 Markdown 文件",
+    "characters": "个字符",
+    "createFailed": "创建文档失败"
   },
   "activity": {
     "title": "动态",

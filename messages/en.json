@@ -394,7 +394,15 @@
     "versionHistory": "Version History",
     "previousVersions": "previous version(s)",
     "documentContent": "Document content...",
-    "saveChanges": "Save Changes"
+    "saveChanges": "Save Changes",
+    "titleLabel": "Title",
+    "titleRequired": "Title is required",
+    "titlePlaceholder": "Enter document title",
+    "typeLabel": "Type",
+    "uploadMarkdown": "Markdown File (optional)",
+    "clickToUpload": "Click to upload a Markdown file",
+    "characters": "characters",
+    "createFailed": "Failed to create document"
   },
   "activity": {
     "title": "Activity",

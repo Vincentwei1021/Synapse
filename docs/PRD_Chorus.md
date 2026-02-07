@@ -680,9 +680,9 @@ Open → Assigned → In Progress → Pending Review → Completed
 
 **Proposal 创建规则**：
 - **只有 Idea 的负责人**才能基于该 Idea 创建 Proposal
-- 一个 Idea **只能被用于创建一个 Proposal**，一旦关联到 Proposal 后，该 Idea 不能再被用于其他 Proposal
-- 在创建 Proposal 时，系统会自动检查输入的 Idea 是否已被其他 Proposal 使用
-- 如果 Idea 已被使用，系统拒绝创建并提示用户
+- 创建 Proposal 时可以**选择多个 Ideas 组合**在一起，作为 Proposal 的输入来源（`inputUuids` 存储所有选中 Idea 的 UUID 数组）
+- 一个 Idea **只能被用于一个 Proposal**，一旦关联到 Proposal 后，该 Idea 不能再被其他 Proposal 选择
+- 在创建 Proposal 时，系统会自动过滤掉已被其他 Proposal 使用的 Ideas，仅展示可用的 Ideas
 
 **分配方式**：
 
@@ -724,7 +724,7 @@ Open → Assigned → In Progress → Pending Review → Completed
 
 **用户故事**:
 - 作为人类，我可以在项目中添加 Ideas（文本、图片、文件）
-- 作为 PM Agent，我可以基于 Ideas 创建 PRD 提议
+- 作为 PM Agent，我可以选择一个或多个 Ideas 组合在一起创建 PRD 提议
 - 作为人类，我审批 PRD 提议，批准后生成 Document
 - 作为 PM Agent，我可以基于 PRD Document 创建任务拆分提议
 - 作为人类，我审批任务拆分提议，批准后生成 Tasks
@@ -738,7 +738,7 @@ Open → Assigned → In Progress → Pending Review → Completed
 - [ ] Web UI：Ideas 列表、Proposal 审批、Document 查看
 - [ ] **Ideas 列表筛选功能**：支持"Assigned to me"筛选，仅显示分配给当前用户的 Ideas
 - [ ] 批准后自动创建 Document 或 Tasks
-- [ ] **Idea 唯一使用检查**：创建 Proposal 时验证输入 Idea 未被其他 Proposal 使用
+- [ ] **多 Idea 组合创建 Proposal**：创建 Proposal 时支持选择多个 Ideas 组合作为输入来源（每个 Idea 只能被一个 Proposal 使用）
 
 **详细工作流**:
 ```
@@ -752,7 +752,7 @@ Open → Assigned → In Progress → Pending Review → Completed
 │  2. 创建 Proposal（容器）                                     │
 │     - Agent: 调用 chorus_pm_create_proposal 创建空容器       │
 │     - 人类: 通过 UI 创建 Proposal                            │
-│     - 关联输入：选择 Ideas                                   │
+│     - 关联输入：选择一个或多个 Ideas（多选组合）              │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -1660,3 +1660,4 @@ chorus/
 | 0.18 | 2026-02-06 | AI Assistant | Proposal 容器模型重构：Proposal 作为容器可添加文档草稿和任务；Task 新增 acceptanceCriteria（验收标准）字段；Agent 和人类都可通过 MCP/UI 操作 Proposal 内容；审批后生成的 Document/Task 保留溯源关系 |
 | 0.19 | 2026-02-06 | AI Assistant | Proposal 创建规则强化：只有 Idea 认领者才能创建 Proposal；Idea 只能被一个 Proposal 使用（唯一性约束）；Ideas 列表新增"Assigned to me"筛选功能 |
 | 0.20 | 2026-02-06 | AI Assistant | Proposal 状态流程优化：新增"draft"状态，新创建的 Proposal 默认为草稿状态；需要人类或 Agent 主动提交审批才会进入"pending"状态 |
+| 0.21 | 2026-02-07 | AI Assistant | Proposal 多 Idea 组合：创建 Proposal 时支持选择多个 Ideas 组合作为输入来源；保留 Idea 唯一性约束（一个 Idea 只能属于一个 Proposal） |

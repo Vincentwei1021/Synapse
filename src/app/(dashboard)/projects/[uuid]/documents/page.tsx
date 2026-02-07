@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { listDocuments } from "@/services/document.service";
 import { projectExists } from "@/services/project.service";
+import { CreateDocumentDialog } from "./create-document-dialog";
 
 const docTypeConfig: Record<string, { label: string; color: string; icon: string }> = {
   prd: { label: "PRD", color: "bg-[#E3F2FD] text-[#1976D2]", icon: "📋" },
@@ -67,13 +68,7 @@ export default async function DocumentsPage({ params, searchParams }: PageProps)
           <h1 className="text-2xl font-semibold text-[#2C2C2C]">{t("documents.title")}</h1>
           <p className="mt-1 text-sm text-[#6B6B6B]">{t("documents.subtitle")}</p>
         </div>
-        <Button className="bg-[#C67A52] hover:bg-[#B56A42] text-white">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 h-4 w-4">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          {t("documents.newDocument")}
-        </Button>
+        <CreateDocumentDialog projectUuid={projectUuid} />
       </div>
 
       {/* Filter Tabs */}
@@ -109,7 +104,7 @@ export default async function DocumentsPage({ params, searchParams }: PageProps)
           </div>
           <h3 className="mb-2 text-lg font-medium text-[#2C2C2C]">{t("documents.noDocuments")}</h3>
           <p className="mb-6 max-w-sm text-sm text-[#6B6B6B]">{t("documents.noDocumentsDesc")}</p>
-          <Button className="bg-[#C67A52] hover:bg-[#B56A42] text-white">{t("documents.createDocument")}</Button>
+          <CreateDocumentDialog projectUuid={projectUuid} />
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

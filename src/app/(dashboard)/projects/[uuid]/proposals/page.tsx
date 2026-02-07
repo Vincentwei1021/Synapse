@@ -2,8 +2,11 @@
 // Server Component - Proposal Kanban Board
 
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { listProposals } from "@/services/proposal.service";
 import { projectExists } from "@/services/project.service";
@@ -46,11 +49,19 @@ export default async function ProposalsPage({ params }: PageProps) {
             {t("proposals.subtitle")}
           </p>
         </div>
-        {pendingCount > 0 && (
-          <Badge className="bg-[#C67A52] text-white border-transparent px-2.5 py-1 text-xs font-medium">
-            {pendingCount} {t("proposals.pendingReview")}
-          </Badge>
-        )}
+        <div className="flex items-center gap-3">
+          {pendingCount > 0 && (
+            <Badge className="bg-[#C67A52] text-white border-transparent px-2.5 py-1 text-xs font-medium">
+              {pendingCount} {t("proposals.pendingReview")}
+            </Badge>
+          )}
+          <Button asChild className="bg-[#C67A52] hover:bg-[#B56A42] text-white">
+            <Link href={`/projects/${projectUuid}/proposals/new`}>
+              <Plus className="mr-2 h-4 w-4" />
+              {t("proposals.createProposal")}
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Kanban Board */}

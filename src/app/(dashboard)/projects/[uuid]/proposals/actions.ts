@@ -67,7 +67,7 @@ export async function createProposalAction(
         const usedIdea = availabilityCheck.usedIdeas[0];
         return {
           success: false,
-          error: `This idea is already used in proposal "${usedIdea.proposalTitle}"`,
+          error: `One of the selected ideas is already used in proposal "${usedIdea.proposalTitle}"`,
         };
       }
     }
