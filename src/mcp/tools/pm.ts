@@ -11,6 +11,7 @@ import * as proposalService from "@/services/proposal.service";
 import * as documentService from "@/services/document.service";
 import * as taskService from "@/services/task.service";
 import * as activityService from "@/services/activity.service";
+import { getAgentByUuid } from "@/services/agent.service";
 
 export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
   // chorus_claim_idea - 认领 Idea
@@ -586,6 +587,75 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
           isError: true,
         };
       }
+    }
+  );
+
+  // chorus_pm_assign_task - 分配任务给 Developer Agent
+  server.registerTool(
+    "chorus_pm_assign_task",
+    {
+      description: "将任务分配给指定的 Developer Agent（task 须为 open 或 assigned 状态）",
+      inputSchema: z.object({
+        taskUuid: z.string().describe("Task UUID"),
+        agentUuid: z.string().describe("目标 Developer Agent UUID"),
+      }),
+    },
+    async ({ taskUuid, agentUuid }) => {
+      // 验证 task 存在
+      const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
+      if (!task) {
+        return { content: [{ type: "text", text: "Task 不存在" }], isError: true };
+      }
+
+      // 验证 task 状态
+      if (task.status !== "open" && task.status !== "assigned") {
+        return {
+          content: [{ type: "text", text: `只能分配 open 或 assigned 状态的 Task，当前状态: ${task.status}` }],
+          isError: true,
+        };
+      }
+
+      // 验证目标 agent 存在且属于同一 company
+      const targetAgent = await getAgentByUuid(auth.companyUuid, agentUuid);
+      if (!targetAgent) {
+        return { content: [{ type: "text", text: "目标 Agent 不存在" }], isError: true };
+      }
+
+      // 验证目标 agent 具有 developer 角色
+      const hasDeveloperRole = targetAgent.roles.some(
+        (r: string) => r === "developer" || r === "developer_agent"
+      );
+      if (!hasDeveloperRole) {
+        return {
+          content: [{ type: "text", text: `Agent "${targetAgent.name}" 不具有 developer 角色` }],
+          isError: true,
+        };
+      }
+
+      // 执行分配
+      const updated = await taskService.claimTask({
+        taskUuid: task.uuid,
+        companyUuid: auth.companyUuid,
+        assigneeType: "agent",
+        assigneeUuid: agentUuid,
+        assignedByUuid: auth.actorUuid, // PM Agent 作为分配者
+      });
+
+      // 记录 activity
+      await activityService.createActivity({
+        companyUuid: auth.companyUuid,
+        projectUuid: task.projectUuid,
+        targetType: "task",
+        targetUuid: task.uuid,
+        actorType: "agent",
+        actorUuid: auth.actorUuid,
+        action: "assigned",
+        value: { assigneeType: "agent", assigneeUuid: agentUuid, assignedBy: auth.actorUuid },
+      });
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+      };
     }
   );
 }

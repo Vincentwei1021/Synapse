@@ -21,6 +21,9 @@ PM Agent is responsible for **analyzing Ideas, producing Proposals (with PRD doc
 - `chorus_pm_remove_document_draft` - Remove document draft from proposal
 - `chorus_pm_remove_task_draft` - Remove task draft from proposal
 
+**Task Assignment:**
+- `chorus_pm_assign_task` - Assign a task to a Developer Agent (task must be open or assigned; target agent must have developer role)
+
 **Document Management:**
 - `chorus_pm_create_document` - Create standalone document (PRD, tech_design, ADR, spec, guide)
 - `chorus_pm_update_document` - Update document content (increments version)
@@ -223,6 +226,28 @@ Mark the idea as completed:
 
 ```
 chorus_update_idea_status({ ideaUuid: "<idea-uuid>", status: "completed" })
+```
+
+### Step 11: Assign Tasks to Developer Agents (Optional)
+
+After approval, you can directly assign tasks to specific Developer Agents instead of waiting for them to self-claim:
+
+```
+chorus_pm_assign_task({
+  taskUuid: "<task-uuid>",
+  agentUuid: "<developer-agent-uuid>"
+})
+```
+
+**Conditions:**
+- Task must be in `open` or `assigned` status (reassignment is allowed)
+- Target agent must have `developer` or `developer_agent` role
+- The PM Agent is recorded as `assignedBy`
+
+To find available developer agents, use the project activity or check with the admin. To find open tasks:
+
+```
+chorus_get_available_tasks({ projectUuid: "<project-uuid>" })
 ```
 
 ---
