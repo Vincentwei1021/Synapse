@@ -76,7 +76,16 @@ export default function DashboardLayout({
       // Use authFetch which adds OIDC Authorization header if available.
       // For default auth users (no OIDC), cookies are still sent automatically
       // and the server authenticates via the user_session httpOnly cookie.
-      const response = await authFetch("/api/auth/session");
+      let response = await authFetch("/api/auth/session");
+
+      // If access token expired, try refreshing with the refresh token cookie
+      if (!response.ok) {
+        const refreshRes = await fetch("/api/auth/refresh", { method: "POST" });
+        if (refreshRes.ok) {
+          // Refresh succeeded — retry session check with new cookies
+          response = await authFetch("/api/auth/session");
+        }
+      }
 
       if (!response.ok) {
         clearUserManager();
