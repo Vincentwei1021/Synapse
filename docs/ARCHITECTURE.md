@@ -1,7 +1,7 @@
 # Project Chorus - 技术架构文档
 
-**版本**: 1.8
-**更新日期**: 2026-02-07
+**版本**: 2.0
+**更新日期**: 2026-02-18
 
 ---
 
@@ -16,11 +16,14 @@ Chorus 是一个 AI Agent 与人类协作的平台，实现 AI-DLC（AI-Driven D
 | 能力 | 描述 |
 |-----|------|
 | **知识库** | 项目上下文存储和查询 |
-| **任务管理** | 任务 CRUD、状态流转、Kanban |
+| **任务管理** | 任务 CRUD、状态流转、Kanban、**任务 DAG 依赖** |
 | **分配机制** | Idea/Task 灵活分配，支持人类和 Agent 协作 |
-| **提议审批** | PM Agent 创建提议，人类审批 |
-| **MCP Server** | Agent 通过 MCP 协议接入平台 |
-| **活动流** | 实时追踪所有参与者的操作（含分配/释放记录） |
+| **提议审批** | PM Agent 创建提议，人类/Admin 审批 |
+| **MCP Server** | 50+ 工具，Agent 通过 MCP 协议接入（Public/Session/Developer/PM/Admin） |
+| **活动流** | 实时追踪所有参与者的操作（含 Session 归因） |
+| **Session 可观测性** | Agent Session + Task Checkin，Kanban/Task Detail 实时显示活跃 Worker |
+| **Chorus Plugin** | Claude Code 插件，自动化 Session 生命周期（创建/心跳/关闭） |
+| **Task DAG** | 任务依赖建模、环检测、@xyflow/react + dagre 可视化 |
 
 ### 1.3 参与者
 
@@ -189,7 +192,8 @@ Chorus 采用经典的三层架构模式，职责清晰分离：
 | AgentService | `agent.service.ts` | Agent + API Key 管理 |
 | CommentService | `comment.service.ts` | 多态评论 |
 | ActivityService | `activity.service.ts` | 活动日志（含分配/释放记录） |
-| AssignmentService | `assignment.service.ts` | Agent 自助查询（我的任务、可分配） |
+| AssignmentService | `assignment.service.ts` | Agent 自助查询（我的任务、可分配、未阻塞） |
+| SessionService | `session.service.ts` | Agent Session CRUD + Task Checkin/Checkout + 心跳 |
 
 #### 代码示例
 
@@ -558,42 +562,30 @@ chorus/
 │   │   ├── activity.service.ts
 │   │   └── mcp.service.ts
 │   │
-│   ├── mcp/                    # MCP Server 实现
-│   │   ├── server.ts           # MCP Server 初始化
-│   │   ├── tools/
-│   │   │   ├── index.ts
-│   │   │   ├── personal/       # Personal Agent 工具
-│   │   │   │   ├── get-project.ts
-│   │   │   │   ├── query-knowledge.ts
-│   │   │   │   ├── get-documents.ts
-│   │   │   │   ├── get-document.ts
-│   │   │   │   ├── get-task.ts
-│   │   │   │   ├── list-tasks.ts
-│   │   │   │   ├── update-task.ts
-│   │   │   │   ├── add-comment.ts
-│   │   │   │   ├── report-work.ts
-│   │   │   │   ├── get-activity.ts
-│   │   │   │   └── checkin.ts
-│   │   │   └── pm/             # PM Agent 工具
-│   │   │       ├── get-ideas.ts
-│   │   │       ├── create-proposal.ts
-│   │   │       ├── get-proposals.ts
-│   │   │       ├── analyze-progress.ts
-│   │   │       └── identify-risks.ts
-│   │   └── middleware.ts       # MCP 认证中间件
+│   ├── mcp/                    # MCP Server
+│   │   ├── server.ts           # Per-auth MCP server factory
+│   │   └── tools/
+│   │       ├── public.ts       # Public tools (all agents)
+│   │       ├── session.ts      # Session tools (all agents)
+│   │       ├── developer.ts    # Developer agent tools
+│   │       ├── pm.ts           # PM agent tools
+│   │       └── admin.ts        # Admin agent tools
 │   │
 │   └── types/                  # TypeScript 类型定义
 │       ├── api.ts
 │       ├── mcp.ts
 │       └── index.ts
 │
-├── skill/                      # Agent Skill 文件
-│   ├── pm/
+├── public/
+│   ├── skill/                      # Standalone Skill docs (served at /skill/)
 │   │   ├── SKILL.md
-│   │   └── HEARTBEAT.md
-│   └── personal/
-│       ├── SKILL.md
-│       └── HEARTBEAT.md
+│   │   ├── package.json
+│   │   └── references/             # Role-specific workflow docs (7 files)
+│   └── chorus-plugin/              # Chorus Plugin for Claude Code
+│       ├── hooks/                  # Claude Code hooks configuration
+│       ├── bin/                    # Hook scripts (on-subagent-start/stop/idle)
+│       ├── skills/chorus/          # Plugin-embedded Skill (with session automation)
+│       └── .mcp.json               # MCP server config template
 │
 └── tests/
     ├── unit/
@@ -758,19 +750,50 @@ model Task {
        │              └─────────────┘
        │                     │
        │              ┌──────▼──────┐
-       └──────────────│  Activity   │
-                      │             │
-                      │  id (Int)   │
-                      │  uuid       │
-                      │  companyUuid│
-                      │  projectUuid│
-                      │  targetType │  (idea|task|proposal|document)
-                      │  targetUuid │
-                      │  actorType  │  (user|agent)
-                      │  actorUuid  │
-                      │  action     │  (created|assigned|released|...)
-                      │  value      │  (JSON: 操作结果值)
-                      └─────────────┘
+       ├──────────────│  Activity   │
+       │              │             │
+       │              │  id (Int)   │
+       │              │  uuid       │
+       │              │  companyUuid│
+       │              │  projectUuid│
+       │              │  targetType │  (idea|task|proposal|document)
+       │              │  targetUuid │
+       │              │  actorType  │  (user|agent)
+       │              │  actorUuid  │
+       │              │  action     │  (created|assigned|released|...)
+       │              │  value      │  (JSON: 操作结果值)
+       │              └─────────────┘
+       │
+       │              ┌────────────────┐
+       ├──────────────│ TaskDependency │
+       │              │                │
+       │              │  id (Int)      │
+       │              │  taskUuid      │
+       │              │  dependsOnUuid │
+       │              │  companyUuid   │
+       │              └────────────────┘
+       │
+       │              ┌────────────────┐
+       ├──────────────│ AgentSession   │
+       │              │                │
+       │              │  id (Int)      │
+       │              │  uuid          │
+       │              │  agentUuid     │
+       │              │  companyUuid   │
+       │              │  name          │
+       │              │  status        │  (active|inactive|closed)
+       │              │  lastActiveAt  │
+       │              └────────────────┘
+       │                     │
+       │              ┌──────▼─────────────┐
+       └──────────────│ SessionTaskCheckin │
+                      │                    │
+                      │  id (Int)          │
+                      │  sessionUuid       │
+                      │  taskUuid          │
+                      │  checkinAt         │
+                      │  checkoutAt        │
+                      └────────────────────┘
 ```
 
 ### 4.2 核心实体说明
@@ -922,6 +945,27 @@ model Task {
 - `authorUuid`: 作者 UUID
 - `content`: 评论内容
 
+#### TaskDependency（任务依赖）
+- 任务间的 DAG 依赖关系
+- `taskUuid`: 当前任务 UUID
+- `dependsOnUuid`: 前置任务 UUID
+- 环检测在 Service 层实现
+
+#### AgentSession（Agent 会话）
+- 跟踪 Agent 工作状态的会话
+- `agentUuid`: 所属 Agent UUID
+- `name`: 会话名称（如 "frontend-worker"）
+- `status`: `active` | `inactive` | `closed`
+- `lastActiveAt`: 最后心跳时间
+- 不活跃超过 1 小时自动标记 `inactive`
+
+#### SessionTaskCheckin（Session 任务签到）
+- 记录 Session 当前正在处理的任务
+- `sessionUuid`: 会话 UUID
+- `taskUuid`: 任务 UUID
+- `checkinAt` / `checkoutAt`: 签到/签出时间
+- UI 据此显示 Kanban Worker 徽标和 Task Detail 活跃 Worker
+
 ---
 
 ## 5. API 设计
@@ -1013,64 +1057,64 @@ Header: Authorization: Bearer {api_key}
 
 | 工具 | 描述 |
 |-----|------|
-| `chorus_get_project` | 获取项目详情和上下文 |
-| `chorus_query_knowledge` | 统一查询知识库（Ideas/Docs/Tasks） |
-| `chorus_get_documents` | 获取项目 Documents 列表 |
-| `chorus_get_document` | 获取单个 Document 详情 |
-| `chorus_get_task` | 获取任务详情 |
-| `chorus_list_tasks` | 列出任务 |
-| `chorus_get_activity` | 获取项目活动流 |
-| `chorus_add_comment` | 添加评论（Idea/Task/Proposal/Document） |
-| `chorus_checkin` | 心跳签到 |
-| **自助查询** | |
-| `chorus_get_my_assignments` | 获取自己认领的所有 Ideas + Tasks |
-| `chorus_get_available_ideas` | 获取可认领的 Ideas（status=open） |
-| `chorus_get_available_tasks` | 获取可认领的 Tasks（status=open） |
+| `chorus_checkin` | 签到：获取 persona、assignments、pending work |
+| `chorus_get_project` | 获取项目详情 |
+| `chorus_get_ideas` / `chorus_get_idea` | 列出/获取 Ideas |
+| `chorus_get_documents` / `chorus_get_document` | 列出/获取 Documents |
+| `chorus_get_proposals` / `chorus_get_proposal` | 列出/获取 Proposals（含草稿） |
+| `chorus_list_tasks` / `chorus_get_task` | 列出/获取 Tasks |
+| `chorus_get_activity` | 项目活动流 |
+| `chorus_get_my_assignments` | 我认领的 Ideas + Tasks |
+| `chorus_get_available_ideas` | 可认领的 Ideas |
+| `chorus_get_available_tasks` | 可认领的 Tasks |
+| `chorus_get_unblocked_tasks` | 依赖已全部完成的 Tasks（调度用） |
+| `chorus_add_comment` / `chorus_get_comments` | 评论 CRUD |
+
+#### Session 工具（All Agents）
+
+| 工具 | 描述 |
+|-----|------|
+| `chorus_create_session` | 创建命名 Session |
+| `chorus_list_sessions` | 列出 Sessions |
+| `chorus_close_session` / `chorus_reopen_session` | 关闭/重开 Session |
+| `chorus_session_checkin_task` / `chorus_session_checkout_task` | Task Checkin/Checkout |
+| `chorus_session_heartbeat` | Session 心跳 |
 
 #### Developer Agent 工具
 
 | 工具 | 描述 |
 |-----|------|
-| `chorus_claim_task` | 认领 Task（open → assigned） |
-| `chorus_release_task` | 放弃认领 Task（assigned → open） |
-| `chorus_update_task` | 更新任务状态（仅认领者可操作） |
-| `chorus_submit_for_verify` | 提交任务等待人类验证 |
-| `chorus_report_work` | 报告工作完成 |
+| `chorus_claim_task` / `chorus_release_task` | 认领/释放 Task |
+| `chorus_update_task` | 更新任务状态（含 sessionUuid 归因） |
+| `chorus_submit_for_verify` | 提交任务验证 |
+| `chorus_report_work` | 报告工作（含 sessionUuid 归因） |
 
 #### PM Agent 工具
 
 | 工具 | 描述 |
 |-----|------|
-| `chorus_pm_get_ideas` | 获取项目 Ideas 列表（人类输入） |
-| `chorus_claim_idea` | 认领 Idea（open → assigned） |
-| `chorus_release_idea` | 放弃认领 Idea（assigned → open） |
-| `chorus_update_idea_status` | 更新 Idea 状态（仅认领者可操作） |
-| `chorus_pm_create_proposal` | 创建提议（PRD/任务拆分等） |
-| `chorus_pm_get_proposals` | 获取提议列表和状态 |
-| `chorus_pm_analyze_progress` | 分析项目进度 |
-| `chorus_pm_identify_risks` | 识别风险和阻塞 |
+| `chorus_claim_idea` / `chorus_release_idea` | 认领/释放 Idea |
+| `chorus_update_idea_status` | 更新 Idea 状态 |
+| `chorus_pm_create_proposal` / `chorus_pm_submit_proposal` | 创建/提交 Proposal |
+| `chorus_pm_create_document` / `chorus_pm_update_document` | Document CRUD |
+| `chorus_pm_create_tasks` | 批量创建 Tasks |
+| `chorus_pm_assign_task` | 分配 Task |
+| `chorus_pm_add_document_draft` / `chorus_pm_update_document_draft` / `chorus_pm_remove_document_draft` | 文档草稿管理 |
+| `chorus_pm_add_task_draft` / `chorus_pm_update_task_draft` / `chorus_pm_remove_task_draft` | 任务草稿管理 |
+| `chorus_add_task_dependency` / `chorus_remove_task_dependency` | Task 依赖 DAG 管理 |
 
-PM Agent 同时拥有 Developer Agent 的所有工具（全能角色）。
-
-#### Admin Agent 工具（代理人类操作）
-
-Admin Agent 代表人类执行审批、验证、项目管理等操作。
+#### Admin Agent 工具
 
 | 工具 | 描述 |
 |-----|------|
-| `chorus_admin_create_project` | 创建新项目 |
-| `chorus_admin_create_idea` | 创建 Idea（代理人类提出需求） |
-| `chorus_admin_approve_proposal` | 审批通过 Proposal |
-| `chorus_admin_reject_proposal` | 拒绝 Proposal |
-| `chorus_admin_verify_task` | 验证 Task（to_verify → done） |
-| `chorus_admin_reopen_task` | 重新打开 Task（to_verify → in_progress） |
-| `chorus_admin_close_task` | 关闭 Task（any → closed） |
-| `chorus_admin_close_idea` | 关闭 Idea（any → closed） |
-| `chorus_admin_delete_idea` | 删除 Idea |
-| `chorus_admin_delete_task` | 删除 Task |
-| `chorus_admin_delete_document` | 删除 Document |
+| `chorus_admin_create_project` | 创建项目 |
+| `chorus_admin_create_idea` | 创建 Idea |
+| `chorus_admin_approve_proposal` / `chorus_admin_reject_proposal` / `chorus_admin_close_proposal` | Proposal 审批 |
+| `chorus_admin_verify_task` / `chorus_admin_reopen_task` / `chorus_admin_close_task` | Task 验证/管理 |
+| `chorus_admin_close_idea` / `chorus_admin_delete_idea` | Idea 管理 |
+| `chorus_admin_delete_task` / `chorus_admin_delete_document` | 删除管理 |
 
-Admin Agent 同时拥有 PM Agent 和 Developer Agent 的所有工具（最高权限角色）。
+Admin Agent 同时拥有 PM 和 Developer 的所有工具。
 
 **⚠️ 安全警告**：Admin Agent 拥有人类级别的权限，可以执行审批、验证等关键操作。创建此类型的 Agent 需要谨慎，仅在需要自动化人类审批流程时使用。
 
@@ -1547,14 +1591,16 @@ volumes:
 
 ### 10.1 未来功能
 
-| 功能 | 描述 | 优先级 |
-|-----|------|-------|
-| Git 集成 | 关联 commit 和 PR | P1 |
-| 实时通知 | WebSocket 推送 | P1 |
-| 复杂依赖 | 任务 DAG | P2 |
-| 语义搜索 | pgvector 知识库搜索 | P2 |
-| 多 PM Agent | 协作规划 | P2 |
-| 移动端 | PWA 或原生 App | P3 |
+| 功能 | 描述 | 状态 |
+|-----|------|------|
+| ✅ 任务 DAG | 依赖关系建模 + 环检测 + 可视化 | 已实现 |
+| ✅ Session 可观测性 | Agent Session + Checkin + Kanban 集成 | 已实现 |
+| ✅ Chorus Plugin | Claude Code 插件，自动化 Session 生命周期 | 已实现 |
+| ✅ Task 自动调度查询 | `chorus_get_unblocked_tasks` MCP 工具 | 已实现 |
+| 实时通知 | WebSocket/SSE 推送 | 待开发 (P0) |
+| 执行度量 | Agent Hours、velocity 统计 | 待开发 (P1) |
+| Git 集成 | 关联 commit 和 PR | 待开发 |
+| 语义搜索 | pgvector 知识库搜索 | 待开发 |
 
 ### 10.2 技术储备
 
