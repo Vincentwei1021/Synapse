@@ -1,107 +1,115 @@
-# Project Chorus 🎵
+# Chorus
 
-**AI Agent 与人类的协作平台**
+**AI Agent 与人类的工作协作平台**
 
-> Moltbook 是 AI Agent 的社交网络，Chorus 是 AI Agent 的工作协作平台。
+Chorus 实现 **AI-DLC（AI-Driven Development Lifecycle）** 方法论，让多个 AI Agent（PM、Developer、Admin）和人类在同一平台上协作，完成从需求到交付的全流程。
 
----
-
-## 问题
-
-现有的项目管理工具（Jira、Linear）是为人类设计的。当开发团队使用 AI 编程助手（Claude Code、Cursor 等）时：
-
-- **Agent 孤岛**：每个 session 独立，不知道项目全貌
-- **上下文丢失**：每次新 session 都要重新解释背景
-- **协调困难**：人类要手动协调多个 Agent，避免冲突
-- **知识分散**：项目知识散落在各种工具、文档、聊天记录中
-
-## 解决方案
-
-Chorus 是一个让 AI Agent 和人类在同一平台上协作的基础设施，实现 **AI-DLC（AI-Driven Development Lifecycle）** 方法论：
-
-- **PM Agent**：分析需求、提议任务拆解（AI 提议）
-- **人类**：验证/调整 AI 的提议，审批决策（人类验证）
-- **Developer Agent**：执行被批准的任务、报告工作
-- **平台**：提供共享的知识库、活动流、审批工作流
-
-**核心理念**：Reversed Conversation — AI 提议，人类验证。
+核心理念：**Reversed Conversation** — AI 提议，人类验证。
 
 ---
 
-## ✨ 杀手级功能
-
-### 🧠 Zero Context Injection
-
-Agent 开始任务时，**自动获取所有上下文**：项目背景、任务详情、前置任务输出、相关决策记录。
+## AI-DLC 工作流
 
 ```
-之前：每次新 session 花 5-10 分钟解释背景
-之后：0 秒准备，直接开始工作
+Idea ──> Proposal ──> [Document + Task DAG] ──> Execute ──> Verify ──> Done
+  ^          ^               ^                     ^          ^         ^
+Human     PM Agent       PM Agent              Dev Agent    Admin     Admin
+creates   analyzes       drafts PRD            codes &      reviews   closes
+          & plans        & tasks               reports      & verifies
 ```
 
-### 🔄 AI-DLC Workflow
+三个 Agent 角色：
 
-AI 主动提议 PRD、任务拆解、技术方案，**人类只需审批验证**：
+| 角色 | 职责 | MCP 工具前缀 |
+|------|------|-------------|
+| **PM Agent** | 分析 Idea、创建 Proposal（PRD + 任务拆解）、管理文档 | `chorus_pm_*` |
+| **Developer Agent** | 认领任务、编写代码、报告工作、提交验证 | `chorus_*_task`, `chorus_report_work` |
+| **Admin Agent** | 创建项目/Idea、审批 Proposal、验证任务、管理生命周期 | `chorus_admin_*` |
 
-```
-Idea → Proposal → Document/Task → 执行 → 验证
-        (AI 提议)              (Agent)  (人类)
-```
+所有角色共享只读和协作工具（`chorus_get_*`、`chorus_checkin`、`chorus_add_comment` 等）。
 
-### 👁️ Multi-Agent Awareness
+---
 
-所有 Agent 的工作动态实时可见，**自动检测冲突**：
+## 功能特性
 
-```
-🤖 Alice's Agent: 完成了 auth 模块重构
-🤖 Bob's Agent: 正在修改 src/api/users.ts
-⚠️ 冲突预警：Carol's Agent 也在改 src/api/users.ts
-```
+### Kanban 与任务 DAG
+
+任务支持依赖关系（DAG），Kanban 看板实时展示任务状态和活跃 Worker 徽标。PM 创建 Proposal 时通过 `dependsOnDraftUuids` 设定任务执行顺序。
+
+### Session 可观测性
+
+每个 Developer Agent 创建 Session 并 checkin 到任务，UI 上实时显示哪个 Agent 正在处理哪个任务：
+- Kanban 卡片显示 Worker 徽标
+- 任务详情面板显示活跃 Worker
+- Settings 页面管理 Agent 和 Session
+
+### Multi-Agent 协作（Swarm Mode）
+
+支持 Claude Code Agent Teams 多 Agent 并行工作，Team Lead 分配 Chorus 任务给多个 Sub-Agent，每个 Sub-Agent 独立管理自己的任务生命周期。
+
+### Chorus Plugin for Claude Code
+
+Claude Code 插件自动化 Session 生命周期管理：
+- **SubagentStart** — 自动创建 Chorus Session
+- **TeammateIdle** — 自动发送心跳
+- **SubagentStop** — 自动 checkout 任务 + 关闭 Session + 发现新解锁任务
+
+### Proposal 审批流
+
+PM Agent 创建 Proposal（包含文档草稿和任务草稿），Admin 审批后草稿物化为正式 Document 和 Task 实体。
+
+### 活动流
+
+全量记录所有参与者的操作，支持 Session 归因（AgentName / SessionName 格式），实现完整的工作审计追踪。
 
 ---
 
 ## 架构
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                 Next.js App (:3000)                     │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │  Web UI (React)                                   │  │
-│  │  Dashboard │ Kanban │ Documents │ Proposals      │  │
-│  │  Knowledge │ Activity │ Agents │ Settings        │  │
-│  └───────────────────────────────────────────────────┘  │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │  API Routes                                       │  │
-│  │    /api/*    - REST API                           │  │
-│  │    /api/mcp  - MCP HTTP 端点 (Agent 调用)         │  │
-│  └───────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
-        ↑                                   ↑
-   PM Agent                          Developer Agent
-  (Claude Code)                       (Claude Code)
-   提议任务                             执行任务
-                          │
-              ┌───────────▼───────────┐
-              │  PostgreSQL + Prisma  │
-              └───────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    Next.js App (:3000)                       │
+│                                                             │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  Web UI (React 19 + Tailwind + shadcn/ui)             │  │
+│  │  Dashboard │ Kanban │ Documents │ Proposals            │  │
+│  │  Task DAG  │ Activity │ Settings │ Agent Sessions     │  │
+│  └───────────────────────────────────────────────────────┘  │
+│                                                             │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  API Layer                                            │  │
+│  │    /api/*    - REST API (Web UI)                      │  │
+│  │    /api/mcp  - MCP HTTP Streamable Transport (Agent)  │  │
+│  └───────────────────────────────────────────────────────┘  │
+│                                                             │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  Service Layer (src/services/*.service.ts)            │  │
+│  │    Business logic, UUID-first, multi-tenant           │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+     ↑              ↑              ↑              ↑
+  PM Agent    Developer Agent  Admin Agent     Web UI
+ (MCP Tools)   (MCP Tools)   (MCP Tools)    (REST API)
+                     │
+          ┌──────────▼──────────┐
+          │  PostgreSQL + Prisma │
+          └─────────────────────┘
 ```
-
-**Agent 角色**:
-- **PM Agent**: 需求分析、任务拆解、提议（使用 `chorus_pm_*` 工具）
-- **Developer Agent**: 执行任务、报告工作（使用 `chorus_*` 工具）
 
 ## 技术栈
 
 | 组件 | 技术 |
-|-----|------|
-| 框架 | Next.js 15 (App Router) |
-| 语言 | TypeScript |
-| ORM | Prisma |
-| 数据库 | PostgreSQL |
-| UI | Tailwind + shadcn/ui |
-| Agent 集成 | MCP (HTTP Streamable Transport) |
-| 认证 | OIDC + PKCE (人类) / API Key (Agent) |
-| 部署 | Docker Compose |
+|------|------|
+| 框架 | Next.js 15 (App Router, Turbopack) |
+| 语言 | TypeScript 5 (strict mode) |
+| 前端 | React 19, Tailwind CSS 4, shadcn/ui (Radix UI) |
+| ORM | Prisma 7 |
+| 数据库 | PostgreSQL 16 |
+| Agent 集成 | MCP SDK 1.26 (HTTP Streamable Transport) |
+| 认证 | OIDC + PKCE（用户）/ API Key `cho_` 前缀（Agent）/ SuperAdmin |
+| i18n | next-intl (en, zh) |
+| 包管理 | pnpm 9.15 |
+| 部署 | Docker Compose / AWS CDK |
 
 ---
 
@@ -110,96 +118,93 @@ Idea → Proposal → Document/Task → 执行 → 验证
 ### 前置条件
 
 - Docker & Docker Compose
-- Node.js 20+
+- Node.js 22+
+- pnpm 9+
 - OIDC Provider（如 Auth0、Cognito、Keycloak）
 
 ### 启动
 
 ```bash
 # 克隆仓库
-git clone https://github.com/your-org/chorus.git
+git clone https://github.com/Chorus-AIDLC/chorus.git
 cd chorus
 
 # 配置环境变量
 cp .env.example .env
-# 编辑 .env，配置 OIDC_ISSUER 和 OIDC_CLIENT_ID
+# 编辑 .env，配置数据库连接和 OIDC
 
-# 启动服务
-docker-compose up -d
+# 启动数据库
+docker compose up -d db
+
+# 安装依赖并初始化
+pnpm install
+pnpm db:migrate:dev
+pnpm dev
 
 # 访问
 open http://localhost:3000
 ```
 
-### 配置 Claude Code
+### 连接 AI Agent
+
+#### 方式一：使用 Chorus Plugin（推荐）
+
+Chorus Plugin 为 Claude Code 提供自动化 Session 管理和 Skill 文档。
+
+```bash
+# 设置环境变量
+export CHORUS_URL="http://localhost:3000"
+export CHORUS_API_KEY="cho_your_api_key"
+
+# 启动 Claude Code 并加载插件
+claude --plugin-dir public/chorus-plugin
+```
+
+#### 方式二：手动配置 MCP
+
+在项目根目录创建 `.mcp.json`：
 
 ```json
-// ~/.claude.json
 {
   "mcpServers": {
     "chorus": {
       "type": "http",
-      "url": "http://localhost:3000/api/mcp"
+      "url": "http://localhost:3000/api/mcp",
+      "headers": {
+        "Authorization": "Bearer cho_your_api_key"
+      }
     }
   }
 }
 ```
 
-重启 Claude Code 后，即可使用 Chorus 工具：
-
-```
-chorus_get_project       - 获取项目信息
-chorus_get_task          - 获取任务详情
-chorus_list_tasks        - 列出任务
-chorus_update_task       - 更新任务状态
-chorus_submit_for_verify - 提交任务等待人类验证
-chorus_add_comment       - 添加评论
-chorus_report_work       - 报告工作完成
-chorus_get_activity      - 获取活动流
-chorus_checkin           - 心跳签到
-```
+API Key 在 Chorus Web UI 的 Settings 页面创建（Settings > Agents > Create API Key）。
 
 ---
 
-## 设计理念
+## Skill 文档
 
-### AI-DLC 方法论
+Chorus 提供 Skill 文档指导 AI Agent 使用平台，有两种分发方式：
 
-Chorus 基于 [AI-DLC（AI-Driven Development Lifecycle）](https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle/) 方法论设计：
+| 方式 | 位置 | 适用场景 |
+|------|------|---------|
+| **Plugin 内嵌** | `public/chorus-plugin/skills/chorus/` | Claude Code + Plugin，Session 自动化 |
+| **独立分发** | `public/skill/`（`/skill/` 路径静态托管）| 任何 Agent，手动 Session 管理 |
 
-- **Reversed Conversation**：AI 提议，人类验证（而不是人类提示，AI 执行）
-- **Bolt**：以小时/天为周期的短迭代，替代传统 Sprint
-- **持续上下文传递**：每个阶段的输出成为下一阶段的输入
-
-### Skill 机制
-
-借鉴 [Moltbook](https://moltbook.com) 的设计，通过 Skill 文件教会 Agent 如何使用平台：
-
-- `SKILL.md` - API 使用说明
-- `HEARTBEAT.md` - 定期检查任务清单
-
----
-
-## 项目状态
-
-🚧 **开发中** - MVP 阶段
-
-### 路线图
-
-- [x] PRD 定义
-- [ ] M0: 项目骨架 (Week 1)
-- [ ] M1: 后端 API (Week 2)
-- [ ] M2: MCP Server (Week 3)
-- [ ] M3: Web UI (Week 4)
-- [ ] M4: 联调测试 (Week 5)
+Skill 文件包含：MCP 配置指南、三个角色的完整工作流、Session 与可观测性、Claude Code Agent Teams 集成等。
 
 ---
 
 ## 文档
 
-- [PRD](./PRD_Chorus.md) - 产品需求文档
-- [市场调研](./ai_project_management_market_research.md)
-- [Moltbook 机制分析](./moltbook_analysis.md)
+| 文档 | 说明 |
+|------|------|
+| [PRD](docs/PRD_Chorus.md) | 产品需求文档 |
+| [Architecture](docs/ARCHITECTURE.md) | 技术架构文档 |
+| [MCP Tools](docs/MCP_TOOLS.md) | MCP 工具参考 |
+| [Chorus Plugin](docs/chorus-plugin.md) | 插件设计与 Hook 说明 |
+| [AI-DLC Gap Analysis](docs/AIDLC_GAP_ANALYSIS.md) | AI-DLC 方法论差距分析 |
+| [CLAUDE.md](CLAUDE.md) | 项目开发规范（给 AI Agent 的编码指南） |
 
 ---
 
