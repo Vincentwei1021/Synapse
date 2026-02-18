@@ -1,39 +1,39 @@
-# Chorus MCP Tools 文档
+# Chorus MCP Tools Documentation
 
-本文档记录 Chorus MCP Server 提供的所有工具，包括工具名称、功能说明、输入参数和输出格式。
+This document covers all tools provided by the Chorus MCP Server, including tool names, descriptions, input parameters, and output formats.
 
-## 概述
+## Overview
 
-Chorus MCP Server 根据 Agent 角色提供不同的工具集：
+The Chorus MCP Server provides different tool sets based on Agent roles:
 
-| 角色 | 工具集 |
-|------|--------|
+| Role | Tool Set |
+|------|----------|
 | Developer Agent | Public + Session + Developer |
 | PM Agent | Public + Session + PM |
 | Admin Agent | Public + Session + Admin + PM + Developer |
 
 ---
 
-## 公共工具 (Public Tools)
+## Public Tools
 
-所有 Agent 都可使用的工具。
+Tools available to all Agents.
 
 ### chorus_checkin
 
-**功能**: Agent 心跳签到，返回 Agent 人格定义、角色和待处理任务。建议在每个 session 开始时调用。
+**Description**: Agent heartbeat check-in. Returns Agent persona definition, roles, and pending tasks. Recommended to call at the start of each session.
 
-**输入**: 无
+**Input**: None
 
-**输出**:
+**Output**:
 ```json
 {
-  "checkinTime": "ISO 时间字符串",
+  "checkinTime": "ISO timestamp",
   "agent": {
     "uuid": "Agent UUID",
-    "name": "Agent 名称",
+    "name": "Agent name",
     "roles": ["developer"],
-    "persona": "人格描述",
-    "systemPrompt": "系统提示（可选）"
+    "persona": "Persona description",
+    "systemPrompt": "System prompt (optional)"
   },
   "assignments": {
     "ideas": [...],
@@ -48,28 +48,28 @@ Chorus MCP Server 根据 Agent 角色提供不同的工具集：
 
 ### chorus_get_project
 
-**功能**: 获取项目详情和背景信息
+**Description**: Get project details and background information
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| projectUuid | string | 是 | 项目 UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| projectUuid | string | Yes | Project UUID |
 
-**输出**: 项目详情 JSON
+**Output**: Project details JSON
 
 ### chorus_get_ideas
 
-**功能**: 获取项目的 Ideas 列表
+**Description**: Get the list of Ideas for a project
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| projectUuid | string | 是 | 项目 UUID |
-| status | string | 否 | 筛选状态: open, assigned, in_progress, pending_review, completed, closed |
-| page | number | 否 | 页码（默认 1） |
-| pageSize | number | 否 | 每页数量（默认 20） |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| projectUuid | string | Yes | Project UUID |
+| status | string | No | Filter by status: open, assigned, in_progress, pending_review, completed, closed |
+| page | number | No | Page number (default 1) |
+| pageSize | number | No | Items per page (default 20) |
 
-**输出**:
+**Output**:
 ```json
 {
   "ideas": [...],
@@ -81,111 +81,111 @@ Chorus MCP Server 根据 Agent 角色提供不同的工具集：
 
 ### chorus_get_idea
 
-**功能**: 获取单个 Idea 的详细信息
+**Description**: Get detailed information for a single Idea
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| ideaUuid | string | 是 | Idea UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| ideaUuid | string | Yes | Idea UUID |
 
-**输出**: Idea 详情 JSON
+**Output**: Idea details JSON
 
 ### chorus_get_documents
 
-**功能**: 获取项目的文档列表
+**Description**: Get the list of documents for a project
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| projectUuid | string | 是 | 项目 UUID |
-| type | string | 否 | 筛选类型: prd, tech_design, adr 等 |
-| page | number | 否 | 页码 |
-| pageSize | number | 否 | 每页数量 |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| projectUuid | string | Yes | Project UUID |
+| type | string | No | Filter by type: prd, tech_design, adr, etc. |
+| page | number | No | Page number |
+| pageSize | number | No | Items per page |
 
-**输出**: 文档列表 JSON
+**Output**: Document list JSON
 
 ### chorus_get_document
 
-**功能**: 获取单个文档的详细内容
+**Description**: Get detailed content of a single document
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| documentUuid | string | 是 | 文档 UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| documentUuid | string | Yes | Document UUID |
 
-**输出**: 文档详情 JSON
+**Output**: Document details JSON
 
 ### chorus_get_proposals
 
-**功能**: 获取项目的提议列表和状态
+**Description**: Get the list of proposals and their statuses for a project
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| projectUuid | string | 是 | 项目 UUID |
-| status | string | 否 | 筛选状态: draft, pending, approved, rejected, revised |
-| page | number | 否 | 页码 |
-| pageSize | number | 否 | 每页数量 |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| projectUuid | string | Yes | Project UUID |
+| status | string | No | Filter by status: draft, pending, approved, rejected, revised |
+| page | number | No | Page number |
+| pageSize | number | No | Items per page |
 
-**输出**: 提议列表 JSON
+**Output**: Proposal list JSON
 
 ### chorus_get_proposal
 
-**功能**: 获取单个提议的详细信息，包含文档草稿和任务草稿
+**Description**: Get detailed information for a single proposal, including document drafts and task drafts
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| proposalUuid | string | 是 | Proposal UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| proposalUuid | string | Yes | Proposal UUID |
 
-**输出**: Proposal 详情 JSON（含 documentDrafts 和 taskDrafts）
+**Output**: Proposal details JSON (includes documentDrafts and taskDrafts)
 
 ### chorus_list_tasks
 
-**功能**: 列出项目的任务
+**Description**: List tasks for a project
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| projectUuid | string | 是 | 项目 UUID |
-| status | string | 否 | 筛选状态: open, assigned, in_progress, to_verify, done, closed |
-| priority | string | 否 | 筛选优先级: low, medium, high |
-| page | number | 否 | 页码 |
-| pageSize | number | 否 | 每页数量 |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| projectUuid | string | Yes | Project UUID |
+| status | string | No | Filter by status: open, assigned, in_progress, to_verify, done, closed |
+| priority | string | No | Filter by priority: low, medium, high |
+| page | number | No | Page number |
+| pageSize | number | No | Items per page |
 
-**输出**: 任务列表 JSON
+**Output**: Task list JSON
 
 ### chorus_get_task
 
-**功能**: 获取单个任务的详细信息和上下文
+**Description**: Get detailed information and context for a single task
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| taskUuid | string | 是 | 任务 UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| taskUuid | string | Yes | Task UUID |
 
-**输出**: 任务详情 JSON
+**Output**: Task details JSON
 
 ### chorus_get_activity
 
-**功能**: 获取项目的活动流
+**Description**: Get the activity stream for a project
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| projectUuid | string | 是 | 项目 UUID |
-| page | number | 否 | 页码 |
-| pageSize | number | 否 | 每页数量（默认 50） |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| projectUuid | string | Yes | Project UUID |
+| page | number | No | Page number |
+| pageSize | number | No | Items per page (default 50) |
 
-**输出**: 活动列表 JSON
+**Output**: Activity list JSON
 
 ### chorus_get_my_assignments
 
-**功能**: 获取自己认领的所有 Ideas 和 Tasks
+**Description**: Get all Ideas and Tasks assigned to the current Agent
 
-**输入**: 无
+**Input**: None
 
-**输出**:
+**Output**:
 ```json
 {
   "ideas": [...],
@@ -195,36 +195,36 @@ Chorus MCP Server 根据 Agent 角色提供不同的工具集：
 
 ### chorus_get_available_ideas
 
-**功能**: 获取项目中可认领的 Ideas（status=open）
+**Description**: Get claimable Ideas in a project (status=open)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| projectUuid | string | 是 | 项目 UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| projectUuid | string | Yes | Project UUID |
 
-**输出**: 可认领的 Ideas 列表
+**Output**: List of claimable Ideas
 
 ### chorus_get_available_tasks
 
-**功能**: 获取项目中可认领的 Tasks（status=open）
+**Description**: Get claimable Tasks in a project (status=open)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| projectUuid | string | 是 | 项目 UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| projectUuid | string | Yes | Project UUID |
 
-**输出**: 可认领的 Tasks 列表
+**Output**: List of claimable Tasks
 
 ### chorus_get_unblocked_tasks
 
-**功能**: 获取已解锁的任务——状态为 open/assigned 且所有依赖都已完成（done/to_verify）。用于发现哪些任务可以开始工作。
+**Description**: Get unblocked tasks — tasks with status open/assigned where all dependencies are completed (done/to_verify). Used to discover which tasks are ready to start.
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| projectUuid | string | 是 | 项目 UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| projectUuid | string | Yes | Project UUID |
 
-**输出**:
+**Output**:
 ```json
 {
   "tasks": [...],
@@ -232,55 +232,55 @@ Chorus MCP Server 根据 Agent 角色提供不同的工具集：
 }
 ```
 
-返回的每个 task 包含完整的 TaskResponse 格式（含 dependsOn、dependedBy、assignee 等信息）。
+Each task in the response includes the full TaskResponse format (with dependsOn, dependedBy, assignee, etc.).
 
 ---
 
 ### chorus_add_comment
 
-**功能**: 对 Idea/Proposal/Task/Document 添加评论
+**Description**: Add a comment to an Idea/Proposal/Task/Document
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| targetType | enum | 是 | 目标类型: idea, proposal, task, document |
-| targetUuid | string | 是 | 目标 UUID |
-| content | string | 是 | 评论内容 |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| targetType | enum | Yes | Target type: idea, proposal, task, document |
+| targetUuid | string | Yes | Target UUID |
+| content | string | Yes | Comment content |
 
-**输出**: 创建的评论 JSON
+**Output**: Created comment JSON
 
 ### chorus_get_comments
 
-**功能**: 获取 Idea/Proposal/Task/Document 的评论列表
+**Description**: Get the list of comments for an Idea/Proposal/Task/Document
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| targetType | enum | 是 | 目标类型: idea, proposal, task, document |
-| targetUuid | string | 是 | 目标 UUID |
-| page | number | 否 | 页码 |
-| pageSize | number | 否 | 每页数量 |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| targetType | enum | Yes | Target type: idea, proposal, task, document |
+| targetUuid | string | Yes | Target UUID |
+| page | number | No | Page number |
+| pageSize | number | No | Items per page |
 
-**输出**: 评论列表 JSON
+**Output**: Comment list JSON
 
 ---
 
-## Session 工具 (Session Tools)
+## Session Tools
 
-所有 Agent 都可使用。用于管理 Agent 的工作 session（如 swarm 模式下的 sub-agent worker）。
+Available to all Agents. Used to manage Agent work sessions (e.g., sub-agent workers in swarm mode).
 
 ### chorus_create_session
 
-**功能**: 创建一个新的 Agent Session（如代表一个 sub-agent worker）
+**Description**: Create a new Agent Session (e.g., representing a sub-agent worker)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| name | string | 是 | Session 名称（如 "frontend-worker"） |
-| description | string | 否 | Session 描述 |
-| expiresAt | string | 否 | 过期时间（ISO 时间字符串） |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| name | string | Yes | Session name (e.g., "frontend-worker") |
+| description | string | No | Session description |
+| expiresAt | string | No | Expiration time (ISO timestamp) |
 
-**输出**:
+**Output**:
 ```json
 {
   "uuid": "Session UUID",
@@ -288,23 +288,23 @@ Chorus MCP Server 根据 Agent 角色提供不同的工具集：
   "name": "frontend-worker",
   "description": "...",
   "status": "active",
-  "lastActiveAt": "ISO 时间字符串",
+  "lastActiveAt": "ISO timestamp",
   "expiresAt": null,
-  "createdAt": "ISO 时间字符串",
+  "createdAt": "ISO timestamp",
   "activeCheckins": []
 }
 ```
 
 ### chorus_list_sessions
 
-**功能**: 列出当前 Agent 的所有 Sessions
+**Description**: List all Sessions for the current Agent
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| status | string | 否 | 筛选状态: active, inactive, closed |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| status | string | No | Filter by status: active, inactive, closed |
 
-**输出**:
+**Output**:
 ```json
 {
   "sessions": [...],
@@ -314,179 +314,179 @@ Chorus MCP Server 根据 Agent 角色提供不同的工具集：
 
 ### chorus_get_session
 
-**功能**: 获取 Session 详情及其活跃的 Task checkins
+**Description**: Get Session details and its active Task checkins
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| sessionUuid | string | 是 | Session UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| sessionUuid | string | Yes | Session UUID |
 
-**输出**: Session 详情 JSON（含 activeCheckins 列表）
+**Output**: Session details JSON (includes activeCheckins list)
 
 ### chorus_close_session
 
-**功能**: 关闭 Session（active/inactive → closed），自动 checkout 所有活跃的 Task checkins
+**Description**: Close a Session (active/inactive → closed). Automatically checks out all active Task checkins.
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| sessionUuid | string | 是 | Session UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| sessionUuid | string | Yes | Session UUID |
 
-**输出**: 更新后的 Session JSON
+**Output**: Updated Session JSON
 
 ### chorus_reopen_session
 
-**功能**: 重新打开已关闭的 Session（closed → active），用于复用之前的 session 而无需创建新的
+**Description**: Reopen a closed Session (closed → active). Used to reuse a previous session without creating a new one.
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| sessionUuid | string | 是 | Session UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| sessionUuid | string | Yes | Session UUID |
 
-**输出**: 更新后的 Session JSON（status=active, lastActiveAt 已刷新）
+**Output**: Updated Session JSON (status=active, lastActiveAt refreshed)
 
 ### chorus_session_checkin_task
 
-**功能**: Session checkin 到一个 Task，表示开始工作
+**Description**: Check in a Session to a Task, indicating work has started
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| sessionUuid | string | 是 | Session UUID |
-| taskUuid | string | 是 | Task UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| sessionUuid | string | Yes | Session UUID |
+| taskUuid | string | Yes | Task UUID |
 
-**输出**: Checkin 记录 JSON
+**Output**: Checkin record JSON
 
 ### chorus_session_checkout_task
 
-**功能**: Session 从 Task checkout，表示结束工作
+**Description**: Check out a Session from a Task, indicating work has ended
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| sessionUuid | string | 是 | Session UUID |
-| taskUuid | string | 是 | Task UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| sessionUuid | string | Yes | Session UUID |
+| taskUuid | string | Yes | Task UUID |
 
-**输出**: 更新后的 Checkin 记录 JSON
+**Output**: Updated checkin record JSON
 
 ### chorus_session_heartbeat
 
-**功能**: Session 心跳，更新 lastActiveAt。1 小时无心跳的 active session 会被自动标记为 inactive。
+**Description**: Session heartbeat, updates lastActiveAt. Active sessions with no heartbeat for 1 hour are automatically marked as inactive.
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| sessionUuid | string | 是 | Session UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| sessionUuid | string | Yes | Session UUID |
 
-**输出**: 确认消息（含更新后的 lastActiveAt）
+**Output**: Confirmation message (includes updated lastActiveAt)
 
 ---
 
-## PM Agent 工具 (PM Tools)
+## PM Agent Tools
 
-PM Agent 和 Admin Agent 可使用。Developer Agent 不可使用。
+Available to PM Agent and Admin Agent. Not available to Developer Agent.
 
 ### chorus_claim_idea
 
-**功能**: 认领一个 Idea（open → assigned）
+**Description**: Claim an Idea (open → assigned)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| ideaUuid | string | 是 | Idea UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| ideaUuid | string | Yes | Idea UUID |
 
-**输出**: 更新后的 Idea JSON
+**Output**: Updated Idea JSON
 
 ### chorus_release_idea
 
-**功能**: 放弃认领 Idea（assigned → open）
+**Description**: Release a claimed Idea (assigned → open)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| ideaUuid | string | 是 | Idea UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| ideaUuid | string | Yes | Idea UUID |
 
-**输出**: 更新后的 Idea JSON
+**Output**: Updated Idea JSON
 
 ### chorus_update_idea_status
 
-**功能**: 更新 Idea 状态（仅认领者可操作）
+**Description**: Update Idea status (only the assignee can perform this)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| ideaUuid | string | 是 | Idea UUID |
-| status | enum | 是 | 新状态: in_progress, pending_review, completed |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| ideaUuid | string | Yes | Idea UUID |
+| status | enum | Yes | New status: in_progress, pending_review, completed |
 
-**输出**: 更新后的 Idea JSON
+**Output**: Updated Idea JSON
 
 ### chorus_pm_create_proposal
 
-**功能**: 创建提议容器（可包含文档草稿和任务草稿）
+**Description**: Create a proposal container (can include document drafts and task drafts)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| projectUuid | string | 是 | 项目 UUID |
-| title | string | 是 | 提议标题 |
-| description | string | 否 | 提议描述 |
-| inputType | enum | 是 | 输入来源类型: idea, document |
-| inputUuids | string[] | 是 | 输入 UUID 列表 |
-| documentDrafts | array | 否 | 文档草稿列表 |
-| taskDrafts | array | 否 | 任务草稿列表 |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| projectUuid | string | Yes | Project UUID |
+| title | string | Yes | Proposal title |
+| description | string | No | Proposal description |
+| inputType | enum | Yes | Input source type: idea, document |
+| inputUuids | string[] | Yes | List of input UUIDs |
+| documentDrafts | array | No | List of document drafts |
+| taskDrafts | array | No | List of task drafts |
 
-**输出**: 创建的 Proposal JSON
+**Output**: Created Proposal JSON
 
 ### chorus_pm_submit_proposal
 
-**功能**: 提交 Proposal 进入审批流程（draft → pending）
+**Description**: Submit a Proposal for approval (draft → pending)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| proposalUuid | string | 是 | Proposal UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| proposalUuid | string | Yes | Proposal UUID |
 
-**输出**: 更新后的 Proposal JSON（status 变为 pending）
+**Output**: Updated Proposal JSON (status changes to pending)
 
 ### chorus_pm_create_document
 
-**功能**: 创建文档（PRD、技术设计、ADR 等）
+**Description**: Create a document (PRD, technical design, ADR, etc.)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| projectUuid | string | 是 | 项目 UUID |
-| type | enum | 是 | 文档类型: prd, tech_design, adr, spec, guide |
-| title | string | 是 | 文档标题 |
-| content | string | 否 | 文档内容（Markdown） |
-| proposalUuid | string | 否 | 关联的 Proposal UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| projectUuid | string | Yes | Project UUID |
+| type | enum | Yes | Document type: prd, tech_design, adr, spec, guide |
+| title | string | Yes | Document title |
+| content | string | No | Document content (Markdown) |
+| proposalUuid | string | No | Associated Proposal UUID |
 
-**输出**: 创建的 Document JSON
+**Output**: Created Document JSON
 
 ### chorus_pm_create_tasks
 
-**功能**: 批量创建任务（可关联 Proposal，支持批次内依赖）
+**Description**: Batch create tasks (can be associated with a Proposal, supports intra-batch dependencies)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| projectUuid | string | 是 | 项目 UUID |
-| proposalUuid | string | 否 | 关联的 Proposal UUID |
-| tasks | array | 是 | 任务列表 |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| projectUuid | string | Yes | Project UUID |
+| proposalUuid | string | No | Associated Proposal UUID |
+| tasks | array | Yes | Task list |
 
-**tasks 数组每项字段**:
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| title | string | 是 | 任务标题 |
-| description | string | 否 | 任务描述 |
-| priority | enum | 否 | 优先级: low, medium, high |
-| storyPoints | number | 否 | 工作量估算（Agent 小时） |
-| acceptanceCriteria | string | 否 | 验收标准（Markdown） |
-| draftUuid | string | 否 | 临时 UUID，供同批次 dependsOnDraftUuids 引用 |
-| dependsOnDraftUuids | string[] | 否 | 依赖的同批次 draftUuid 列表 |
-| dependsOnTaskUuids | string[] | 否 | 依赖的已有 Task UUID 列表 |
+**tasks array item fields**:
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| title | string | Yes | Task title |
+| description | string | No | Task description |
+| priority | enum | No | Priority: low, medium, high |
+| storyPoints | number | No | Effort estimate (Agent hours) |
+| acceptanceCriteria | string | No | Acceptance criteria (Markdown) |
+| draftUuid | string | No | Temporary UUID for intra-batch dependsOnDraftUuids references |
+| dependsOnDraftUuids | string[] | No | List of intra-batch draftUuids this task depends on |
+| dependsOnTaskUuids | string[] | No | List of existing Task UUIDs this task depends on |
 
-**输出**:
+**Output**:
 ```json
 {
   "tasks": [...],
@@ -495,146 +495,146 @@ PM Agent 和 Admin Agent 可使用。Developer Agent 不可使用。
   "warnings": ["..."]
 }
 ```
-- `draftToTaskUuidMap`: 仅当任一 task 提供了 draftUuid 时返回
-- `warnings`: 仅当依赖创建存在问题时返回（任务本身已创建成功）
+- `draftToTaskUuidMap`: Only returned when any task provides a draftUuid
+- `warnings`: Only returned when there are issues creating dependencies (tasks themselves are created successfully)
 
 ### chorus_pm_update_document
 
-**功能**: 更新文档内容（会增加版本号）
+**Description**: Update document content (increments version number)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| documentUuid | string | 是 | 文档 UUID |
-| title | string | 否 | 新标题 |
-| content | string | 否 | 新内容（Markdown） |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| documentUuid | string | Yes | Document UUID |
+| title | string | No | New title |
+| content | string | No | New content (Markdown) |
 
-**输出**: 更新后的 Document JSON
+**Output**: Updated Document JSON
 
 ### chorus_pm_add_document_draft
 
-**功能**: 添加文档草稿到待审批的 Proposal 容器中
+**Description**: Add a document draft to a pending Proposal container
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| proposalUuid | string | 是 | Proposal UUID |
-| type | string | 是 | 文档类型 |
-| title | string | 是 | 文档标题 |
-| content | string | 是 | 文档内容（Markdown） |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| proposalUuid | string | Yes | Proposal UUID |
+| type | string | Yes | Document type |
+| title | string | Yes | Document title |
+| content | string | Yes | Document content (Markdown) |
 
-**输出**: 更新后的 Proposal JSON
+**Output**: Updated Proposal JSON
 
 ### chorus_pm_add_task_draft
 
-**功能**: 添加任务草稿到待审批的 Proposal 容器中
+**Description**: Add a task draft to a pending Proposal container
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| proposalUuid | string | 是 | Proposal UUID |
-| title | string | 是 | 任务标题 |
-| description | string | 否 | 任务描述 |
-| storyPoints | number | 否 | 工作量估算（Agent 小时） |
-| priority | enum | 否 | 优先级: low, medium, high |
-| acceptanceCriteria | string | 否 | 验收标准（Markdown） |
-| dependsOnDraftUuids | string[] | 否 | 依赖的 taskDraft UUID 列表（审批通过时自动转为真实依赖） |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| proposalUuid | string | Yes | Proposal UUID |
+| title | string | Yes | Task title |
+| description | string | No | Task description |
+| storyPoints | number | No | Effort estimate (Agent hours) |
+| priority | enum | No | Priority: low, medium, high |
+| acceptanceCriteria | string | No | Acceptance criteria (Markdown) |
+| dependsOnDraftUuids | string[] | No | List of dependent taskDraft UUIDs (automatically converted to real dependencies upon approval) |
 
-**输出**: 更新后的 Proposal JSON
+**Output**: Updated Proposal JSON
 
 ### chorus_pm_update_document_draft
 
-**功能**: 更新 Proposal 中的文档草稿
+**Description**: Update a document draft in a Proposal
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| proposalUuid | string | 是 | Proposal UUID |
-| draftUuid | string | 是 | 文档草稿 UUID |
-| type | string | 否 | 文档类型 |
-| title | string | 否 | 文档标题 |
-| content | string | 否 | 文档内容 |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| proposalUuid | string | Yes | Proposal UUID |
+| draftUuid | string | Yes | Document draft UUID |
+| type | string | No | Document type |
+| title | string | No | Document title |
+| content | string | No | Document content |
 
-**输出**: 更新后的 Proposal JSON
+**Output**: Updated Proposal JSON
 
 ### chorus_pm_update_task_draft
 
-**功能**: 更新 Proposal 中的任务草稿
+**Description**: Update a task draft in a Proposal
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| proposalUuid | string | 是 | Proposal UUID |
-| draftUuid | string | 是 | 任务草稿 UUID |
-| title | string | 否 | 任务标题 |
-| description | string | 否 | 任务描述 |
-| storyPoints | number | 否 | 工作量估算 |
-| priority | enum | 否 | 优先级 |
-| acceptanceCriteria | string | 否 | 验收标准 |
-| dependsOnDraftUuids | string[] | 否 | 依赖的 taskDraft UUID 列表 |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| proposalUuid | string | Yes | Proposal UUID |
+| draftUuid | string | Yes | Task draft UUID |
+| title | string | No | Task title |
+| description | string | No | Task description |
+| storyPoints | number | No | Effort estimate |
+| priority | enum | No | Priority |
+| acceptanceCriteria | string | No | Acceptance criteria |
+| dependsOnDraftUuids | string[] | No | List of dependent taskDraft UUIDs |
 
-**输出**: 更新后的 Proposal JSON
+**Output**: Updated Proposal JSON
 
 ### chorus_pm_remove_document_draft
 
-**功能**: 从 Proposal 中删除文档草稿
+**Description**: Remove a document draft from a Proposal
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| proposalUuid | string | 是 | Proposal UUID |
-| draftUuid | string | 是 | 文档草稿 UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| proposalUuid | string | Yes | Proposal UUID |
+| draftUuid | string | Yes | Document draft UUID |
 
-**输出**: 更新后的 Proposal JSON
+**Output**: Updated Proposal JSON
 
 ### chorus_pm_remove_task_draft
 
-**功能**: 从 Proposal 中删除任务草稿
+**Description**: Remove a task draft from a Proposal
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| proposalUuid | string | 是 | Proposal UUID |
-| draftUuid | string | 是 | 任务草稿 UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| proposalUuid | string | Yes | Proposal UUID |
+| draftUuid | string | Yes | Task draft UUID |
 
-**输出**: 更新后的 Proposal JSON
+**Output**: Updated Proposal JSON
 
 ### chorus_add_task_dependency
 
-**功能**: 添加任务依赖关系（taskUuid 依赖于 dependsOnTaskUuid）。含同项目校验、自依赖校验、DFS 环检测。
+**Description**: Add a task dependency (taskUuid depends on dependsOnTaskUuid). Includes same-project validation, self-dependency check, and DFS cycle detection.
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| taskUuid | string | 是 | Task UUID（下游任务） |
-| dependsOnTaskUuid | string | 是 | 依赖的 Task UUID（上游任务） |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| taskUuid | string | Yes | Task UUID (downstream task) |
+| dependsOnTaskUuid | string | Yes | Dependent Task UUID (upstream task) |
 
-**输出**: 创建的依赖关系 JSON
+**Output**: Created dependency JSON
 ```json
 {
   "taskUuid": "...",
   "dependsOnUuid": "...",
-  "createdAt": "ISO 时间字符串"
+  "createdAt": "ISO timestamp"
 }
 ```
 
-**错误场景**:
-- 自依赖：`A task cannot depend on itself`
-- 任务不存在：`Task not found` / `Dependency task not found`
-- 跨项目：`Tasks must belong to the same project`
-- 形成环：`Adding this dependency would create a cycle`
+**Error scenarios**:
+- Self-dependency: `A task cannot depend on itself`
+- Task not found: `Task not found` / `Dependency task not found`
+- Cross-project: `Tasks must belong to the same project`
+- Cycle detected: `Adding this dependency would create a cycle`
 
 ### chorus_remove_task_dependency
 
-**功能**: 删除任务依赖关系
+**Description**: Remove a task dependency
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| taskUuid | string | 是 | Task UUID |
-| dependsOnTaskUuid | string | 是 | 要移除的依赖 Task UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| taskUuid | string | Yes | Task UUID |
+| dependsOnTaskUuid | string | Yes | Dependency Task UUID to remove |
 
-**输出**:
+**Output**:
 ```json
 {
   "success": true,
@@ -645,312 +645,312 @@ PM Agent 和 Admin Agent 可使用。Developer Agent 不可使用。
 
 ### chorus_pm_assign_task
 
-**功能**: 将任务分配给指定的 Developer Agent（task 须为 open 或 assigned 状态）
+**Description**: Assign a task to a specified Developer Agent (task must be in open or assigned status)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| taskUuid | string | 是 | Task UUID |
-| agentUuid | string | 是 | 目标 Developer Agent UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| taskUuid | string | Yes | Task UUID |
+| agentUuid | string | Yes | Target Developer Agent UUID |
 
-**输出**: 更新后的 Task JSON
+**Output**: Updated Task JSON
 
-**校验规则**:
-- Task 必须为 open 或 assigned 状态
-- 目标 Agent 必须存在且属于同一 company
-- 目标 Agent 必须具有 developer 或 developer_agent 角色
+**Validation rules**:
+- Task must be in open or assigned status
+- Target Agent must exist and belong to the same company
+- Target Agent must have the developer or developer_agent role
 
 ---
 
-## Developer Agent 工具 (Developer Tools)
+## Developer Agent Tools
 
-Developer Agent 和 Admin Agent 可使用。PM Agent 不可使用。
+Available to Developer Agent and Admin Agent. Not available to PM Agent.
 
 ### chorus_claim_task
 
-**功能**: 认领一个 Task（open → assigned）
+**Description**: Claim a Task (open → assigned)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| taskUuid | string | 是 | Task UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| taskUuid | string | Yes | Task UUID |
 
-**输出**: 更新后的 Task JSON
+**Output**: Updated Task JSON
 
 ### chorus_release_task
 
-**功能**: 放弃认领 Task（assigned → open）
+**Description**: Release a claimed Task (assigned → open)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| taskUuid | string | 是 | Task UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| taskUuid | string | Yes | Task UUID |
 
-**输出**: 更新后的 Task JSON
+**Output**: Updated Task JSON
 
 ### chorus_update_task
 
-**功能**: 更新任务状态（仅认领者可操作）
+**Description**: Update task status (only the assignee can perform this)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| taskUuid | string | 是 | Task UUID |
-| status | enum | 是 | 新状态: in_progress, to_verify |
-| sessionUuid | string | 否 | 关联的 Session UUID（用于标记哪个 worker 执行的操作） |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| taskUuid | string | Yes | Task UUID |
+| status | enum | Yes | New status: in_progress, to_verify |
+| sessionUuid | string | No | Associated Session UUID (used to attribute which worker performed the action) |
 
-**行为**: 当提供 `sessionUuid` 时，Activity 记录会包含 session 归属信息，且自动执行 session 心跳。
+**Behavior**: When `sessionUuid` is provided, the Activity record includes session attribution, and a session heartbeat is automatically sent.
 
-**输出**: 更新后的 Task JSON
+**Output**: Updated Task JSON
 
 ### chorus_submit_for_verify
 
-**功能**: 提交任务等待人类验证（in_progress → to_verify）
+**Description**: Submit a task for human verification (in_progress → to_verify)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| taskUuid | string | 是 | Task UUID |
-| summary | string | 否 | 工作摘要 |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| taskUuid | string | Yes | Task UUID |
+| summary | string | No | Work summary |
 
-**输出**: 更新后的 Task JSON
+**Output**: Updated Task JSON
 
 ### chorus_report_work
 
-**功能**: 报告工作进展或完成情况
+**Description**: Report work progress or completion
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| taskUuid | string | 是 | Task UUID |
-| report | string | 是 | 工作报告内容 |
-| status | enum | 否 | 可选：同时更新状态: in_progress, to_verify |
-| sessionUuid | string | 否 | 关联的 Session UUID（用于标记哪个 worker 执行的操作） |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| taskUuid | string | Yes | Task UUID |
+| report | string | Yes | Work report content |
+| status | enum | No | Optionally update status simultaneously: in_progress, to_verify |
+| sessionUuid | string | No | Associated Session UUID (used to attribute which worker performed the action) |
 
-**行为**: 当提供 `sessionUuid` 时，Activity 记录会包含 session 归属信息，且自动执行 session 心跳。
+**Behavior**: When `sessionUuid` is provided, the Activity record includes session attribution, and a session heartbeat is automatically sent.
 
-**输出**: 确认消息
+**Output**: Confirmation message
 
 ---
 
-## Admin Agent 工具 (Admin Tools)
+## Admin Agent Tools
 
-仅 Admin Agent 可使用。用于代理人类执行审批、验证、项目管理等操作。
+Available only to Admin Agent. Used to perform approval, verification, and project management operations on behalf of humans.
 
 ### chorus_admin_create_project
 
-**功能**: 创建新项目
+**Description**: Create a new project
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| name | string | 是 | 项目名称 |
-| description | string | 否 | 项目描述 |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| name | string | Yes | Project name |
+| description | string | No | Project description |
 
-**输出**: 创建的 Project JSON
+**Output**: Created Project JSON
 
 ### chorus_admin_create_idea
 
-**功能**: 创建 Idea（代理人类提出需求）
+**Description**: Create an Idea (submit a requirement on behalf of a human)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| projectUuid | string | 是 | 项目 UUID |
-| title | string | 是 | Idea 标题 |
-| content | string | 否 | Idea 详细描述 |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| projectUuid | string | Yes | Project UUID |
+| title | string | Yes | Idea title |
+| content | string | No | Idea detailed description |
 
-**输出**: 创建的 Idea JSON
+**Output**: Created Idea JSON
 
 ### chorus_admin_approve_proposal
 
-**功能**: 审批通过 Proposal
+**Description**: Approve a Proposal
 
-**重要行为**: 审批通过后，系统会自动将 Proposal 中的所有草稿物化（materialize）为实际资源：
-- `documentDrafts` → 自动创建对应的 Document（关联此 Proposal）
-- `taskDrafts` → 自动创建对应的 Task（关联此 Proposal）
+**Important behavior**: Upon approval, the system automatically materializes all drafts in the Proposal into actual resources:
+- `documentDrafts` → Automatically creates corresponding Documents (linked to this Proposal)
+- `taskDrafts` → Automatically creates corresponding Tasks (linked to this Proposal)
 
-因此，审批通过后**不需要**再手动调用 `chorus_pm_create_tasks` 或 `chorus_pm_create_document` 来创建这些资源，否则会产生重复数据。`chorus_pm_create_tasks` 和 `chorus_pm_create_document` 仅用于不通过 Proposal 流程直接创建资源的场景。
+Therefore, after approval there is **no need** to manually call `chorus_pm_create_tasks` or `chorus_pm_create_document` to create these resources, as doing so would produce duplicate data. `chorus_pm_create_tasks` and `chorus_pm_create_document` are only for creating resources directly without going through the Proposal flow.
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| proposalUuid | string | 是 | Proposal UUID |
-| reviewNote | string | 否 | 审批备注 |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| proposalUuid | string | Yes | Proposal UUID |
+| reviewNote | string | No | Review note |
 
-**输出**: 更新后的 Proposal JSON
+**Output**: Updated Proposal JSON
 
 ### chorus_admin_reject_proposal
 
-**功能**: 拒绝 Proposal
+**Description**: Reject a Proposal
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| proposalUuid | string | 是 | Proposal UUID |
-| reviewNote | string | 是 | 拒绝原因（必填） |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| proposalUuid | string | Yes | Proposal UUID |
+| reviewNote | string | Yes | Rejection reason (required) |
 
-**输出**: 更新后的 Proposal JSON
+**Output**: Updated Proposal JSON
 
 ### chorus_admin_verify_task
 
-**功能**: 验证 Task（to_verify → done）
+**Description**: Verify a Task (to_verify → done)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| taskUuid | string | 是 | Task UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| taskUuid | string | Yes | Task UUID |
 
-**输出**: 更新后的 Task JSON
+**Output**: Updated Task JSON
 
 ### chorus_admin_reopen_task
 
-**功能**: 重新打开 Task（to_verify → in_progress，验证不通过时使用）
+**Description**: Reopen a Task (to_verify → in_progress, used when verification fails)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| taskUuid | string | 是 | Task UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| taskUuid | string | Yes | Task UUID |
 
-**输出**: 更新后的 Task JSON
+**Output**: Updated Task JSON
 
 ### chorus_admin_close_task
 
-**功能**: 关闭 Task（任何状态 → closed）
+**Description**: Close a Task (any status → closed)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| taskUuid | string | 是 | Task UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| taskUuid | string | Yes | Task UUID |
 
-**输出**: 更新后的 Task JSON
+**Output**: Updated Task JSON
 
 ### chorus_admin_close_idea
 
-**功能**: 关闭 Idea（任何状态 → closed）
+**Description**: Close an Idea (any status → closed)
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| ideaUuid | string | 是 | Idea UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| ideaUuid | string | Yes | Idea UUID |
 
-**输出**: 更新后的 Idea JSON
+**Output**: Updated Idea JSON
 
 ### chorus_admin_delete_idea
 
-**功能**: 删除 Idea
+**Description**: Delete an Idea
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| ideaUuid | string | 是 | Idea UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| ideaUuid | string | Yes | Idea UUID |
 
-**输出**: 确认消息
+**Output**: Confirmation message
 
 ### chorus_admin_delete_task
 
-**功能**: 删除 Task
+**Description**: Delete a Task
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| taskUuid | string | 是 | Task UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| taskUuid | string | Yes | Task UUID |
 
-**输出**: 确认消息
+**Output**: Confirmation message
 
 ### chorus_admin_delete_document
 
-**功能**: 删除 Document
+**Description**: Delete a Document
 
-**输入**:
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| documentUuid | string | 是 | Document UUID |
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| documentUuid | string | Yes | Document UUID |
 
-**输出**: 确认消息
+**Output**: Confirmation message
 
 ---
 
-## 测试记录
+## Test Records
 
-### 测试日期: 2026-02-07
+### Test Date: 2026-02-07
 
-### 测试环境
+### Test Environment
 - Agent: Sr. Claude (uuid: 1e7019fd-..., roles: developer_agent, pm_agent, admin_agent)
 - Server: localhost:3000
 
-### 测试流程及结果
+### Test Flow and Results
 
-| # | 工具 | 操作 | 结果 | 备注 |
-|---|------|------|------|------|
-| 1 | chorus_checkin | Agent 签到 | ✅ 通过 | 返回 agent 信息、assignments、pending |
-| 2 | chorus_admin_create_project | 创建项目 | ✅ 通过 | 返回 project UUID |
-| 3 | chorus_get_project | 获取项目详情 | ✅ 通过 | |
-| 4 | chorus_admin_create_idea | 创建 Idea | ✅ 通过 | status=open |
-| 5 | chorus_get_ideas | 获取 Ideas 列表 | ✅ 通过 | 分页正确 |
-| 6 | chorus_get_idea | 获取单个 Idea | ✅ 通过 | ⚠️ 返回了 `id` 字段（应隐藏） |
-| 7 | chorus_get_available_ideas | 获取可认领 Ideas | ✅ 通过 | |
-| 8 | chorus_claim_idea | 认领 Idea | ✅ 通过 | open → assigned |
-| 9 | chorus_update_idea_status | 更新 Idea 状态 | ✅ 通过 | assigned → in_progress |
-| 10 | chorus_get_my_assignments | 获取我的分配 | ✅ 通过 | ideas 和 tasks 列表 |
-| 11 | chorus_add_comment (idea) | 评论 Idea | ✅ 通过 | |
-| 12 | chorus_get_comments | 获取评论列表 | ✅ 通过 | |
-| 13 | chorus_pm_create_proposal | 创建 Proposal | ✅ 通过 | 含 documentDrafts + taskDrafts，status=draft |
-| 14 | chorus_get_proposals | 获取 Proposals 列表 | ✅ 通过 | |
-| 15 | chorus_get_proposal | 获取单个 Proposal | ✅ 通过 | |
-| 16 | chorus_pm_add_document_draft | 添加文档草稿 | ✅ 通过 | 追加到 documentDrafts |
-| 17 | chorus_pm_add_task_draft | 添加任务草稿 | ✅ 通过 | ⚠️ storyPoints 必须传 number 类型（MCP 传 string 会报错） |
-| 18 | chorus_pm_update_document_draft | 更新文档草稿 | ✅ 通过 | |
-| 19 | chorus_pm_update_task_draft | 更新任务草稿 | ✅ 通过 | |
-| 20 | chorus_pm_remove_task_draft | 删除任务草稿 | ✅ 通过 | |
-| 21 | chorus_pm_submit_proposal | 提交 Proposal 审批 | ✅ 通过 | draft → pending（**新增工具**） |
-| 22 | chorus_admin_approve_proposal | 审批通过 Proposal | ✅ 通过 | pending → approved，⚠️ 自动从 drafts 创建 tasks 和 documents |
-| 23 | chorus_add_comment (proposal) | 评论 Proposal | ✅ 通过 | |
-| 24 | chorus_pm_create_tasks | 批量创建任务 | ✅ 通过 | ⚠️ 如果 approve 已自动创建，手动调用会产生重复 |
-| 25 | chorus_pm_create_document | 创建文档 | ✅ 通过 | version=1 |
-| 26 | chorus_pm_update_document | 更新文档 | ✅ 通过 | version 自动递增到 2 |
-| 27 | chorus_list_tasks | 列出任务 | ✅ 通过 | |
-| 28 | chorus_get_available_tasks | 获取可认领 Tasks | ✅ 通过 | |
-| 29 | chorus_claim_task | 认领 Task | ✅ 通过 | open → assigned |
-| 30 | chorus_update_task | 更新任务状态 | ✅ 通过 | assigned → in_progress |
-| 31 | chorus_report_work | 报告工作进展 | ✅ 通过 | 记录活动 |
-| 32 | chorus_add_comment (task) | 评论 Task | ✅ 通过 | |
-| 33 | chorus_submit_for_verify | 提交验证 | ✅ 通过 | in_progress → to_verify |
-| 34 | chorus_admin_reopen_task | 重新打开 Task | ✅ 通过 | to_verify → in_progress |
-| 35 | chorus_admin_verify_task | 验证 Task | ✅ 通过 | to_verify → done |
-| 36 | chorus_release_task | 放弃认领 Task | ✅ 通过 | assigned → open |
-| 37 | chorus_admin_close_task | 关闭 Task | ✅ 通过 | any → closed |
-| 38 | chorus_get_task | 获取单个 Task | ✅ 通过 | ⚠️ 返回了 `id` 字段（应隐藏） |
-| 39 | chorus_get_document | 获取单个文档 | ✅ 通过 | |
-| 40 | chorus_get_activity | 获取活动流 | ✅ 通过 | 记录了 submit、comment_added 等活动 |
-| 41 | chorus_release_idea | 放弃认领 Idea | ✅ 通过 | assigned → open |
-| 42 | chorus_admin_close_idea | 关闭 Idea | ✅ 通过 | any → closed |
-| 43 | chorus_admin_reject_proposal | 拒绝 Proposal | ✅ 通过 | pending → rejected，含 reviewNote |
-| 44 | chorus_admin_delete_task | 删除 Task | ✅ 通过 | |
-| 45 | chorus_admin_delete_document | 删除 Document | ✅ 通过 | |
-| 46 | chorus_admin_delete_idea | 删除 Idea | ✅ 通过 | |
+| # | Tool | Action | Result | Notes |
+|---|------|--------|--------|-------|
+| 1 | chorus_checkin | Agent check-in | ✅ Pass | Returns agent info, assignments, pending |
+| 2 | chorus_admin_create_project | Create project | ✅ Pass | Returns project UUID |
+| 3 | chorus_get_project | Get project details | ✅ Pass | |
+| 4 | chorus_admin_create_idea | Create Idea | ✅ Pass | status=open |
+| 5 | chorus_get_ideas | Get Ideas list | ✅ Pass | Pagination correct |
+| 6 | chorus_get_idea | Get single Idea | ✅ Pass | ⚠️ Returned `id` field (should be hidden) |
+| 7 | chorus_get_available_ideas | Get claimable Ideas | ✅ Pass | |
+| 8 | chorus_claim_idea | Claim Idea | ✅ Pass | open → assigned |
+| 9 | chorus_update_idea_status | Update Idea status | ✅ Pass | assigned → in_progress |
+| 10 | chorus_get_my_assignments | Get my assignments | ✅ Pass | ideas and tasks lists |
+| 11 | chorus_add_comment (idea) | Comment on Idea | ✅ Pass | |
+| 12 | chorus_get_comments | Get comments list | ✅ Pass | |
+| 13 | chorus_pm_create_proposal | Create Proposal | ✅ Pass | Contains documentDrafts + taskDrafts, status=draft |
+| 14 | chorus_get_proposals | Get Proposals list | ✅ Pass | |
+| 15 | chorus_get_proposal | Get single Proposal | ✅ Pass | |
+| 16 | chorus_pm_add_document_draft | Add document draft | ✅ Pass | Appended to documentDrafts |
+| 17 | chorus_pm_add_task_draft | Add task draft | ✅ Pass | ⚠️ storyPoints must be number type (MCP sends string, causes error) |
+| 18 | chorus_pm_update_document_draft | Update document draft | ✅ Pass | |
+| 19 | chorus_pm_update_task_draft | Update task draft | ✅ Pass | |
+| 20 | chorus_pm_remove_task_draft | Remove task draft | ✅ Pass | |
+| 21 | chorus_pm_submit_proposal | Submit Proposal for approval | ✅ Pass | draft → pending (**new tool**) |
+| 22 | chorus_admin_approve_proposal | Approve Proposal | ✅ Pass | pending → approved, ⚠️ auto-creates tasks and documents from drafts |
+| 23 | chorus_add_comment (proposal) | Comment on Proposal | ✅ Pass | |
+| 24 | chorus_pm_create_tasks | Batch create tasks | ✅ Pass | ⚠️ If approve already auto-created, manual call produces duplicates |
+| 25 | chorus_pm_create_document | Create document | ✅ Pass | version=1 |
+| 26 | chorus_pm_update_document | Update document | ✅ Pass | version auto-increments to 2 |
+| 27 | chorus_list_tasks | List tasks | ✅ Pass | |
+| 28 | chorus_get_available_tasks | Get claimable Tasks | ✅ Pass | |
+| 29 | chorus_claim_task | Claim Task | ✅ Pass | open → assigned |
+| 30 | chorus_update_task | Update task status | ✅ Pass | assigned → in_progress |
+| 31 | chorus_report_work | Report work progress | ✅ Pass | Records activity |
+| 32 | chorus_add_comment (task) | Comment on Task | ✅ Pass | |
+| 33 | chorus_submit_for_verify | Submit for verification | ✅ Pass | in_progress → to_verify |
+| 34 | chorus_admin_reopen_task | Reopen Task | ✅ Pass | to_verify → in_progress |
+| 35 | chorus_admin_verify_task | Verify Task | ✅ Pass | to_verify → done |
+| 36 | chorus_release_task | Release claimed Task | ✅ Pass | assigned → open |
+| 37 | chorus_admin_close_task | Close Task | ✅ Pass | any → closed |
+| 38 | chorus_get_task | Get single Task | ✅ Pass | ⚠️ Returned `id` field (should be hidden) |
+| 39 | chorus_get_document | Get single document | ✅ Pass | |
+| 40 | chorus_get_activity | Get activity stream | ✅ Pass | Recorded submit, comment_added, etc. |
+| 41 | chorus_release_idea | Release claimed Idea | ✅ Pass | assigned → open |
+| 42 | chorus_admin_close_idea | Close Idea | ✅ Pass | any → closed |
+| 43 | chorus_admin_reject_proposal | Reject Proposal | ✅ Pass | pending → rejected, includes reviewNote |
+| 44 | chorus_admin_delete_task | Delete Task | ✅ Pass | |
+| 45 | chorus_admin_delete_document | Delete Document | ✅ Pass | |
+| 46 | chorus_admin_delete_idea | Delete Idea | ✅ Pass | |
 
-### 发现的问题及修复
+### Issues Found and Fixes
 
-#### 🐛 Bug: 缺少 `chorus_pm_submit_proposal` 工具（已修复 ✅）
-- **问题**: Proposal 创建后 status=draft，但没有 MCP 工具可以将其提交为 pending 状态，导致 `admin_approve_proposal` 无法使用（只接受 pending 状态）
-- **修复**: 在 `src/mcp/tools/pm.ts` 中添加了 `chorus_pm_submit_proposal` 工具
+#### Bug: Missing `chorus_pm_submit_proposal` tool (Fixed ✅)
+- **Issue**: After Proposal creation status=draft, but no MCP tool could submit it to pending status, making `admin_approve_proposal` unusable (only accepts pending status)
+- **Fix**: Added `chorus_pm_submit_proposal` tool in `src/mcp/tools/pm.ts`
 
-#### 🐛 Bug: `get_idea` 和 `get_task` 返回原始 DB 字段（已修复 ✅）
-- **问题**: `chorus_get_idea` 和 `chorus_get_task` 返回了 `id`（数据库自增 ID）和 `companyUuid` 等内部字段
-- **修复**: 改为调用 `ideaService.getIdea()` 和 `taskService.getTask()`，返回格式化后的响应
+#### Bug: `get_idea` and `get_task` returned raw DB fields (Fixed ✅)
+- **Issue**: `chorus_get_idea` and `chorus_get_task` returned `id` (database auto-increment ID) and `companyUuid` and other internal fields
+- **Fix**: Changed to call `ideaService.getIdea()` and `taskService.getTask()`, returning formatted responses
 
-#### 🐛 Bug: PM 工具集错误包含 Developer 工具（已修复 ✅）
-- **问题**: PM Agent 被错误地注册了 Developer 工具集
-- **修复**: 修改 `src/mcp/server.ts`，PM Agent 仅注册 Public + PM 工具
+#### Bug: PM tool set incorrectly included Developer tools (Fixed ✅)
+- **Issue**: PM Agent was incorrectly registered with the Developer tool set
+- **Fix**: Modified `src/mcp/server.ts` so PM Agent only registers Public + PM tools
 
-#### 🐛 Bug: Activity 记录不完整（已修复 ✅）
-- **问题**: 只有 `submit_for_verify` 和 `report_work` 生成了 Activity 记录，其余 12 个操作缺失
-- **修复**: 为以下操作添加了 Activity 记录：
+#### Bug: Incomplete Activity records (Fixed ✅)
+- **Issue**: Only `submit_for_verify` and `report_work` generated Activity records, 12 other operations were missing
+- **Fix**: Added Activity records for the following operations:
   - PM: `claim_idea`, `release_idea`, `update_idea_status`
   - Developer: `claim_task`, `release_task`, `update_task`
   - Admin: `approve_proposal`, `reject_proposal`, `verify_task`, `reopen_task`, `close_task`, `close_idea`
 
-#### ℹ️ 注意: `admin_approve_proposal` 自动物化草稿（已在文档说明 ✅）
-- 审批 Proposal 时会自动从 drafts 物化为实际的 Tasks 和 Documents
-- 审批后不需要再手动调用 `pm_create_tasks` 或 `pm_create_document`
+#### Note: `admin_approve_proposal` auto-materializes drafts (Documented ✅)
+- Approving a Proposal automatically materializes drafts into actual Tasks and Documents
+- After approval, there is no need to manually call `pm_create_tasks` or `pm_create_document`
