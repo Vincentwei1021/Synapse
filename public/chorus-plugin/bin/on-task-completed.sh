@@ -63,13 +63,15 @@ if [ -n "$SESSION_UUID" ] && [ -n "$CHORUS_TASK_UUID" ]; then
     >/dev/null 2>&1 || {
     "$API" hook-output \
       "Chorus: failed to checkout from task ${CHORUS_TASK_UUID:0:8}..." \
-      "WARNING: Failed to checkout from Chorus task ${CHORUS_TASK_UUID}."
+      "WARNING: Failed to checkout from Chorus task ${CHORUS_TASK_UUID}." \
+      "TaskCompleted"
     exit 0
   }
 
   "$API" hook-output \
     "Chorus: checked out from task ${CHORUS_TASK_UUID:0:8}..." \
-    "Auto-checked out from Chorus task ${CHORUS_TASK_UUID} (via metadata bridge chorus:task:<uuid>)."
+    "Auto-checked out from Chorus task ${CHORUS_TASK_UUID} (via metadata bridge chorus:task:<uuid>)." \
+    "TaskCompleted"
 else
   # No session found — can't checkout
   exit 0

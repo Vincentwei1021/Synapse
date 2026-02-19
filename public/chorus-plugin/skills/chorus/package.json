@@ -1,6 +1,6 @@
 {
   "name": "chorus",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Chorus AI Agent collaboration platform skill for Claude Code. Supports PM, Developer, and Admin roles via MCP tools for the Idea-Proposal-Task workflow.",
   "author": "chorus",
   "license": "AGPL-3.0",

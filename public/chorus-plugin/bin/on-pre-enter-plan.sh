@@ -24,4 +24,4 @@ When planning sub-agent work distribution:
 - The Chorus Plugin auto-manages session lifecycle — do NOT plan to create sessions manually.
 - Plan which Chorus task UUIDs each sub-agent will work on — that is what the prompt needs."
 
-"$API" hook-output "Chorus: plan mode — follow proposal workflow" "$CONTEXT"
+"$API" hook-output "Chorus: plan mode — follow proposal workflow" "$CONTEXT" "PreToolUse"

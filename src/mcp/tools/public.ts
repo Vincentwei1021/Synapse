@@ -319,6 +319,13 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       // 获取待处理的 Ideas 和 Tasks
       const { ideas, tasks } = await assignmentService.getMyAssignments(auth);
 
+      // 获取未读通知数
+      const unreadNotificationCount = await notificationService.getUnreadCount(
+        auth.companyUuid,
+        auth.type,
+        auth.actorUuid
+      );
+
       // 构建默认人格（如果未设置自定义人格）
       const defaultPersonas: Record<string, string> = {
         pm: `你是一个经验丰富的产品经理 Agent。你的职责是：
@@ -360,6 +367,9 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
         pending: {
           ideasCount: ideas.length,
           tasksCount: tasks.length,
+        },
+        notifications: {
+          unreadCount: unreadNotificationCount,
         },
       };
 

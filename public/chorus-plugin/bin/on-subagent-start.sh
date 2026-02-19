@@ -142,7 +142,8 @@ if [ -z "$SESSION_UUID" ]; then
       "$SESSION_NAME" "$AGENT_ID" "${AGENT_TYPE:-unknown}")" 2>/dev/null) || {
     "$API" hook-output \
       "Chorus: failed to create session for '${SESSION_NAME}'" \
-      "WARNING: Failed to create Chorus session for sub-agent '${SESSION_NAME}'. Session lifecycle will not be tracked."
+      "WARNING: Failed to create Chorus session for sub-agent '${SESSION_NAME}'. Session lifecycle will not be tracked." \
+      "SubagentStart"
     exit 0
   }
 
@@ -155,7 +156,8 @@ if [ -z "$SESSION_UUID" ]; then
   if [ -z "$SESSION_UUID" ]; then
     "$API" hook-output \
       "Chorus: session for '${SESSION_NAME}' — UUID not found in response" \
-      "WARNING: Could not extract session UUID from response for sub-agent '${SESSION_NAME}'."
+      "WARNING: Could not extract session UUID from response for sub-agent '${SESSION_NAME}'." \
+      "SubagentStart"
     exit 0
   fi
 
@@ -192,4 +194,5 @@ EOF
   Action: ${SESSION_ACTION} (reused existing if name matched, reopened if closed, or created new)
   Session file: .chorus/sessions/${SESSION_NAME}.json
 
-The sub-agent can discover its session by reading .chorus/sessions/${SESSION_NAME}.json"
+The sub-agent can discover its session by reading .chorus/sessions/${SESSION_NAME}.json" \
+  "SubagentStart"

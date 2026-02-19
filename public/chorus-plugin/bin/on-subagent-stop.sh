@@ -131,9 +131,10 @@ if [ "$CLOSE_OK" = true ]; then
     USER_MSG="${USER_MSG} (auto-checkout ${CHECKOUT_COUNT} task(s))"
   fi
   CONTEXT_MSG="Chorus session ${SESSION_UUID} for sub-agent '${DISPLAY_NAME}' closed. ${CHECKOUT_COUNT} task(s) auto-checked-out. State and session file cleaned up.${UNBLOCKED_INFO}"
-  "$API" hook-output "$USER_MSG" "$CONTEXT_MSG"
+  "$API" hook-output "$USER_MSG" "$CONTEXT_MSG" "SubagentStop"
 else
   "$API" hook-output \
     "Chorus: failed to close session for '${DISPLAY_NAME}'" \
-    "WARNING: Failed to close Chorus session ${SESSION_UUID} for sub-agent '${DISPLAY_NAME}'. State cleaned up locally."
+    "WARNING: Failed to close Chorus session ${SESSION_UUID} for sub-agent '${DISPLAY_NAME}'. State cleaned up locally." \
+    "SubagentStop"
 fi

@@ -59,4 +59,4 @@ When writing the sub-agent prompt, include:
 5. Instruct the sub-agent: call chorus_report_work with sessionUuid when reporting progress
 Do NOT include a session UUID in the prompt — the sub-agent discovers it from the session file."
 
-"$API" hook-output "" "$CONTEXT"
+"$API" hook-output "" "$CONTEXT" "PreToolUse"

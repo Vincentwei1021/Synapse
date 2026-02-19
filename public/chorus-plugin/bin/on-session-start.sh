@@ -21,7 +21,8 @@ fi
 if [ -z "${CHORUS_URL:-}" ] || [ -z "${CHORUS_API_KEY:-}" ]; then
   "$API" hook-output \
     "Chorus plugin: not configured (set CHORUS_URL and CHORUS_API_KEY)" \
-    "Chorus environment not configured. Set CHORUS_URL and CHORUS_API_KEY to enable Chorus integration."
+    "Chorus environment not configured. Set CHORUS_URL and CHORUS_API_KEY to enable Chorus integration." \
+    "SessionStart"
   exit 0
 fi
 
@@ -29,7 +30,8 @@ fi
 CHECKIN_RESULT=$("$API" mcp-tool "chorus_checkin" '{}' 2>/dev/null) || {
   "$API" hook-output \
     "Chorus plugin: connection failed (${CHORUS_URL})" \
-    "WARNING: Unable to reach Chorus at ${CHORUS_URL}. Session lifecycle hooks will not function."
+    "WARNING: Unable to reach Chorus at ${CHORUS_URL}. Session lifecycle hooks will not function." \
+    "SessionStart"
   exit 0
 }
 
@@ -107,4 +109,4 @@ if [ -n "$MAIN_SESSION" ]; then
   USER_MSG="${USER_MSG} (resumed session)"
 fi
 
-"$API" hook-output "$USER_MSG" "$CONTEXT"
+"$API" hook-output "$USER_MSG" "$CONTEXT" "SessionStart"

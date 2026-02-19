@@ -110,27 +110,40 @@ state_delete() {
 
 # ===== Hook Output =====
 # Produces JSON that Claude Code parses:
-#   systemMessage    → shown to user as notification
-#   additionalContext → injected into Claude's context (LLM sees this)
+#   systemMessage                          → shown to user as notification
+#   hookSpecificOutput.additionalContext   → injected into Claude's context (LLM sees this)
+#   hookSpecificOutput.hookEventName       → identifies which hook event produced this context
 #
-# Usage: hook_output "User-visible message" "Context for Claude LLM"
+# Usage: hook_output "User-visible message" "Context for Claude LLM" ["HookEventName"]
 hook_output() {
   local system_message="$1"
   local additional_context="${2:-}"
+  local hook_event_name="${3:-}"
   if command -v jq &>/dev/null; then
-    jq -n \
-      --arg sm "$system_message" \
-      --arg ac "$additional_context" \
-      '{systemMessage: $sm, additionalContext: $ac}'
+    if [ -n "$additional_context" ]; then
+      jq -n \
+        --arg sm "$system_message" \
+        --arg ac "$additional_context" \
+        --arg hen "$hook_event_name" \
+        '{systemMessage: $sm, hookSpecificOutput: {hookEventName: $hen, additionalContext: $ac}}'
+    else
+      jq -n \
+        --arg sm "$system_message" \
+        '{systemMessage: $sm}'
+    fi
   else
     # Fallback: manual JSON — escape newlines and quotes
     local sm_escaped="${system_message//\\/\\\\}"
     sm_escaped="${sm_escaped//\"/\\\"}"
     sm_escaped="${sm_escaped//$'\n'/\\n}"
-    local ac_escaped="${additional_context//\\/\\\\}"
-    ac_escaped="${ac_escaped//\"/\\\"}"
-    ac_escaped="${ac_escaped//$'\n'/\\n}"
-    printf '{"systemMessage":"%s","additionalContext":"%s"}\n' "$sm_escaped" "$ac_escaped"
+    if [ -n "$additional_context" ]; then
+      local ac_escaped="${additional_context//\\/\\\\}"
+      ac_escaped="${ac_escaped//\"/\\\"}"
+      ac_escaped="${ac_escaped//$'\n'/\\n}"
+      printf '{"systemMessage":"%s","hookSpecificOutput":{"hookEventName":"%s","additionalContext":"%s"}}\n' "$sm_escaped" "$hook_event_name" "$ac_escaped"
+    else
+      printf '{"systemMessage":"%s"}\n' "$sm_escaped"
+    fi
   fi
 }
 
@@ -201,7 +214,7 @@ cmd_mcp_tool() {
   # Step 1: Initialize MCP session
   local init_payload
   init_payload=$(cat <<JSONEOF
-{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"chorus-hook","version":"0.1.0"}}}
+{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"chorus-hook","version":"0.1.1"}}}
 JSONEOF
 )
 
@@ -281,7 +294,7 @@ case "$cmd" in
   state-delete)     state_delete "${1:-}" ;;
   session-read)     session_file_read "${1:-}" ;;
   session-list)     session_file_list ;;
-  hook-output)      hook_output "${1:-}" "${2:-}" ;;
+  hook-output)      hook_output "${1:-}" "${2:-}" "${3:-}" ;;
   *)
     echo "Usage: chorus-api.sh <command> [args...]"
     echo ""

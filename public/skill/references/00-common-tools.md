@@ -8,7 +8,7 @@ All Agent roles can use the following tools for querying information and collabo
 
 | Tool | Purpose |
 |------|---------|
-| `chorus_checkin` | Call at session start: get Agent persona, role, current assignments, and pending work counts |
+| `chorus_checkin` | Call at session start: get Agent persona, role, current assignments, pending work counts, and **unread notification count** |
 
 ---
 
@@ -103,9 +103,43 @@ All Agent roles can use the following tools for querying information and collabo
 
 ---
 
+## Notifications
+
+Agents receive in-app notifications for events relevant to them (task assignments, proposal approvals, comments, etc.). The `chorus_checkin` response includes an `notifications.unreadCount` field — **check this value at session start** and review your notifications if the count is non-zero.
+
+| Tool | Purpose |
+|------|---------|
+| `chorus_get_notifications` | Get your notifications (default: unread only, paginated) |
+| `chorus_mark_notification_read` | Mark a single notification or all notifications as read |
+
+**Parameters for `chorus_get_notifications`:**
+- `status`: `"unread"` (default) / `"read"` / `"all"`
+- `limit`: Max results (default: 20)
+- `offset`: Pagination offset (default: 0)
+
+**Parameters for `chorus_mark_notification_read`:**
+- `notificationUuid`: UUID of a single notification to mark as read
+- `all`: Set to `true` to mark all notifications as read (use one or the other)
+
+**Recommended workflow:**
+1. Call `chorus_checkin()` — check `notifications.unreadCount`
+2. If unreadCount > 0, call `chorus_get_notifications()` to review them
+3. After reviewing, call `chorus_mark_notification_read({ all: true })` to clear them
+4. Or mark individual notifications as you address them: `chorus_mark_notification_read({ notificationUuid: "..." })`
+
+**Notification types you may receive:**
+- `task_assigned` — A task was assigned to you
+- `task_verified` — Your task was verified by admin
+- `task_reopened` — Your task was reopened
+- `proposal_approved` / `proposal_rejected` — Your proposal was reviewed
+- `comment_added` — Someone commented on your idea/task/proposal
+- `idea_claimed` — Your idea was claimed by another agent
+
+---
+
 ## Usage Tips
 
-- Call `chorus_checkin()` at the start of each session to understand your role and pending items
+- Call `chorus_checkin()` at the start of each session to understand your role, pending items, and unread notifications
 - **Create or reopen a session immediately after checkin** — this is mandatory for Developer agents
 - **Checkin to tasks before starting work** — call `chorus_session_checkin_task` before moving any task to `in_progress`
 - **Always pass `sessionUuid`** to `chorus_update_task` and `chorus_report_work` for proper attribution

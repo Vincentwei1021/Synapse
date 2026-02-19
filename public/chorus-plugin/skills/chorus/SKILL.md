@@ -4,7 +4,7 @@ description: Chorus AI Agent collaboration platform Skill. Supports PM, Develope
 license: AGPL-3.0
 metadata:
   author: chorus
-  version: "0.1.0"
+  version: "0.1.1"
   category: project-management
   mcp_server: chorus
 ---
@@ -58,7 +58,7 @@ All agents share read-only and collaboration tools:
 
 | Tool | Purpose |
 |------|---------|
-| `chorus_checkin` | Session start: get persona, assignments, pending work |
+| `chorus_checkin` | Session start: get persona, assignments, pending work, unread notifications |
 | `chorus_get_project` | Get project details |
 | `chorus_get_ideas` / `chorus_get_idea` | List/get ideas |
 | `chorus_get_documents` / `chorus_get_document` | List/get documents |
@@ -71,16 +71,27 @@ All agents share read-only and collaboration tools:
 | `chorus_get_unblocked_tasks` | Tasks ready to start (all deps resolved) |
 | `chorus_add_comment` | Comment on idea/proposal/task/document |
 | `chorus_get_comments` | Read comments |
-| `chorus_create_session` | Create a named worker session (REQUIRED for Developer agents) |
+| `chorus_get_notifications` | Get your notifications (default: unread only) |
+| `chorus_mark_notification_read` | Mark notifications as read (single or all) |
+| `chorus_create_session` | Create a named worker session (direct work only; Agent Team mode uses auto-creation) |
 | `chorus_list_sessions` | List your sessions |
 | `chorus_close_session` | Close a session |
 | `chorus_reopen_session` | Reopen a closed session |
-| `chorus_session_checkin_task` | Checkin to a task (REQUIRED for Developer agents before starting work) |
+| `chorus_session_checkin_task` | Checkin to a task (REQUIRED before starting work — sub-agents get sessionUuid from `.chorus/sessions/<name>.json`) |
 | `chorus_session_checkout_task` | Checkout from a task when work is done |
 
 ### Session & Observability
 
-**Developer agents MUST create a session and checkin to tasks** before starting work. This enables the UI to show which developer is currently working on which task (visible on Kanban board worker badges, Task Detail panel, and Settings page). See **[references/05-session-sub-agent.md](references/05-session-sub-agent.md)** for the full guide.
+Sessions enable the UI to show which developer is working on which task (Kanban worker badges, Task Detail panel, Settings page). **How sessions are created depends on your execution mode:**
+
+| Execution Mode | Session Creation | Who Creates |
+|----------------|-----------------|-------------|
+| **Agent Team** (Team Lead spawns sub-agents via Task tool) | **Automatic** — Chorus Plugin hooks handle everything | Plugin (`on-subagent-start.sh`) |
+| **Direct work** (single Developer agent, no sub-agents) | **Manual** — call `chorus_list_sessions` → `reopen` or `create` | You |
+
+> **Common mistake:** When acting as a Team Lead in Agent Team mode, do NOT manually call `chorus_create_session`. The Plugin creates sessions automatically when sub-agents spawn. Only create sessions manually if you are a Developer agent working directly without sub-agents.
+
+See **[references/05-session-sub-agent.md](references/05-session-sub-agent.md)** for the full guide.
 
 ### Claude Code Agent Teams (Swarm Mode)
 
@@ -111,9 +122,20 @@ This returns:
 - Your **current assignments** (claimed ideas & tasks)
 - **Pending work** count (available items)
 
-### Step 2: Create a Session (Developer Agents)
+### Step 2: Determine Your Execution Mode
 
-**MANDATORY for Developer agents.** After checkin, create (or reopen) a session before starting any task work. This lets the UI show which developer is working on which task.
+Before proceeding, decide how tasks will be executed:
+
+| Mode | When to Use | Next Step |
+|------|-------------|-----------|
+| **Agent Team** | You are a Team Lead spawning sub-agents via the Task tool to work in parallel | Skip to Step 3 — do NOT create a session; the Plugin handles sessions automatically for sub-agents |
+| **Direct work** | You are a single Developer agent doing the work yourself, without sub-agents | Go to Step 2a below to create a session |
+
+### Step 2a: Create a Session (Direct Work Only)
+
+> **Only for direct work mode.** If you are using Agent Teams, skip this step entirely.
+
+After checkin, create (or reopen) a session before starting any task work. This lets the UI show which developer is working on which task.
 
 ```
 # Check for existing sessions first
@@ -126,7 +148,7 @@ chorus_reopen_session({ sessionUuid: "<existing-session-uuid>" })
 chorus_create_session({ name: "<descriptive-name>", description: "..." })
 ```
 
-Use a descriptive session name (e.g., `dev-implementation`, `frontend-worker`). When working with Agent Teams, each sub-agent **must** have its own separate session.
+Use a descriptive session name (e.g., `dev-implementation`, `frontend-worker`).
 
 ### Step 3: Follow Your Role Workflow
 
@@ -143,9 +165,9 @@ Based on your role from checkin, follow the appropriate workflow:
 ## Execution Rules
 
 1. **Always check in first** - Call `chorus_checkin()` at session start to know who you are and what to do
-2. **Always have a session (Developer)** - The Chorus Plugin **fully automates** Chorus session lifecycle for sub-agents. Do NOT call `chorus_create_session` or `chorus_close_session` for sub-agents. For your own session (if you are a Developer agent working directly, not via sub-agents): call `chorus_list_sessions` first, then reopen or create as needed.
-3. **Always checkin to tasks** - Before starting work on any task (moving to `in_progress`), call `chorus_session_checkin_task` with your session. When done, call `chorus_session_checkout_task`. Pass `sessionUuid` to `chorus_update_task` and `chorus_report_work` for proper attribution.
-4. **Multi-agent: separate sessions** - When using Agent Teams / swarm mode, each sub-agent **must** have its own separate session. Never share a session across multiple workers.
+2. **Agent Team mode: never create sessions manually** - When using Agent Teams (spawning sub-agents via the Task tool), do NOT call `chorus_create_session` or `chorus_close_session`. The Chorus Plugin fully automates session lifecycle for sub-agents. Each sub-agent gets its own session automatically.
+3. **Direct work mode: always create a session** - When working as a single Developer agent (no sub-agents), call `chorus_list_sessions` first, then `chorus_reopen_session` or `chorus_create_session` as needed.
+4. **Always checkin to tasks** - Before starting work on any task (moving to `in_progress`), call `chorus_session_checkin_task` with your session. When done, call `chorus_session_checkout_task`. Pass `sessionUuid` to `chorus_update_task` and `chorus_report_work` for proper attribution.
 5. **Stay in your role** - Only use tools available to your role; don't attempt admin operations as a developer
 6. **Report progress** - Use `chorus_report_work` or `chorus_add_comment` to keep the team informed
 7. **Follow the lifecycle** - Ideas flow through Proposals to Tasks; don't skip steps

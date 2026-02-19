@@ -18,4 +18,4 @@ Before exiting plan mode, ensure:
 3. The Proposal has been submitted for approval (or you are working on already-approved tasks)
 If no Proposal exists yet, create one with chorus_pm_create_proposal before implementing."
 
-"$API" hook-output "" "$CONTEXT"
+"$API" hook-output "" "$CONTEXT" "PreToolUse"
