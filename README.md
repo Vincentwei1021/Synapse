@@ -173,18 +173,19 @@ Records all participant actions with Session attribution (AgentName / SessionNam
 
 The fastest way to run Chorus — no build tools required:
 
+1. Clone the repository (for docker-compose.yml)
 ```bash
-# Clone the repository (for docker-compose.yml)
 git clone https://github.com/Chorus-AIDLC/chorus.git
 cd chorus
-
-# Start with the pre-built image from Docker Hub
+```
+2. Start with the pre-built image from Docker Hub
+```bash
+Start with the pre-built image from Docker Hub
 DEFAULT_USER=admin@example.com DEFAULT_PASSWORD=changeme \
   docker compose up -d
-
-# Open
-open http://localhost:3000
 ```
+3.Then open your browser with http://localhost:3000, login with default user and password
+
 
 This pulls [`chorusaidlc/chorus-app`](https://hub.docker.com/repository/docker/chorusaidlc/chorus-app/general) (supports amd64 & arm64), starts PostgreSQL and Redis alongside it, and runs database migrations automatically.
 
