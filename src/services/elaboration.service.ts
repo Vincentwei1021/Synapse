@@ -117,6 +117,8 @@ export async function startElaboration({
     projectUuid: resolvedProjectUuid,
     targetType: "idea",
     targetUuid: ideaUuid,
+    actorType,
+    actorUuid,
     action: "elaboration_started",
   });
   eventBus.emitChange({ companyUuid, projectUuid: resolvedProjectUuid, entityType: "idea", entityUuid: ideaUuid, action: "updated" });
@@ -236,6 +238,8 @@ export async function answerElaboration({
     projectUuid: idea!.projectUuid,
     targetType: "idea",
     targetUuid: ideaUuid,
+    actorType,
+    actorUuid,
     action: "elaboration_answered",
   });
   eventBus.emitChange({ companyUuid, projectUuid: idea!.projectUuid, entityType: "idea", entityUuid: ideaUuid, action: "updated" });
@@ -321,6 +325,8 @@ export async function validateElaboration({
       projectUuid: idea.projectUuid,
       targetType: "idea",
       targetUuid: ideaUuid,
+      actorType,
+      actorUuid,
       action: "elaboration_resolved",
     });
     eventBus.emitChange({ companyUuid, projectUuid: idea.projectUuid, entityType: "idea", entityUuid: ideaUuid, action: "updated" });
@@ -393,6 +399,8 @@ export async function validateElaboration({
     projectUuid: idea.projectUuid,
     targetType: "idea",
     targetUuid: ideaUuid,
+    actorType,
+    actorUuid,
     action: "elaboration_followup",
   });
   eventBus.emitChange({ companyUuid, projectUuid: idea.projectUuid, entityType: "idea", entityUuid: ideaUuid, action: "updated" });
@@ -456,6 +464,8 @@ export async function skipElaboration({
     projectUuid: idea.projectUuid,
     targetType: "idea",
     targetUuid: ideaUuid,
+    actorType,
+    actorUuid,
     action: "elaboration_skipped",
   });
   eventBus.emitChange({ companyUuid, projectUuid: idea.projectUuid, entityType: "idea", entityUuid: ideaUuid, action: "updated" });
