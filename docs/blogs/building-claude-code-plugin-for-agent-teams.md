@@ -31,10 +31,10 @@ The Team Lead uses the `Task` tool to spawn multiple Sub-Agents, each being an i
 
 Key lifecycle events:
 
-| Event | When Triggered | Context |
-|-------|---------------|---------|
+| Event | When Triggered | `additionalContext` Target |
+|-------|---------------|--------------------------|
 | `PreToolUse:Task` | **Before** Team Lead calls the Task tool | Team Lead |
-| `SubagentStart` | When Sub-Agent process starts (synchronous) | Team Lead |
+| `SubagentStart` | When Sub-Agent process starts (synchronous) | **Sub-Agent** |
 | `TeammateIdle` | When Sub-Agent goes idle (between turns) | Team Lead |
 | `TaskCompleted` | When a Claude Code internal Task is marked complete | Team Lead |
 | `SubagentStop` | When Sub-Agent process exits | Team Lead |
@@ -44,7 +44,7 @@ Note a critical distinction about where hook output goes:
 - Most hooks (`PreToolUse:Task`, `TeammateIdle`, `TaskCompleted`, `SubagentStop`) inject `additionalContext` into the **Team Lead's** context
 - **`SubagentStart` is the exception** — its `additionalContext` is injected directly into the **Sub-Agent's** context
 
-This means `SubagentStart` is the ideal hook for automatically providing Sub-Agents with working context (session IDs, workflow instructions, etc.) without relying on the Team Lead to hand-write boilerplate or the Sub-Agent to read files. This discovery is the core insight of this article.
+This means `SubagentStart` is the ideal hook for automatically providing Sub-Agents with working context (session IDs, workflow instructions, etc.) without relying on the Team Lead to hand-write boilerplate or the Sub-Agent to read files.
 
 ---
 
@@ -87,11 +87,17 @@ This is the core view of Chorus. Colored badges on each Task card show the Agent
 
 Tasks in Chorus can declare dependencies, forming a directed acyclic graph. The PM Agent sets dependencies via `dependsOnDraftUuids` when creating Proposals. The UI uses dagre for automatic layout. The Team Lead can use this to decide spawn order — process Tasks with no dependencies first; when upstream Tasks complete, downstream Tasks automatically become unblocked.
 
+**Elaboration — Structured Requirements Clarification**
+
+![Elaboration](../images/elaboration.png)
+
+Before an Idea becomes a Proposal, the PM Agent initiates Elaboration: structured questions about scope, technical choices, priorities, etc. Humans answer via interactive options. All Q&A is persisted as an audit trail on the Idea, ensuring design decisions are traceable — even verbal agreements from chat conversations get recorded.
+
 **Proposal — AI Proposes, Humans Review**
 
 ![Proposal](../images/proposal.png)
 
-This embodies the AI-DLC core philosophy of "Reversed Conversation": the PM Agent analyzes an Idea, then creates a Proposal containing PRD document drafts and Task drafts. After Admin (human) approval, drafts are automatically materialized into real Document and Task entities.
+This embodies the AI-DLC core philosophy of "Reversed Conversation": the PM Agent builds on the Elaboration conclusions to create a Proposal containing PRD document drafts and Task drafts. After Admin (human) approval, drafts are automatically materialized into real Document and Task entities.
 
 **Task Detail — Session Tracking**
 
@@ -395,11 +401,13 @@ Now that we understand events, output format, and sync/async, let's see how the 
 
 **`SessionStart` — Checkin + Context Injection**
 
-This is the plugin's "startup self-check". Chorus does three things here:
+This is the plugin's "startup self-check". Note that the `SessionStart` matcher is configured as `startup|resume|compact`, meaning it fires not only on session start and resume, but **also after context compaction**. When a long conversation triggers automatic compaction, previously injected Chorus context is lost along with the compressed messages — the `compact` matcher ensures that fresh checkin information is re-injected immediately after compaction, so the Agent never "forgets" its Chorus context.
+
+Chorus does three things here:
 
 1. Calls the `chorus_checkin()` MCP tool to get the current Agent's identity (role, name, persona), assigned Ideas and Tasks, and unread notifications
 2. Injects the complete checkin result into Claude's context via `additionalContext` — the Agent knows who it is and what to do from the very first turn
-3. Scans the `.chorus/sessions/` directory to list existing Sub-Agent session files — this handles the case where a Claude Code session is interrupted and resumed: previous Sub-Agent session files may still exist, and the Team Lead needs to know which sessions are still present after recovery
+3. Scans the `.chorus/sessions/` directory to list existing Sub-Agent session metadata — this handles the case where a Claude Code session is interrupted and resumed: previous session files may still exist, and the Team Lead needs to know which sessions are still present after recovery
 
 ```bash
 # on-session-start.sh core logic
