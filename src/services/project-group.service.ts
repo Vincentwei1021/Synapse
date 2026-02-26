@@ -297,7 +297,7 @@ export async function getGroupDashboard(
         where: {
           projectUuid: { in: projectUuids },
           companyUuid,
-          status: "done",
+          status: { in: ["done", "closed"] },
         },
       }),
       prisma.idea.count({
@@ -327,7 +327,7 @@ export async function getGroupDashboard(
     where: {
       projectUuid: { in: projectUuids },
       companyUuid,
-      status: "done",
+      status: { in: ["done", "closed"] },
     },
     _count: { _all: true },
   });

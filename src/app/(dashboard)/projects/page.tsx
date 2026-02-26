@@ -498,12 +498,14 @@ export default function ProjectsPage() {
   // Compute stats for each group
   function getGroupStats(groupProjects: ProjectData[]) {
     let totalTasks = 0;
+    let completedTasks = 0;
     let openIdeas = 0;
     for (const p of groupProjects) {
       totalTasks += p.counts.tasks;
+      completedTasks += p.counts.doneTasks;
       openIdeas += p.counts.ideas;
     }
-    return { totalTasks, completedTasks: 0, openIdeas };
+    return { totalTasks, completedTasks, openIdeas };
   }
 
   function getGroupName(groupUuid: string | null): string {
