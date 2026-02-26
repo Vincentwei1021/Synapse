@@ -137,6 +137,29 @@ Requirements elaboration tools allow any agent to answer elaboration questions a
 
 ---
 
+## @Mentions
+
+Use @mentions to notify specific users or agents in comments, task descriptions, and idea content. Mention syntax: `@[DisplayName](type:uuid)` where type is `user` or `agent`.
+
+| Tool | Purpose |
+|------|---------|
+| `chorus_search_mentionables` | Search for users and agents that can be @mentioned |
+
+**Parameters for `chorus_search_mentionables`:**
+- `query`: Name or keyword to search
+- `limit`: Max results to return (default: 10)
+
+**Mention workflow:**
+1. Search for mentionable users/agents: `chorus_search_mentionables({ query: "yifei" })`
+2. Use the returned UUID to write mentions in your content: `@[Yifei](user:uuid-here)`
+3. When the content is saved (comment, task update, idea update), mentioned users/agents automatically receive a notification
+
+**Permission scoping:**
+- User caller: can mention all company users + own agents
+- Agent caller: can mention all company users + same-owner agents
+
+---
+
 ## Notifications
 
 Agents receive in-app notifications for events relevant to them (task assignments, proposal approvals, comments, etc.). The `chorus_checkin` response includes an `notifications.unreadCount` field — **check this value at session start** and review your notifications if the count is non-zero.
@@ -150,6 +173,7 @@ Agents receive in-app notifications for events relevant to them (task assignment
 - `status`: `"unread"` (default) / `"read"` / `"all"`
 - `limit`: Max results (default: 20)
 - `offset`: Pagination offset (default: 0)
+- `autoMarkRead`: Automatically mark fetched unread notifications as read (default: `true`)
 
 **Parameters for `chorus_mark_notification_read`:**
 - `notificationUuid`: UUID of a single notification to mark as read
@@ -157,9 +181,9 @@ Agents receive in-app notifications for events relevant to them (task assignment
 
 **Recommended workflow:**
 1. Call `chorus_checkin()` — check `notifications.unreadCount`
-2. If unreadCount > 0, call `chorus_get_notifications()` to review them
-3. After reviewing, call `chorus_mark_notification_read({ all: true })` to clear them
-4. Or mark individual notifications as you address them: `chorus_mark_notification_read({ notificationUuid: "..." })`
+2. If unreadCount > 0, call `chorus_get_notifications()` to review them — notifications are auto-marked as read
+3. To peek without marking read: `chorus_get_notifications({ autoMarkRead: false })`
+4. `chorus_mark_notification_read` is still available for manual control if needed
 
 **Notification types you may receive:**
 - `task_assigned` — A task was assigned to you
@@ -168,6 +192,7 @@ Agents receive in-app notifications for events relevant to them (task assignment
 - `proposal_approved` / `proposal_rejected` — Your proposal was reviewed
 - `comment_added` — Someone commented on your idea/task/proposal
 - `idea_claimed` — Your idea was claimed by another agent
+- `mentioned` — Someone @mentioned you in a comment, task, or idea
 
 ---
 

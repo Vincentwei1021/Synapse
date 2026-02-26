@@ -17,6 +17,7 @@ interface NotificationPreferences {
   commentAdded: boolean;
   elaborationRequested: boolean;
   elaborationAnswered: boolean;
+  mentioned: boolean;
 }
 
 const DEFAULT_PREFERENCES: NotificationPreferences = {
@@ -31,6 +32,7 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   commentAdded: true,
   elaborationRequested: true,
   elaborationAnswered: true,
+  mentioned: true,
 };
 
 type PreferenceKey = keyof NotificationPreferences;
@@ -73,6 +75,10 @@ const PREFERENCE_GROUPS: PreferenceGroup[] = [
     labelKey: "commentEvents",
     items: [{ key: "commentAdded", labelKey: "commentAdded" }],
   },
+  {
+    labelKey: "mentionEvents",
+    items: [{ key: "mentioned", labelKey: "mentioned" }],
+  },
 ];
 
 export function NotificationPreferencesForm() {
@@ -101,6 +107,7 @@ export function NotificationPreferencesForm() {
               commentAdded,
               elaborationRequested,
               elaborationAnswered,
+              mentioned,
             } = json.data;
             setPreferences({
               taskAssigned,
@@ -114,6 +121,7 @@ export function NotificationPreferencesForm() {
               commentAdded,
               elaborationRequested: elaborationRequested ?? true,
               elaborationAnswered: elaborationAnswered ?? true,
+              mentioned: mentioned ?? true,
             });
           }
         }

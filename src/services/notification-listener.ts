@@ -50,6 +50,7 @@ const PREF_FIELD_MAP: Record<string, keyof notificationService.NotificationPrefe
   comment_added: "commentAdded",
   elaboration_requested: "elaborationRequested",
   elaboration_answered: "elaborationAnswered",
+  mentioned: "mentioned",
 };
 
 interface ActivityEvent {

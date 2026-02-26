@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { formatAssigneeComplete, formatCreatedBy } from "@/lib/uuid-resolver";
 import { eventBus } from "@/lib/event-bus";
 import { AlreadyClaimedError, NotClaimedError, isPrismaNotFound } from "@/lib/errors";
+import * as mentionService from "@/services/mention.service";
+import * as activityService from "@/services/activity.service";
 
 // ===== Type Definitions =====
 
@@ -255,8 +257,16 @@ export async function createIdea(params: IdeaCreateParams): Promise<IdeaResponse
 export async function updateIdea(
   uuid: string,
   companyUuid: string,
-  data: { title?: string; content?: string | null; status?: string }
+  data: { title?: string; content?: string | null; status?: string },
+  actorContext?: { actorType: string; actorUuid: string }
 ): Promise<IdeaResponse> {
+  // If content is being updated and we have actor context, capture old content for mention diffing
+  let oldContent: string | null = null;
+  if (data.content !== undefined && actorContext) {
+    const existing = await prisma.idea.findUnique({ where: { uuid }, select: { content: true } });
+    oldContent = existing?.content ?? null;
+  }
+
   const idea = await prisma.idea.update({
     where: { uuid },
     data,
@@ -266,6 +276,20 @@ export async function updateIdea(
   });
 
   eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.project!.uuid, entityType: "idea", entityUuid: idea.uuid, action: "updated" });
+
+  // Process new @mentions in content (append-only: only new mentions)
+  if (data.content !== undefined && actorContext && data.content) {
+    processNewIdeaMentions(
+      idea.companyUuid,
+      idea.project!.uuid,
+      idea.uuid,
+      idea.title,
+      oldContent,
+      data.content,
+      actorContext.actorType,
+      actorContext.actorUuid,
+    ).catch((err) => console.error("[Idea] Failed to process mentions:", err));
+  }
 
   return formatIdeaResponse(idea);
 }
@@ -373,6 +397,57 @@ export async function releaseIdea(uuid: string): Promise<IdeaResponse> {
   eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.project!.uuid, entityType: "idea", entityUuid: idea.uuid, action: "updated" });
 
   return formatIdeaResponse(idea);
+}
+
+// Process new @mentions in idea content (append-only: only new mentions)
+async function processNewIdeaMentions(
+  companyUuid: string,
+  projectUuid: string,
+  ideaUuid: string,
+  ideaTitle: string,
+  oldContent: string | null,
+  newContent: string,
+  actorType: string,
+  actorUuid: string,
+): Promise<void> {
+  const oldMentions = oldContent ? mentionService.parseMentions(oldContent) : [];
+  const newMentions = mentionService.parseMentions(newContent);
+
+  const oldKeys = new Set(oldMentions.map((m) => `${m.type}:${m.uuid}`));
+  const brandNewMentions = newMentions.filter((m) => !oldKeys.has(`${m.type}:${m.uuid}`));
+
+  if (brandNewMentions.length === 0) return;
+
+  await mentionService.createMentions({
+    companyUuid,
+    sourceType: "idea",
+    sourceUuid: ideaUuid,
+    content: newContent,
+    actorType,
+    actorUuid,
+    projectUuid,
+    entityTitle: ideaTitle,
+  });
+
+  for (const mention of brandNewMentions) {
+    if (mention.type === actorType && mention.uuid === actorUuid) continue;
+    await activityService.createActivity({
+      companyUuid,
+      projectUuid,
+      targetType: "idea",
+      targetUuid: ideaUuid,
+      actorType,
+      actorUuid,
+      action: "mentioned",
+      value: {
+        mentionedType: mention.type,
+        mentionedUuid: mention.uuid,
+        mentionedName: mention.displayName,
+        sourceType: "idea",
+        sourceUuid: ideaUuid,
+      },
+    });
+  }
 }
 
 // Delete Idea

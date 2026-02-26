@@ -1,19 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Bot, User, Send, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { MentionEditor, type MentionEditorRef } from "@/components/mention-editor";
 import {
   getProposalCommentsAction,
   createProposalCommentAction,
 } from "./comment-actions";
 import type { CommentResponse } from "@/services/comment.service";
-import { Streamdown } from "streamdown";
+import { ContentWithMentions } from "@/components/mention-renderer";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function formatRelativeTime(dateString: string, t: any): string {
@@ -41,6 +41,7 @@ export function ProposalComments({ proposalUuid }: ProposalCommentsProps) {
   const [comments, setComments] = useState<CommentResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const editorRef = useRef<MentionEditorRef>(null);
 
   useEffect(() => {
     async function loadComments() {
@@ -62,13 +63,7 @@ export function ProposalComments({ proposalUuid }: ProposalCommentsProps) {
     if (result.success && result.comment) {
       setComments((prev) => [...prev, result.comment!]);
       setComment("");
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
+      editorRef.current?.clear();
     }
   };
 
@@ -114,7 +109,7 @@ export function ProposalComments({ proposalUuid }: ProposalCommentsProps) {
                   </span>
                 </div>
                 <div className="mt-1 text-xs leading-relaxed text-[#2C2C2C]">
-                  <Streamdown>{c.content}</Streamdown>
+                  <ContentWithMentions>{c.content}</ContentWithMentions>
                 </div>
               </div>
             </div>
@@ -124,35 +119,36 @@ export function ProposalComments({ proposalUuid }: ProposalCommentsProps) {
 
       {/* Input */}
       <Separator className="my-3 bg-[#F5F2EC]" />
-      <div className="flex items-center gap-2.5">
-        <Avatar className="h-6 w-6">
+      <div className="flex items-start gap-2.5">
+        <Avatar className="mt-1.5 h-6 w-6">
           <AvatarFallback className="bg-[#C67A52] text-white text-[10px]">
             <User className="h-3 w-3" />
           </AvatarFallback>
         </Avatar>
-        <div className="relative flex-1">
-          <Input
+        <div className="flex-1">
+          <MentionEditor
+            ref={editorRef}
             value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onChange={setComment}
+            onSubmit={handleSubmit}
             placeholder={t("comments.addComment")}
-            className="h-9 rounded-lg border-none bg-[#FAF8F4] pr-10 text-sm placeholder:text-[#9A9A9A]"
+            className="border-none bg-[#FAF8F4] text-sm"
             disabled={isSubmitting}
           />
-          <Button
-            size="icon"
-            variant="ghost"
-            className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
-            disabled={!comment.trim() || isSubmitting}
-            onClick={handleSubmit}
-          >
-            {isSubmitting ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-[#9A9A9A]" />
-            ) : (
-              <Send className="h-3.5 w-3.5 text-[#C67A52]" />
-            )}
-          </Button>
         </div>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="mt-1 h-7 w-7"
+          disabled={!comment.trim() || isSubmitting}
+          onClick={handleSubmit}
+        >
+          {isSubmitting ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-[#9A9A9A]" />
+          ) : (
+            <Send className="h-3.5 w-3.5 text-[#C67A52]" />
+          )}
+        </Button>
       </div>
     </Card>
   );

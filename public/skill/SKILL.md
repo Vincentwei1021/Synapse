@@ -122,6 +122,7 @@ All agents share read-only and collaboration tools:
 | `chorus_mark_notification_read` | Mark notifications as read (single or all) |
 | `chorus_answer_elaboration` | Answer elaboration questions for an Idea |
 | `chorus_get_elaboration` | Get elaboration state for an Idea (rounds, questions, answers) |
+| `chorus_search_mentionables` | Search for users/agents that can be @mentioned |
 | `chorus_create_session` | Create a named worker session (see Step 2 for when to create) |
 | `chorus_list_sessions` | List your sessions |
 | `chorus_close_session` | Close a session |

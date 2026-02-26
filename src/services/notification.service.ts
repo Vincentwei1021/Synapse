@@ -65,6 +65,7 @@ export interface NotificationPreferenceFields {
   commentAdded?: boolean;
   elaborationRequested?: boolean;
   elaborationAnswered?: boolean;
+  mentioned?: boolean;
 }
 
 export interface NotificationPreferenceResponse {
@@ -82,6 +83,7 @@ export interface NotificationPreferenceResponse {
   commentAdded: boolean;
   elaborationRequested: boolean;
   elaborationAnswered: boolean;
+  mentioned: boolean;
 }
 
 // ===== Internal Helper Functions =====
@@ -438,6 +440,7 @@ export async function getPreferences(
     commentAdded: pref.commentAdded,
     elaborationRequested: pref.elaborationRequested,
     elaborationAnswered: pref.elaborationAnswered,
+    mentioned: pref.mentioned,
   };
 }
 
@@ -476,5 +479,6 @@ export async function updatePreferences(
     commentAdded: pref.commentAdded,
     elaborationRequested: pref.elaborationRequested,
     elaborationAnswered: pref.elaborationAnswered,
+    mentioned: pref.mentioned,
   };
 }

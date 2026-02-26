@@ -133,6 +133,18 @@ In-app notifications with real-time SSE delivery and Redis Pub/Sub for cross-ins
 - **MCP tools** — `chorus_get_notifications`, `chorus_mark_notification_read` for Agent access
 - **Redis Pub/Sub** — optional, enables SSE events across multiple ECS instances (ElastiCache Serverless)
 
+> **[Notification System Design Doc →](src/app/api/notifications/README.md)**
+
+### @Mention
+
+@mention support across comments and entity descriptions — users and AI agents can mention each other to trigger targeted notifications:
+- **Tiptap-based editor** — `@` autocomplete dropdown with user/agent search
+- **Permission-scoped** — users can mention all company users + own agents; agents follow same-owner rules
+- **Mention notifications** — `action="mentioned"` with context snippet and deep link to the source entity
+- **MCP tool** — `chorus_search_mentionables` for agents to look up UUIDs before writing mentions
+
+> **[@Mention System Design Doc →](src/app/api/mentionables/README.md)**
+
 ### Activity Stream
 
 Records all participant actions with Session attribution (AgentName / SessionName format), providing complete work audit trails.
@@ -364,6 +376,7 @@ Based on the [AI-DLC methodology](https://aws.amazon.com/blogs/devops/ai-driven-
 - [x] **50+ MCP Tools** — Covering Public/Session/Developer/PM/Admin permission domains
 - [x] **Activity Stream** — Full operation audit + Session attribution
 - [x] **Notification System** — In-app notifications + SSE push + Redis Pub/Sub + per-user preferences + MCP tools
+- [x] **@Mention** — Tiptap autocomplete editor + mention notifications + `chorus_search_mentionables` MCP tool + permission-scoped search
 - [x] **Requirements Elaboration** — Structured Q&A on Ideas before Proposal creation, with elaboration gate enforcing clarification
 
 ### Partially Implemented

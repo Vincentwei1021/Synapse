@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -33,6 +33,8 @@ import { updateIdeaAction, deleteIdeaAction } from "./actions";
 import type { ActivityResponse } from "@/services/activity.service";
 import type { CommentResponse } from "@/services/comment.service";
 import { Streamdown } from "streamdown";
+import { ContentWithMentions } from "@/components/mention-renderer";
+import { MentionEditor, type MentionEditorRef } from "@/components/mention-editor";
 import { AssignIdeaModal } from "./assign-idea-modal";
 import { ElaborationPanel } from "@/components/elaboration-panel";
 import { getElaborationAction, skipElaborationAction } from "./[ideaUuid]/elaboration-actions";
@@ -149,6 +151,7 @@ export function IdeaDetailPanel({
   const [comments, setComments] = useState<CommentResponse[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(true);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const editorRef = useRef<MentionEditorRef>(null);
   const [activities, setActivities] = useState<ActivityResponse[]>([]);
   const [isLoadingActivities, setIsLoadingActivities] = useState(true);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -229,13 +232,7 @@ export function IdeaDetailPanel({
     if (result.success && result.comment) {
       setComments((prev) => [...prev, result.comment!]);
       setComment("");
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmitComment();
+      editorRef.current?.clear();
     }
   };
 
@@ -536,7 +533,7 @@ export function IdeaDetailPanel({
                               <span className="text-[10px] text-[#9A9A9A]">{formatRelativeTime(c.createdAt, t)}</span>
                             </div>
                             <div className="mt-1 text-xs leading-relaxed text-[#2C2C2C]">
-                              <Streamdown>{c.content}</Streamdown>
+                              <ContentWithMentions>{c.content}</ContentWithMentions>
                             </div>
                           </div>
                         </div>
@@ -546,35 +543,36 @@ export function IdeaDetailPanel({
 
                   {/* Comment Input */}
                   <Separator className="my-3 bg-[#F5F2EC]" />
-                  <div className="flex items-center gap-2.5">
-                    <Avatar className="h-6 w-6">
+                  <div className="flex items-start gap-2.5">
+                    <Avatar className="mt-1.5 h-6 w-6">
                       <AvatarFallback className="bg-[#C67A52] text-white text-[10px]">
                         <User className="h-3 w-3" />
                       </AvatarFallback>
                     </Avatar>
-                    <div className="relative flex-1">
-                      <Input
+                    <div className="flex-1">
+                      <MentionEditor
+                        ref={editorRef}
                         value={comment}
-                        onChange={(e) => setComment(e.target.value)}
-                        onKeyDown={handleKeyDown}
+                        onChange={setComment}
+                        onSubmit={handleSubmitComment}
                         placeholder={t("comments.addComment")}
-                        className="h-9 rounded-lg border-none bg-[#FAF8F4] pr-10 text-sm placeholder:text-[#9A9A9A]"
+                        className="border-none bg-[#FAF8F4] text-sm"
                         disabled={isSubmittingComment}
                       />
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
-                        disabled={!comment.trim() || isSubmittingComment}
-                        onClick={handleSubmitComment}
-                      >
-                        {isSubmittingComment ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin text-[#9A9A9A]" />
-                        ) : (
-                          <Send className="h-3.5 w-3.5 text-[#C67A52]" />
-                        )}
-                      </Button>
                     </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="mt-1 h-7 w-7"
+                      disabled={!comment.trim() || isSubmittingComment}
+                      onClick={handleSubmitComment}
+                    >
+                      {isSubmittingComment ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-[#9A9A9A]" />
+                      ) : (
+                        <Send className="h-3.5 w-3.5 text-[#C67A52]" />
+                      )}
+                    </Button>
                   </div>
                 </div>
               </>

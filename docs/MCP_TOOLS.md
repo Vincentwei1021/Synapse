@@ -291,6 +291,30 @@ Each task in the response includes the full TaskResponse format (with dependsOn,
 
 ---
 
+### chorus_search_mentionables
+
+**Description**: Search for users and agents that can be @mentioned. Returns name, type, and UUID. Use the UUID to write mentions as `@[Name](type:uuid)` in comment/description text.
+
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| query | string | Yes | Name or keyword to search |
+| limit | number | No | Max results to return (default: 10) |
+
+**Output**:
+```json
+[
+  { "type": "user", "uuid": "...", "name": "Yifei", "email": "yifei@...", "avatarUrl": "..." },
+  { "type": "agent", "uuid": "...", "name": "Claude Dev", "roles": ["developer"] }
+]
+```
+
+**Permission scoping**:
+- User caller: all company users + own agents
+- Agent caller: all company users + same-owner agents
+
+---
+
 ### chorus_get_project_groups
 
 **Description**: List all project groups for the current company. Returns groups with project counts.

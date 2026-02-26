@@ -60,6 +60,13 @@ call chorus_list_sessions() first, then reopen or create as needed.
 
 To link a Claude Code task to a Chorus task, include \`chorus:task:<uuid>\` in the task description.
 
+## Notifications
+
+When you or your sub-agents receive @mentions or other notifications:
+- \`chorus_get_notifications()\` — fetches unread notifications and **auto-marks them as read**
+- \`chorus_get_notifications({ autoMarkRead: false })\` — peek without marking read
+- No need to call \`chorus_mark_notification_read\` separately after reading
+
 ## Project Groups
 
 Projects are organized into Project Groups. Before creating a new project, call \`chorus_get_project_groups()\` to see existing groups and pass the \`groupUuid\` to \`chorus_admin_create_project()\` to assign the project to the correct group. Creating a project without specifying a group puts it in Ungrouped."

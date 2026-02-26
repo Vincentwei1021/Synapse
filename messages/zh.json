@@ -86,7 +86,11 @@
   "comments": {
     "title": "评论",
     "noComments": "暂无评论",
-    "addComment": "添加评论..."
+    "addComment": "添加评论...（输入 @ 提及他人）"
+  },
+  "mentions": {
+    "noResults": "无结果",
+    "searchPlaceholder": "输入名称以提及..."
   },
   "assign": {
     "selectAssignee": "选择如何分配此任务",
@@ -667,7 +671,8 @@
       "comment_added": "新评论",
       "idea_claimed": "想法已认领",
       "elaboration_requested": "需求澄清已请求",
-      "elaboration_answered": "需求澄清已回答"
+      "elaboration_answered": "需求澄清已回答",
+      "mentioned": "你被提及了"
     },
     "preferences": {
       "title": "通知偏好",
@@ -687,7 +692,9 @@
       "commentAdded": "新增评论",
       "elaborationEvents": "需求澄清事件",
       "elaborationRequested": "需求澄清请求",
-      "elaborationAnswered": "需求澄清回答"
+      "elaborationAnswered": "需求澄清回答",
+      "mentionEvents": "提及事件",
+      "mentioned": "在评论或内容中被提及"
     }
   },
   "elaboration": {

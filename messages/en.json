@@ -86,7 +86,11 @@
   "comments": {
     "title": "Comments",
     "noComments": "No comments yet",
-    "addComment": "Add a comment..."
+    "addComment": "Add a comment... (type @ to mention)"
+  },
+  "mentions": {
+    "noResults": "No results",
+    "searchPlaceholder": "Type a name to mention..."
   },
   "assign": {
     "selectAssignee": "Choose how to assign this task",
@@ -666,7 +670,8 @@
       "comment_added": "New comment",
       "idea_claimed": "Idea claimed",
       "elaboration_requested": "Elaboration requested",
-      "elaboration_answered": "Elaboration answered"
+      "elaboration_answered": "Elaboration answered",
+      "mentioned": "You were mentioned"
     },
     "preferences": {
       "title": "Notification Preferences",
@@ -686,7 +691,9 @@
       "commentAdded": "Comment added",
       "elaborationEvents": "Elaboration Events",
       "elaborationRequested": "Elaboration requested",
-      "elaborationAnswered": "Elaboration answered"
+      "elaborationAnswered": "Elaboration answered",
+      "mentionEvents": "Mention Events",
+      "mentioned": "Mentioned in comment or content"
     }
   },
   "elaboration": {

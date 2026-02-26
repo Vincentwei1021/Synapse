@@ -7,6 +7,8 @@ import { formatAssigneeComplete, formatCreatedBy } from "@/lib/uuid-resolver";
 import { eventBus } from "@/lib/event-bus";
 import { AlreadyClaimedError, NotClaimedError, isPrismaNotFound } from "@/lib/errors";
 import { batchCommentCounts } from "@/services/comment.service";
+import * as mentionService from "@/services/mention.service";
+import * as activityService from "@/services/activity.service";
 
 // ===== Type Definitions =====
 
@@ -305,8 +307,16 @@ export async function createTask(params: TaskCreateParams): Promise<TaskResponse
 // Update Task
 export async function updateTask(
   uuid: string,
-  data: TaskUpdateParams
+  data: TaskUpdateParams,
+  actorContext?: { actorType: string; actorUuid: string }
 ): Promise<TaskResponse> {
+  // If description is being updated and we have actor context, capture old description for mention diffing
+  let oldDescription: string | null = null;
+  if (data.description !== undefined && actorContext) {
+    const existing = await prisma.task.findUnique({ where: { uuid }, select: { description: true } });
+    oldDescription = existing?.description ?? null;
+  }
+
   const task = await prisma.task.update({
     where: { uuid },
     data,
@@ -316,6 +326,21 @@ export async function updateTask(
   });
 
   eventBus.emitChange({ companyUuid: task.companyUuid, projectUuid: task.project.uuid, entityType: "task", entityUuid: task.uuid, action: "updated" });
+
+  // Process new @mentions in description (append-only: only new mentions)
+  if (data.description !== undefined && actorContext && data.description) {
+    processNewMentions(
+      task.companyUuid,
+      task.project.uuid,
+      "task",
+      task.uuid,
+      task.title,
+      oldDescription,
+      data.description,
+      actorContext.actorType,
+      actorContext.actorUuid,
+    ).catch((err) => console.error("[Task] Failed to process mentions:", err));
+  }
 
   return formatTaskResponse(task);
 }
@@ -445,6 +470,68 @@ export async function createTasksFromProposal(
 
   const formattedTasks = await Promise.all(rawTasks.map(formatTaskResponse));
   return { tasks: formattedTasks, draftToTaskUuidMap };
+}
+
+// ===== Mention Processing (append-only) =====
+
+// Process new @mentions by diffing old vs new content
+async function processNewMentions(
+  companyUuid: string,
+  projectUuid: string,
+  sourceType: "task" | "idea",
+  sourceUuid: string,
+  entityTitle: string,
+  oldContent: string | null,
+  newContent: string,
+  actorType: string,
+  actorUuid: string,
+): Promise<void> {
+  const oldMentions = oldContent ? mentionService.parseMentions(oldContent) : [];
+  const newMentions = mentionService.parseMentions(newContent);
+
+  // Find only truly new mentions (not in old set)
+  const oldKeys = new Set(oldMentions.map((m) => `${m.type}:${m.uuid}`));
+  const brandNewMentions = newMentions.filter((m) => !oldKeys.has(`${m.type}:${m.uuid}`));
+
+  if (brandNewMentions.length === 0) return;
+
+  // Build content with only new mentions for createMentions to process
+  // We pass the full new content and let createMentions handle it, but we
+  // need to ensure only new mentions create records. We do this by calling
+  // createMentions with full new content (it deduplicates internally) and
+  // then the records are created. Since this is append-only, we only run
+  // when there are truly new mentions detected above.
+  await mentionService.createMentions({
+    companyUuid,
+    sourceType,
+    sourceUuid,
+    content: newContent,
+    actorType,
+    actorUuid,
+    projectUuid,
+    entityTitle,
+  });
+
+  // Log activity for each new mention
+  for (const mention of brandNewMentions) {
+    if (mention.type === actorType && mention.uuid === actorUuid) continue;
+    await activityService.createActivity({
+      companyUuid,
+      projectUuid,
+      targetType: sourceType,
+      targetUuid: sourceUuid,
+      actorType,
+      actorUuid,
+      action: "mentioned",
+      value: {
+        mentionedType: mention.type,
+        mentionedUuid: mention.uuid,
+        mentionedName: mention.displayName,
+        sourceType,
+        sourceUuid,
+      },
+    });
+  }
 }
 
 // ===== Dependency Management =====

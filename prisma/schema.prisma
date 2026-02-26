@@ -401,11 +401,33 @@ model NotificationPreference {
   commentAdded        Boolean  @default(true)
   elaborationRequested Boolean @default(true)
   elaborationAnswered  Boolean @default(true)
+  mentioned            Boolean @default(true)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
   @@unique([ownerType, ownerUuid])
   @@index([companyUuid])
+}
+
+// Mention (tracks @mentions in comments, tasks, ideas)
+model Mention {
+  id              Int      @id @default(autoincrement())
+  uuid            String   @unique @default(uuid())
+  companyUuid     String
+  // Source: where the mention occurred
+  sourceType      String   // comment | task | idea
+  sourceUuid      String   // UUID of the comment, task, or idea
+  // Target: who was mentioned
+  mentionedType   String   // user | agent
+  mentionedUuid   String
+  // Actor: who wrote the mention
+  actorType       String   // user | agent
+  actorUuid       String
+  createdAt       DateTime @default(now())
+
+  @@index([companyUuid])
+  @@index([mentionedType, mentionedUuid])
+  @@index([sourceType, sourceUuid])
 }
 
 // Elaboration Round (AI-DLC Stage 3 — structured requirements clarification)

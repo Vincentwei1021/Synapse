@@ -11,6 +11,7 @@ import {
   UserCheck,
   Send,
   RefreshCw,
+  AtSign,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -73,6 +74,8 @@ function getTypeIcon(action: string) {
       return { Icon: XCircle, color: "text-red-500" };
     case "comment_added":
       return { Icon: MessageSquare, color: "text-orange-500" };
+    case "mentioned":
+      return { Icon: AtSign, color: "text-blue-600" };
     case "proposal_submitted":
       return { Icon: Send, color: "text-blue-500" };
     case "task_status_changed":

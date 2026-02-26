@@ -8,6 +8,8 @@ import {
   validateTargetExists,
   type TargetType,
 } from "@/lib/uuid-resolver";
+import * as mentionService from "@/services/mention.service";
+import * as activityService from "@/services/activity.service";
 
 export interface CommentListParams {
   companyUuid: string;
@@ -139,6 +141,17 @@ export async function createComment({
   // Get author name
   const authorName = await getActorName(comment.authorType, comment.authorUuid);
 
+  // Process @mentions in comment content (fire-and-forget)
+  processCommentMentions(
+    companyUuid,
+    targetType,
+    targetUuid,
+    comment.uuid,
+    content,
+    authorType,
+    authorUuid,
+  ).catch((err) => console.error("[Comment] Failed to process mentions:", err));
+
   return {
     uuid: comment.uuid,
     targetType: comment.targetType,
@@ -178,6 +191,84 @@ export async function resolveProjectUuid(
     }
     default:
       return null;
+  }
+}
+
+// Resolve entity title from a target type and UUID
+async function resolveEntityTitle(
+  targetType: string,
+  targetUuid: string
+): Promise<string> {
+  switch (targetType) {
+    case "task": {
+      const task = await prisma.task.findUnique({ where: { uuid: targetUuid }, select: { title: true } });
+      return task?.title ?? "Unknown Task";
+    }
+    case "idea": {
+      const idea = await prisma.idea.findUnique({ where: { uuid: targetUuid }, select: { title: true } });
+      return idea?.title ?? "Unknown Idea";
+    }
+    case "proposal": {
+      const proposal = await prisma.proposal.findUnique({ where: { uuid: targetUuid }, select: { title: true } });
+      return proposal?.title ?? "Unknown Proposal";
+    }
+    case "document": {
+      const doc = await prisma.document.findUnique({ where: { uuid: targetUuid }, select: { title: true } });
+      return doc?.title ?? "Unknown Document";
+    }
+    default:
+      return "Unknown";
+  }
+}
+
+// Process @mentions from a comment (called after createComment)
+async function processCommentMentions(
+  companyUuid: string,
+  targetType: string,
+  targetUuid: string,
+  commentUuid: string,
+  content: string,
+  authorType: string,
+  authorUuid: string,
+): Promise<void> {
+  const mentions = mentionService.parseMentions(content);
+  if (mentions.length === 0) return;
+
+  const projectUuid = await resolveProjectUuid(targetType, targetUuid);
+  if (!projectUuid) return;
+
+  const entityTitle = await resolveEntityTitle(targetType, targetUuid);
+
+  await mentionService.createMentions({
+    companyUuid,
+    sourceType: "comment",
+    sourceUuid: commentUuid,
+    content,
+    actorType: authorType,
+    actorUuid: authorUuid,
+    projectUuid,
+    entityTitle,
+  });
+
+  // Log mention activity for each mentioned user/agent
+  for (const mention of mentions) {
+    if (mention.type === authorType && mention.uuid === authorUuid) continue; // skip self
+    await activityService.createActivity({
+      companyUuid,
+      projectUuid,
+      targetType: targetType as activityService.TargetType,
+      targetUuid,
+      actorType: authorType,
+      actorUuid: authorUuid,
+      action: "mentioned",
+      value: {
+        mentionedType: mention.type,
+        mentionedUuid: mention.uuid,
+        mentionedName: mention.displayName,
+        sourceType: "comment",
+        sourceUuid: commentUuid,
+      },
+    });
   }
 }
 

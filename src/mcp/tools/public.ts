@@ -16,6 +16,7 @@ import * as assignmentService from "@/services/assignment.service";
 import * as notificationService from "@/services/notification.service";
 import * as elaborationService from "@/services/elaboration.service";
 import * as projectGroupService from "@/services/project-group.service";
+import * as mentionService from "@/services/mention.service";
 import { prisma } from "@/lib/prisma";
 
 export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
@@ -555,11 +556,12 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
   server.registerTool(
     "chorus_get_notifications",
     {
-      description: "Get the list of notifications for the current Agent",
+      description: "Get the list of notifications for the current Agent. By default, fetching unread notifications automatically marks them as read. Set autoMarkRead=false to keep them unread.",
       inputSchema: z.object({
         status: z.enum(["unread", "read", "all"]).default("unread").optional().describe("Filter by status"),
         limit: z.number().default(20).optional().describe("Items per page"),
         offset: z.number().default(0).optional().describe("Offset"),
+        autoMarkRead: z.boolean().default(true).optional().describe("Automatically mark fetched unread notifications as read (default: true)"),
       }),
     },
     async (params) => {
@@ -572,6 +574,21 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
         skip: params.offset ?? 0,
         take: params.limit ?? 20,
       });
+
+      // Auto-mark fetched unread notifications as read
+      if ((params.autoMarkRead ?? true) && statusValue === "unread" && result.notifications?.length > 0) {
+        const unreadUuids = result.notifications
+          .filter((n: { readAt?: string | null }) => !n.readAt)
+          .map((n: { uuid: string }) => n.uuid);
+        if (unreadUuids.length > 0) {
+          await Promise.all(
+            unreadUuids.map((uuid: string) =>
+              notificationService.markRead(uuid, auth.companyUuid, auth.type, auth.actorUuid).catch(() => {})
+            )
+          );
+        }
+      }
+
       return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
     }
   );
@@ -720,6 +737,31 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       }
       return {
         content: [{ type: "text", text: JSON.stringify(dashboard, null, 2) }],
+      };
+    }
+  );
+
+  // chorus_search_mentionables - Search for @mentionable users and agents
+  server.registerTool(
+    "chorus_search_mentionables",
+    {
+      description: "Search for users and agents that can be @mentioned. Returns name, type, and UUID. Use the UUID to write mentions as @[Name](type:uuid) in comment/description text.",
+      inputSchema: z.object({
+        query: z.string().describe("Name or keyword to search"),
+        limit: z.number().optional().default(10).describe("Max results to return (default 10)"),
+      }),
+    },
+    async ({ query, limit }) => {
+      const results = await mentionService.searchMentionables({
+        companyUuid: auth.companyUuid,
+        query,
+        actorType: auth.type,
+        actorUuid: auth.actorUuid,
+        ownerUuid: auth.ownerUuid,
+        limit,
+      });
+      return {
+        content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
       };
     }
   );
