@@ -1,0 +1,33 @@
+{
+  "name": "openclaw-plugin-chorus",
+  "version": "0.1.0",
+  "description": "OpenClaw plugin for Chorus AI-DLC collaboration platform — SSE real-time events + MCP tool integration",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}
