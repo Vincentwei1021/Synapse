@@ -941,6 +941,37 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
+  // chorus_move_idea - Move an Idea to a different project
+  server.registerTool(
+    "chorus_move_idea",
+    {
+      description: "Move an Idea to a different project within the same company. Also moves linked draft/pending Proposals.",
+      inputSchema: z.object({
+        ideaUuid: z.string().describe("Idea UUID"),
+        targetProjectUuid: z.string().describe("Target Project UUID"),
+      }),
+    },
+    async ({ ideaUuid, targetProjectUuid }) => {
+      try {
+        const updated = await ideaService.moveIdea(
+          auth.companyUuid,
+          ideaUuid,
+          targetProjectUuid,
+          auth.actorUuid
+        );
+
+        return {
+          content: [{ type: "text", text: JSON.stringify({ uuid: updated.uuid, project: updated.project }, null, 2) }],
+        };
+      } catch (error) {
+        return {
+          content: [{ type: "text", text: `Failed to move Idea: ${error instanceof Error ? error.message : "Unknown error"}` }],
+          isError: true,
+        };
+      }
+    }
+  );
+
   // chorus_pm_create_idea - Create an Idea
   server.registerTool(
     "chorus_pm_create_idea",

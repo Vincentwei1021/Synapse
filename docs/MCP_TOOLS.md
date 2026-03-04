@@ -951,6 +951,18 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 }
 ```
 
+### chorus_move_idea
+
+**Description**: Move an Idea to a different project within the same company. Also moves linked draft/pending Proposals.
+
+**Input**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| ideaUuid | string | Yes | Idea UUID |
+| targetProjectUuid | string | Yes | Target Project UUID |
+
+**Output**: Updated Idea JSON (`{ uuid, project: { uuid, name } }`)
+
 ### chorus_pm_create_idea
 
 **Description**: Create an Idea in a project (submit requirements on behalf of humans or from discovered requirements)

@@ -456,3 +456,79 @@ export async function deleteIdea(uuid: string) {
   eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.projectUuid, entityType: "idea", entityUuid: idea.uuid, action: "deleted" });
   return idea;
 }
+
+// Move Idea to a different project
+export async function moveIdea(
+  companyUuid: string,
+  ideaUuid: string,
+  targetProjectUuid: string,
+  actorUuid: string
+): Promise<IdeaResponse> {
+  // Validate idea exists and belongs to same company
+  const idea = await prisma.idea.findFirst({
+    where: { uuid: ideaUuid, companyUuid },
+    include: { project: { select: { uuid: true, name: true } } },
+  });
+  if (!idea) throw new Error("Idea not found");
+
+  // Validate target project exists and belongs to same company
+  const targetProject = await prisma.project.findFirst({
+    where: { uuid: targetProjectUuid, companyUuid },
+    select: { uuid: true, name: true },
+  });
+  if (!targetProject) throw new Error("Target project not found");
+
+  if (idea.projectUuid === targetProjectUuid) {
+    throw new Error("Idea is already in the target project");
+  }
+
+  const fromProjectUuid = idea.projectUuid;
+
+  // Transaction: update idea + linked proposals
+  await prisma.$transaction(async (tx) => {
+    // Update Idea.projectUuid
+    await tx.idea.update({
+      where: { uuid: ideaUuid },
+      data: { projectUuid: targetProjectUuid },
+    });
+
+    // Update linked Proposal.projectUuid (draft or pending only)
+    await tx.proposal.updateMany({
+      where: {
+        companyUuid,
+        inputType: "idea",
+        inputUuids: { has: ideaUuid },
+        status: { in: ["draft", "pending"] },
+      },
+      data: { projectUuid: targetProjectUuid },
+    });
+  });
+
+  // Log activity
+  await activityService.createActivity({
+    companyUuid,
+    projectUuid: targetProjectUuid,
+    targetType: "idea",
+    targetUuid: ideaUuid,
+    actorType: "user",
+    actorUuid,
+    action: "moved",
+    value: {
+      fromProjectUuid,
+      fromProjectName: idea.project!.name,
+      toProjectUuid: targetProjectUuid,
+      toProjectName: targetProject.name,
+    },
+  });
+
+  // Emit changes for both projects
+  eventBus.emitChange({ companyUuid, projectUuid: fromProjectUuid, entityType: "idea", entityUuid: ideaUuid, action: "updated" });
+  eventBus.emitChange({ companyUuid, projectUuid: targetProjectUuid, entityType: "idea", entityUuid: ideaUuid, action: "updated" });
+
+  // Return updated idea
+  const updated = await prisma.idea.findFirst({
+    where: { uuid: ideaUuid, companyUuid },
+    include: { project: { select: { uuid: true, name: true } } },
+  });
+  return formatIdeaResponse(updated!);
+}
