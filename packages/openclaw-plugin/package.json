@@ -6,7 +6,8 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "peerDependencies": {
     "openclaw": ">=2026.0.0"
@@ -16,10 +17,13 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.4"
   },
   "openclaw": {
-    "extensions": ["src/index.ts"]
+    "extensions": [
+      "src/index.ts"
+    ]
   },
   "repository": {
     "type": "git",
@@ -27,7 +31,14 @@
     "directory": "packages/openclaw-plugin"
   },
   "homepage": "https://chorus-aidlc.github.io/Chorus/",
-  "keywords": ["openclaw", "chorus", "ai-dlc", "mcp", "plugin", "agent"],
+  "keywords": [
+    "openclaw",
+    "chorus",
+    "ai-dlc",
+    "mcp",
+    "plugin",
+    "agent"
+  ],
   "files": [
     "src",
     "openclaw.plugin.json",

@@ -120,6 +120,16 @@ After setup, verify the Agent has access to the tools for its role:
 
 ---
 
+## 5. Generic SSE Mode (OpenClaw Plugin)
+
+The OpenClaw plugin supports a `"generic"` preset that connects to any SSE endpoint instead of a Chorus server. This mode does not use MCP tools or Chorus API Keys.
+
+To use it, set `preset: "generic"` in the plugin config along with `sseUrl` and `authToken`. See the [OpenClaw plugin README](https://github.com/Chorus-AIDLC/Chorus/tree/main/packages/openclaw-plugin#generic-sse-mode) for full configuration details.
+
+> **Note:** The setup steps above (API Key, MCP config, role-based tools) apply only to the default `"chorus"` preset.
+
+---
+
 ## Next Step
 
 After setup, proceed to the workflow for your role:

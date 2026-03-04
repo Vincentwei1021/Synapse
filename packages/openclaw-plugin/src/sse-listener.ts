@@ -9,8 +9,9 @@ export interface SseNotificationEvent {
 }
 
 export interface ChorusSseListenerOptions {
-  chorusUrl: string;
-  apiKey: string;
+  sseUrl: string;
+  authHeader: string;
+  authToken: string;
   onEvent: (event: SseNotificationEvent) => void;
   onReconnect: () => Promise<void>;
   logger: { info: (msg: string) => void; warn: (msg: string) => void; error: (msg: string) => void };
@@ -41,13 +42,13 @@ export class ChorusSseListener {
     const abortController = new AbortController();
     this.abortController = abortController;
 
-    const url = `${this.opts.chorusUrl.replace(/\/$/, "")}/api/events/notifications`;
+    const url = this.opts.sseUrl;
 
     let response: Response;
     try {
       response = await fetch(url, {
         headers: {
-          Authorization: `Bearer ${this.opts.apiKey}`,
+          [this.opts.authHeader]: this.opts.authToken,
           Accept: "text/event-stream",
         },
         signal: abortController.signal,

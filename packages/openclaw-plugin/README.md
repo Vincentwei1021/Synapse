@@ -54,9 +54,9 @@ Chorus Server
 ## Prerequisites
 
 - [OpenClaw](https://openclaw.ai) gateway running
-- [Chorus](https://github.com/Chorus-AIDLC/Chorus) server accessible
-- A Chorus API Key (`cho_` prefix) for the agent
 - OpenClaw hooks enabled (`hooks.enabled: true` in `openclaw.json`)
+- **Chorus preset (default):** [Chorus](https://github.com/Chorus-AIDLC/Chorus) server accessible + a Chorus API Key (`cho_` prefix) for the agent
+- **Generic preset:** Any SSE endpoint that emits JSON events with `event_type`, `resource_type`, `resource_id`, and `message` fields
 
 ## Installation
 
@@ -107,10 +107,41 @@ Add the plugin entry to `~/.openclaw/openclaw.json`:
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
-| `chorusUrl` | `string` | Yes | — | Chorus server URL (e.g., `https://chorus.example.com`) |
-| `apiKey` | `string` | Yes | — | Chorus API Key with `cho_` prefix |
+| `preset` | `string` | No | `"chorus"` | Mode: `"chorus"` for Chorus platform, `"generic"` for any SSE source |
+| `chorusUrl` | `string` | Chorus preset | — | Chorus server URL (e.g., `https://chorus.example.com`) |
+| `apiKey` | `string` | Chorus preset | — | Chorus API Key with `cho_` prefix |
+| `sseUrl` | `string` | Generic preset | — | Full SSE endpoint URL |
+| `authHeader` | `string` | No | `"Authorization"` | HTTP header name for authentication |
+| `authToken` | `string` | Generic preset | — | Authentication token value (any format) |
 | `projectUuids` | `string[]` | No | `[]` | Project UUIDs to monitor. Empty = all projects. |
 | `autoStart` | `boolean` | No | `true` | Auto-claim tasks when `task_assigned` events arrive |
+
+> **Backward compatibility:** Existing configs with `chorusUrl` + `apiKey` (no `preset` field) continue to work — the default preset is `"chorus"`.
+
+### Generic SSE Mode
+
+Generic mode connects to any SSE endpoint — no Chorus server required. Events are forwarded directly to the agent when they contain the required fields: `event_type`, `resource_type`, `resource_id`, and `message`.
+
+```json
+{
+  "plugins": {
+    "enabled": true,
+    "entries": {
+      "chorus-openclaw-plugin": {
+        "enabled": true,
+        "config": {
+          "preset": "generic",
+          "sseUrl": "https://events.example.com/stream",
+          "authToken": "Bearer my-token-here",
+          "authHeader": "Authorization"
+        }
+      }
+    }
+  }
+}
+```
+
+The optional `messageField` config (set via the `GenericEventRouter` constructor) changes which event field is read as the message body. By default it reads `event.message`; set it to e.g. `"body"` to read `event.body` instead.
 
 ### OpenClaw requirements
 

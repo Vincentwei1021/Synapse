@@ -2,6 +2,18 @@ import type { ChorusMcpClient } from "./mcp-client.js";
 import type { ChorusPluginConfig } from "./config.js";
 import type { SseNotificationEvent } from "./sse-listener.js";
 
+// ---------------------------------------------------------------------------
+// IEventRouter — common interface for all event routers
+// ---------------------------------------------------------------------------
+
+export interface IEventRouter {
+  dispatch(event: SseNotificationEvent): void;
+}
+
+// ---------------------------------------------------------------------------
+// ChorusEventRouter
+// ---------------------------------------------------------------------------
+
 export interface ChorusEventRouterOptions {
   mcpClient: ChorusMcpClient;
   config: ChorusPluginConfig;
@@ -26,7 +38,7 @@ interface NotificationDetail {
   actorName: string;
 }
 
-export class ChorusEventRouter {
+export class ChorusEventRouter implements IEventRouter {
   private readonly mcpClient: ChorusMcpClient;
   private readonly config: ChorusPluginConfig;
   private readonly triggerAgent: ChorusEventRouterOptions["triggerAgent"];
@@ -225,5 +237,50 @@ export class ChorusEventRouter {
       mentionGuidance,
       { notificationUuid: n.uuid, action: "elaboration_answered", entityUuid: n.entityUuid, projectUuid: n.projectUuid }
     );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GenericEventRouter — lightweight router for any SSE source
+// ---------------------------------------------------------------------------
+
+export interface GenericEventRouterOptions {
+  triggerAgent: (message: string, metadata?: Record<string, unknown>) => void;
+  logger: { info: (msg: string) => void; warn: (msg: string) => void; error: (msg: string) => void };
+  messageField?: string; // default: "message"
+}
+
+export class GenericEventRouter implements IEventRouter {
+  private readonly triggerAgent: GenericEventRouterOptions["triggerAgent"];
+  private readonly logger: GenericEventRouterOptions["logger"];
+  private readonly messageField: string;
+
+  constructor(opts: GenericEventRouterOptions) {
+    this.triggerAgent = opts.triggerAgent;
+    this.logger = opts.logger;
+    this.messageField = opts.messageField ?? "message";
+  }
+
+  dispatch(event: SseNotificationEvent): void {
+    const eventType = event.event_type;
+    const resourceType = event.resource_type;
+    const resourceId = event.resource_id;
+    const messageValue = event[this.messageField];
+
+    if (!eventType || !resourceType || !resourceId || !messageValue) {
+      this.logger.warn(
+        `GenericEventRouter: missing required field(s) — ` +
+        `event_type=${eventType ?? "MISSING"}, resource_type=${resourceType ?? "MISSING"}, ` +
+        `resource_id=${resourceId ?? "MISSING"}, ${this.messageField}=${messageValue ?? "MISSING"}`
+      );
+      return;
+    }
+
+    const message = String(messageValue);
+    this.triggerAgent(message, {
+      event_type: eventType,
+      resource_type: resourceType,
+      resource_id: resourceId,
+    });
   }
 }
