@@ -351,7 +351,26 @@ export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
     },
   });
 
-  // 16. chorus_pm_create_idea
+  // 16. chorus_move_idea
+  api.registerTool({
+    name: "chorus_move_idea",
+    description: "Move an Idea to a different project within the same company. Also moves linked draft/pending Proposals.",
+    parameters: {
+      type: "object",
+      properties: {
+        ideaUuid: { type: "string", description: "UUID of the idea to move" },
+        targetProjectUuid: { type: "string", description: "UUID of the target project" },
+      },
+      required: ["ideaUuid", "targetProjectUuid"],
+      additionalProperties: false,
+    },
+    async execute(_id: string, { ideaUuid, targetProjectUuid }: { ideaUuid: string; targetProjectUuid: string }) {
+      const result = await mcpClient.callTool("chorus_move_idea", { ideaUuid, targetProjectUuid });
+      return JSON.stringify(result, null, 2);
+    },
+  });
+
+  // 17. chorus_pm_create_idea
   api.registerTool({
     name: "chorus_pm_create_idea",
     description: "Create a new Idea in a project. Use this when you discover a requirement, want to propose work, or record a user request.",
