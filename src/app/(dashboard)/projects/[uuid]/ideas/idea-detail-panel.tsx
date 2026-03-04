@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { X, Bot, User, Send, FileText, Loader2, Pencil, Check, Trash2 } from "lucide-react";
+import { X, Bot, User, Send, FileText, Loader2, Pencil, Check, Trash2, ArrowRightLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -193,6 +200,15 @@ export function IdeaDetailPanel({
   const [editError, setEditError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Move to project state
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [moveSearch, setMoveSearch] = useState("");
+  const [moveProjects, setMoveProjects] = useState<{ uuid: string; name: string }[]>([]);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  const [selectedMoveProject, setSelectedMoveProject] = useState<{ uuid: string; name: string } | null>(null);
+  const [isMoving, setIsMoving] = useState(false);
+  const [moveError, setMoveError] = useState<string | null>(null);
+
   const canAssign = idea.status !== "completed" && idea.status !== "closed";
   const elaborationResolved = idea.elaborationStatus === "resolved";
   const canCreateProposal =
@@ -317,6 +333,57 @@ export function IdeaDetailPanel({
       setSkipError(result.error || t("common.genericError"));
     }
   };
+
+  const handleOpenMoveDialog = async () => {
+    setShowMoveDialog(true);
+    setMoveSearch("");
+    setSelectedMoveProject(null);
+    setMoveError(null);
+    setIsLoadingProjects(true);
+    try {
+      const res = await fetch("/api/projects?pageSize=100");
+      const json = await res.json();
+      if (json.success) {
+        setMoveProjects(
+          json.data
+            .filter((p: { uuid: string }) => p.uuid !== projectUuid)
+            .map((p: { uuid: string; name: string }) => ({ uuid: p.uuid, name: p.name }))
+        );
+      }
+    } catch {
+      setMoveProjects([]);
+    }
+    setIsLoadingProjects(false);
+  };
+
+  const handleMoveIdea = async () => {
+    if (!selectedMoveProject || isMoving) return;
+    setIsMoving(true);
+    setMoveError(null);
+
+    try {
+      const res = await fetch(`/api/ideas/${idea.uuid}/move`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetProjectUuid: selectedMoveProject.uuid }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setShowMoveDialog(false);
+        onClose();
+        router.refresh();
+      } else {
+        setMoveError(json.error?.message || t("ideas.moveFailed"));
+      }
+    } catch {
+      setMoveError(t("ideas.moveFailed"));
+    }
+    setIsMoving(false);
+  };
+
+  const filteredMoveProjects = moveProjects.filter((p) =>
+    p.name.toLowerCase().includes(moveSearch.toLowerCase())
+  );
 
   return (
     <>
@@ -662,6 +729,16 @@ export function IdeaDetailPanel({
                     {idea.status === "completed" ? t("status.completed") : t("status.closed")}
                   </div>
                 ) : null}
+                {canEdit && (
+                  <Button
+                    variant="outline"
+                    className="border-[#E5E0D8]"
+                    onClick={handleOpenMoveDialog}
+                  >
+                    <ArrowRightLeft className="mr-2 h-4 w-4" />
+                    {t("ideas.moveToProject")}
+                  </Button>
+                )}
                 <div className="ml-auto">
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -756,6 +833,80 @@ export function IdeaDetailPanel({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Move to Project Dialog */}
+      <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("ideas.moveIdeaTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("ideas.moveIdeaDescription")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Input
+              value={moveSearch}
+              onChange={(e) => setMoveSearch(e.target.value)}
+              placeholder={t("ideas.searchProjects")}
+              className="border-[#E5E0D8] text-sm focus-visible:ring-[#C67A52]"
+              autoFocus
+            />
+            {moveError && (
+              <p className="text-xs text-destructive">{moveError}</p>
+            )}
+            <div className="max-h-[240px] overflow-y-auto space-y-1">
+              {isLoadingProjects ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-4 w-4 animate-spin text-[#9A9A9A]" />
+                </div>
+              ) : filteredMoveProjects.length === 0 ? (
+                <p className="text-sm text-[#9A9A9A] italic py-2 text-center">
+                  {t("ideas.noProjectsFound")}
+                </p>
+              ) : (
+                filteredMoveProjects.map((p) => (
+                  <button
+                    key={p.uuid}
+                    type="button"
+                    className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                      selectedMoveProject?.uuid === p.uuid
+                        ? "bg-[#C67A52] text-white"
+                        : "hover:bg-[#FAF8F4] text-[#2C2C2C]"
+                    }`}
+                    onClick={() => setSelectedMoveProject(p)}
+                  >
+                    {p.name}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              variant="outline"
+              className="border-[#E5E0D8]"
+              onClick={() => setShowMoveDialog(false)}
+              disabled={isMoving}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              className="bg-[#C67A52] hover:bg-[#B56A42] text-white"
+              onClick={handleMoveIdea}
+              disabled={!selectedMoveProject || isMoving}
+            >
+              {isMoving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t("ideas.moving")}
+                </>
+              ) : (
+                t("ideas.moveToProject")
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Assign Idea Modal */}
       {showAssignModal && (
