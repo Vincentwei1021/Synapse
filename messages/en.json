@@ -350,7 +350,8 @@
     "searchProjects": "Search projects...",
     "noProjectsFound": "No projects found",
     "moveFailed": "Failed to move idea",
-    "moving": "Moving..."
+    "moving": "Moving...",
+    "ungrouped": "Ungrouped"
   },
   "tasks": {
     "title": "Tasks",

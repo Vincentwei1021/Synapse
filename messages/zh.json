@@ -351,7 +351,8 @@
     "searchProjects": "搜索项目...",
     "noProjectsFound": "未找到项目",
     "moveFailed": "移动想法失败",
-    "moving": "移动中..."
+    "moving": "移动中...",
+    "ungrouped": "未分组"
   },
   "tasks": {
     "title": "任务",

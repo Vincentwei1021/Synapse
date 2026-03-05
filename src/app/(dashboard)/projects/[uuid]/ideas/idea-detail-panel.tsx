@@ -13,6 +13,14 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -202,8 +210,7 @@ export function IdeaDetailPanel({
 
   // Move to project state
   const [showMoveDialog, setShowMoveDialog] = useState(false);
-  const [moveSearch, setMoveSearch] = useState("");
-  const [moveProjects, setMoveProjects] = useState<{ uuid: string; name: string }[]>([]);
+  const [moveGroups, setMoveGroups] = useState<{ uuid: string; name: string; projects: { uuid: string; name: string }[] }[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
   const [selectedMoveProject, setSelectedMoveProject] = useState<{ uuid: string; name: string } | null>(null);
   const [isMoving, setIsMoving] = useState(false);
@@ -336,22 +343,54 @@ export function IdeaDetailPanel({
 
   const handleOpenMoveDialog = async () => {
     setShowMoveDialog(true);
-    setMoveSearch("");
     setSelectedMoveProject(null);
     setMoveError(null);
     setIsLoadingProjects(true);
     try {
-      const res = await fetch("/api/projects?pageSize=100");
-      const json = await res.json();
-      if (json.success) {
-        setMoveProjects(
-          json.data
-            .filter((p: { uuid: string }) => p.uuid !== projectUuid)
-            .map((p: { uuid: string; name: string }) => ({ uuid: p.uuid, name: p.name }))
-        );
+      const [projRes, groupRes] = await Promise.all([
+        fetch("/api/projects?pageSize=100"),
+        fetch("/api/project-groups"),
+      ]);
+      const [projJson, groupJson] = await Promise.all([projRes.json(), groupRes.json()]);
+
+      if (projJson.success) {
+        const projects = projJson.data
+          .filter((p: { uuid: string }) => p.uuid !== projectUuid)
+          .map((p: { uuid: string; name: string; groupUuid: string | null }) => ({
+            uuid: p.uuid, name: p.name, groupUuid: p.groupUuid,
+          }));
+
+        const groupMap = new Map<string, string>();
+        if (groupJson.success) {
+          const groups = groupJson.data.groups || groupJson.data;
+          for (const g of groups) {
+            groupMap.set(g.uuid, g.name);
+          }
+        }
+
+        // Group projects by project group
+        const grouped = new Map<string, { uuid: string; name: string; projects: { uuid: string; name: string }[] }>();
+        const ungrouped: { uuid: string; name: string }[] = [];
+
+        for (const p of projects) {
+          if (p.groupUuid && groupMap.has(p.groupUuid)) {
+            if (!grouped.has(p.groupUuid)) {
+              grouped.set(p.groupUuid, { uuid: p.groupUuid, name: groupMap.get(p.groupUuid)!, projects: [] });
+            }
+            grouped.get(p.groupUuid)!.projects.push({ uuid: p.uuid, name: p.name });
+          } else {
+            ungrouped.push({ uuid: p.uuid, name: p.name });
+          }
+        }
+
+        const groups = [...grouped.values()];
+        if (ungrouped.length > 0) {
+          groups.push({ uuid: "ungrouped", name: t("ideas.ungrouped"), projects: ungrouped });
+        }
+        setMoveGroups(groups);
       }
     } catch {
-      setMoveProjects([]);
+      setMoveGroups([]);
     }
     setIsLoadingProjects(false);
   };
@@ -380,10 +419,6 @@ export function IdeaDetailPanel({
     }
     setIsMoving(false);
   };
-
-  const filteredMoveProjects = moveProjects.filter((p) =>
-    p.name.toLowerCase().includes(moveSearch.toLowerCase())
-  );
 
   return (
     <>
@@ -844,44 +879,46 @@ export function IdeaDetailPanel({
               {t("ideas.moveIdeaDescription")}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-2">
-            <Input
-              value={moveSearch}
-              onChange={(e) => setMoveSearch(e.target.value)}
-              placeholder={t("ideas.searchProjects")}
-              className="border-[#E5E0D8] text-sm focus-visible:ring-[#C67A52]"
-              autoFocus
-            />
-            {moveError && (
-              <p className="text-xs text-destructive">{moveError}</p>
-            )}
-            <div className="max-h-[240px] overflow-y-auto space-y-1">
-              {isLoadingProjects ? (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 className="h-4 w-4 animate-spin text-[#9A9A9A]" />
-                </div>
-              ) : filteredMoveProjects.length === 0 ? (
-                <p className="text-sm text-[#9A9A9A] italic py-2 text-center">
-                  {t("ideas.noProjectsFound")}
-                </p>
-              ) : (
-                filteredMoveProjects.map((p) => (
-                  <Button
-                    key={p.uuid}
-                    variant="ghost"
-                    className={`w-full justify-start px-3 py-2.5 h-auto text-sm ${
-                      selectedMoveProject?.uuid === p.uuid
-                        ? "bg-[#C67A52] text-white hover:bg-[#B56A42] hover:text-white"
-                        : "hover:bg-[#FAF8F4] text-[#2C2C2C]"
-                    }`}
-                    onClick={() => setSelectedMoveProject(p)}
-                  >
-                    {p.name}
-                  </Button>
-                ))
-              )}
+          {moveError && (
+            <p className="text-xs text-destructive">{moveError}</p>
+          )}
+          {isLoadingProjects ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-4 w-4 animate-spin text-[#9A9A9A]" />
             </div>
-          </div>
+          ) : (
+            <Command className="border border-[#E5E0D8] rounded-lg" filter={(value, search, keywords) => {
+              const searchLower = search.toLowerCase();
+              if (value.toLowerCase().includes(searchLower)) return 1;
+              if (keywords?.some(k => k.toLowerCase().includes(searchLower))) return 1;
+              return 0;
+            }}>
+              <CommandInput placeholder={t("ideas.searchProjects")} />
+              <CommandList>
+                <CommandEmpty>{t("ideas.noProjectsFound")}</CommandEmpty>
+                {moveGroups.map((group) => (
+                  <CommandGroup key={group.uuid} heading={group.name}>
+                    {group.projects.map((p) => (
+                      <CommandItem
+                        key={p.uuid}
+                        value={p.name}
+                        keywords={[group.name]}
+                        onSelect={() => setSelectedMoveProject(p)}
+                        className={
+                          selectedMoveProject?.uuid === p.uuid
+                            ? "bg-[#C67A52] text-white data-[selected=true]:bg-[#B56A42] data-[selected=true]:text-white"
+                            : ""
+                        }
+                      >
+                        <Check className={`mr-2 h-4 w-4 ${selectedMoveProject?.uuid === p.uuid ? "opacity-100" : "opacity-0"}`} />
+                        {p.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                ))}
+              </CommandList>
+            </Command>
+          )}
           <div className="flex justify-end gap-3 pt-2">
             <Button
               variant="outline"
