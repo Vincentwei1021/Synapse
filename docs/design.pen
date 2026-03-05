@@ -13606,6 +13606,30 @@
               "children": [
                 {
                   "type": "frame",
+                  "id": "iD2YN",
+                  "name": "Move to Project Btn",
+                  "cornerRadius": 6,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#E5E0D8"
+                  },
+                  "padding": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "mITux",
+                      "name": "moveBtnDesktopIcon",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "arrow-right-left",
+                      "iconFontFamily": "lucide",
+                      "fill": "#6B6B6B"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
                   "id": "zm6Wd",
                   "name": "closeBtn",
                   "cornerRadius": 6,
@@ -35915,24 +35939,57 @@
             },
             {
               "type": "frame",
-              "id": "oSaAK",
-              "name": "idhclose",
-              "cornerRadius": 6,
-              "stroke": {
-                "thickness": 1,
-                "fill": "#E5E0D8"
-              },
-              "padding": 8,
+              "id": "hheBu",
+              "name": "Header Actions",
+              "gap": 8,
+              "alignItems": "center",
               "children": [
                 {
-                  "type": "icon_font",
-                  "id": "WMBVg",
-                  "name": "idhci",
-                  "width": 16,
-                  "height": 16,
-                  "iconFontName": "x",
-                  "iconFontFamily": "lucide",
-                  "fill": "#6B6B6B"
+                  "type": "frame",
+                  "id": "w2XQr",
+                  "name": "Move Btn",
+                  "cornerRadius": 6,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#E5E0D8"
+                  },
+                  "padding": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "bIb2y",
+                      "name": "moveBtnMobileIcon",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "arrow-right-left",
+                      "iconFontFamily": "lucide",
+                      "fill": "#6B6B6B"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "oSaAK",
+                  "name": "idhclose",
+                  "cornerRadius": 6,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#E5E0D8"
+                  },
+                  "padding": 8,
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "WMBVg",
+                      "name": "idhci",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "x",
+                      "iconFontFamily": "lucide",
+                      "fill": "#6B6B6B"
+                    }
+                  ]
                 }
               ]
             }
@@ -36041,6 +36098,7 @@
             },
             "fill": "#F5F2EC"
           },
+          "gap": 8,
           "padding": [
             16,
             20
@@ -41595,6 +41653,595 @@
                   "fontFamily": "IBM Plex Mono",
                   "fontSize": 11,
                   "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "Impnz",
+      "x": 6133,
+      "y": 3172,
+      "name": "Modal - Move Idea to Project",
+      "width": 420,
+      "fill": "#FFFFFF",
+      "cornerRadius": 16,
+      "stroke": {
+        "align": "outside",
+        "thickness": 1,
+        "fill": "#E5E0D8"
+      },
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "AY8MA",
+          "name": "Modal Header",
+          "width": "fill_container",
+          "stroke": {
+            "align": "inside",
+            "thickness": {
+              "bottom": 1
+            },
+            "fill": "#E5E0D8"
+          },
+          "padding": [
+            20,
+            24
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "Ro8eC",
+              "name": "headerTitle",
+              "fill": "#2C2C2C",
+              "content": "Move Idea to Another Project",
+              "fontFamily": "IBM Plex Sans",
+              "fontSize": 16,
+              "fontWeight": "600"
+            },
+            {
+              "type": "icon_font",
+              "id": "zOViN",
+              "name": "closeIcon",
+              "width": 20,
+              "height": 20,
+              "iconFontName": "x",
+              "iconFontFamily": "lucide",
+              "fill": "#9A9A9A"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Qyiv9",
+          "name": "Modal Body",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 24,
+          "children": [
+            {
+              "type": "text",
+              "id": "TIX6k",
+              "name": "Description",
+              "fill": "#6B6B6B",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Select a project to move this idea to. Linked draft or pending proposals will also be moved.",
+              "lineHeight": 1.5,
+              "fontFamily": "IBM Plex Sans",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "3EZzM",
+              "name": "Search Input",
+              "width": "fill_container",
+              "cornerRadius": 8,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#E5E0D8"
+              },
+              "gap": 8,
+              "padding": [
+                10,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "ZCDrP",
+                  "name": "searchIcon",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "search",
+                  "iconFontFamily": "lucide",
+                  "fill": "#9A9A9A"
+                },
+                {
+                  "type": "text",
+                  "id": "1jiON",
+                  "name": "searchText",
+                  "fill": "#BCBCBC",
+                  "content": "Search projects...",
+                  "fontFamily": "IBM Plex Sans",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Cp698",
+              "name": "Project List",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 4,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "AHovK",
+                  "name": "Project Item",
+                  "width": "fill_container",
+                  "fill": "#FAF8F4",
+                  "cornerRadius": 8,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "d20Fv",
+                      "name": "proj1Text",
+                      "fill": "#2C2C2C",
+                      "content": "Brainstorming",
+                      "fontFamily": "IBM Plex Sans",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "qBbvu",
+                  "name": "Project Item - Selected",
+                  "width": "fill_container",
+                  "fill": "#C67A52",
+                  "cornerRadius": 8,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "r782p",
+                      "name": "proj2Text",
+                      "fill": "#FFFFFF",
+                      "content": "Product Hunt Launch",
+                      "fontFamily": "IBM Plex Sans",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "75MWY",
+                  "name": "Project Item",
+                  "width": "fill_container",
+                  "cornerRadius": 8,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "fNGpN",
+                      "name": "proj3Text",
+                      "fill": "#2C2C2C",
+                      "content": "OpenClaw × Chorus Plugin",
+                      "fontFamily": "IBM Plex Sans",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ZdU3e",
+                  "name": "Project Item",
+                  "width": "fill_container",
+                  "cornerRadius": 8,
+                  "padding": [
+                    10,
+                    12
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "SqZkH",
+                      "name": "proj4Text",
+                      "fill": "#2C2C2C",
+                      "content": "Chorus 市场推广 - 开发准备",
+                      "fontFamily": "IBM Plex Sans",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "ytBz3",
+          "name": "Modal Footer",
+          "width": "fill_container",
+          "stroke": {
+            "align": "inside",
+            "thickness": {
+              "top": 1
+            },
+            "fill": "#E5E0D8"
+          },
+          "gap": 12,
+          "padding": [
+            16,
+            24
+          ],
+          "justifyContent": "end",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "osMzk",
+              "name": "Cancel Button",
+              "cornerRadius": 8,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#E5E0D8"
+              },
+              "padding": [
+                10,
+                16
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "19GiW",
+                  "name": "cancelText",
+                  "fill": "#6B6B6B",
+                  "content": "Cancel",
+                  "fontFamily": "IBM Plex Sans",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ThEOA",
+              "name": "Move Button",
+              "fill": "#C67A52",
+              "cornerRadius": 8,
+              "padding": [
+                10,
+                16
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "LXLh7",
+                  "name": "confirmText",
+                  "fill": "#FFFFFF",
+                  "content": "Move to Project",
+                  "fontFamily": "IBM Plex Sans",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "2RDCC",
+      "x": 10050,
+      "y": 4200,
+      "name": "Mobile - Move Idea",
+      "width": 390,
+      "height": 844,
+      "fill": "#FAF8F4",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "06JtZ",
+          "name": "Web Header",
+          "width": "fill_container",
+          "height": 48,
+          "fill": "#FFFFFF",
+          "stroke": {
+            "align": "inside",
+            "thickness": {
+              "bottom": 1
+            },
+            "fill": "#E5E0D8"
+          },
+          "padding": [
+            0,
+            16
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "XOMeF",
+              "name": "Back",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "3RbAs",
+                  "name": "mBackIcon",
+                  "width": 20,
+                  "height": 20,
+                  "iconFontName": "arrow-left",
+                  "iconFontFamily": "lucide",
+                  "fill": "#2C2C2C"
+                },
+                {
+                  "type": "text",
+                  "id": "orV4l",
+                  "name": "mBackText",
+                  "fill": "#2C2C2C",
+                  "content": "Back",
+                  "fontFamily": "IBM Plex Sans",
+                  "fontSize": 14,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "2ADQk",
+              "name": "mHeaderTitle",
+              "fill": "#2C2C2C",
+              "content": "Move Idea",
+              "fontFamily": "IBM Plex Sans",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "Qwph7",
+              "name": "mSpacer",
+              "width": 60,
+              "height": 20
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "96ETd",
+          "name": "Content",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": [
+            16,
+            20
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "ABRSz",
+              "name": "mDesc",
+              "fill": "#6B6B6B",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Select a project to move this idea to. Linked draft or pending proposals will also be moved.",
+              "lineHeight": 1.5,
+              "fontFamily": "IBM Plex Sans",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "4GeMy",
+              "name": "Search Input",
+              "width": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 10,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#E5E0D8"
+              },
+              "gap": 10,
+              "padding": [
+                12,
+                14
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "omMZq",
+                  "name": "mSearchIcon",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "search",
+                  "iconFontFamily": "lucide",
+                  "fill": "#9A9A9A"
+                },
+                {
+                  "type": "text",
+                  "id": "yB33v",
+                  "name": "mSearchText",
+                  "fill": "#BCBCBC",
+                  "content": "Search projects...",
+                  "fontFamily": "IBM Plex Sans",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "i6zyL",
+              "name": "Project List",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 4,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Tlrjk",
+                  "name": "Project Item",
+                  "width": "fill_container",
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 10,
+                  "padding": 14,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "DAaNF",
+                      "name": "mp1t",
+                      "fill": "#2C2C2C",
+                      "content": "Brainstorming",
+                      "fontFamily": "IBM Plex Sans",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "qfppZ",
+                  "name": "Project Item - Selected",
+                  "width": "fill_container",
+                  "fill": "#C67A52",
+                  "cornerRadius": 10,
+                  "padding": 14,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ZDXFf",
+                      "name": "mp2t",
+                      "fill": "#FFFFFF",
+                      "content": "Product Hunt Launch",
+                      "fontFamily": "IBM Plex Sans",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "gqDVC",
+                  "name": "Project Item",
+                  "width": "fill_container",
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 10,
+                  "padding": 14,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "bZcdp",
+                      "name": "mp3t",
+                      "fill": "#2C2C2C",
+                      "content": "OpenClaw × Chorus Plugin",
+                      "fontFamily": "IBM Plex Sans",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "3ueBA",
+                  "name": "Project Item",
+                  "width": "fill_container",
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 10,
+                  "padding": 14,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "FmHyA",
+                      "name": "mp4t",
+                      "fill": "#2C2C2C",
+                      "content": "Chorus 市场推广 - 开发准备",
+                      "fontFamily": "IBM Plex Sans",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "AtbWp",
+          "name": "Footer",
+          "width": "fill_container",
+          "stroke": {
+            "align": "inside",
+            "thickness": {
+              "top": 1
+            },
+            "fill": "#F5F2EC"
+          },
+          "padding": [
+            16,
+            20
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "hHDIk",
+              "name": "Move Button",
+              "width": "fill_container",
+              "fill": "#C67A52",
+              "cornerRadius": 8,
+              "padding": [
+                14,
+                20
+              ],
+              "justifyContent": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "7wb64",
+                  "name": "mMoveTxt",
+                  "fill": "#FFFFFF",
+                  "content": "Move to Project",
+                  "fontFamily": "IBM Plex Sans",
+                  "fontSize": 14,
+                  "fontWeight": "500"
                 }
               ]
             }
