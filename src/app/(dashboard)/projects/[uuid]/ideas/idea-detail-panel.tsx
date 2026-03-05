@@ -425,6 +425,17 @@ export function IdeaDetailPanel({
                 variant="outline"
                 size="icon"
                 className="h-8 w-8 border-[#E5E0D8]"
+                onClick={handleOpenMoveDialog}
+                title={t("ideas.moveToProject")}
+              >
+                <ArrowRightLeft className="h-4 w-4 text-[#6B6B6B]" />
+              </Button>
+            )}
+            {canEdit && !isEditing && (
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 border-[#E5E0D8]"
                 onClick={handleStartEdit}
               >
                 <Pencil className="h-4 w-4 text-[#6B6B6B]" />
@@ -729,16 +740,6 @@ export function IdeaDetailPanel({
                     {idea.status === "completed" ? t("status.completed") : t("status.closed")}
                   </div>
                 ) : null}
-                {canEdit && (
-                  <Button
-                    variant="outline"
-                    className="border-[#E5E0D8]"
-                    onClick={handleOpenMoveDialog}
-                  >
-                    <ArrowRightLeft className="mr-2 h-4 w-4" />
-                    {t("ideas.moveToProject")}
-                  </Button>
-                )}
                 <div className="ml-auto">
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
