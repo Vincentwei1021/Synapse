@@ -883,7 +883,7 @@ export function IdeaDetailPanel({
             <p className="text-xs text-destructive">{moveError}</p>
           )}
           {isLoadingProjects ? (
-            <div className="flex items-center justify-center py-8">
+            <div className="flex items-center justify-center h-[320px] border border-[#E5E0D8] rounded-lg">
               <Loader2 className="h-4 w-4 animate-spin text-[#9A9A9A]" />
             </div>
           ) : (
@@ -894,7 +894,7 @@ export function IdeaDetailPanel({
               return 0;
             }}>
               <CommandInput placeholder={t("ideas.searchProjects")} />
-              <CommandList>
+              <CommandList className="h-[280px]">
                 <CommandEmpty>{t("ideas.noProjectsFound")}</CommandEmpty>
                 {moveGroups.map((group) => (
                   <CommandGroup key={group.uuid} heading={group.name}>
