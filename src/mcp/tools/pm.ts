@@ -957,7 +957,8 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
           auth.companyUuid,
           ideaUuid,
           targetProjectUuid,
-          auth.actorUuid
+          auth.actorUuid,
+          auth.type
         );
 
         return {

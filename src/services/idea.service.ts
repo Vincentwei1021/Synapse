@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { formatAssigneeComplete, formatCreatedBy } from "@/lib/uuid-resolver";
 import { eventBus } from "@/lib/event-bus";
 import { AlreadyClaimedError, NotClaimedError, isPrismaNotFound } from "@/lib/errors";
+import { ApiError } from "@/lib/api-handler";
 import * as mentionService from "@/services/mention.service";
 import * as activityService from "@/services/activity.service";
 
@@ -462,24 +463,25 @@ export async function moveIdea(
   companyUuid: string,
   ideaUuid: string,
   targetProjectUuid: string,
-  actorUuid: string
+  actorUuid: string,
+  actorType: string = "user"
 ): Promise<IdeaResponse> {
   // Validate idea exists and belongs to same company
   const idea = await prisma.idea.findFirst({
     where: { uuid: ideaUuid, companyUuid },
     include: { project: { select: { uuid: true, name: true } } },
   });
-  if (!idea) throw new Error("Idea not found");
+  if (!idea) throw new ApiError("NOT_FOUND", "Idea not found", 404);
 
   // Validate target project exists and belongs to same company
   const targetProject = await prisma.project.findFirst({
     where: { uuid: targetProjectUuid, companyUuid },
     select: { uuid: true, name: true },
   });
-  if (!targetProject) throw new Error("Target project not found");
+  if (!targetProject) throw new ApiError("NOT_FOUND", "Target project not found", 404);
 
   if (idea.projectUuid === targetProjectUuid) {
-    throw new Error("Idea is already in the target project");
+    throw new ApiError("BAD_REQUEST", "Idea is already in the target project", 400);
   }
 
   const fromProjectUuid = idea.projectUuid;
@@ -497,7 +499,7 @@ export async function moveIdea(
       where: {
         companyUuid,
         inputType: "idea",
-        inputUuids: { has: ideaUuid },
+        inputUuids: { array_contains: [ideaUuid] },
         status: { in: ["draft", "pending"] },
       },
       data: { projectUuid: targetProjectUuid },
@@ -510,7 +512,7 @@ export async function moveIdea(
     projectUuid: targetProjectUuid,
     targetType: "idea",
     targetUuid: ideaUuid,
-    actorType: "user",
+    actorType,
     actorUuid,
     action: "moved",
     value: {

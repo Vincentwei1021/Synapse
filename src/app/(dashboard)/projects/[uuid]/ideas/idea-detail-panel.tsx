@@ -373,7 +373,7 @@ export function IdeaDetailPanel({
         onClose();
         router.refresh();
       } else {
-        setMoveError(json.error?.message || t("ideas.moveFailed"));
+        setMoveError(typeof json.error === "string" ? json.error : json.error?.message || t("ideas.moveFailed"));
       }
     } catch {
       setMoveError(t("ideas.moveFailed"));
@@ -865,18 +865,18 @@ export function IdeaDetailPanel({
                 </p>
               ) : (
                 filteredMoveProjects.map((p) => (
-                  <button
+                  <Button
                     key={p.uuid}
-                    type="button"
-                    className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                    variant="ghost"
+                    className={`w-full justify-start px-3 py-2.5 h-auto text-sm ${
                       selectedMoveProject?.uuid === p.uuid
-                        ? "bg-[#C67A52] text-white"
+                        ? "bg-[#C67A52] text-white hover:bg-[#B56A42] hover:text-white"
                         : "hover:bg-[#FAF8F4] text-[#2C2C2C]"
                     }`}
                     onClick={() => setSelectedMoveProject(p)}
                   >
                     {p.name}
-                  </button>
+                  </Button>
                 ))
               )}
             </div>

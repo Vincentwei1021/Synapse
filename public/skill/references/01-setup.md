@@ -240,6 +240,7 @@ After setup, verify the Agent has access to the tools for its role:
 | `chorus_pm_add_*_draft` / `chorus_pm_update_*_draft` | No | Yes | Yes |
 | `chorus_pm_remove_*_draft` | No | Yes | Yes |
 | `chorus_pm_create_idea` | No | Yes | Yes |
+| `chorus_move_idea` | No | Yes | Yes |
 | `chorus_admin_create_project` | No | No | Yes |
 | `chorus_admin_approve_proposal` / `chorus_admin_reject_proposal` | No | No | Yes |
 | `chorus_admin_verify_task` / `chorus_admin_reopen_task` | No | No | Yes |

@@ -28,7 +28,8 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
       auth.companyUuid,
       uuid,
       body.targetProjectUuid,
-      auth.actorUuid
+      auth.actorUuid,
+      auth.type
     );
 
     return success(updated);

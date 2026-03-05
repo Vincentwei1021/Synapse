@@ -11,6 +11,7 @@ PM Agent is responsible for **analyzing Ideas, producing Proposals (with PRD doc
 - `chorus_claim_idea` - Claim an open idea (open -> elaborating). Claiming auto-transitions to elaborating.
 - `chorus_release_idea` - Release a claimed idea (elaborating -> open)
 - `chorus_update_idea_status` - Update idea status (proposal_created / completed)
+- `chorus_move_idea` - Move an idea to a different project within the same company (also moves linked draft/pending proposals)
 
 **Requirements Elaboration:**
 - `chorus_pm_start_elaboration` - Start an elaboration round with structured questions for an Idea
