@@ -165,8 +165,12 @@ export class ChorusEventRouter {
   }
 
   private handleMentioned(n: NotificationDetail): void {
+    const mentionGuidance = this.buildMentionGuidance(n, n.entityType);
+
     this.triggerAgent(
-      `[Chorus] You were @mentioned in ${n.entityType} '${n.entityTitle}' (projectUuid: ${n.projectUuid}): ${n.message}`,
+      `[Chorus] You were @mentioned in ${n.entityType} '${n.entityTitle}' (entityType: ${n.entityType}, entityUuid: ${n.entityUuid}, projectUuid: ${n.projectUuid}): ${n.message}\n` +
+      `Review the ${n.entityType} content and use chorus_get_comments (targetType: "${n.entityType}", targetUuid: "${n.entityUuid}") to see the full conversation, then respond.\n` +
+      mentionGuidance,
       { notificationUuid: n.uuid, action: "mentioned", entityUuid: n.entityUuid, projectUuid: n.projectUuid }
     );
   }
@@ -195,7 +199,7 @@ export class ChorusEventRouter {
 
     const reviewInfo = n.message.includes("Note: ") ? ` Review note: "${n.message.split("Note: ").pop()}"` : "";
     this.triggerAgent(
-      `[Chorus] Proposal '${n.entityTitle}' was APPROVED (projectUuid: ${n.projectUuid})!${reviewInfo} Documents and tasks have been created. ` +
+      `[Chorus] Proposal '${n.entityTitle}' was APPROVED (proposalUuid: ${n.entityUuid}, projectUuid: ${n.projectUuid})!${reviewInfo} Documents and tasks have been created. ` +
       `Use chorus_get_available_tasks with projectUuid: "${n.projectUuid}" to see the new tasks ready for work.\n` +
       mentionGuidance,
       { notificationUuid: n.uuid, action: "proposal_approved", entityUuid: n.entityUuid, projectUuid: n.projectUuid }
