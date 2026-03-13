@@ -6,7 +6,6 @@ import { getTranslations } from "next-intl/server";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { projectExists } from "@/services/project.service";
 import { listIdeas } from "@/services/idea.service";
-import { checkIdeasAvailability } from "@/services/proposal.service";
 import { CreateProposalForm } from "./create-proposal-form";
 
 interface PageProps {
@@ -31,6 +30,7 @@ export default async function NewProposalPage({ params, searchParams }: PageProp
   }
 
   // Get user's claimed Ideas (only assignees can create Proposals)
+  // Ideas can be reused across multiple Proposals (WOO-19)
   const { ideas } = await listIdeas({
     companyUuid: auth.companyUuid,
     projectUuid,
@@ -41,14 +41,10 @@ export default async function NewProposalPage({ params, searchParams }: PageProp
     actorType: auth.type,
   });
 
-  // Filter out ideas that have not been used yet
-  const ideaUuids = ideas.map(idea => idea.uuid);
-  const availabilityCheck = ideaUuids.length > 0
-    ? await checkIdeasAvailability(auth.companyUuid, ideaUuids)
-    : { usedIdeas: [] };
-
-  const usedIdeaUuids = new Set(availabilityCheck.usedIdeas.map(u => u.uuid));
-  const availableIdeas = ideas.filter(idea => !usedIdeaUuids.has(idea.uuid));
+  // All claimed ideas are available for proposal creation (WOO-19: ideas can be reused)
+  const availableIdeas = ideas.filter(idea =>
+    idea.status === "elaborating" || idea.status === "proposal_created"
+  );
 
   return (
     <div className="p-8">

@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { getServerAuthContext } from "@/lib/auth-server";
 import {
   createProposal,
-  checkIdeasAvailability,
   checkIdeasAssignee,
   type DocumentDraftInput,
   type TaskDraftInput,
@@ -58,18 +57,7 @@ export async function createProposalAction(
         };
       }
 
-      // Validate whether these Ideas have already been used by another Proposal
-      const availabilityCheck = await checkIdeasAvailability(
-        auth.companyUuid,
-        data.inputUuids
-      );
-      if (!availabilityCheck.available) {
-        const usedIdea = availabilityCheck.usedIdeas[0];
-        return {
-          success: false,
-          error: `One of the selected ideas is already used in proposal "${usedIdea.proposalTitle}"`,
-        };
-      }
+      // Ideas can be reused across multiple Proposals (WOO-19) - no availability check needed
     }
 
     const proposal = await createProposal({

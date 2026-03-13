@@ -215,16 +215,14 @@ export function registerPmTools(server: McpServer, auth: AgentAuthContext) {
           };
         }
 
+        // Ideas can be reused across multiple Proposals (WOO-19)
         const availabilityCheck = await proposalService.checkIdeasAvailability(
           auth.companyUuid,
           inputUuids
         );
         if (!availabilityCheck.available) {
-          const usedIdea = availabilityCheck.usedIdeas[0];
-          return {
-            content: [{ type: "text", text: `Idea is already used by Proposal "${usedIdea.proposalTitle}"` }],
-            isError: true,
-          };
+          const reusedTitles = availabilityCheck.usedIdeas.map(i => i.proposalTitle).join(", ");
+          console.log(`[Proposal] Ideas reused from existing proposals: ${reusedTitles}`);
         }
       }
 

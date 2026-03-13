@@ -687,14 +687,30 @@ export async function approveProposal(
 
   eventBus.emitChange({ companyUuid: proposal.companyUuid, projectUuid: proposal.projectUuid, entityType: "proposal", entityUuid: proposalUuid, action: "updated" });
 
-  // Auto-complete input Ideas when proposal is approved
+  // Auto-complete input Ideas only when no other active proposals reference them (WOO-19)
   if (proposal.inputType === "idea") {
     const inputUuids = (proposal.inputUuids as string[]) || [];
-    if (inputUuids.length > 0) {
-      await prisma.idea.updateMany({
-        where: { uuid: { in: inputUuids }, companyUuid, status: "proposal_created" },
-        data: { status: "completed" },
+    for (const ideaUuid of inputUuids) {
+      // Check if any other non-terminal proposals reference this idea
+      const otherActiveProposals = await prisma.proposal.findMany({
+        where: {
+          companyUuid,
+          inputType: "idea",
+          uuid: { not: proposalUuid },
+          status: { in: ["draft", "pending"] },
+        },
+        select: { uuid: true, inputUuids: true },
       });
+      const hasOtherActive = otherActiveProposals.some((p: { uuid: string; inputUuids: unknown }) => {
+        const uuids = p.inputUuids as string[];
+        return uuids.includes(ideaUuid);
+      });
+      if (!hasOtherActive) {
+        await prisma.idea.updateMany({
+          where: { uuid: ideaUuid, companyUuid, status: "proposal_created" },
+          data: { status: "completed" },
+        });
+      }
     }
   }
 
