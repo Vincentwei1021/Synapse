@@ -1,3 +1,4 @@
+# CI: run tests, type check, and upload coverage artifact
 name: Test & Coverage
 
 on:
