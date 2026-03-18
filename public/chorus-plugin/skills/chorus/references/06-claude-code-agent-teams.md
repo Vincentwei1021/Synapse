@@ -194,6 +194,8 @@ SendMessage({ type: "message", recipient: "team-lead", content: "Task complete",
 
 The Team Lead monitors until all Chorus tasks reach `to_verify` or `done`. Sessions are auto-closed by the plugin when sub-agents exit.
 
+> **Automatic reminders:** The plugin's TaskCompleted hook will notify you each time a sub-agent finishes — showing the task's AC status and any blocked downstream tasks. You don't need to poll; just act on the reminders as they arrive.
+
 > **Critical: If the Team Lead has admin role, it MUST verify tasks between waves.** Sub-agents submit tasks to `to_verify`, but `to_verify` does NOT resolve dependencies — only `done` or `closed` does. Without verification, downstream tasks will be permanently blocked.
 
 ```

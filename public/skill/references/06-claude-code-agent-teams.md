@@ -150,9 +150,11 @@ chorus_submit_for_verify({
 SendMessage({ type: "message", recipient: "team-lead", content: "Task complete", summary: "Frontend task done" })
 ```
 
-### Phase 4: Team Lead — Monitor & Close
+### Phase 4: Team Lead — Verify, Unblock & Close
 
-The Team Lead monitors until all Chorus tasks reach `to_verify` or `done`. **Task verification (to_verify → done) is an Admin responsibility** — see the Admin workflow for the verify & unblock loop.
+The Team Lead monitors until all Chorus tasks reach `to_verify` or `done`. **Task verification (to_verify → done) is an Admin responsibility** — if you have admin role, verify tasks promptly to unblock downstream dependencies. `to_verify` does NOT resolve dependencies — only `done` does.
+
+> **Note:** If you are using the Chorus Plugin for Claude Code, the TaskCompleted hook will automatically remind you each time a sub-agent finishes — showing the task's acceptance criteria status and any blocked downstream tasks.
 
 ```
 # 1. Periodically check Chorus task status

@@ -45,6 +45,20 @@ if command -v jq >/dev/null 2>&1; then
     "$API" state-set "owner_email" "$_OWNER_EMAIL"
     "$API" state-set "owner_uuid" "$_OWNER_UUID"
   fi
+
+  # Cache agent roles for TaskCompleted and Stop hooks (e.g. "developer_agent,pm_agent,admin_agent")
+  _ROLES=$(echo "$CHECKIN_RESULT" | jq -r '.agent.roles | join(",") // empty' 2>/dev/null) || true
+  if [ -n "$_ROLES" ]; then
+    "$API" state-set "agent_roles" "$_ROLES"
+  fi
+
+  # Cache first assignment's projectUuid for Stop hook (to scope to_verify task lookup)
+  _PROJECT_UUID=$(echo "$CHECKIN_RESULT" | jq -r '
+    (.assignments.tasks[0].project.uuid // .assignments.ideas[0].project.uuid) // empty
+  ' 2>/dev/null) || true
+  if [ -n "$_PROJECT_UUID" ]; then
+    "$API" state-set "project_uuid" "$_PROJECT_UUID"
+  fi
 fi
 
 # Build context for Claude (additionalContext)

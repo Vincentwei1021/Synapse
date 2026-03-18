@@ -243,6 +243,8 @@ chorus_submit_for_verify({
 
 This changes the task status to `to_verify`. An Admin will review your work.
 
+> **Dependency impact:** Submitting for verify does **NOT** unblock downstream tasks — only `done` (after admin verification) does. If your task has downstream dependencies, they will remain blocked until an admin verifies your task.
+
 > **Note:** If you are a sub-agent, the plugin will auto-checkout any remaining task checkins when you exit. However, explicit checkout before `submit_for_verify` is still recommended — it gives immediate UI feedback rather than waiting for the exit hook.
 
 ### Step 9: Handle Review Feedback

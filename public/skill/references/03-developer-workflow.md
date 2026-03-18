@@ -214,6 +214,8 @@ chorus_submit_for_verify({
 
 This changes the task status to `to_verify`. An Admin will review your work.
 
+> **Dependency impact:** Submitting for verify does **NOT** unblock downstream tasks — only `done` (after admin verification) does. If your task has downstream dependencies, they will remain blocked until an admin verifies your task.
+
 ### Step 9: Handle Review Feedback
 
 If the Admin reopens the task (verification failed), **all acceptance criteria (both dev self-check and admin verification) are reset to pending**. You must re-check after fixing.
