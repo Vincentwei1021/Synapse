@@ -172,7 +172,7 @@ Based on your role from checkin, follow the appropriate workflow:
 10. **Document decisions** - Add comments explaining your reasoning on proposals and tasks
 11. **Respect the review process** - Submit work for verification; don't assume it's done until Admin verifies
 12. **Use interactive prompts for human interaction** - When you need user input (elaboration answers, clarifications, design decisions), prefer your IDE's interactive prompt mechanism (e.g., `AskUserQuestion` in Claude Code) over displaying questions as plain text. Interactive prompts provide a better user experience.
-13. **Verify tasks before stopping (admin)** - If you have `admin_agent` role and there are tasks in `to_verify` status, verify them before stopping. The plugin will remind you at stop time if unverified tasks remain. Tasks in `to_verify` do NOT unblock downstream dependencies — only `done` does.
+13. **Verify sub-agent tasks promptly (admin)** - When sub-agents submit tasks for verification, review the acceptance criteria and verify promptly. Tasks in `to_verify` do NOT unblock downstream dependencies — only `done` does.
 
 ## Status Lifecycle Reference
 

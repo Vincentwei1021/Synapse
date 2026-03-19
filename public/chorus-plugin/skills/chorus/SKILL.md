@@ -146,7 +146,7 @@ Based on your role from checkin, follow the appropriate workflow:
 10. **Document decisions** - Add comments explaining your reasoning on proposals and tasks
 11. **Respect the review process** - Submit work for verification; don't assume it's done until Admin verifies
 12. **Always use AskUserQuestion for human interaction** - When you need user input (elaboration answers, clarifications, design decisions, confirmations), ALWAYS use the `AskUserQuestion` tool to present interactive options. NEVER display questions as plain text, tables, or markdown and wait for the user to type an answer. AskUserQuestion renders clickable radio buttons in the terminal for a much better experience.
-13. **Verify tasks before stopping (admin)** - If you have `admin_agent` role and there are tasks in `to_verify` status, verify them before stopping. The plugin will remind you at stop time if unverified tasks remain. Review each task's acceptance criteria, mark them with `chorus_mark_acceptance_criteria`, then call `chorus_admin_verify_task`.
+13. **Verify sub-agent tasks (admin team lead)** - When the SubagentStop hook notifies you that a sub-agent's task is in `to_verify` status, review the acceptance criteria and verify with `chorus_admin_verify_task`. Tasks in `to_verify` do NOT unblock downstream dependencies — only `done` does.
 
 ## Status Lifecycle Reference
 
