@@ -129,6 +129,73 @@ Use chorus_get_unblocked_tasks for full details. Consider assigning these to ava
   fi
 fi
 
+# === Verify reminder: check if sub-agent's task(s) need admin verification ===
+VERIFY_INFO=""
+if [ -n "${TASK_DETAIL:-}" ]; then
+  TASK_STATUS=$(echo "$TASK_DETAIL" | jq -r '.status // empty' 2>/dev/null) || true
+  TASK_TITLE=$(echo "$TASK_DETAIL" | jq -r '.title // empty' 2>/dev/null) || true
+
+  if [ "$TASK_STATUS" = "to_verify" ]; then
+    AGENT_ROLES=$("$API" state-get "agent_roles" 2>/dev/null) || true
+    IS_ADMIN="false"
+    case ",$AGENT_ROLES," in
+      *,admin_agent,*) IS_ADMIN="true" ;;
+    esac
+
+    if [ "$IS_ADMIN" = "true" ]; then
+      AC_TOTAL=$(echo "$TASK_DETAIL" | jq -r '.acceptanceSummary.required // 0' 2>/dev/null) || true
+      ADMIN_PASSED=$(echo "$TASK_DETAIL" | jq -r '.acceptanceSummary.requiredPassed // 0' 2>/dev/null) || true
+      DEV_PASSED=$(echo "$TASK_DETAIL" | jq -r '
+        [.acceptanceCriteriaItems[]? | select(.required == true and .devStatus == "passed")] | length
+      ' 2>/dev/null) || true
+
+      # Downstream dependencies
+      DEPENDED_BY_COUNT=$(echo "$TASK_DETAIL" | jq -r '.dependedBy | length // 0' 2>/dev/null) || true
+      DOWNSTREAM_NOTE=""
+      if [ "${DEPENDED_BY_COUNT:-0}" -gt 0 ]; then
+        DEPENDED_BY_LIST=$(echo "$TASK_DETAIL" | jq -r '.dependedBy[] | "  - \(.title) (\(.status))"' 2>/dev/null) || true
+        DOWNSTREAM_NOTE=" Verifying will unblock ${DEPENDED_BY_COUNT} downstream task(s):
+${DEPENDED_BY_LIST}"
+      fi
+
+      # Case 1: Admin already marked all AC → auto-verify
+      if [ "${AC_TOTAL:-0}" -gt 0 ] && [ "$AC_TOTAL" = "$ADMIN_PASSED" ]; then
+        VERIFY_RESULT=$("$API" mcp-tool "chorus_admin_verify_task" \
+          "$(printf '{"taskUuid":"%s"}' "$FIRST_TASK_UUID")" 2>/dev/null) || true
+        VERIFY_OK=$(echo "$VERIFY_RESULT" | jq -r '.status // empty' 2>/dev/null) || true
+        if [ "$VERIFY_OK" = "done" ]; then
+          VERIFY_INFO="
+=== AUTO-VERIFIED ===
+Task '${TASK_TITLE}' (${FIRST_TASK_UUID}) — admin AC all passed, auto-verified to done.${DOWNSTREAM_NOTE}"
+        fi
+
+      # Case 2: Dev self-check all passed, admin not reviewed → remind
+      elif [ "${AC_TOTAL:-0}" -gt 0 ] && [ "${DEV_PASSED:-0}" = "$AC_TOTAL" ]; then
+        VERIFY_INFO="
+=== VERIFY NEEDED ===
+Task '${TASK_TITLE}' (${FIRST_TASK_UUID}) — dev self-check passed all ${AC_TOTAL} required criteria (admin: ${ADMIN_PASSED}/${AC_TOTAL}). Please review with chorus_get_task, mark AC with chorus_mark_acceptance_criteria, then chorus_admin_verify_task.${DOWNSTREAM_NOTE}"
+
+      # Case 3: Dev self-check incomplete → warn
+      elif [ "${AC_TOTAL:-0}" -gt 0 ]; then
+        VERIFY_INFO="
+=== VERIFY WARNING ===
+Task '${TASK_TITLE}' (${FIRST_TASK_UUID}) — dev self-check INCOMPLETE (${DEV_PASSED}/${AC_TOTAL}). Work may be unfinished. Review with chorus_get_task, consider chorus_admin_reopen_task.${DOWNSTREAM_NOTE}"
+
+      # Case 4: No structured AC → generic reminder
+      else
+        VERIFY_INFO="
+=== VERIFY NEEDED ===
+Task '${TASK_TITLE}' (${FIRST_TASK_UUID}) is in to_verify status. Please review and call chorus_admin_verify_task or chorus_admin_reopen_task.${DOWNSTREAM_NOTE}"
+      fi
+    fi
+
+    # Cache project_uuid for Stop hook
+    if [ -n "$PROJECT_UUID" ]; then
+      "$API" state-set "project_uuid" "$PROJECT_UUID" 2>/dev/null || true
+    fi
+  fi
+fi
+
 # === Output ===
 DISPLAY_NAME="${AGENT_NAME:-${AGENT_ID:0:8}}"
 if [ "$CLOSE_OK" = true ]; then
@@ -136,7 +203,12 @@ if [ "$CLOSE_OK" = true ]; then
   if [ "$CHECKOUT_COUNT" -gt 0 ]; then
     USER_MSG="${USER_MSG} (auto-checkout ${CHECKOUT_COUNT} task(s))"
   fi
-  CONTEXT_MSG="Chorus session ${SESSION_UUID} for sub-agent '${DISPLAY_NAME}' closed. ${CHECKOUT_COUNT} task(s) auto-checked-out. State and session file cleaned up.${UNBLOCKED_INFO}"
+  # Append verify info to user message if present
+  if [ -n "$VERIFY_INFO" ]; then
+    VERIFY_TITLE=$(echo "$VERIFY_INFO" | grep -oP '=== .+ ===' | head -1)
+    USER_MSG="${USER_MSG} — ${VERIFY_TITLE}"
+  fi
+  CONTEXT_MSG="Chorus session ${SESSION_UUID} for sub-agent '${DISPLAY_NAME}' closed. ${CHECKOUT_COUNT} task(s) auto-checked-out. State and session file cleaned up.${VERIFY_INFO}${UNBLOCKED_INFO}"
   "$API" hook-output "$USER_MSG" "$CONTEXT_MSG" "SubagentStop"
 else
   "$API" hook-output \
