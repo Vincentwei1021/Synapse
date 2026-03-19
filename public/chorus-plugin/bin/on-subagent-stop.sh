@@ -203,10 +203,7 @@ if [ "$CLOSE_OK" = true ]; then
   if [ "$CHECKOUT_COUNT" -gt 0 ]; then
     USER_MSG="${USER_MSG} (auto-checkout ${CHECKOUT_COUNT} task(s))"
   fi
-  if [ -n "$VERIFY_INFO" ]; then
-    VERIFY_TITLE=$(echo "$VERIFY_INFO" | grep -oP '=== .+ ===' | head -1)
-    USER_MSG="${USER_MSG} — ${VERIFY_TITLE}"
-  fi
+  # VERIFY_INFO is only in CONTEXT_MSG (for Claude), not USER_MSG (for human)
   CONTEXT_MSG="Chorus session ${SESSION_UUID} for sub-agent '${DISPLAY_NAME}' closed. ${CHECKOUT_COUNT} task(s) auto-checked-out. State and session file cleaned up.${VERIFY_INFO}${UNBLOCKED_INFO}"
   "$API" hook-output "$USER_MSG" "$CONTEXT_MSG" "SubagentStop"
 else
