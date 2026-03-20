@@ -3,6 +3,7 @@
 > Chorus → Synapse: AI Research Lifecycle Platform
 > Date: 2026-03-21
 > Based on: docs/SYNAPSE_SPEC.md
+> Revision: 2 (post spec-review)
 
 ---
 
@@ -16,6 +17,11 @@ Transform Chorus (AI-driven software development platform) into Synapse (AI-driv
 - **Model rename strategy**: Full model rename (Approach B). Prisma models, services, routes all use research terminology.
 - **Implementation strategy**: Layered (Approach B). Three sub-phases executed sequentially.
 - **Migration strategy**: Fresh fork, no production data. Single migration per sub-phase.
+- **`projectUuid` field name**: Keep as `projectUuid` everywhere. The model name `ResearchProject` already communicates the meaning. Renaming the FK to `researchProjectUuid` across 121 files adds verbosity for no benefit. Exception: new models (`ExperimentRegistry`, `Baseline`) use `projectUuid` for consistency.
+- **Status values**: Keep internal status strings as-is (`open`, `in_progress`, `to_verify`, `done`, `closed`). Only display labels change in i18n. Renaming status strings is extremely invasive and offers minimal benefit.
+- **`targetType`/`entityType` string literals**: Rename to match new model names: `"task"` → `"experiment_run"`, `"idea"` → `"research_question"`, `"proposal"` → `"experiment_design"`. `"document"` stays as-is.
+- **`storyPoints` field**: Remove from `ExperimentRun`. Replaced by `computeBudgetHours`.
+- **ProjectGroup**: Keep model name. UI strings rename to "Research Program" via i18n.
 
 ---
 
@@ -38,7 +44,7 @@ Models kept as-is: `Company`, `User`, `Agent`, `ApiKey`, `ProjectGroup`, `Docume
 
 ### 1.2 Field Renames Inside Models
 
-Cross-references that used old names:
+Cross-references that used old model names:
 
 | Model | Old Field | New Field |
 |---|---|---|
@@ -46,16 +52,66 @@ Cross-references that used old names:
 | `RunDependency` | `dependsOnUuid` | `dependsOnRunUuid` |
 | `SessionRunCheckin` | `taskUuid` | `runUuid` |
 | `AcceptanceCriterion` | `taskUuid` | `runUuid` |
-| `ExperimentRegistry` (new) | `taskUuid` | `runUuid` |
-| All models referencing Project | `projectUuid` | `researchProjectUuid` |
 | `ExperimentRun`, `Document` | `proposalUuid` | `experimentDesignUuid` |
 | `HypothesisFormulation` | `ideaUuid` | `researchQuestionUuid` |
 | `AgentSession` relation | `taskCheckins` | `runCheckins` |
-| `ExperimentRun` relation | `dependsOn` / `dependedBy` | `dependsOn` / `dependedBy` (keep — generic enough) |
-| `ExperimentRun` relation | `sessionCheckins` | `sessionCheckins` (keep) |
-| `ExperimentRun` relation | `acceptanceCriteriaItems` | `acceptanceCriteriaItems` (keep) |
 
-### 1.3 New Fields on Existing Models
+Fields explicitly kept as-is:
+- `projectUuid` — kept everywhere (see Decisions above)
+- `ExperimentRun.acceptanceCriteria` (free-text String? field) — kept as generic term
+- `ExperimentRun.acceptanceCriteriaItems` (relation) — kept
+- `ExperimentRun.dependsOn` / `dependedBy` (relations) — kept, generic
+- `ExperimentRun.sessionCheckins` — kept
+
+Field removed:
+- `ExperimentRun.storyPoints` — removed, replaced by `computeBudgetHours`
+
+### 1.3 `targetType`/`entityType` String Literal Renames
+
+All polymorphic type discriminators update across the codebase:
+
+| Old Value | New Value | Used In |
+|---|---|---|
+| `"task"` | `"experiment_run"` | Comment.targetType, Activity.targetType, Notification.entityType, Mention.sourceType, event-bus RealtimeEvent, uuid-resolver TargetType |
+| `"idea"` | `"research_question"` | Same locations |
+| `"proposal"` | `"experiment_design"` | Same locations |
+| `"document"` | `"document"` | Keep |
+
+Affected files:
+- `src/lib/event-bus.ts` — RealtimeEvent interface, channel names
+- `src/lib/uuid-resolver.ts` — TargetType union
+- `src/services/notification-listener.ts` — all mapping tables
+- `src/services/activity.service.ts`
+- `src/services/comment.service.ts`
+- `src/services/mention.service.ts`
+- `src/mcp/tools/public.ts` — z.enum validators
+- `src/mcp/tools/developer.ts`, `pm.ts`, `admin.ts`
+- `src/contexts/realtime-context.tsx`
+- Frontend action files in all page directories
+
+### 1.4 NotificationPreference Field Renames
+
+| Old Field | New Field |
+|---|---|
+| `taskAssigned` | `runAssigned` |
+| `taskStatusChanged` | `runStatusChanged` |
+| `taskVerified` | `runVerified` |
+| `taskReopened` | `runReopened` |
+| `proposalSubmitted` | `designSubmitted` |
+| `proposalApproved` | `designApproved` |
+| `proposalRejected` | `designRejected` |
+| `ideaClaimed` | `researchQuestionClaimed` |
+| `elaborationRequested` | `hypothesisFormulationRequested` |
+| `elaborationAnswered` | `hypothesisFormulationAnswered` |
+| `mentioned` | `mentioned` (keep) |
+
+Affected files:
+- `prisma/schema.prisma`
+- `src/services/notification-listener.ts` (PREF_FIELD_MAP)
+- `src/services/notification.service.ts`
+- `src/components/notification-preferences-form.tsx`
+
+### 1.5 New Fields on Existing Models
 
 **ResearchQuestion** (was Idea):
 ```prisma
@@ -73,6 +129,7 @@ baselineRunUuid      String?   // Reference to baseline experiment
 computeBudgetHours   Float?    // GPU/compute budget allocated
 computeUsedHours     Float?    // Actual compute consumed
 outcome              String?   // "accepted" | "rejected" | "inconclusive"
+// REMOVED: storyPoints (replaced by computeBudgetHours)
 ```
 
 **AcceptanceCriterion**:
@@ -84,7 +141,7 @@ isEarlyStop      Boolean   @default(false)
 actualValue      Float?    // Filled by agent after experiment
 ```
 
-### 1.4 New Models
+### 1.6 New Models
 
 **ExperimentRegistry**:
 ```prisma
@@ -92,7 +149,7 @@ model ExperimentRegistry {
   id              Int       @id @default(autoincrement())
   uuid            String    @unique @default(uuid())
   companyUuid     String
-  researchProjectUuid String
+  projectUuid     String
   runUuid         String    // Links to ExperimentRun
   config          Json      // Full experiment configuration
   environment     Json      // Software versions, hardware specs
@@ -105,7 +162,7 @@ model ExperimentRegistry {
   createdAt       DateTime  @default(now())
 
   @@index([companyUuid])
-  @@index([researchProjectUuid])
+  @@index([projectUuid])
   @@index([runUuid])
 }
 ```
@@ -116,7 +173,7 @@ model Baseline {
   id              Int       @id @default(autoincrement())
   uuid            String    @unique @default(uuid())
   companyUuid     String
-  researchProjectUuid String
+  projectUuid     String
   name            String    // e.g., "GPT-4 zero-shot baseline"
   metrics         Json      // { "accuracy": 0.72, "f1": 0.68, ... }
   experimentUuid  String?   // Source experiment run
@@ -125,11 +182,11 @@ model Baseline {
   updatedAt       DateTime  @updatedAt
 
   @@index([companyUuid])
-  @@index([researchProjectUuid])
+  @@index([projectUuid])
 }
 ```
 
-### 1.5 New Document Types
+### 1.7 New Document Types
 
 Extend Document.type string union:
 - `literature_review` — Background and related work
@@ -137,7 +194,7 @@ Extend Document.type string union:
 - `rdr` — Research Decision Record (why we chose approach X over Y)
 - `results_report` — Experiment results synthesis
 
-### 1.6 Agent Roles
+### 1.8 Agent Roles
 
 | Old Role | New Role |
 |---|---|
@@ -147,7 +204,7 @@ Extend Document.type string union:
 
 Default role on Agent model: `@default(["researcher"])` (was `["developer"]`).
 
-### 1.7 API Key Prefix
+### 1.9 API Key Prefix
 
 `cho_` → `syn_`
 
@@ -164,25 +221,69 @@ Default role on Agent model: `@default(["researcher"])` (was `["developer"]`).
 | `proposal.service.ts` | `experiment-design.service.ts` |
 | `project.service.ts` | `research-project.service.ts` |
 | `elaboration.service.ts` | `hypothesis-formulation.service.ts` |
-| Keep: `assignment.service.ts`, `session.service.ts`, `comment.service.ts`, `notification.service.ts`, `mention.service.ts`, `activity.service.ts`, `agent.service.ts`, `user.service.ts`, `company.service.ts`, `document.service.ts`, `notification-listener.ts` | |
+| `project-group.service.ts` | `project-group.service.ts` (keep) |
+| `assignment.service.ts` | Keep |
+| `session.service.ts` | Keep |
+| `comment.service.ts` | Keep |
+| `notification.service.ts` | Keep |
+| `notification-listener.ts` | Keep (internal refs update) |
+| `mention.service.ts` | Keep |
+| `activity.service.ts` | Keep |
+| `agent.service.ts` | Keep |
+| `user.service.ts` | Keep |
+| `company.service.ts` | Keep |
+| `document.service.ts` | Keep |
 
 New services:
 - `baseline.service.ts` — Baseline CRUD
 - `experiment-registry.service.ts` — ExperimentRegistry CRUD
 - `criteria-evaluation.service.ts` — Auto-evaluate Go/No-Go criteria vs metrics
 
-`services/index.ts` updated to export all with new names.
+`services/index.ts` updated to export all with new names. Also add missing exports: `sessionService`, `notificationService`, `userService`, `companyService`, `projectGroupService`.
 
-All internal function/variable names update (e.g., `getIdeasByProject` → `getResearchQuestionsByProject`).
+All internal function/variable names update (e.g., `getIdeasByProject` → `getResearchQuestionsByProject`, `createTask` → `createExperimentRun`).
 
-### 2.2 API Routes Renames
+### 2.2 Test Files
+
+All test files rename alongside their source files:
+
+| Current | New |
+|---|---|
+| `__tests__/idea.service.test.ts` | `__tests__/research-question.service.test.ts` |
+| `__tests__/idea.service.pure.test.ts` | `__tests__/research-question.service.pure.test.ts` |
+| `__tests__/task.service.test.ts` | `__tests__/experiment-run.service.test.ts` |
+| `__tests__/task.service.pure.test.ts` | `__tests__/experiment-run.service.pure.test.ts` |
+| `__tests__/proposal.service.test.ts` | `__tests__/experiment-design.service.test.ts` |
+| `__tests__/proposal.service.pure.test.ts` | `__tests__/experiment-design.service.pure.test.ts` |
+| `__tests__/project.service.test.ts` | `__tests__/research-project.service.test.ts` |
+| `__tests__/elaboration.service.test.ts` | `__tests__/hypothesis-formulation.service.test.ts` |
+| `__tests__/elaboration.service.pure.test.ts` | `__tests__/hypothesis-formulation.service.pure.test.ts` |
+| Other test files | Keep names, update internal refs |
+
+Additional test-support files:
+- `src/__mocks__/prisma-client.ts` — update model references
+- `src/__test-utils__/fixtures.ts` (if exists) — update `makeTask`, `makeIdea`, `makeProposal`, `makeProject` helpers
+
+### 2.3 Type Files
+
+| Current | New |
+|---|---|
+| `src/types/elaboration.ts` | `src/types/hypothesis-formulation.ts` |
+| `src/types/auth.ts` | Keep name, update `AgentRole` type |
+| `src/types/admin.ts` | Keep |
+
+### 2.4 API Routes Renames
 
 | Current Path | New Path |
 |---|---|
 | `/api/projects/` | `/api/research-projects/` |
+| `/api/projects/[uuid]/` | `/api/research-projects/[uuid]/` |
 | `/api/projects/[uuid]/tasks/` | `/api/research-projects/[uuid]/experiment-runs/` |
+| `/api/projects/[uuid]/tasks/dependencies/` | `/api/research-projects/[uuid]/experiment-runs/dependencies/` |
 | `/api/projects/[uuid]/ideas/` | `/api/research-projects/[uuid]/research-questions/` |
 | `/api/projects/[uuid]/proposals/` | `/api/research-projects/[uuid]/experiment-designs/` |
+| `/api/projects/[uuid]/proposals/summary/` | `/api/research-projects/[uuid]/experiment-designs/summary/` |
+| `/api/projects/[uuid]/proposals/[proposalUuid]/validate/` | `/api/research-projects/[uuid]/experiment-designs/[designUuid]/validate/` |
 | `/api/projects/[uuid]/documents/` | `/api/research-projects/[uuid]/documents/` |
 | `/api/projects/[uuid]/activity/` | `/api/research-projects/[uuid]/activity/` |
 | `/api/projects/[uuid]/available/` | `/api/research-projects/[uuid]/available/` |
@@ -195,20 +296,23 @@ All internal function/variable names update (e.g., `getIdeasByProject` → `getR
 | `/api/tasks/[uuid]/claim/` | `/api/experiment-runs/[uuid]/claim/` |
 | `/api/tasks/[uuid]/release/` | `/api/experiment-runs/[uuid]/release/` |
 | `/api/tasks/[uuid]/dependencies/` | `/api/experiment-runs/[uuid]/dependencies/` |
+| `/api/tasks/[uuid]/dependencies/[dependsOnUuid]/` | `/api/experiment-runs/[uuid]/dependencies/[dependsOnRunUuid]/` |
 | `/api/tasks/[uuid]/sessions/` | `/api/experiment-runs/[uuid]/sessions/` |
 | `/api/proposals/[uuid]/` | `/api/experiment-designs/[uuid]/` |
 | `/api/proposals/[uuid]/approve/` | `/api/experiment-designs/[uuid]/approve/` |
 | `/api/proposals/[uuid]/reject/` | `/api/experiment-designs/[uuid]/reject/` |
 | `/api/proposals/[uuid]/close/` | `/api/experiment-designs/[uuid]/close/` |
-| `/api/documents/[uuid]/` | `/api/documents/[uuid]/` (keep) |
-| `/api/project-groups/` | `/api/project-groups/` (keep) |
+| `/api/documents/[uuid]/` | Keep |
+| `/api/project-groups/` | Keep |
+| `/api/project-groups/[uuid]/` | Keep |
+| `/api/project-groups/[uuid]/dashboard/` | Keep |
 
 New routes:
 - `/api/research-projects/[uuid]/baselines/` — Baseline CRUD
 - `/api/experiment-runs/[uuid]/registry/` — ExperimentRegistry CRUD
 - `/api/experiment-runs/[uuid]/evaluate-criteria/` — Auto-evaluation trigger
 
-### 2.3 MCP Tools
+### 2.5 MCP Tools
 
 Server name: `"chorus"` → `"synapse"`
 
@@ -228,7 +332,9 @@ Role checks in `server.ts`:
 - `"developer"` → `"researcher"`
 - `"admin"` → `"pi"`
 
-New tools (Phase 1, added in this pass):
+Register functions: `registerPmTools` → `registerResearchLeadTools`, `registerDeveloperTools` → `registerResearcherTools`, `registerAdminTools` → `registerPiTools`.
+
+New tools (Phase 1):
 
 Research Lead tools:
 - `synapse_create_baseline` — Register baseline result
@@ -246,15 +352,28 @@ PI tools:
 - `synapse_verify_reproducibility` — Mark experiment as verified
 - `synapse_set_active_baseline` — Set current baseline
 
-### 2.4 Auth Layer
+### 2.6 Auth Layer
 
 - `src/lib/api-key.ts`: prefix `"cho_"` → `"syn_"`
 - `src/types/auth.ts`: `AgentRole` type: `"pm" | "developer" | "admin"` → `"research_lead" | "researcher" | "pi"`
 - `src/lib/auth.ts`: `isPmAgent()` → `isResearchLead()`, `isDeveloperAgent()` → `isResearcher()`
 
-### 2.5 Test Files
+### 2.7 Internal Infrastructure Renames
 
-All test files rename alongside their source files. Internal test names/variables update to match new terminology. Mock setup in `src/__mocks__/` updates Prisma model references.
+| Item | Old | New |
+|---|---|---|
+| EventBus class | `ChorusEventBus` | `SynapseEventBus` |
+| EventBus global | `globalThis.chorusEventBus` | `globalThis.synapseEventBus` |
+| Redis channel | `"chorus:events"` | `"synapse:events"` |
+| MCP HTTP headers | `X-Chorus-Project` | `X-Synapse-Project` |
+| MCP HTTP headers | `X-Chorus-Project-Group` | `X-Synapse-Project-Group` |
+| Locale cookie | `chorus-locale` | `synapse-locale` |
+
+Affected files:
+- `src/lib/event-bus.ts`
+- `src/app/api/mcp/route.ts`
+- `src/i18n/request.ts`
+- `src/contexts/locale-context.tsx`
 
 ---
 
@@ -266,27 +385,64 @@ All test files rename alongside their source files. Internal test names/variable
 |---|---|
 | `(dashboard)/projects/` | `(dashboard)/research-projects/` |
 | `(dashboard)/projects/new/` | `(dashboard)/research-projects/new/` |
-| `(dashboard)/projects/[uuid]/tasks/` | `(dashboard)/research-projects/[uuid]/experiment-runs/` |
-| `(dashboard)/projects/[uuid]/tasks/[taskUuid]/` | `(dashboard)/research-projects/[uuid]/experiment-runs/[runUuid]/` |
-| `(dashboard)/projects/[uuid]/ideas/` | `(dashboard)/research-projects/[uuid]/research-questions/` |
-| `(dashboard)/projects/[uuid]/proposals/` | `(dashboard)/research-projects/[uuid]/experiment-designs/` |
-| `(dashboard)/projects/[uuid]/documents/` | `(dashboard)/research-projects/[uuid]/documents/` |
+| `(dashboard)/projects/[uuid]/` (all sub-routes) | `(dashboard)/research-projects/[uuid]/` |
+| `.../[uuid]/tasks/` | `.../[uuid]/experiment-runs/` |
+| `.../[uuid]/tasks/[taskUuid]/` | `.../[uuid]/experiment-runs/[runUuid]/` |
+| `.../[uuid]/ideas/` | `.../[uuid]/research-questions/` |
+| `.../[uuid]/ideas/[ideaUuid]/` | `.../[uuid]/research-questions/[questionUuid]/` |
+| `.../[uuid]/proposals/` | `.../[uuid]/experiment-designs/` |
+| `.../[uuid]/proposals/new/` | `.../[uuid]/experiment-designs/new/` |
+| `.../[uuid]/proposals/[proposalUuid]/` | `.../[uuid]/experiment-designs/[designUuid]/` |
+| `.../[uuid]/documents/` | `.../[uuid]/documents/` (keep) |
+| `.../[uuid]/documents/[documentUuid]/` | Keep |
+| `.../[uuid]/dashboard/` | `.../[uuid]/dashboard/` (keep path, update content) |
+| `.../[uuid]/activity/` | `.../[uuid]/activity/` (keep path, update content) |
 | `(dashboard)/settings/` | Keep |
 | `admin/` | Keep |
 
 ### 3.2 Component Renames
 
+Components under `src/app/(dashboard)/research-projects/[uuid]/experiment-runs/`:
 | Current | New |
 |---|---|
 | `task-detail-panel.tsx` | `run-detail-panel.tsx` |
 | `task-view-toggle.tsx` | `run-view-toggle.tsx` |
 | `tasks-page-content.tsx` | `runs-page-content.tsx` |
 | `assign-task-modal.tsx` | `assign-run-modal.tsx` |
+| `task-status-progress.tsx` (if exists) | `run-status-progress.tsx` |
+| `task-actions.ts` (if exists) | `run-actions.ts` |
+| `task-draft-detail-panel.tsx` (if exists) | `run-draft-detail-panel.tsx` |
+
+Components under `src/app/(dashboard)/research-projects/[uuid]/research-questions/`:
+| Current | New |
+|---|---|
+| `assign-idea-modal.tsx` (if exists) | `assign-question-modal.tsx` |
+| `idea-create-form.tsx` (if exists) | `question-create-form.tsx` |
+| `idea-detail-panel.tsx` (if exists) | `question-detail-panel.tsx` |
+| `ideas-list.tsx` (if exists) | `questions-list.tsx` |
+| `ideas-page-content.tsx` (if exists) | `questions-page-content.tsx` |
+
+Components under `src/app/(dashboard)/research-projects/[uuid]/experiment-designs/`:
+| Current | New |
+|---|---|
+| `proposal-kanban.tsx` (if exists) | `design-kanban.tsx` |
+| `proposal-editor.tsx` (if exists) | `design-editor.tsx` |
+| `proposal-actions.tsx` (if exists) | `design-actions.tsx` |
+| `proposal-comments.tsx` (if exists) | `design-comments.tsx` |
+| `proposal-validation-checklist.tsx` (if exists) | `design-validation-checklist.tsx` |
+| `source-ideas-card.tsx` (if exists) | `source-questions-card.tsx` |
+| `create-proposal-form.tsx` (if exists) | `create-design-form.tsx` |
+
+Shared components under `src/components/`:
+| Current | New |
+|---|---|
 | `elaboration-panel.tsx` | `hypothesis-formulation-panel.tsx` |
 | `proposal-filter.tsx` | `design-filter.tsx` |
 | `create-project-dialog.tsx` | `create-research-project-dialog.tsx` |
 | `move-project-confirm-dialog.tsx` | `move-research-project-confirm-dialog.tsx` |
 | Keep: `kanban-board.tsx`, `dag-view.tsx`, `pixel-canvas*.tsx`, `mention-*.tsx`, `notification-*.tsx`, `assign-modal.tsx`, `*-project-group-dialog.tsx`, `markdown-content.tsx` | |
+
+Server action files (`actions.ts`, `comment-actions.ts`, `activity-actions.ts`, `criteria-actions.ts`, `dependency-actions.ts`, `elaboration-actions.ts`, `session-actions.ts`, `source-actions.ts`) — rename follows parent directory. Internal refs update to new service names and field names.
 
 ### 3.3 i18n Strings
 
@@ -298,12 +454,16 @@ Full terminology replacement in both `messages/en.json` and `messages/zh.json`:
 | Task | Experiment Run | 实验运行 |
 | Proposal | Experiment Design | 实验设计 |
 | Project | Research Project | 研究项目 |
+| Project Group | Research Program | 研究计划 |
 | Elaboration | Hypothesis Formulation | 假说构建 |
+| Acceptance Criteria | Go/No-Go Criteria | 通过/不通过标准 |
 | Story Points | Compute Budget | 计算预算 |
 | PM Agent | Research Lead | 研究负责人 |
 | Developer Agent | Research Agent | 研究代理 |
 | Admin Agent | Principal Investigator | 首席研究员 |
 | Chorus | Synapse | Synapse |
+
+Note: "Experiment Plan" (the task-breakdown aspect of an Experiment Design) should appear in relevant i18n strings where Proposals currently distinguish "PRD" vs "task breakdown" content.
 
 New i18n key groups:
 - `researchQuestion.*` — hypothesis, nullHypothesis, priorWork, researchType
@@ -315,25 +475,34 @@ New i18n key groups:
 ### 3.4 Middleware
 
 `src/middleware.ts`:
-- Legacy redirect patterns: `/projects/` → `/research-projects/`, `?idea=` → `?research-question=`, `?task=` → `?run=`
+- Legacy redirect patterns update: `/projects/` → `/research-projects/`, `?idea=` → `?research-question=`, `?task=` → `?run=`
+- Existing legacy redirects also update to new paths
 
-### 3.5 Static Assets and Docs
+### 3.5 Static Assets, Docs, and Config
 
-- `README.md` / `README.zh.md` — Rewrite for Synapse identity
-- `CLAUDE.md` — Update all references and examples
-- `docs/` — Update terminology in all doc files
-- `public/skill/` — Update skill docs
-- `public/chorus-plugin/` → `public/synapse-plugin/`
-- `packages/chorus-cdk/` → `packages/synapse-cdk/`
-- `docker-compose.yml`, `Dockerfile` — Update image/service names
-- `package.json` — name `"chorus"` → `"synapse"`
+| Item | Action |
+|---|---|
+| `package.json` | name `"chorus"` → `"synapse"` |
+| `README.md` / `README.zh.md` | Rewrite for Synapse identity |
+| `CLAUDE.md` | Update all references, terminology, examples |
+| `docs/` | Update terminology in all doc files |
+| `public/skill/` | Update skill docs (Chorus → Synapse terminology) |
+| `public/chorus-plugin/` | Rename to `public/synapse-plugin/`, update all content |
+| `packages/chorus-cdk/` | Rename to `packages/synapse-cdk/`, update package name |
+| `packages/openclaw-plugin/` | Update Chorus refs, role terminology, `cho_` → `syn_` |
+| `.claude-plugin/marketplace.json` | Update `"chorus-plugins"` → `"synapse-plugins"`, plugin name |
+| `.claude/settings.json` | Update any Chorus references |
+| `docker-compose.yml` | Update service/image names |
+| `Dockerfile` | Update labels, references |
+| `docker-entrypoint.sh` | Update any Chorus references |
+| `pnpm-workspace.yaml` | Update if package names changed |
 
 ---
 
 ## Execution Order
 
-1. **Sub-phase 0a: Schema** — Prisma model renames + new fields + new models + migration
-2. **Sub-phase 0b: Backend** — Services + API routes + MCP tools + auth + tests
-3. **Sub-phase 0c: Frontend** — Pages + components + i18n + middleware + docs + static assets
+1. **Sub-phase 0a: Schema** — Prisma model renames + field renames + new fields + new models + remove storyPoints + NotificationPreference field renames + migration
+2. **Sub-phase 0b: Backend** — Services + API routes + MCP tools + auth + types + event-bus + headers + tests + mocks
+3. **Sub-phase 0c: Frontend** — Pages + components + i18n + middleware + locale cookie + docs + static assets + plugin + CDK
 
 Each sub-phase is verified (type-check + tests) before proceeding to the next.
