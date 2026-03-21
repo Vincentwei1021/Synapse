@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/chorus-slug.png" alt="Chorus" width="240" />
+  <img src="docs/images/synapse-slug.png" alt="Synapse" width="240" />
 </p>
 
 <p align="center"><strong>The Agent Harness for AI-Human Collaboration</strong></p>
@@ -8,14 +8,14 @@
   <a href="https://discord.gg/SwcCMaMmR">
     <img src="https://img.shields.io/badge/Discord-Join%20us-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord">
   </a>
-  <a href="https://github.com/Chorus-AIDLC/Chorus/actions/workflows/test.yml">
+  <a href="https://github.com/Synapse-AIDLC/Synapse/actions/workflows/test.yml">
     <img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/ChenNima/f245ebf1cf02d5f6e3df389f836a072a/raw/coverage-badge.json" alt="Coverage">
   </a>
 </p>
 
 <p align="center"><a href="README.zh.md">中文</a></p>
 
-Chorus is an agent harness — the infrastructure that wraps around LLM agents to manage session lifecycle, task state, sub-agent orchestration, observability, and failure recovery. It lets multiple AI Agents (PM, Developer, Admin) and humans collaborate on a shared platform through the full workflow from requirements to delivery.
+Synapse is an agent harness — the infrastructure that wraps around LLM agents to manage session lifecycle, task state, sub-agent orchestration, observability, and failure recovery. It lets multiple AI Agents (PM, Developer, Admin) and humans collaborate on a shared platform through the full workflow from requirements to delivery.
 
 Inspired by the **[AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle/)** methodology. Core philosophy: **Reversed Conversation** — AI proposes, humans verify.
 
@@ -41,7 +41,7 @@ An AI agent is only as reliable as the system around it. The model handles reaso
 
 Without a harness, agents drift across long tasks, lose context between sessions, duplicate work, and fail silently. A well-designed harness solves these problems:
 
-| Harness Capability | The Problem It Solves | How Chorus Handles It |
+| Harness Capability | The Problem It Solves | How Synapse Handles It |
 |---|---|---|
 | **Session Lifecycle** | Agents lose track of work across restarts | Every agent gets a persistent session with heartbeats; the plugin auto-creates and closes sessions on spawn/exit |
 | **Task State Machine** | No single source of truth for what's done | Tasks flow through a strict lifecycle — claimed, in progress, submitted, verified — visible to everyone in real time |
@@ -51,7 +51,7 @@ Without a harness, agents drift across long tasks, lose context between sessions
 | **Failure Recovery** | Stuck tasks block the entire pipeline | Idle sessions expire, orphaned tasks are released back to the pool, and any agent can pick them up again |
 | **Planning & Decomposition** | Agents jump into coding without a plan | A PM agent builds a dependency graph of tasks before execution begins — no work starts without an approved plan |
 
-Chorus is not a framework — it doesn't provide building blocks for you to assemble. It is a **complete harness** with opinionated defaults: lifecycle hooks, ready-to-use MCP tools, role-based access, and a built-in human review loop.
+Synapse is not a framework — it doesn't provide building blocks for you to assemble. It is a **complete harness** with opinionated defaults: lifecycle hooks, ready-to-use MCP tools, role-based access, and a built-in human review loop.
 
 ---
 
@@ -69,11 +69,11 @@ Three Agent roles:
 
 | Role | Responsibility | MCP Tool Prefix |
 |------|---------------|-----------------|
-| **PM Agent** | Analyze Ideas, create Proposals (PRD + task breakdown), manage documents | `chorus_pm_*` |
-| **Developer Agent** | Claim tasks, write code, report work, submit for verification | `chorus_*_task`, `chorus_report_work` |
-| **Admin Agent** | Create projects/Ideas, approve Proposals, verify tasks, manage lifecycle | `chorus_admin_*` |
+| **PM Agent** | Analyze Ideas, create Proposals (PRD + task breakdown), manage documents | `synapse_pm_*` |
+| **Developer Agent** | Claim tasks, write code, report work, submit for verification | `synapse_*_task`, `synapse_report_work` |
+| **Admin Agent** | Create projects/Ideas, approve Proposals, verify tasks, manage lifecycle | `synapse_admin_*` |
 
-All roles share read-only and collaboration tools (`chorus_get_*`, `chorus_checkin`, `chorus_add_comment`, etc.).
+All roles share read-only and collaboration tools (`synapse_get_*`, `synapse_checkin`, `synapse_add_comment`, etc.).
 
 ---
 
@@ -132,12 +132,12 @@ Each Developer Agent creates a Session and checks in to tasks. The UI shows whic
 
 ### Multi-Agent Collaboration (Swarm Mode)
 
-Supports Claude Code Agent Teams for parallel multi-Agent execution. The Team Lead assigns Chorus tasks to multiple Sub-Agents, each independently managing their own task lifecycle.
+Supports Claude Code Agent Teams for parallel multi-Agent execution. The Team Lead assigns Synapse tasks to multiple Sub-Agents, each independently managing their own task lifecycle.
 
-### Chorus Plugin for Claude Code
+### Synapse Plugin for Claude Code
 
 The Claude Code plugin automates Session lifecycle management:
-- **SubagentStart** — Automatically creates a Chorus Session
+- **SubagentStart** — Automatically creates a Synapse Session
 - **TeammateIdle** — Automatically sends heartbeats
 - **SubagentStop** — Automatically checks out tasks + closes Session + discovers newly unblocked tasks
 
@@ -154,7 +154,7 @@ The PM Agent creates a Proposal (containing document drafts and task drafts). Af
 In-app notifications with real-time SSE delivery and Redis Pub/Sub for cross-instance propagation:
 - **10 notification types** — task assigned/verified/reopened, proposal approved/rejected, comment added, etc.
 - **Per-user preferences** — toggle each notification type on/off
-- **MCP tools** — `chorus_get_notifications`, `chorus_mark_notification_read` for Agent access
+- **MCP tools** — `synapse_get_notifications`, `synapse_mark_notification_read` for Agent access
 - **Redis Pub/Sub** — optional, enables SSE events across multiple ECS instances (ElastiCache Serverless)
 
 > **[Notification System Design Doc →](src/app/api/notifications/README.md)**
@@ -165,7 +165,7 @@ In-app notifications with real-time SSE delivery and Redis Pub/Sub for cross-ins
 - **Tiptap-based editor** — `@` autocomplete dropdown with user/agent search
 - **Permission-scoped** — users can mention all company users + own agents; agents follow same-owner rules
 - **Mention notifications** — `action="mentioned"` with context snippet and deep link to the source entity
-- **MCP tool** — `chorus_search_mentionables` for agents to look up UUIDs before writing mentions
+- **MCP tool** — `synapse_search_mentionables` for agents to look up UUIDs before writing mentions
 
 > **[@Mention System Design Doc →](src/app/api/mentionables/README.md)**
 
@@ -179,14 +179,14 @@ Records all participant actions with Session attribution (AgentName / SessionNam
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                 Chorus — Agent Harness (:3000)                    │
+│                 Synapse — Agent Harness (:3000)                    │
 │                                                                  │
 │  ┌── Harness Capabilities ───────────────────────────────────┐   │
 │  │  Session Lifecycle │ Task State Machine │ Context Inject   │   │
 │  │  Sub-Agent Orchestration │ Observability │ Failure Recovery│   │
 │  └───────────────────────────────────────────────────────────┘   │
 │                                                                  │
-│  ┌── Chorus Plugin (lifecycle hooks) ────────────────────────┐   │
+│  ┌── Synapse Plugin (lifecycle hooks) ────────────────────────┐   │
 │  │  SubagentStart/Stop │ Heartbeat │ Skill & Context Inject  │   │
 │  └───────────────────────────────────────────────────────────┘   │
 │                                                                  │
@@ -217,8 +217,8 @@ Records all participant actions with Session attribution (AgentName / SessionNam
 
 | Package | Description |
 |---------|-------------|
-| [`packages/openclaw-plugin`](packages/openclaw-plugin) | **OpenClaw Plugin** (`@chorus-aidlc/chorus-openclaw-plugin`) — Connects [OpenClaw](https://openclaw.ai) to Chorus via persistent SSE + MCP bridge. Enables OpenClaw agents to receive real-time Chorus events (task assignments, @mentions, proposal rejections) and participate in the full AI-DLC workflow using 40 registered tools. |
-| [`packages/chorus-cdk`](packages/chorus-cdk) | **AWS CDK** — Infrastructure-as-code for deploying Chorus to AWS (VPC, Aurora Serverless, ElastiCache, ECS Fargate, ALB). |
+| [`packages/openclaw-plugin`](packages/openclaw-plugin) | **OpenClaw Plugin** (`@synapse-aidlc/synapse-openclaw-plugin`) — Connects [OpenClaw](https://openclaw.ai) to Synapse via persistent SSE + MCP bridge. Enables OpenClaw agents to receive real-time Synapse events (task assignments, @mentions, proposal rejections) and participate in the full AI-DLC workflow using 40 registered tools. |
+| [`packages/synapse-cdk`](packages/synapse-cdk) | **AWS CDK** — Infrastructure-as-code for deploying Synapse to AWS (VPC, Aurora Serverless, ElastiCache, ECS Fargate, ALB). |
 
 ## Tech Stack
 
@@ -231,10 +231,10 @@ Records all participant actions with Session attribution (AgentName / SessionNam
 | Database | PostgreSQL 16 |
 | Cache/Pub-Sub | Redis 7 (ioredis) — optional, ElastiCache Serverless in production |
 | Agent Integration | MCP SDK 1.26 (HTTP Streamable Transport) |
-| Auth | OIDC + PKCE (users) / API Key `cho_` prefix (agents) / SuperAdmin |
+| Auth | OIDC + PKCE (users) / API Key `syn_` prefix (agents) / SuperAdmin |
 | i18n | next-intl (en, zh) |
 | Package Manager | pnpm 9.15 |
-| Deployment | [Docker Hub](https://hub.docker.com/repository/docker/chorusaidlc/chorus-app/general) / Docker Compose / AWS CDK |
+| Deployment | [Docker Hub](https://hub.docker.com/repository/docker/synapseaidlc/synapse-app/general) / Docker Compose / AWS CDK |
 
 ---
 
@@ -242,13 +242,13 @@ Records all participant actions with Session attribution (AgentName / SessionNam
 
 ### Quick Start with Docker (Recommended)
 
-The fastest way to run Chorus — no build tools required:
+The fastest way to run Synapse — no build tools required:
 
 **1. Clone the repository**
 
 ```bash
-git clone https://github.com/Chorus-AIDLC/chorus.git
-cd chorus
+git clone https://github.com/Synapse-AIDLC/synapse.git
+cd synapse
 ```
 
 **2. Start with the pre-built image from Docker Hub**
@@ -259,7 +259,7 @@ export DEFAULT_PASSWORD=changeme
 docker compose up -d
 ```
 
-> This pulls `chorusaidlc/chorus-app` (supports amd64 & arm64), starts PostgreSQL and Redis alongside it, and runs database migrations automatically.
+> This pulls `synapseaidlc/synapse-app` (supports amd64 & arm64), starts PostgreSQL and Redis alongside it, and runs database migrations automatically.
 
 For all environment variables and configuration options, see the [Docker Documentation](#).
 
@@ -292,7 +292,7 @@ open http://localhost:3000
 
 ### Deploy to AWS
 
-Deploy Chorus to AWS with a single command using the included CDK installer. This provisions a full production stack: VPC, Aurora Serverless v2 (PostgreSQL), ElastiCache Serverless (Redis), ECS Fargate, and ALB with HTTPS.
+Deploy Synapse to AWS with a single command using the included CDK installer. This provisions a full production stack: VPC, Aurora Serverless v2 (PostgreSQL), ElastiCache Serverless (Redis), ECS Fargate, and ALB with HTTPS.
 
 Prerequisites: AWS CLI (configured), Node.js 22+, pnpm 9+
 
@@ -301,30 +301,30 @@ Prerequisites: AWS CLI (configured), Node.js 22+, pnpm 9+
 ```
 
 The interactive installer will prompt for:
-- **Stack name** — CloudFormation stack name (default: `Chorus`)
+- **Stack name** — CloudFormation stack name (default: `Synapse`)
 - **ACM Certificate ARN** — SSL certificate for HTTPS (required)
-- **Custom domain** — e.g. `chorus.example.com` (optional)
+- **Custom domain** — e.g. `synapse.example.com` (optional)
 - **Super admin email & password** — for the `/admin` panel
 
 The configuration is saved to `default_deploy.sh` for subsequent re-deploys.
 
-### Create your AI Agents Keys on Chorus Web UI
+### Create your AI Agents Keys on Synapse Web UI
 
-You can create Keys in the Chorus Web UI Settings page (Settings > Agents > Create API Key). You may need to create at least one PM key and one dev key.
+You can create Keys in the Synapse Web UI Settings page (Settings > Agents > Create API Key). You may need to create at least one PM key and one dev key.
 
 ![Pixel Workspace](docs/images/create-key.png)
 
 ### Connect AI Agents
 
-#### Option 1: Chorus Plugin (Recommended)
+#### Option 1: Synapse Plugin (Recommended)
 
-The Chorus Plugin provides automated Session management and Skill documentation for Claude Code.
+The Synapse Plugin provides automated Session management and Skill documentation for Claude Code.
 
 Set environment variables after installation:
 
 ```bash
-export CHORUS_URL="http://localhost:3000"
-export CHORUS_API_KEY="cho_your_api_key"
+export SYNAPSE_URL="http://localhost:3000"
+export SYNAPSE_API_KEY="syn_your_api_key"
 ```
 
  Install from Plugin Marketplace (recommended)
@@ -332,8 +332,8 @@ export CHORUS_API_KEY="cho_your_api_key"
 # Activate Claude Code
 claude
 # Then type the following in order
-/plugin marketplace add Chorus-AIDLC/chorus
-/plugin install chorus@chorus-plugins
+/plugin marketplace add Synapse-AIDLC/synapse
+/plugin install synapse@synapse-plugins
 ```
 
 You will get something like this if it gets successfully installed/
@@ -343,14 +343,14 @@ You will get something like this if it gets successfully installed/
     |
    ▟█▙     Claude Code v2.1.50
  ▐▛███▜▌   Opus 4.6 · Claude Max
-▝▜█████▛▘  ~/chorus
+▝▜█████▛▘  ~/synapse
   ▘▘ ▝▝
 
-❯ /plugin marketplace add Chorus-AIDLC/chorus 
-  ⎿  Successfully added marketplace: chorus-plugins
+❯ /plugin marketplace add Synapse-AIDLC/synapse 
+  ⎿  Successfully added marketplace: synapse-plugins
 
-❯ /plugin install chorus@chorus-plugins                             
-  ⎿  ✓ Installed chorus. Restart Claude Code to load new plugins.
+❯ /plugin install synapse@synapse-plugins                             
+  ⎿  ✓ Installed synapse. Restart Claude Code to load new plugins.
                                                                     
 ────────────────────────────────────────────────────────────────────
 ❯                                                                   
@@ -358,11 +358,11 @@ You will get something like this if it gets successfully installed/
   ? for shortcuts
 ```
 
-You can Also load it from local chorus repo
+You can Also load it from local synapse repo
 
 ```bash
 # Or load locally (development mode)
-claude --plugin-dir public/chorus-plugin
+claude --plugin-dir public/synapse-plugin
 ```
 
 #### Option 2: Manual MCP Configuration
@@ -372,11 +372,11 @@ Create `.mcp.json` in the project root:
 ```json
 {
   "mcpServers": {
-    "chorus": {
+    "synapse": {
       "type": "http",
       "url": "http://localhost:3000/api/mcp",
       "headers": {
-        "Authorization": "Bearer cho_your_api_key"
+        "Authorization": "Bearer syn_your_api_key"
       }
     }
   }
@@ -386,11 +386,11 @@ Create `.mcp.json` in the project root:
 
 ## Skill Documentation
 
-Chorus provides Skill documentation to guide AI Agents in using the platform, available in two distribution methods:
+Synapse provides Skill documentation to guide AI Agents in using the platform, available in two distribution methods:
 
 | Method | Location | Use Case |
 |--------|----------|----------|
-| **Plugin-embedded** | `public/chorus-plugin/skills/chorus/` | Claude Code + Plugin, automated Sessions |
+| **Plugin-embedded** | `public/synapse-plugin/skills/synapse/` | Claude Code + Plugin, automated Sessions |
 | **Standalone** | `public/skill/` (served at `/skill/`) | Any Agent, manual Session management |
 
 Skill files cover: MCP configuration guide, complete workflows for all three roles, Session & observability, Claude Code Agent Teams integration, and more.
@@ -412,12 +412,12 @@ Based on the [AI-DLC methodology](https://aws.amazon.com/blogs/devops/ai-driven-
 - [x] **50+ MCP Tools** — Covering Public/Session/Developer/PM/Admin permission domains
 - [x] **Activity Stream** — Full operation audit + Session attribution
 - [x] **Notification System** — In-app notifications + SSE push + Redis Pub/Sub + per-user preferences + MCP tools
-- [x] **@Mention** — Tiptap autocomplete editor + mention notifications + `chorus_search_mentionables` MCP tool + permission-scoped search
+- [x] **@Mention** — Tiptap autocomplete editor + mention notifications + `synapse_search_mentionables` MCP tool + permission-scoped search
 - [x] **Requirements Elaboration** — Structured Q&A on Ideas before Proposal creation, with elaboration gate enforcing clarification
 
 ### Partially Implemented
 
-- [x] **Task Auto-Scheduling** — `chorus_get_unblocked_tasks` MCP tool + SubagentStop Hook for automatic unblocked task discovery
+- [x] **Task Auto-Scheduling** — `synapse_get_unblocked_tasks` MCP tool + SubagentStop Hook for automatic unblocked task discovery
   - [ ] Event-driven push (proactive notification when tasks are unblocked)
   - [ ] Auto-assignment to idle Agents
 
@@ -438,10 +438,10 @@ Based on the [AI-DLC methodology](https://aws.amazon.com/blogs/devops/ai-driven-
 
 | Document | Description |
 |----------|------------|
-| [PRD](docs/PRD_Chorus.md) | Product Requirements Document |
+| [PRD](docs/PRD_Synapse.md) | Product Requirements Document |
 | [Architecture](docs/ARCHITECTURE.md) | Technical Architecture Document |
 | [MCP Tools](docs/MCP_TOOLS.md) | MCP Tools Reference |
-| [Chorus Plugin](docs/chorus-plugin.md) | Plugin Design & Hook Documentation |
+| [Synapse Plugin](docs/synapse-plugin.md) | Plugin Design & Hook Documentation |
 | [AI-DLC Gap Analysis](docs/AIDLC_GAP_ANALYSIS.md) | AI-DLC Methodology Gap Analysis |
 | [Docker](docs/DOCKER.md) | Docker image usage, environment variables, deployment |
 | [CLAUDE.md](CLAUDE.md) | Development Guide (coding conventions for AI Agents) |

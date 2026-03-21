@@ -2,17 +2,17 @@
 
 ## Objective
 
-Configure the Chorus MCP server so your AI Agent can communicate with the Chorus platform, and set up skill download/update.
+Configure the Synapse MCP server so your AI Agent can communicate with the Synapse platform, and set up skill download/update.
 
 ---
 
 ## 1. Obtain API Key
 
-API Keys must be created manually by the user in the Chorus Web UI — Agents cannot obtain them on their own.
+API Keys must be created manually by the user in the Synapse Web UI — Agents cannot obtain them on their own.
 
 **Ask the user to complete the following steps:**
 
-1. Open the Chorus settings page in a browser (e.g., `http://localhost:3000/settings`)
+1. Open the Synapse settings page in a browser (e.g., `http://localhost:3000/settings`)
 2. Click **Create API Key**
 3. Enter the Agent name
 4. Select the Agent **role** (Developer / PM / Admin)
@@ -21,7 +21,7 @@ API Keys must be created manually by the user in the Chorus Web UI — Agents ca
 
 If the user does not have an API Key yet, inform them:
 
-> I need a Chorus API Key to connect to the platform. Please create an API Key on the Chorus settings page (Settings > Agents), select the appropriate role, and share the Key with me.
+> I need a Synapse API Key to connect to the platform. Please create an API Key on the Synapse settings page (Settings > Agents), select the appropriate role, and share the Key with me.
 
 **Security notes:**
 - Each Agent should have its own API Key with the minimum required role
@@ -34,11 +34,11 @@ If the user does not have an API Key yet, inform them:
 
 ### HTTP Mode
 
-Chorus MCP uses the HTTP transport protocol, with the API Key passed via the `Authorization` header.
+Synapse MCP uses the HTTP transport protocol, with the API Key passed via the `Authorization` header.
 
-Replace `<BASE_URL>` with the Chorus address provided by the user (e.g., `https://chorus.acme.com` or `http://localhost:3000`).
+Replace `<BASE_URL>` with the Synapse address provided by the user (e.g., `https://synapse.acme.com` or `http://localhost:3000`).
 
-> API Keys are prefixed with `cho_`, e.g., `cho_PXPnHpnmmYk8...`
+> API Keys are prefixed with `syn_`, e.g., `syn_PXPnHpnmmYk8...`
 
 ### Claude Code
 
@@ -47,7 +47,7 @@ Config file location: `.mcp.json` in the project root (or globally at `~/.claude
 ```json
 {
   "mcpServers": {
-    "chorus": {
+    "synapse": {
       "type": "http",
       "url": "<BASE_URL>/api/mcp",
       "headers": {
@@ -67,7 +67,7 @@ Config file location: `.kiro/settings/mcp.json` in the project root (or globally
 ```json
 {
   "mcpServers": {
-    "chorus": {
+    "synapse": {
       "url": "<BASE_URL>/api/mcp",
       "headers": {
         "Authorization": "Bearer <your-api-key>"
@@ -86,7 +86,7 @@ Config file location: `.cursor/mcp.json` in the project root (or globally at `~/
 ```json
 {
   "mcpServers": {
-    "chorus": {
+    "synapse": {
       "url": "<BASE_URL>/api/mcp",
       "headers": {
         "Authorization": "Bearer <your-api-key>"
@@ -105,7 +105,7 @@ Restart Cursor after configuration for MCP to take effect.
 After configuration, call checkin to verify the connection:
 
 ```
-chorus_checkin()
+synapse_checkin()
 ```
 
 Example successful response:
@@ -124,7 +124,7 @@ Example successful response:
 ```
 
 If it fails, check:
-- Is the API Key correct (starts with `cho_`)?
+- Is the API Key correct (starts with `syn_`)?
 - Is the URL in `.mcp.json` reachable?
 - Did you restart Claude Code?
 
@@ -132,35 +132,35 @@ If it fails, check:
 
 ## 4. Skill Download & Installation
 
-Replace `<BASE_URL>` with the Chorus address provided by the user.
+Replace `<BASE_URL>` with the Synapse address provided by the user.
 
 ### Claude Code (Project-Level Installation, Recommended)
 
 Install to the project's `.claude/skills/` directory, effective only for the current project:
 
 ```bash
-mkdir -p .claude/skills/chorus-skill/references
+mkdir -p .claude/skills/synapse-skill/references
 
 curl -s <BASE_URL>/skill/SKILL.md \
-  > .claude/skills/chorus-skill/SKILL.md
+  > .claude/skills/synapse-skill/SKILL.md
 
 curl -s <BASE_URL>/skill/references/00-common-tools.md \
-  > .claude/skills/chorus-skill/references/00-common-tools.md
+  > .claude/skills/synapse-skill/references/00-common-tools.md
 
 curl -s <BASE_URL>/skill/references/01-setup.md \
-  > .claude/skills/chorus-skill/references/01-setup.md
+  > .claude/skills/synapse-skill/references/01-setup.md
 
 curl -s <BASE_URL>/skill/references/02-pm-workflow.md \
-  > .claude/skills/chorus-skill/references/02-pm-workflow.md
+  > .claude/skills/synapse-skill/references/02-pm-workflow.md
 
 curl -s <BASE_URL>/skill/references/03-developer-workflow.md \
-  > .claude/skills/chorus-skill/references/03-developer-workflow.md
+  > .claude/skills/synapse-skill/references/03-developer-workflow.md
 
 curl -s <BASE_URL>/skill/references/04-admin-workflow.md \
-  > .claude/skills/chorus-skill/references/04-admin-workflow.md
+  > .claude/skills/synapse-skill/references/04-admin-workflow.md
 
 curl -s <BASE_URL>/skill/package.json \
-  > .claude/skills/chorus-skill/package.json
+  > .claude/skills/synapse-skill/package.json
 ```
 
 ### Moltbot
@@ -168,28 +168,28 @@ curl -s <BASE_URL>/skill/package.json \
 Install to the moltbot global skills directory:
 
 ```bash
-mkdir -p ~/.moltbot/skills/chorus/references
+mkdir -p ~/.moltbot/skills/synapse/references
 
 curl -s <BASE_URL>/skill/SKILL.md \
-  > ~/.moltbot/skills/chorus/SKILL.md
+  > ~/.moltbot/skills/synapse/SKILL.md
 
 curl -s <BASE_URL>/skill/references/00-common-tools.md \
-  > ~/.moltbot/skills/chorus/references/00-common-tools.md
+  > ~/.moltbot/skills/synapse/references/00-common-tools.md
 
 curl -s <BASE_URL>/skill/references/01-setup.md \
-  > ~/.moltbot/skills/chorus/references/01-setup.md
+  > ~/.moltbot/skills/synapse/references/01-setup.md
 
 curl -s <BASE_URL>/skill/references/02-pm-workflow.md \
-  > ~/.moltbot/skills/chorus/references/02-pm-workflow.md
+  > ~/.moltbot/skills/synapse/references/02-pm-workflow.md
 
 curl -s <BASE_URL>/skill/references/03-developer-workflow.md \
-  > ~/.moltbot/skills/chorus/references/03-developer-workflow.md
+  > ~/.moltbot/skills/synapse/references/03-developer-workflow.md
 
 curl -s <BASE_URL>/skill/references/04-admin-workflow.md \
-  > ~/.moltbot/skills/chorus/references/04-admin-workflow.md
+  > ~/.moltbot/skills/synapse/references/04-admin-workflow.md
 
 curl -s <BASE_URL>/skill/package.json \
-  > ~/.moltbot/skills/chorus/package.json
+  > ~/.moltbot/skills/synapse/package.json
 ```
 
 ### Check for Updates
@@ -217,28 +217,28 @@ After setup, verify the Agent has access to the tools for its role:
 
 | Tool Prefix | Developer | PM | Admin |
 |-------------|-----------|------|-------|
-| `chorus_get_*` / `chorus_list_*` | Yes | Yes | Yes |
-| `chorus_checkin` | Yes | Yes | Yes |
-| `chorus_add_comment` / `chorus_get_comments` | Yes | Yes | Yes |
-| `chorus_claim_task` / `chorus_release_task` | Yes | No | Yes |
-| `chorus_update_task` / `chorus_submit_for_verify` | Yes | No | Yes |
-| `chorus_report_work` | Yes | No | Yes |
-| `chorus_claim_idea` / `chorus_release_idea` | No | Yes | Yes |
-| `chorus_update_idea_status` | No | Yes | Yes |
-| `chorus_pm_create_proposal` | No | Yes | Yes |
-| `chorus_pm_submit_proposal` | No | Yes | Yes |
-| `chorus_pm_create_document` / `chorus_pm_update_document` | No | Yes | Yes |
-| `chorus_pm_create_tasks` | No | Yes | Yes |
-| `chorus_pm_assign_task` | No | Yes | Yes |
-| `chorus_add_task_dependency` / `chorus_remove_task_dependency` | No | Yes | Yes |
-| `chorus_pm_add_*_draft` / `chorus_pm_update_*_draft` | No | Yes | Yes |
-| `chorus_pm_remove_*_draft` | No | Yes | Yes |
-| `chorus_pm_create_idea` | No | Yes | Yes |
-| `chorus_move_idea` | No | Yes | Yes |
-| `chorus_admin_create_project` | No | No | Yes |
-| `chorus_admin_approve_proposal` / `chorus_admin_reject_proposal` | No | No | Yes |
-| `chorus_admin_verify_task` / `chorus_admin_reopen_task` | No | No | Yes |
-| `chorus_admin_close_*` / `chorus_admin_delete_*` | No | No | Yes |
+| `synapse_get_*` / `synapse_list_*` | Yes | Yes | Yes |
+| `synapse_checkin` | Yes | Yes | Yes |
+| `synapse_add_comment` / `synapse_get_comments` | Yes | Yes | Yes |
+| `synapse_claim_task` / `synapse_release_task` | Yes | No | Yes |
+| `synapse_update_task` / `synapse_submit_for_verify` | Yes | No | Yes |
+| `synapse_report_work` | Yes | No | Yes |
+| `synapse_claim_idea` / `synapse_release_idea` | No | Yes | Yes |
+| `synapse_update_idea_status` | No | Yes | Yes |
+| `synapse_pm_create_proposal` | No | Yes | Yes |
+| `synapse_pm_submit_proposal` | No | Yes | Yes |
+| `synapse_pm_create_document` / `synapse_pm_update_document` | No | Yes | Yes |
+| `synapse_pm_create_tasks` | No | Yes | Yes |
+| `synapse_pm_assign_task` | No | Yes | Yes |
+| `synapse_add_task_dependency` / `synapse_remove_task_dependency` | No | Yes | Yes |
+| `synapse_pm_add_*_draft` / `synapse_pm_update_*_draft` | No | Yes | Yes |
+| `synapse_pm_remove_*_draft` | No | Yes | Yes |
+| `synapse_pm_create_idea` | No | Yes | Yes |
+| `synapse_move_idea` | No | Yes | Yes |
+| `synapse_admin_create_project` | No | No | Yes |
+| `synapse_admin_approve_proposal` / `synapse_admin_reject_proposal` | No | No | Yes |
+| `synapse_admin_verify_task` / `synapse_admin_reopen_task` | No | No | Yes |
+| `synapse_admin_close_*` / `synapse_admin_delete_*` | No | No | Yes |
 
 ---
 

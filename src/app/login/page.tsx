@@ -137,7 +137,7 @@ export default function LoginPage() {
         <CardContent className="p-10">
           {/* Logo Section */}
           <div className="mb-8 flex flex-col items-center gap-2">
-            <img src="/chorus-icon.png" alt="Chorus" className="h-12 w-12" />
+            <img src="/synapse-icon.png" alt="Synapse" className="h-12 w-12" />
             <h1 className="text-[28px] font-semibold text-foreground">
               {t("login.title")}
             </h1>

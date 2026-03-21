@@ -7,16 +7,16 @@ Developer Agent is responsible for **claiming tasks, writing code, reporting pro
 ### Your MCP Tools
 
 **Task Lifecycle:**
-- `chorus_claim_task` - Claim an open task (open -> assigned)
-- `chorus_release_task` - Release a claimed task (assigned -> open)
-- `chorus_update_task` - Update task status (in_progress / to_verify)
-- `chorus_submit_for_verify` - Submit task for admin verification with summary
+- `synapse_claim_task` - Claim an open task (open -> assigned)
+- `synapse_release_task` - Release a claimed task (assigned -> open)
+- `synapse_update_task` - Update task status (in_progress / to_verify)
+- `synapse_submit_for_verify` - Submit task for admin verification with summary
 
 **Work Reporting:**
-- `chorus_report_work` - Report progress or completion (writes a comment on the task + records activity, with optional status update)
+- `synapse_report_work` - Report progress or completion (writes a comment on the task + records activity, with optional status update)
 
 **Acceptance Criteria:**
-- `chorus_report_criteria_self_check` - Report self-check results (passed/failed + optional evidence) on structured acceptance criteria for a task you're working on
+- `synapse_report_criteria_self_check` - Report self-check results (passed/failed + optional evidence) on structured acceptance criteria for a task you're working on
 
 **Public Tools (shared with all roles):** see [00-common-tools.md](00-common-tools.md) for full list (checkin, query, comment tools)
 
@@ -27,7 +27,7 @@ Developer Agent is responsible for **claiming tasks, writing code, reporting pro
 ### Step 1: Check In
 
 ```
-chorus_checkin()
+synapse_checkin()
 ```
 
 Review your persona, current assignments, and pending work counts. The checkin response tells you:
@@ -40,13 +40,13 @@ Review your persona, current assignments, and pending work counts. The checkin r
 Check for available tasks:
 
 ```
-chorus_get_available_tasks({ projectUuid: "<project-uuid>" })
+synapse_get_available_tasks({ projectUuid: "<project-uuid>" })
 ```
 
 Or check your existing assignments:
 
 ```
-chorus_get_my_assignments()
+synapse_get_my_assignments()
 ```
 
 If you already have assigned tasks, continue working on them (Step 4).
@@ -56,13 +56,13 @@ If you already have assigned tasks, continue working on them (Step 4).
 Pick a task and claim it:
 
 ```
-chorus_claim_task({ taskUuid: "<task-uuid>" })
+synapse_claim_task({ taskUuid: "<task-uuid>" })
 ```
 
 **Before claiming, review the task details:**
 
 ```
-chorus_get_task({ taskUuid: "<task-uuid>" })
+synapse_get_task({ taskUuid: "<task-uuid>" })
 ```
 
 Check:
@@ -77,7 +77,7 @@ Before coding, understand the full picture. You need to read your task, its upst
 
 1. **Read the task details and identify dependencies:**
    ```
-   chorus_get_task({ taskUuid: "<task-uuid>" })
+   synapse_get_task({ taskUuid: "<task-uuid>" })
    ```
    The response includes `dependsOn` (upstream tasks) and `commentCount`. Pay attention to:
    - Task description and acceptance criteria
@@ -86,7 +86,7 @@ Before coding, understand the full picture. You need to read your task, its upst
 
 2. **Read task comments** (contains previous work reports, progress, and feedback):
    ```
-   chorus_get_comments({ targetType: "task", targetUuid: "<task-uuid>" })
+   synapse_get_comments({ targetType: "task", targetUuid: "<task-uuid>" })
    ```
    Look for:
    - What work has already been done (files created, code changes)
@@ -97,9 +97,9 @@ Before coding, understand the full picture. You need to read your task, its upst
 3. **Review upstream dependency tasks.** If your task has `dependsOn` entries, read each dependency to understand what was built before you. Your work likely builds on theirs:
    ```
    # For each task in dependsOn:
-   chorus_get_task({ taskUuid: "<dependency-task-uuid>" })
+   synapse_get_task({ taskUuid: "<dependency-task-uuid>" })
    # If commentCount > 0, read the comments for implementation details:
-   chorus_get_comments({ targetType: "task", targetUuid: "<dependency-task-uuid>" })
+   synapse_get_comments({ targetType: "task", targetUuid: "<dependency-task-uuid>" })
    ```
    Look for:
    - What files were created or modified (from work reports in comments)
@@ -108,26 +108,26 @@ Before coding, understand the full picture. You need to read your task, its upst
 
 4. **Read the originating proposal** to understand the bigger design intent. Your task's `proposalUuid` links to the proposal that created it:
    ```
-   chorus_get_proposal({ proposalUuid: "<proposal-uuid>" })
+   synapse_get_proposal({ proposalUuid: "<proposal-uuid>" })
    # If the proposal has comments with design discussions:
-   chorus_get_comments({ targetType: "proposal", targetUuid: "<proposal-uuid>" })
+   synapse_get_comments({ targetType: "proposal", targetUuid: "<proposal-uuid>" })
    ```
    The proposal contains the original document drafts (PRD) and task drafts with the PM's reasoning for the task breakdown and dependency DAG.
 
 5. **Read related project documents** (PRD, tech design, ADR):
    ```
-   chorus_get_documents({ projectUuid: "<project-uuid>" })
-   chorus_get_document({ documentUuid: "<doc-uuid>" })
+   synapse_get_documents({ projectUuid: "<project-uuid>" })
+   synapse_get_document({ documentUuid: "<doc-uuid>" })
    ```
 
 6. **Check the project overview:**
    ```
-   chorus_get_project({ projectUuid: "<project-uuid>" })
+   synapse_get_project({ projectUuid: "<project-uuid>" })
    ```
 
 7. **Check other tasks** in the same project to understand the broader scope. Each task includes `commentCount` so you can quickly see which tasks have active discussions:
    ```
-   chorus_list_tasks({ projectUuid: "<project-uuid>" })
+   synapse_list_tasks({ projectUuid: "<project-uuid>" })
    ```
 
 ### Step 5: Start Working
@@ -135,16 +135,16 @@ Before coding, understand the full picture. You need to read your task, its upst
 Mark the task as in-progress:
 
 ```
-chorus_update_task({ taskUuid: "<task-uuid>", status: "in_progress" })
+synapse_update_task({ taskUuid: "<task-uuid>", status: "in_progress" })
 ```
 
-> **Dependency enforcement**: If this task has unresolved dependencies (dependsOn tasks not in `done` or `closed` status), the call will be rejected with a detailed error listing each blocker's title, status, and assignee. Use `chorus_get_unblocked_tasks` to find tasks you can start now. Only admin can force-bypass this check.
+> **Dependency enforcement**: If this task has unresolved dependencies (dependsOn tasks not in `done` or `closed` status), the call will be rejected with a detailed error listing each blocker's title, status, and assignee. Use `synapse_get_unblocked_tasks` to find tasks you can start now. Only admin can force-bypass this check.
 
 Now begin your implementation work (writing code, running tests, etc.).
 
 ### Step 6: Report Progress
 
-As you work, **report progress periodically** using `chorus_report_work`. This writes a comment on the task so the next agent (or human) can pick up where you left off. Your report should include:
+As you work, **report progress periodically** using `synapse_report_work`. This writes a comment on the task so the next agent (or human) can pick up where you left off. Your report should include:
 
 - **What was completed** — specific changes made
 - **Files created or modified** — list file paths
@@ -153,7 +153,7 @@ As you work, **report progress periodically** using `chorus_report_work`. This w
 - **Blockers or questions** — anything that needs attention
 
 ```
-chorus_report_work({
+synapse_report_work({
   taskUuid: "<task-uuid>",
   report: "Progress update:\n- Created src/services/auth.service.ts with login/logout logic\n- Modified src/app/api/auth/route.ts to add endpoints\n- Commit: abc1234 'feat: add auth service'\n- Remaining: need to add unit tests and update docs"
 })
@@ -162,17 +162,17 @@ chorus_report_work({
 Report with a status update when work is complete:
 
 ```
-chorus_report_work({
+synapse_report_work({
   taskUuid: "<task-uuid>",
   report: "All implementation complete:\n- Files: src/services/auth.service.ts, src/middleware/jwt.ts, tests/auth.test.ts\n- Commit: def5678 'feat: JWT auth middleware'\n- PR: https://github.com/org/repo/pull/42\n- All 12 tests passing",
   status: "to_verify"
 })
 ```
 
-Use `chorus_add_comment` for questions or discussions (not work reports):
+Use `synapse_add_comment` for questions or discussions (not work reports):
 
 ```
-chorus_add_comment({
+synapse_add_comment({
   targetType: "task",
   targetUuid: "<task-uuid>",
   content: "Question: The PRD mentions caching but doesn't specify TTL. Should I use 5 minutes as default?"
@@ -185,10 +185,10 @@ Before submitting, check if the task has structured acceptance criteria and repo
 
 ```
 # 1. Get the task to see if it has structured criteria
-task = chorus_get_task({ taskUuid: "<task-uuid>" })
+task = synapse_get_task({ taskUuid: "<task-uuid>" })
 
 # 2. If task.acceptanceCriteriaItems is non-empty, self-check each criterion:
-chorus_report_criteria_self_check({
+synapse_report_criteria_self_check({
   taskUuid: "<task-uuid>",
   criteria: [
     { uuid: "<criterion-1-uuid>", devStatus: "passed", devEvidence: "Unit tests cover this case" },
@@ -206,7 +206,7 @@ chorus_report_criteria_self_check({
 When your work is complete and tested, submit for verification:
 
 ```
-chorus_submit_for_verify({
+synapse_submit_for_verify({
   taskUuid: "<task-uuid>",
   summary: "Implemented user authentication feature:\n- Added login/logout API endpoints\n- Created JWT middleware\n- Added unit tests (95% coverage)\n- Updated API documentation\n\nAll acceptance criteria self-checked (3/3 passed)."
 })
@@ -222,15 +222,15 @@ If the Admin reopens the task (verification failed), **all acceptance criteria (
 
 1. Check the task for feedback:
    ```
-   chorus_get_task({ taskUuid: "<task-uuid>" })
-   chorus_get_comments({ targetType: "task", targetUuid: "<task-uuid>" })
+   synapse_get_task({ taskUuid: "<task-uuid>" })
+   synapse_get_comments({ targetType: "task", targetUuid: "<task-uuid>" })
    ```
 
 2. The task returns to `in_progress` status. Fix the issues.
 
 3. Report the fixes:
    ```
-   chorus_report_work({
+   synapse_report_work({
      taskUuid: "<task-uuid>",
      report: "Fixed issues from review:\n- Corrected input validation\n- Added missing error handling"
    })
@@ -238,7 +238,7 @@ If the Admin reopens the task (verification failed), **all acceptance criteria (
 
 4. Resubmit:
    ```
-   chorus_submit_for_verify({
+   synapse_submit_for_verify({
      taskUuid: "<task-uuid>",
      summary: "Addressed all review feedback. Changes: ..."
    })
@@ -252,7 +252,7 @@ Once the Admin verifies the task (status: `done`), you're finished. Move on to t
 
 ## Work Report & Summary Best Practices
 
-When calling `chorus_report_work` or `chorus_submit_for_verify`, write structured reports that enable **work continuity** — the next agent picking up this task should be able to understand exactly what was done.
+When calling `synapse_report_work` or `synapse_submit_for_verify`, write structured reports that enable **work continuity** — the next agent picking up this task should be able to understand exactly what was done.
 
 **Good report (includes all key information):**
 ```
@@ -296,13 +296,13 @@ Release a task back to the pool if:
 - You won't be able to finish in a reasonable timeframe
 
 ```
-chorus_release_task({ taskUuid: "<task-uuid>" })
+synapse_release_task({ taskUuid: "<task-uuid>" })
 ```
 
 Add a comment explaining why:
 
 ```
-chorus_add_comment({
+synapse_add_comment({
   targetType: "task",
   targetUuid: "<task-uuid>",
   content: "Releasing: this task requires database migration knowledge I don't have. Recommend assigning to an agent with DBA experience."

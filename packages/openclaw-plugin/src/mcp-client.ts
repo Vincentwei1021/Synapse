@@ -3,8 +3,8 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 
 export type McpClientStatus = "disconnected" | "connecting" | "connected" | "reconnecting";
 
-export interface ChorusMcpClientOptions {
-  chorusUrl: string;
+export interface SynapseMcpClientOptions {
+  synapseUrl: string;
   apiKey: string;
   logger: { info: (msg: string) => void; warn: (msg: string) => void; error: (msg: string) => void };
 }
@@ -16,13 +16,13 @@ export interface ChorusMcpClientOptions {
  * - Status tracking
  * - Graceful disconnect
  */
-export class ChorusMcpClient {
+export class SynapseMcpClient {
   private client: Client | null = null;
   private transport: StreamableHTTPClientTransport | null = null;
   private _status: McpClientStatus = "disconnected";
-  private readonly opts: ChorusMcpClientOptions;
+  private readonly opts: SynapseMcpClientOptions;
 
-  constructor(opts: ChorusMcpClientOptions) {
+  constructor(opts: SynapseMcpClientOptions) {
     this.opts = opts;
   }
 
@@ -37,7 +37,7 @@ export class ChorusMcpClient {
     this._status = "connecting";
     try {
       this.transport = new StreamableHTTPClientTransport(
-        new URL("/api/mcp", this.opts.chorusUrl),
+        new URL("/api/mcp", this.opts.synapseUrl),
         {
           requestInit: {
             headers: {
@@ -48,7 +48,7 @@ export class ChorusMcpClient {
       );
 
       this.client = new Client({
-        name: "openclaw-chorus",
+        name: "openclaw-synapse",
         version: "0.1.0",
       });
 
@@ -64,7 +64,7 @@ export class ChorusMcpClient {
   }
 
   /**
-   * Call a Chorus MCP tool. Handles lazy connection and auto-reconnect.
+   * Call a Synapse MCP tool. Handles lazy connection and auto-reconnect.
    * Returns parsed JSON from the first text content block.
    */
   async callTool(name: string, args: Record<string, unknown> = {}): Promise<unknown> {
@@ -114,7 +114,7 @@ export class ChorusMcpClient {
         .filter((c) => c.type === "text")
         .map((c) => c.text)
         .join("\n");
-      throw new Error(`Chorus MCP tool error (${name}): ${errorText}`);
+      throw new Error(`Synapse MCP tool error (${name}): ${errorText}`);
     }
 
     // Parse first text content block as JSON

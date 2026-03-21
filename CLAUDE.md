@@ -1,8 +1,8 @@
-# CLAUDE.md — Chorus Project Guide
+# CLAUDE.md — Synapse Project Guide
 
-## What is Chorus
+## What is Synapse
 
-Chorus is an AI Agent & Human collaboration platform implementing the **AI-DLC (AI-Driven Development Lifecycle)** workflow. Multiple AI Agents (PM, Developer, Admin) and humans work together through a shared Idea → Proposal → Document + Task → Execute → Verify → Done pipeline.
+Synapse is an AI Agent & Human collaboration platform implementing the **AI-DLC (AI-Driven Development Lifecycle)** workflow. Multiple AI Agents (Research Lead, Researcher, PI) and humans work together through a shared Research Question → Experiment Design → Document + Experiment Run → Execute → Verify → Done pipeline.
 
 Core philosophy: **"Reversed Conversation"** — AI proposes, humans verify (not human prompt → AI execute).
 
@@ -14,7 +14,7 @@ Core philosophy: **"Reversed Conversation"** — AI proposes, humans verify (not
 - **Database**: PostgreSQL 16, Prisma ORM 7
 - **Cache/Pub-Sub**: Redis 7 (ioredis, optional — falls back to in-memory)
 - **Testing**: Vitest 4
-- **Auth**: OIDC (users), API Keys with `cho_` prefix (agents), SuperAdmin (env-based bcrypt)
+- **Auth**: OIDC (users), API Keys with `syn_` prefix (agents), SuperAdmin (env-based bcrypt)
 - **MCP**: @modelcontextprotocol/sdk 1.26 (HTTP Streamable Transport)
 - **i18n**: next-intl (en, zh)
 - **Package Manager**: pnpm 9.15
@@ -26,7 +26,7 @@ Core philosophy: **"Reversed Conversation"** — AI proposes, humans verify (not
 src/
 ├── app/                    # Next.js App Router
 │   ├── (dashboard)/        # Main app layout (sidebar nav)
-│   │   ├── projects/[uuid]/  # Project-scoped pages (tasks, ideas, proposals, docs)
+│   │   ├── research-projects/[uuid]/  # Research project-scoped pages (experiment-runs, research-questions, experiment-designs, docs)
 │   │   └── settings/       # Agent API Key management, session management
 │   ├── api/                # REST API routes + MCP endpoint
 │   │   └── mcp/            # MCP HTTP streaming (POST init, DELETE close)
@@ -36,7 +36,7 @@ src/
 ├── services/               # Business logic layer (all UUID-based)
 ├── mcp/                    # MCP Server factory + role-based tool modules
 │   ├── server.ts           # Creates per-auth MCP server instance
-│   └── tools/              # public.ts, developer.ts, pm.ts, admin.ts, session.ts
+│   └── tools/              # public.ts, researcher.ts, research-lead.ts, pi.ts, session.ts
 ├── components/ui/          # shadcn/ui primitives
 ├── contexts/               # React contexts (locale)
 ├── i18n/                   # config.ts + request.ts
@@ -52,7 +52,7 @@ messages/
 
 public/skill/               # MCP Skill documentation served as static files
 docs/                       # Architecture, PRD, MCP tools reference, design.pen
-packages/chorus-cdk/        # AWS CDK for deployment
+packages/synapse-cdk/       # AWS CDK for deployment
 ```
 
 ## Key Commands
@@ -86,11 +86,11 @@ Business logic lives in `src/services/*.service.ts`. API routes and MCP tools bo
 
 Every request resolves to an `AuthContext` with `type` ("user" | "agent" | "super_admin"), `companyUuid`, and `actorUuid`. The `getAuthContext(request)` function in `src/lib/auth.ts` checks: Bearer token (API Key or OIDC) → Session cookie (user_session / admin_session) → OIDC cookie (oidc_access_token).
 
-Agent auth carries `roles: string[]` (pm_agent, developer_agent, admin_agent) which determines MCP tool visibility.
+Agent auth carries `roles: string[]` (research_lead_agent, researcher_agent, pi_agent) which determines MCP tool visibility.
 
 ### Polymorphic Assignment
 
-Tasks and Ideas use `assigneeType` ("user" | "agent") + `assigneeUuid` for flexible assignment to either humans or AI agents.
+Experiment Runs and Research Questions use `assigneeType` ("user" | "agent") + `assigneeUuid` for flexible assignment to either humans or AI agents.
 
 ### MCP Server
 
@@ -109,7 +109,7 @@ server.registerTool("tool_name", {
 
 ### Agent Sessions (Swarm Mode)
 
-When agents spawn sub-agents (e.g., Claude Code Agent Teams), they create **Sessions** for observability. Lifecycle: `active ↔ inactive (1h no heartbeat) → closed → (reopen) → active`. Sessions checkin/checkout from tasks to track which worker is on which task.
+When agents spawn sub-agents (e.g., Claude Code Agent Teams), they create **Sessions** for observability. Lifecycle: `active <-> inactive (1h no heartbeat) -> closed -> (reopen) -> active`. Sessions checkin/checkout from experiment runs to track which worker is on which experiment run.
 
 ### Activity Stream
 
@@ -121,7 +121,7 @@ Redis is used for SSE event propagation across multiple instances. If `REDIS_URL
 
 ## Database Notes
 
-- **21 Prisma models**: Company, User, Agent, ApiKey, ProjectGroup, Project, Idea, Document, Task, TaskDependency, AcceptanceCriterion, Proposal, Comment, Activity, AgentSession, SessionTaskCheckin, Notification, NotificationPreference, Mention, ElaborationRound, ElaborationQuestion
+- **21 Prisma models**: Company, User, Agent, ApiKey, ProjectGroup, ResearchProject, ResearchQuestion, Document, ExperimentRun, ExperimentRunDependency, AcceptanceCriterion, ExperimentDesign, Comment, Activity, AgentSession, SessionExperimentRunCheckin, Notification, NotificationPreference, Mention, HypothesisRefinementRound, HypothesisRefinementQuestion
 - **relationMode = "prisma"**: Prisma handles relations in application code, not DB foreign keys
 - **Cascade deletes**: Configured at Prisma level (onDelete: Cascade)
 - **After schema changes**: Must run `npx prisma generate` to regenerate client, then restart the dev server to pick up new models. Forgetting this causes `prisma.newModel` to be `undefined` at runtime.
@@ -163,8 +163,8 @@ Rules:
 - Two locales: `en`, `zh` (messages in `/messages/en.json`, `/messages/zh.json`)
 - Always add keys to **both** locale files when adding UI strings
 - Use `useTranslations()` hook in client components, `getTranslations()` in server components
-- Keys are nested objects: `common.save`, `sessions.reopen`, `activity.taskAssigned`
-- Server Components read the locale from the `chorus-locale` cookie (set by `LocaleProvider`). The `src/i18n/request.ts` config reads this cookie — do not hardcode `defaultLocale` there.
+- Keys are nested objects: `common.save`, `sessions.reopen`, `activity.experimentRunAssigned`
+- Server Components read the locale from the `synapse-locale` cookie (set by `LocaleProvider`). The `src/i18n/request.ts` config reads this cookie — do not hardcode `defaultLocale` there.
 - When adding error fallback strings (e.g., `result.error || "Something failed"`), the fallback must also use `t()`: `result.error || t("some.errorKey")`
 
 ## Frontend UI Rules
@@ -178,16 +178,16 @@ Rules:
 
 ## Skill & Plugin Documentation
 
-Chorus has two sets of skill documentation. **All skill docs must be written in English.**
+Synapse has two sets of skill documentation. **All skill docs must be written in English.**
 
 | Location | Purpose |
 |----------|---------|
 | `public/skill/` | Standalone skill — served as static assets at `/skill/`, consumed by any agent via curl download |
-| `public/chorus-plugin/skills/chorus/` | Plugin-embedded skill — bundled with the Chorus Plugin for Claude Code, includes plugin-specific session automation |
+| `public/synapse-plugin/skills/synapse/` | Plugin-embedded skill — bundled with the Synapse Plugin for Claude Code, includes plugin-specific session automation |
 
 When adding new MCP tools, update:
 1. `docs/MCP_TOOLS.md` (internal reference)
-2. Relevant skill docs in **both** `public/skill/` and `public/chorus-plugin/skills/chorus/`
+2. Relevant skill docs in **both** `public/skill/` and `public/synapse-plugin/skills/synapse/`
 
 MCP tool roles, agent workflows, session management, and AI-DLC lifecycle are all documented in the skill files — not here. Refer to the skill docs for those details.
 
@@ -205,14 +205,14 @@ When implementing any user-facing feature or UI change, you **must** update `doc
 
 3. **Multi-tenancy**: All queries must be scoped by `companyUuid`. Never return data across company boundaries.
 
-4. **API Key format**: Keys start with `cho_` prefix, followed by base64url-encoded random bytes. Stored as SHA-256 hash in DB. The raw key is shown only once at creation time.
+4. **API Key format**: Keys start with `syn_` prefix, followed by base64url-encoded random bytes. Stored as SHA-256 hash in DB. The raw key is shown only once at creation time.
 
-5. **Proposal is a container**: A Proposal holds `documentDrafts` (JSON) and `taskDrafts` (JSON). On approval, these drafts materialize into real Document and Task entities. Don't confuse drafts with actual entities.
+5. **Experiment Design is a container**: An Experiment Design holds `documentDrafts` (JSON) and `experimentRunDrafts` (JSON). On approval, these drafts materialize into real Document and Experiment Run entities. Don't confuse drafts with actual entities.
 
-6. **Task dependencies form a DAG**: Use `TaskDependency` model. Frontend renders with @xyflow/react + dagre for layout. Circular dependency detection is handled at the service level.
+6. **Experiment Run dependencies form a DAG**: Use `ExperimentRunDependency` model. Frontend renders with @xyflow/react + dagre for layout. Circular dependency detection is handled at the service level.
 
 7. **design.pen is encrypted**: The `docs/design.pen` file can only be read/written through the Pencil MCP tools. Never use Read/Grep on `.pen` files.
 
 8. **Server Components vs Client Components**: Default to Server Components. Only add `"use client"` when you need interactivity (useState, useEffect, event handlers). Server Actions (`"use server"`) are used for mutations called from client components.
 
-9. **Plugin shell scripts must be Bash 3.2 compatible**: macOS ships with Bash 3.2 (`/bin/bash`) and Claude Code uses it to run hooks. Do NOT use Bash 4+ features in `public/chorus-plugin/bin/*.sh`. Common traps: `${VAR,,}` (use `tr '[:upper:]' '[:lower:]'`), `${VAR^^}` (use `tr '[:lower:]' '[:upper:]'`), `declare -A` (associative arrays), `readarray`/`mapfile`, `|&`, `&>>`. Run `/bin/bash public/chorus-plugin/bin/test-syntax.sh` on macOS to verify.
+9. **Plugin shell scripts must be Bash 3.2 compatible**: macOS ships with Bash 3.2 (`/bin/bash`) and Claude Code uses it to run hooks. Do NOT use Bash 4+ features in `public/synapse-plugin/bin/*.sh`. Common traps: `${VAR,,}` (use `tr '[:upper:]' '[:lower:]'`), `${VAR^^}` (use `tr '[:lower:]' '[:upper:]'`), `declare -A` (associative arrays), `readarray`/`mapfile`, `|&`, `&>>`. Run `/bin/bash public/synapse-plugin/bin/test-syntax.sh` on macOS to verify.

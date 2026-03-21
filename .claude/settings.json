@@ -1,5 +1,5 @@
 {
   "enabledPlugins": {
-    "chorus@chorus-plugins": true
+    "synapse@synapse-plugins": true
   }
 }

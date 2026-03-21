@@ -14,7 +14,7 @@ activityService.createActivity()
 eventBus.emit("activity", payload)
   │                                    ┌──────────────────────────┐
   │   ┌─ Redis Pub/Sub (optional) ──▶ │  Other ECS instances     │
-  │   │  channel: "chorus:events"      │  receive & emit locally  │
+  │   │  channel: "synapse:events"      │  receive & emit locally  │
   ▼   │                                └──────────────────────────┘
 NotificationListener.handleActivity()       ← src/services/notification-listener.ts
   │  • Maps action → notification type
@@ -41,11 +41,11 @@ The EventBus (`src/lib/event-bus.ts`) supports two modes:
 | **In-memory** | `REDIS_URL` not set | Node.js EventEmitter only | Zero config (local dev default) |
 | **Redis Pub/Sub** | `REDIS_URL` set | EventEmitter + Redis `SUBSCRIBE`/`PUBLISH` | `REDIS_URL` env var |
 
-Redis mode enables cross-instance event delivery for multi-ECS-task deployments. All events are published to a single Redis channel (`chorus:events`) using `SUBSCRIBE` (not `PSUBSCRIBE`, which is unsupported on ElastiCache Serverless). Each message carries an `_origin` instance ID for deduplication — the originating instance skips its own messages from Redis since they were already delivered locally.
+Redis mode enables cross-instance event delivery for multi-ECS-task deployments. All events are published to a single Redis channel (`synapse:events`) using `SUBSCRIBE` (not `PSUBSCRIBE`, which is unsupported on ElastiCache Serverless). Each message carries an `_origin` instance ID for deduplication — the originating instance skips its own messages from Redis since they were already delivered locally.
 
-**Production (CDK)**: ElastiCache Serverless Redis 7 with RBAC password authentication. Password stored in Secrets Manager, injected via `REDIS_PASSWORD` env var. Connection URL assembled at runtime: `rediss://chorus:<password>@<endpoint>:6379`.
+**Production (CDK)**: ElastiCache Serverless Redis 7 with RBAC password authentication. Password stored in Secrets Manager, injected via `REDIS_PASSWORD` env var. Connection URL assembled at runtime: `rediss://synapse:<password>@<endpoint>:6379`.
 
-**Local dev (Docker Compose)**: `redis:7-alpine` with `--requirepass`. URL: `redis://default:chorus-redis@localhost:6379`.
+**Local dev (Docker Compose)**: `redis:7-alpine` with `--requirepass`. URL: `redis://default:synapse-redis@localhost:6379`.
 
 ## Data Model
 
@@ -257,14 +257,14 @@ data: {"unreadCount":5,"notification":{...}}
 
 Two public MCP tools are available for AI agents:
 
-### chorus_get_notifications
+### synapse_get_notifications
 
 ```
 Input:  { status?: "unread"|"read"|"all", limit?: number, offset?: number }
 Output: { notifications: [...], unreadCount: number }
 ```
 
-### chorus_mark_notification_read
+### synapse_mark_notification_read
 
 ```
 Input:  { notificationUuid?: string, all?: boolean }

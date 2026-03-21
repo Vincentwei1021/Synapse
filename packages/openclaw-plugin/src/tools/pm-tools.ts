@@ -1,10 +1,10 @@
-import type { ChorusMcpClient } from "../mcp-client.js";
+import type { SynapseMcpClient } from "../mcp-client.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
-  // 1. chorus_claim_idea
+export function registerPmTools(api: any, mcpClient: SynapseMcpClient) {
+  // 1. synapse_claim_idea
   api.registerTool({
-    name: "chorus_claim_idea",
+    name: "synapse_claim_idea",
     description: "Claim an open Idea for elaboration (open -> elaborating). After claiming, start elaboration or create a proposal directly.",
     parameters: {
       type: "object",
@@ -15,14 +15,14 @@ export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { ideaUuid }: { ideaUuid: string }) {
-      const result = await mcpClient.callTool("chorus_claim_idea", { ideaUuid });
+      const result = await mcpClient.callTool("synapse_claim_idea", { ideaUuid });
       return JSON.stringify(result, null, 2);
     },
   });
 
-  // 2. chorus_start_elaboration
+  // 2. synapse_start_elaboration
   api.registerTool({
-    name: "chorus_start_elaboration",
+    name: "synapse_start_elaboration",
     description: "Start an elaboration round for an Idea. Creates structured questions for the stakeholder to answer before proposal creation.",
     parameters: {
       type: "object",
@@ -40,14 +40,14 @@ export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async execute(_id: string, { ideaUuid, depth, questions }: { ideaUuid: string; depth: string; questions: any[] }) {
-      const result = await mcpClient.callTool("chorus_pm_start_elaboration", { ideaUuid, depth, questions });
+      const result = await mcpClient.callTool("synapse_pm_start_elaboration", { ideaUuid, depth, questions });
       return JSON.stringify(result, null, 2);
     },
   });
 
-  // 3. chorus_answer_elaboration
+  // 3. synapse_answer_elaboration
   api.registerTool({
-    name: "chorus_answer_elaboration",
+    name: "synapse_answer_elaboration",
     description: "Answer elaboration questions for an Idea. Submits answers for a specific elaboration round.",
     parameters: {
       type: "object",
@@ -65,14 +65,14 @@ export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async execute(_id: string, { ideaUuid, roundUuid, answers }: { ideaUuid: string; roundUuid: string; answers: any[] }) {
-      const result = await mcpClient.callTool("chorus_answer_elaboration", { ideaUuid, roundUuid, answers });
+      const result = await mcpClient.callTool("synapse_answer_elaboration", { ideaUuid, roundUuid, answers });
       return JSON.stringify(result, null, 2);
     },
   });
 
-  // 4. chorus_validate_elaboration
+  // 4. synapse_validate_elaboration
   api.registerTool({
-    name: "chorus_validate_elaboration",
+    name: "synapse_validate_elaboration",
     description: "Validate answers from an elaboration round. Empty issues array = all valid, marks elaboration as resolved.",
     parameters: {
       type: "object",
@@ -90,15 +90,15 @@ export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async execute(_id: string, { ideaUuid, roundUuid, issues }: { ideaUuid: string; roundUuid: string; issues: any[] }) {
-      const result = await mcpClient.callTool("chorus_pm_validate_elaboration", { ideaUuid, roundUuid, issues });
+      const result = await mcpClient.callTool("synapse_pm_validate_elaboration", { ideaUuid, roundUuid, issues });
       return JSON.stringify(result, null, 2);
     },
   });
 
-  // 5. chorus_create_proposal
+  // 5. synapse_create_proposal
   api.registerTool({
-    name: "chorus_create_proposal",
-    description: "Create an empty Proposal container. Use chorus_add_document_draft and chorus_add_task_draft to populate it afterwards.",
+    name: "synapse_create_proposal",
+    description: "Create an empty Proposal container. Use synapse_add_document_draft and synapse_add_task_draft to populate it afterwards.",
     parameters: {
       type: "object",
       properties: {
@@ -116,14 +116,14 @@ export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const args: Record<string, any> = { projectUuid, title, inputType, inputUuids };
       if (description !== undefined) args.description = description;
-      const result = await mcpClient.callTool("chorus_pm_create_proposal", args);
+      const result = await mcpClient.callTool("synapse_pm_create_proposal", args);
       return JSON.stringify(result, null, 2);
     },
   });
 
-  // 6. chorus_add_document_draft
+  // 6. synapse_add_document_draft
   api.registerTool({
-    name: "chorus_add_document_draft",
+    name: "synapse_add_document_draft",
     description: "Add a document draft to a pending Proposal container.",
     parameters: {
       type: "object",
@@ -137,14 +137,14 @@ export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { proposalUuid, type, title, content }: { proposalUuid: string; type: string; title: string; content: string }) {
-      const result = await mcpClient.callTool("chorus_pm_add_document_draft", { proposalUuid, type, title, content });
+      const result = await mcpClient.callTool("synapse_pm_add_document_draft", { proposalUuid, type, title, content });
       return JSON.stringify(result, null, 2);
     },
   });
 
-  // 7. chorus_add_task_draft
+  // 7. synapse_add_task_draft
   api.registerTool({
-    name: "chorus_add_task_draft",
+    name: "synapse_add_task_draft",
     description: "Add a task draft to a pending Proposal container.",
     parameters: {
       type: "object",
@@ -169,14 +169,14 @@ export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
       if (storyPoints !== undefined) args.storyPoints = storyPoints;
       if (acceptanceCriteriaItems !== undefined) args.acceptanceCriteriaItems = acceptanceCriteriaItems;
       if (dependsOnDraftUuids !== undefined) args.dependsOnDraftUuids = dependsOnDraftUuids;
-      const result = await mcpClient.callTool("chorus_pm_add_task_draft", args);
+      const result = await mcpClient.callTool("synapse_pm_add_task_draft", args);
       return JSON.stringify(result, null, 2);
     },
   });
 
-  // 8. chorus_get_proposal — View full proposal with all drafts
+  // 8. synapse_get_proposal — View full proposal with all drafts
   api.registerTool({
-    name: "chorus_get_proposal",
+    name: "synapse_get_proposal",
     description: "Get detailed information for a Proposal, including all document drafts and task drafts with their UUIDs. Use this to inspect proposal contents before modifying or submitting.",
     parameters: {
       type: "object",
@@ -187,14 +187,14 @@ export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { proposalUuid }: { proposalUuid: string }) {
-      const result = await mcpClient.callTool("chorus_get_proposal", { proposalUuid });
+      const result = await mcpClient.callTool("synapse_get_proposal", { proposalUuid });
       return JSON.stringify(result, null, 2);
     },
   });
 
-  // 9. chorus_update_document_draft — Modify an existing document draft
+  // 9. synapse_update_document_draft — Modify an existing document draft
   api.registerTool({
-    name: "chorus_update_document_draft",
+    name: "synapse_update_document_draft",
     description: "Update a document draft in a Proposal. Can change title, type, or content.",
     parameters: {
       type: "object",
@@ -215,14 +215,14 @@ export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
       if (title !== undefined) args.title = title;
       if (type !== undefined) args.type = type;
       if (content !== undefined) args.content = content;
-      const result = await mcpClient.callTool("chorus_pm_update_document_draft", args);
+      const result = await mcpClient.callTool("synapse_pm_update_document_draft", args);
       return JSON.stringify(result, null, 2);
     },
   });
 
-  // 10. chorus_update_task_draft — Modify an existing task draft (including dependencies)
+  // 10. synapse_update_task_draft — Modify an existing task draft (including dependencies)
   api.registerTool({
-    name: "chorus_update_task_draft",
+    name: "synapse_update_task_draft",
     description: "Update a task draft in a Proposal. Use this to fix validation issues, add dependencies (dependsOnDraftUuids), change priority, etc.",
     parameters: {
       type: "object",
@@ -249,14 +249,14 @@ export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
       if (storyPoints !== undefined) args.storyPoints = storyPoints;
       if (acceptanceCriteriaItems !== undefined) args.acceptanceCriteriaItems = acceptanceCriteriaItems;
       if (dependsOnDraftUuids !== undefined) args.dependsOnDraftUuids = dependsOnDraftUuids;
-      const result = await mcpClient.callTool("chorus_pm_update_task_draft", args);
+      const result = await mcpClient.callTool("synapse_pm_update_task_draft", args);
       return JSON.stringify(result, null, 2);
     },
   });
 
-  // 11. chorus_remove_document_draft
+  // 11. synapse_remove_document_draft
   api.registerTool({
-    name: "chorus_remove_document_draft",
+    name: "synapse_remove_document_draft",
     description: "Remove a document draft from a Proposal.",
     parameters: {
       type: "object",
@@ -268,14 +268,14 @@ export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { proposalUuid, draftUuid }: { proposalUuid: string; draftUuid: string }) {
-      const result = await mcpClient.callTool("chorus_pm_remove_document_draft", { proposalUuid, draftUuid });
+      const result = await mcpClient.callTool("synapse_pm_remove_document_draft", { proposalUuid, draftUuid });
       return JSON.stringify(result, null, 2);
     },
   });
 
-  // 12. chorus_remove_task_draft
+  // 12. synapse_remove_task_draft
   api.registerTool({
-    name: "chorus_remove_task_draft",
+    name: "synapse_remove_task_draft",
     description: "Remove a task draft from a Proposal.",
     parameters: {
       type: "object",
@@ -287,15 +287,15 @@ export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { proposalUuid, draftUuid }: { proposalUuid: string; draftUuid: string }) {
-      const result = await mcpClient.callTool("chorus_pm_remove_task_draft", { proposalUuid, draftUuid });
+      const result = await mcpClient.callTool("synapse_pm_remove_task_draft", { proposalUuid, draftUuid });
       return JSON.stringify(result, null, 2);
     },
   });
 
-  // 13. chorus_validate_proposal
+  // 13. synapse_validate_proposal
   api.registerTool({
-    name: "chorus_validate_proposal",
-    description: "Validate a Proposal's completeness before submission. Returns errors (block submit), warnings, and info. ALWAYS call this before chorus_submit_proposal. If errors exist, use chorus_update_task_draft / chorus_update_document_draft to fix them, then validate again.",
+    name: "synapse_validate_proposal",
+    description: "Validate a Proposal's completeness before submission. Returns errors (block submit), warnings, and info. ALWAYS call this before synapse_submit_proposal. If errors exist, use synapse_update_task_draft / synapse_update_document_draft to fix them, then validate again.",
     parameters: {
       type: "object",
       properties: {
@@ -305,14 +305,14 @@ export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { proposalUuid }: { proposalUuid: string }) {
-      const result = await mcpClient.callTool("chorus_pm_validate_proposal", { proposalUuid });
+      const result = await mcpClient.callTool("synapse_pm_validate_proposal", { proposalUuid });
       return JSON.stringify(result, null, 2);
     },
   });
 
-  // 9. chorus_submit_proposal
+  // 9. synapse_submit_proposal
   api.registerTool({
-    name: "chorus_submit_proposal",
+    name: "synapse_submit_proposal",
     description: "Submit a Proposal for approval (draft -> pending). Requires all input Ideas to have elaboration resolved.",
     parameters: {
       type: "object",
@@ -323,15 +323,15 @@ export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { proposalUuid }: { proposalUuid: string }) {
-      const result = await mcpClient.callTool("chorus_pm_submit_proposal", { proposalUuid });
+      const result = await mcpClient.callTool("synapse_pm_submit_proposal", { proposalUuid });
       return JSON.stringify(result, null, 2);
     },
   });
 
-  // 15. chorus_pm_assign_task
+  // 15. synapse_pm_assign_task
   api.registerTool({
-    name: "chorus_pm_assign_task",
-    description: "Assign a task to a specified Developer Agent. The task must be in open or assigned status. Use chorus_search_mentionables to find the agent UUID.",
+    name: "synapse_pm_assign_task",
+    description: "Assign a task to a specified Developer Agent. The task must be in open or assigned status. Use synapse_search_mentionables to find the agent UUID.",
     parameters: {
       type: "object",
       properties: {
@@ -342,14 +342,14 @@ export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { taskUuid, agentUuid }: { taskUuid: string; agentUuid: string }) {
-      const result = await mcpClient.callTool("chorus_pm_assign_task", { taskUuid, agentUuid });
+      const result = await mcpClient.callTool("synapse_pm_assign_task", { taskUuid, agentUuid });
       return JSON.stringify(result, null, 2);
     },
   });
 
-  // 16. chorus_move_idea
+  // 16. synapse_move_idea
   api.registerTool({
-    name: "chorus_move_idea",
+    name: "synapse_move_idea",
     description: "Move an Idea to a different project within the same company. Also moves linked draft/pending Proposals.",
     parameters: {
       type: "object",
@@ -361,14 +361,14 @@ export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { ideaUuid, targetProjectUuid }: { ideaUuid: string; targetProjectUuid: string }) {
-      const result = await mcpClient.callTool("chorus_move_idea", { ideaUuid, targetProjectUuid });
+      const result = await mcpClient.callTool("synapse_move_idea", { ideaUuid, targetProjectUuid });
       return JSON.stringify(result, null, 2);
     },
   });
 
-  // 17. chorus_pm_create_idea
+  // 17. synapse_pm_create_idea
   api.registerTool({
-    name: "chorus_pm_create_idea",
+    name: "synapse_pm_create_idea",
     description: "Create a new Idea in a project. Use this when you discover a requirement, want to propose work, or record a user request.",
     parameters: {
       type: "object",
@@ -383,7 +383,7 @@ export function registerPmTools(api: any, mcpClient: ChorusMcpClient) {
     async execute(_id: string, { projectUuid, title, content }: { projectUuid: string; title: string; content?: string }) {
       const args: Record<string, unknown> = { projectUuid, title };
       if (content) args.content = content;
-      const result = await mcpClient.callTool("chorus_pm_create_idea", args);
+      const result = await mcpClient.callTool("synapse_pm_create_idea", args);
       return JSON.stringify(result, null, 2);
     },
   });

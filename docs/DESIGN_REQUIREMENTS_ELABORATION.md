@@ -30,7 +30,7 @@ Idea → PM analyzes → PM asks structured questions → Human answers →
 3. **Iterative** — Multiple rounds of clarification are supported
 4. **Observable** — Humans can see the full Q&A history on the Idea detail page
 5. **Adaptive** — Simple Ideas can skip elaboration; complex Ideas get multiple rounds
-6. **Builds on existing infra** — Reuses Chorus's existing patterns (polymorphic entities, MCP tools, Activity stream)
+6. **Builds on existing infra** — Reuses Synapse's existing patterns (polymorphic entities, MCP tools, Activity stream)
 
 ## Architecture Decision
 
@@ -221,12 +221,12 @@ any → closed                 (admin closes)
 
 ### PM Agent Tools (new)
 
-#### `chorus_pm_start_elaboration`
+#### `synapse_pm_start_elaboration`
 
 PM Agent analyzes the Idea and determines the appropriate depth. Creates the first round of questions.
 
 ```typescript
-chorus_pm_start_elaboration({
+synapse_pm_start_elaboration({
   ideaUuid: string,
   depth: "minimal" | "standard" | "comprehensive",
   questions: [
@@ -257,12 +257,12 @@ chorus_pm_start_elaboration({
 - At least 1 question required
 - Each question must have 2-5 options
 
-#### `chorus_pm_validate_elaboration`
+#### `synapse_pm_validate_elaboration`
 
 PM Agent reviews answers and validates for contradictions/ambiguities.
 
 ```typescript
-chorus_pm_validate_elaboration({
+synapse_pm_validate_elaboration({
   ideaUuid: string,
   roundUuid: string,
   issues: [                    // Empty array if all clear
@@ -281,12 +281,12 @@ chorus_pm_validate_elaboration({
 - If `issues` is non-empty AND `followUpQuestions` provided: marks round as `"needs_followup"`, creates new round, keeps `elaborationStatus` as `"pending_answers"`
 - Creates Activity: `"elaboration_validated"` or `"elaboration_followup_created"`
 
-#### `chorus_pm_skip_elaboration`
+#### `synapse_pm_skip_elaboration`
 
 For trivially clear Ideas (bug fixes, small changes), PM can skip the elaboration process.
 
 ```typescript
-chorus_pm_skip_elaboration({
+synapse_pm_skip_elaboration({
   ideaUuid: string,
   reason: string          // Why elaboration is unnecessary
 })
@@ -299,12 +299,12 @@ chorus_pm_skip_elaboration({
 
 ### Public Tools (Human/Admin answering)
 
-#### `chorus_answer_elaboration`
+#### `synapse_answer_elaboration`
 
 Human (or Admin Agent) answers the pending questions.
 
 ```typescript
-chorus_answer_elaboration({
+synapse_answer_elaboration({
   ideaUuid: string,
   roundUuid: string,
   answers: [
@@ -328,12 +328,12 @@ chorus_answer_elaboration({
 - `selectedOptionId` must match one of the question's option IDs (or null for custom)
 - If `selectedOptionId` is the "Other" option, `customText` is required
 
-#### `chorus_get_elaboration`
+#### `synapse_get_elaboration`
 
 Read the current elaboration state for an Idea.
 
 ```typescript
-chorus_get_elaboration({
+synapse_get_elaboration({
   ideaUuid: string
 })
 ```
@@ -365,7 +365,7 @@ After analyzing the Idea, determine if clarification is needed:
 
 **Simple Ideas** (bug fixes, small changes with clear requirements):
   → Skip elaboration:
-  chorus_pm_skip_elaboration({ ideaUuid, reason: "Bug fix with clear reproduction steps" })
+  synapse_pm_skip_elaboration({ ideaUuid, reason: "Bug fix with clear reproduction steps" })
 
 **Standard/Complex Ideas** (new features, multi-component changes):
   → Start elaboration:
@@ -376,7 +376,7 @@ After analyzing the Idea, determine if clarification is needed:
      - "comprehensive": 10+ questions, 2-3 rounds expected
 
   2. Create first round of questions:
-     chorus_pm_start_elaboration({
+     synapse_pm_start_elaboration({
        ideaUuid: "<idea-uuid>",
        depth: "standard",
        questions: [
@@ -396,10 +396,10 @@ After analyzing the Idea, determine if clarification is needed:
        ]
      })
 
-  3. Wait for answers (human fills in via UI or chorus_answer_elaboration tool).
+  3. Wait for answers (human fills in via UI or synapse_answer_elaboration tool).
 
   4. Validate the answers:
-     chorus_get_elaboration({ ideaUuid: "<idea-uuid>" })
+     synapse_get_elaboration({ ideaUuid: "<idea-uuid>" })
 
      Check for:
      - Contradictions between answers (e.g., "offline mode" + "real-time sync")
@@ -407,7 +407,7 @@ After analyzing the Idea, determine if clarification is needed:
      - Missing context (required question unanswered)
 
   5. If issues found, create follow-up round:
-     chorus_pm_validate_elaboration({
+     synapse_pm_validate_elaboration({
        ideaUuid: "<idea-uuid>",
        roundUuid: "<round-uuid>",
        issues: [{ questionId: "q3", type: "ambiguity", description: "..." }],
@@ -417,7 +417,7 @@ After analyzing the Idea, determine if clarification is needed:
   6. Repeat until all rounds validated.
 
   7. If all clear:
-     chorus_pm_validate_elaboration({
+     synapse_pm_validate_elaboration({
        ideaUuid: "<idea-uuid>",
        roundUuid: "<round-uuid>",
        issues: []
@@ -457,7 +457,7 @@ The PM Agent determines depth based on:
 
 ### Key Insight: PM Agent = The CC Session
 
-A Chorus PM Agent is identified by an **API Key** with `pm_agent` role. When a human runs Claude Code with that API Key, the CC session **is** the PM Agent. The human and the PM Agent are in the **same terminal** — there is no sub-agent indirection.
+A Synapse PM Agent is identified by an **API Key** with `pm_agent` role. When a human runs Claude Code with that API Key, the CC session **is** the PM Agent. The human and the PM Agent are in the **same terminal** — there is no sub-agent indirection.
 
 This means: when the PM Agent needs to ask the human clarification questions, it can use `AskUserQuestion` **directly**. No SendMessage, no Team Lead proxy, no plugin hooks needed for the primary flow.
 
@@ -470,7 +470,7 @@ Human starts CC with PM Agent API Key
 PM Agent claims Idea → analyzes → determines depth
   │
   ▼
-PM Agent calls chorus_pm_start_elaboration()       ← persists to Chorus
+PM Agent calls synapse_pm_start_elaboration()       ← persists to Synapse
   ├→ Stores questions in Idea.elaborationRounds
   ├→ Activity + Notification created (for UI/async channel)
   │
@@ -489,7 +489,7 @@ PM Agent IMMEDIATELY uses AskUserQuestion:          ← asks human in terminal
 Human answers in terminal
   │
   ▼
-PM Agent calls chorus_answer_elaboration()          ← persists answers
+PM Agent calls synapse_answer_elaboration()          ← persists answers
   │
   ▼
 PM Agent validates (check contradictions / gaps)
@@ -497,9 +497,9 @@ PM Agent validates (check contradictions / gaps)
   └─ Issues → AskUserQuestion with follow-up → iterate
 ```
 
-**No plugin hooks, no message relay, no proxy.** The PM skill doc simply instructs: "After calling `chorus_pm_start_elaboration`, immediately present the questions to the user via `AskUserQuestion`, then submit answers via `chorus_answer_elaboration`."
+**No plugin hooks, no message relay, no proxy.** The PM skill doc simply instructs: "After calling `synapse_pm_start_elaboration`, immediately present the questions to the user via `AskUserQuestion`, then submit answers via `synapse_answer_elaboration`."
 
-**Why persist to Chorus if PM asks directly?**
+**Why persist to Synapse if PM asks directly?**
 1. **Persistence** — If CC session dies mid-elaboration, the next session resumes (SessionStart detects `elaborationStatus = "pending_answers"`)
 2. **UI access** — Human can review/amend answers on the Dashboard later
 3. **Audit trail** — Full Q&A history for requirements traceability
@@ -510,7 +510,7 @@ PM Agent validates (check contradictions / gaps)
 When the human is NOT in CC (offline, different timezone, or Idea created by someone else):
 
 ```
-PM Agent creates questions → Chorus stores → Notification created
+PM Agent creates questions → Synapse stores → Notification created
   │
   ▼
 SSE pushes to browser → NotificationBell badge → Human clicks
@@ -524,11 +524,11 @@ SSE pushes to browser → NotificationBell badge → Human clicks
 If the CC session restarts before elaboration is complete:
 
 ```
-SessionStart hook → chorus_checkin() → assignments include:
+SessionStart hook → synapse_checkin() → assignments include:
   "Idea X: elaborationStatus = pending_answers"
   │
   ▼
-PM Agent calls chorus_get_elaboration({ ideaUuid })
+PM Agent calls synapse_get_elaboration({ ideaUuid })
   ├─ Unanswered questions → AskUserQuestion (resume where left off)
   ├─ Answers exist, not validated → validate → proceed or follow-up
   └─ Elaboration resolved → proceed to Proposal creation
@@ -635,13 +635,13 @@ In the primary flow (human is in CC with PM Agent), the PM Agent uses `AskUserQu
 
 ### Notifications Serve the Secondary (UI) Flow
 
-Chorus's existing notification system (EventBus + NotificationListener + SSE) handles the async/UI channel automatically:
+Synapse's existing notification system (EventBus + NotificationListener + SSE) handles the async/UI channel automatically:
 
-1. `chorus_pm_start_elaboration()` → `activityService.createActivity({ action: "elaboration_started" })` → NotificationListener fires
+1. `synapse_pm_start_elaboration()` → `activityService.createActivity({ action: "elaboration_started" })` → NotificationListener fires
 2. Notification pushed to Idea creator via SSE → bell badge in browser
 3. Human answers on Idea detail page → server action stores answers
 4. Activity `elaboration_answered` → Notification to PM Agent
-5. PM Agent picks up on next CC session via `chorus_get_elaboration`
+5. PM Agent picks up on next CC session via `synapse_get_elaboration`
 
 ### Notification Types to Add
 
@@ -664,12 +664,12 @@ Note: In the primary CC flow, the PM Agent gets answers immediately (via `AskUse
 
 ### Session Resume (SessionStart Hook)
 
-When a PM Agent's CC session restarts (crash, timeout, next day), the SessionStart hook already calls `chorus_checkin()` which returns assignments. The PM skill doc instructs the agent to check for Ideas with `elaborationStatus != "resolved"` and resume:
+When a PM Agent's CC session restarts (crash, timeout, next day), the SessionStart hook already calls `synapse_checkin()` which returns assignments. The PM skill doc instructs the agent to check for Ideas with `elaborationStatus != "resolved"` and resume:
 
 ```
-PM Agent starts session → chorus_checkin() → sees assigned Ideas
+PM Agent starts session → synapse_checkin() → sees assigned Ideas
   → For each Idea with elaborationStatus = "pending_answers":
-      → chorus_get_elaboration() → check if human answered on UI while PM was offline
+      → synapse_get_elaboration() → check if human answered on UI while PM was offline
         ├─ Answers present → validate → proceed
         └─ No answers → AskUserQuestion again (resume in CC)
 ```
@@ -681,10 +681,10 @@ No plugin hook changes needed — this is purely skill doc instructions.
 ```
 1. Human in CC (API Key has pm_agent role)
 2. PM Agent (= CC session) claims Idea → analyzes
-3. PM Agent calls chorus_pm_start_elaboration (stores to Chorus)
+3. PM Agent calls synapse_pm_start_elaboration (stores to Synapse)
 4. PM Agent IMMEDIATELY uses AskUserQuestion → human sees questions in terminal
 5. Human answers in terminal
-6. PM Agent calls chorus_answer_elaboration (persists answers)
+6. PM Agent calls synapse_answer_elaboration (persists answers)
 7. PM Agent validates → all clear → creates Proposal
 ```
 
@@ -696,12 +696,12 @@ Total round-trip: seconds. No async wait, no channel switching.
 1. Human creates Idea on Dashboard
 2. A separate PM Agent session claims Idea, starts elaboration
 3. PM Agent has no human in its CC terminal (batch/background mode)
-   → PM calls chorus_pm_start_elaboration (stores questions)
+   → PM calls synapse_pm_start_elaboration (stores questions)
    → PM goes idle / session ends
 4. NotificationListener → SSE push → Dashboard bell badge
 5. Human clicks notification → Idea detail page → answers in UI
 6. NotificationListener → notification to PM Agent
-7. PM Agent's next session: chorus_get_elaboration → sees answers → validates → Proposal
+7. PM Agent's next session: synapse_get_elaboration → sees answers → validates → Proposal
 ```
 
 Both flows use the same service layer. The difference is whether human interaction is synchronous (CC) or asynchronous (UI).
@@ -727,13 +727,13 @@ buildElaborationSummary(rounds): Summary  // Aggregates stats across rounds
 ### MCP Tool Registration
 
 New tools registered in `src/mcp/tools/pm.ts` (PM-only):
-- `chorus_pm_start_elaboration`
-- `chorus_pm_validate_elaboration`
-- `chorus_pm_skip_elaboration`
+- `synapse_pm_start_elaboration`
+- `synapse_pm_validate_elaboration`
+- `synapse_pm_skip_elaboration`
 
 New tools registered in `src/mcp/tools/public.ts` (all roles):
-- `chorus_answer_elaboration`
-- `chorus_get_elaboration`
+- `synapse_answer_elaboration`
+- `synapse_get_elaboration`
 
 ## Migration Path
 
@@ -757,7 +757,7 @@ New tools registered in `src/mcp/tools/public.ts` (all roles):
 
 11. Update Plugin context injection for elaboration-aware hints
 12. Connect to Notification system (when available)
-13. Add elaboration summary to `chorus_checkin` response
+13. Add elaboration summary to `synapse_checkin` response
 
 ## Relationship to Proposal Flow
 
@@ -783,5 +783,5 @@ The two gates serve different purposes:
 
 - **Multi-stage gates within Proposal creation** — That's a separate enhancement (see Gap #5 in AIDLC_GAP_ANALYSIS.md)
 - **Adaptive depth auto-detection** — PM Agent determines depth manually; auto-detection based on NLP analysis of Idea content is a future enhancement
-- **Workspace Detection / Reverse Engineering** — These are IDE-level concerns, not platform-level. Chorus agents do this in their own environment.
+- **Workspace Detection / Reverse Engineering** — These are IDE-level concerns, not platform-level. Synapse agents do this in their own environment.
 - **Audit trail with raw user inputs** — The elaboration rounds implicitly record all Q&A with timestamps, which serves as a lightweight audit trail for requirements decisions

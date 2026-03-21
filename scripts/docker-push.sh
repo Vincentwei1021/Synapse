@@ -2,9 +2,9 @@
 set -euo pipefail
 
 # ─── Config ──────────────────────────────────────────────────────────────────
-IMAGE="chorusaidlc/chorus-app"
+IMAGE="synapseaidlc/synapse-app"
 PLATFORMS="linux/amd64,linux/arm64"
-BUILDER_NAME="chorus-multiarch"
+BUILDER_NAME="synapse-multiarch"
 
 # ─── Resolve tag ─────────────────────────────────────────────────────────────
 # Usage:
@@ -31,7 +31,7 @@ fi
 TAGS="-t ${IMAGE}:${TAG} -t ${IMAGE}:latest"
 
 echo "============================================"
-echo "  Chorus Docker Multi-Arch Build & Push"
+echo "  Synapse Docker Multi-Arch Build & Push"
 echo "============================================"
 echo "  Image:      ${IMAGE}"
 echo "  Tag:        ${TAG}"
@@ -61,7 +61,7 @@ echo "Building for platforms: ${PLATFORMS} ..."
 BUILD_CMD="docker buildx build \
   --platform ${PLATFORMS} \
   --target production \
-  --label org.opencontainers.image.source=https://github.com/chorusaidlc/chorus-app \
+  --label org.opencontainers.image.source=https://github.com/synapseaidlc/synapse-app \
   --label org.opencontainers.image.revision=${GIT_SHA} \
   --label org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
   ${TAGS}"

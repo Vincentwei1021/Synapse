@@ -1,6 +1,6 @@
 # Synapse Transformation Design
 
-> Chorus → Synapse: AI Research Lifecycle Platform
+> Synapse → Synapse: AI Research Lifecycle Platform
 > Date: 2026-03-21
 > Based on: docs/SYNAPSE_SPEC.md
 > Revision: 2 (post spec-review)
@@ -9,11 +9,11 @@
 
 ## Overview
 
-Transform Chorus (AI-driven software development platform) into Synapse (AI-driven research platform). Full deep rename of all references, model names, API routes, MCP tools, and UI strings. Implementation uses a layered approach: Schema → Backend → Frontend.
+Transform Synapse (AI-driven software development platform) into Synapse (AI-driven research platform). Full deep rename of all references, model names, API routes, MCP tools, and UI strings. Implementation uses a layered approach: Schema → Backend → Frontend.
 
 ## Decisions
 
-- **Rename strategy**: Full deep rename (Approach A). No backward compatibility with Chorus naming.
+- **Rename strategy**: Full deep rename (Approach A). No backward compatibility with Synapse naming.
 - **Model rename strategy**: Full model rename (Approach B). Prisma models, services, routes all use research terminology.
 - **Implementation strategy**: Layered (Approach B). Three sub-phases executed sequentially.
 - **Migration strategy**: Fresh fork, no production data. Single migration per sub-phase.
@@ -208,24 +208,24 @@ Default role on Agent model: `@default(["researcher"])` (was `["developer"]`).
 
 ### 1.9 API Key Prefix
 
-`cho_` → `syn_`
+`syn_` → `syn_`
 
 ### 1.10 Environment Variables and Config Values
 
-Env vars and config strings with `chorus` references:
+Env vars and config strings with `synapse` references:
 
 | Location | Old Value | New Value |
 |---|---|---|
-| `.env.example` DATABASE_URL | `chorus:chorus@.../chorus` | `synapse:synapse@.../synapse` |
-| `.env.example` REDIS_URL | `chorus-redis` | `synapse-redis` |
-| `.env.example` DEFAULT_USER | `dev@chorus.local` | `dev@synapse.local` |
-| `.env.example` DEFAULT_PASSWORD | `chorus123` | `synapse123` |
-| Plugin env vars | `CHORUS_URL`, `CHORUS_API_KEY` | `SYNAPSE_URL`, `SYNAPSE_API_KEY` |
-| `docker-compose.yml` | service/db names with `chorus` | `synapse` |
-| `docker-entrypoint.sh` | any `chorus` references | `synapse` |
-| `install.sh` | Stack name default `Chorus` | `Synapse` |
-| `packages/synapse-cdk/` | all `chorus` references | `synapse` |
-| Plugin skill docs | `CHORUS_URL`, `CHORUS_API_KEY` | `SYNAPSE_URL`, `SYNAPSE_API_KEY` |
+| `.env.example` DATABASE_URL | `synapse:synapse@.../synapse` | `synapse:synapse@.../synapse` |
+| `.env.example` REDIS_URL | `synapse-redis` | `synapse-redis` |
+| `.env.example` DEFAULT_USER | `dev@synapse.local` | `dev@synapse.local` |
+| `.env.example` DEFAULT_PASSWORD | `synapse123` | `synapse123` |
+| Plugin env vars | `SYNAPSE_URL`, `SYNAPSE_API_KEY` | `SYNAPSE_URL`, `SYNAPSE_API_KEY` |
+| `docker-compose.yml` | service/db names with `synapse` | `synapse` |
+| `docker-entrypoint.sh` | any `synapse` references | `synapse` |
+| `install.sh` | Stack name default `Synapse` | `Synapse` |
+| `packages/synapse-cdk/` | all `synapse` references | `synapse` |
+| Plugin skill docs | `SYNAPSE_URL`, `SYNAPSE_API_KEY` | `SYNAPSE_URL`, `SYNAPSE_API_KEY` |
 
 ---
 
@@ -333,7 +333,7 @@ New routes:
 
 ### 2.5 MCP Tools
 
-Server name: `"chorus"` → `"synapse"`
+Server name: `"synapse"` → `"synapse"`
 
 Tool file renames:
 | Current | New |
@@ -344,7 +344,7 @@ Tool file renames:
 | `tools/public.ts` | Keep |
 | `tools/session.ts` | Keep |
 
-All tool name prefixes: `chorus_*` → `synapse_*`
+All tool name prefixes: `synapse_*` → `synapse_*`
 
 Role checks in `server.ts`:
 - `"pm"` → `"research_lead"`
@@ -373,7 +373,7 @@ PI tools:
 
 ### 2.6 Auth Layer
 
-- `src/lib/api-key.ts`: prefix `"cho_"` → `"syn_"`
+- `src/lib/api-key.ts`: prefix `"syn_"` → `"syn_"`
 - `src/types/auth.ts`: `AgentRole` type: `"pm" | "developer" | "admin"` → `"research_lead" | "researcher" | "pi"`
 - `src/lib/auth.ts`: `isPmAgent()` → `isResearchLead()`, `isDeveloperAgent()` → `isResearcher()`
 
@@ -381,12 +381,12 @@ PI tools:
 
 | Item | Old | New |
 |---|---|---|
-| EventBus class | `ChorusEventBus` | `SynapseEventBus` |
-| EventBus global | `globalThis.chorusEventBus` | `globalThis.synapseEventBus` |
-| Redis channel | `"chorus:events"` | `"synapse:events"` |
-| MCP HTTP headers | `X-Chorus-Project` | `X-Synapse-Project` |
-| MCP HTTP headers | `X-Chorus-Project-Group` | `X-Synapse-Project-Group` |
-| Locale cookie | `chorus-locale` | `synapse-locale` |
+| EventBus class | `SynapseEventBus` | `SynapseEventBus` |
+| EventBus global | `globalThis.synapseEventBus` | `globalThis.synapseEventBus` |
+| Redis channel | `"synapse:events"` | `"synapse:events"` |
+| MCP HTTP headers | `X-Synapse-Project` | `X-Synapse-Project` |
+| MCP HTTP headers | `X-Synapse-Project-Group` | `X-Synapse-Project-Group` |
+| Locale cookie | `synapse-locale` | `synapse-locale` |
 
 Affected files:
 - `src/lib/event-bus.ts`
@@ -480,7 +480,7 @@ Full terminology replacement in both `messages/en.json` and `messages/zh.json`:
 | PM Agent | Research Lead | 研究负责人 |
 | Developer Agent | Research Agent | 研究代理 |
 | Admin Agent | Principal Investigator | 首席研究员 |
-| Chorus | Synapse | Synapse |
+| Synapse | Synapse | Synapse |
 
 Note: "Experiment Plan" (the task-breakdown aspect of an Experiment Design) should appear in relevant i18n strings where Proposals currently distinguish "PRD" vs "task breakdown" content.
 
@@ -501,19 +501,19 @@ New i18n key groups:
 
 | Item | Action |
 |---|---|
-| `package.json` | name `"chorus"` → `"synapse"` |
+| `package.json` | name `"synapse"` → `"synapse"` |
 | `README.md` / `README.zh.md` | Rewrite for Synapse identity |
 | `CLAUDE.md` | Update all references, terminology, examples |
 | `docs/` | Update terminology in all doc files |
-| `public/skill/` | Update skill docs (Chorus → Synapse terminology) |
-| `public/chorus-plugin/` | Rename to `public/synapse-plugin/`, update all content |
-| `packages/chorus-cdk/` | Rename to `packages/synapse-cdk/`, update package name |
-| `packages/openclaw-plugin/` | Update Chorus refs, role terminology, `cho_` → `syn_` |
-| `.claude-plugin/marketplace.json` | Update `"chorus-plugins"` → `"synapse-plugins"`, plugin name |
-| `.claude/settings.json` | Update any Chorus references |
+| `public/skill/` | Update skill docs (Synapse → Synapse terminology) |
+| `public/synapse-plugin/` | Rename to `public/synapse-plugin/`, update all content |
+| `packages/synapse-cdk/` | Rename to `packages/synapse-cdk/`, update package name |
+| `packages/openclaw-plugin/` | Update Synapse refs, role terminology, `syn_` → `syn_` |
+| `.claude-plugin/marketplace.json` | Update `"synapse-plugins"` → `"synapse-plugins"`, plugin name |
+| `.claude/settings.json` | Update any Synapse references |
 | `docker-compose.yml` | Update service/image names |
 | `Dockerfile` | Update labels, references |
-| `docker-entrypoint.sh` | Update any Chorus references |
+| `docker-entrypoint.sh` | Update any Synapse references |
 | `pnpm-workspace.yaml` | Update if package names changed |
 
 ---

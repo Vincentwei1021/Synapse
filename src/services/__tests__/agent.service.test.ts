@@ -75,7 +75,7 @@ function makeApiKey(overrides: Record<string, unknown> = {}) {
     agentUuid,
     companyUuid,
     keyHash: "hash123",
-    keyPrefix: "cho_abc",
+    keyPrefix: "syn_abc",
     name: "Test Key",
     lastUsed: null,
     expiresAt: null,
@@ -88,9 +88,9 @@ function makeApiKey(overrides: Record<string, unknown> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   mockGenerateApiKey.mockReturnValue({
-    key: "cho_test_key_12345",
+    key: "syn_test_key_12345",
     hash: "hashed_value",
-    prefix: "cho_test",
+    prefix: "syn_test",
   });
 });
 
@@ -384,14 +384,14 @@ describe("createApiKey", () => {
     });
 
     expect(result.uuid).toBe(apiKeyUuid);
-    expect(result.key).toBe("cho_test_key_12345");
+    expect(result.key).toBe("syn_test_key_12345");
     expect(mockPrisma.apiKey.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: {
           companyUuid,
           agentUuid,
           keyHash: "hashed_value",
-          keyPrefix: "cho_test",
+          keyPrefix: "syn_test",
           name: "Test Key",
           expiresAt: undefined,
         },

@@ -1,6 +1,6 @@
 # Authentication Architecture
 
-Chorus supports four authentication methods, all converging into a single unified `AuthContext` through the `getAuthContext()` function in `src/lib/auth.ts`. This document explains each method, how they are resolved, and how token lifecycle is managed.
+Synapse supports four authentication methods, all converging into a single unified `AuthContext` through the `getAuthContext()` function in `src/lib/auth.ts`. This document explains each method, how they are resolved, and how token lifecycle is managed.
 
 ---
 
@@ -62,13 +62,13 @@ if (hasRole(auth, "pm")) {
 
 **How it works**:
 
-1. Agent sends `Authorization: Bearer cho_<random64bytes>`
-2. `getAuthContext()` detects the `cho_` prefix
+1. Agent sends `Authorization: Bearer syn_<random64bytes>`
+2. `getAuthContext()` detects the `syn_` prefix
 3. `validateApiKey(token)` hashes the token with SHA-256 and looks up `prisma.apiKey` by `keyHash`
 4. Checks: not revoked, not expired
 5. Returns `AgentAuthContext` with the agent's `roles`, `companyUuid`, `actorUuid`
 
-**Key generation**: `generateApiKey()` creates `cho_<32-byte-random-base64url>`. The raw key is shown once at creation time; only the SHA-256 hash is stored in the database.
+**Key generation**: `generateApiKey()` creates `syn_<32-byte-random-base64url>`. The raw key is shown once at creation time; only the SHA-256 hash is stored in the database.
 
 **Security**: Comparison uses `crypto.timingSafeEqual()` to prevent timing attacks.
 
@@ -124,8 +124,8 @@ if (hasRole(auth, "pm")) {
 **Environment variables**:
 
 ```bash
-DEFAULT_USER="dev@chorus.local"
-DEFAULT_PASSWORD="chorus123"
+DEFAULT_USER="dev@synapse.local"
+DEFAULT_PASSWORD="synapse123"
 ```
 
 When both are set, `isDefaultAuthEnabled()` returns true and the login page shows an email/password form.
@@ -178,9 +178,9 @@ SUPER_ADMIN_PASSWORD_HASH="$2b$10$..."   # bcrypt hash
 
 ```
 Step 1: Authorization header (Bearer token)
-  ├─ cho_* prefix   → API Key validation     → AgentAuthContext
+  ├─ syn_* prefix   → API Key validation     → AgentAuthContext
   ├─ RS*/ES* JWT    → OIDC token verification → UserAuthContext
-  └─ HS256 JWT      → Chorus JWT verification → UserAuthContext
+  └─ HS256 JWT      → Synapse JWT verification → UserAuthContext
 
 Step 2: Session cookies
   └─ user_session or admin_session → UserAuthContext or SuperAdminAuthContext
@@ -191,10 +191,10 @@ Step 3: OIDC cookie (for SSE/EventSource — no Authorization header)
 Step 4: return null (unauthenticated)
 ```
 
-**Token type detection**: `isOidcToken()` distinguishes OIDC JWTs from Chorus self-signed JWTs by checking:
-- Not a `cho_` API key
+**Token type detection**: `isOidcToken()` distinguishes OIDC JWTs from Synapse self-signed JWTs by checking:
+- Not a `syn_` API key
 - Valid 3-part JWT structure
-- Header algorithm is RS* or ES* (asymmetric = OIDC) vs HS256 (symmetric = Chorus)
+- Header algorithm is RS* or ES* (asymmetric = OIDC) vs HS256 (symmetric = Synapse)
 
 ---
 

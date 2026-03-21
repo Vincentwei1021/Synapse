@@ -1,16 +1,16 @@
 ---
 name: release
-description: Release a new version of Chorus — bump version, update CHANGELOG, commit, tag, and create GitHub release.
+description: Release a new version of Synapse — bump version, update CHANGELOG, commit, tag, and create GitHub release.
 license: AGPL-3.0
 metadata:
-  author: chorus
+  author: synapse
   version: "0.1.0"
   category: development
 ---
 
-# Chorus Release Process
+# Synapse Release Process
 
-Step-by-step guide to cut a new release of Chorus.
+Step-by-step guide to cut a new release of Synapse.
 
 ## Prerequisites
 

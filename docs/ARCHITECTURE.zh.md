@@ -1,6 +1,6 @@
 > [English Version](./ARCHITECTURE.md)
 
-# Project Chorus - 技术架构文档
+# Project Synapse - 技术架构文档
 
 **版本**: 2.0
 **更新日期**: 2026-02-18
@@ -11,7 +11,7 @@
 
 ### 1.1 定位
 
-Chorus 是一个 AI Agent 与人类协作的平台，实现 AI-DLC（AI-Driven Development Lifecycle）方法论。核心理念是 **Reversed Conversation**：AI 提议，人类验证。
+Synapse 是一个 AI Agent 与人类协作的平台，实现 AI-DLC（AI-Driven Development Lifecycle）方法论。核心理念是 **Reversed Conversation**：AI 提议，人类验证。
 
 ### 1.2 核心能力
 
@@ -25,14 +25,14 @@ Chorus 是一个 AI Agent 与人类协作的平台，实现 AI-DLC（AI-Driven D
 | **活动流** | 实时追踪所有参与者的操作（含 Session 归因） |
 | **通知系统** | 应用内通知 + SSE 实时推送 + Redis Pub/Sub 跨实例传播 + 偏好设置 + Agent MCP 工具 |
 | **Session 可观测性** | Agent Session + Task Checkin，Kanban/Task Detail 实时显示活跃 Worker |
-| **Chorus Plugin** | Claude Code 插件，自动化 Session 生命周期（创建/心跳/关闭） |
+| **Synapse Plugin** | Claude Code 插件，自动化 Session 生命周期（创建/心跳/关闭） |
 | **Task DAG** | 任务依赖建模、环检测、@xyflow/react + dagre 可视化 |
 
 ### 1.3 参与者
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         Chorus Platform                              │
+│                         Synapse Platform                              │
 └─────────────────────────────────────────────────────────────────────┘
         ↑               ↑               ↑               ↑
         │               │               │               │
@@ -137,7 +137,7 @@ Chorus 是一个 AI Agent 与人类协作的平台，实现 AI-DLC（AI-Driven D
 
 ### 3.2 Controller-Service-DAO 架构
 
-Chorus 采用经典的三层架构模式，职责清晰分离：
+Synapse 采用经典的三层架构模式，职责清晰分离：
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -247,7 +247,7 @@ export async function listProjects({ companyUuid, skip, take }) {
 
 ### 3.3 前端架构：Server Components + Server Actions
 
-Chorus 采用 Next.js 15 的 React Server Components (RSC) 和 Server Actions 架构，最大化服务端渲染和减少客户端 JavaScript。
+Synapse 采用 Next.js 15 的 React Server Components (RSC) 和 Server Actions 架构，最大化服务端渲染和减少客户端 JavaScript。
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -403,7 +403,7 @@ export function TaskActions({ taskUuid, status }: Props) {
 ### 3.4 目录结构
 
 ```
-chorus/
+synapse/
 ├── docker-compose.yml          # 本地开发环境
 ├── Dockerfile                  # 生产镜像
 ├── package.json
@@ -587,10 +587,10 @@ chorus/
 │   │   ├── SKILL.md
 │   │   ├── package.json
 │   │   └── references/             # Role-specific workflow docs (7 files)
-│   └── chorus-plugin/              # Chorus Plugin for Claude Code
+│   └── synapse-plugin/              # Synapse Plugin for Claude Code
 │       ├── hooks/                  # Claude Code hooks configuration
 │       ├── bin/                    # Hook scripts (on-subagent-start/stop/idle)
-│       ├── skills/chorus/          # Plugin-embedded Skill (with session automation)
+│       ├── skills/synapse/          # Plugin-embedded Skill (with session automation)
 │       └── .mcp.json               # MCP server config template
 │
 └── tests/
@@ -1063,61 +1063,61 @@ Header: Authorization: Bearer {api_key}
 
 | 工具 | 描述 |
 |-----|------|
-| `chorus_checkin` | 签到：获取 persona、assignments、pending work |
-| `chorus_get_project` | 获取项目详情 |
-| `chorus_get_ideas` / `chorus_get_idea` | 列出/获取 Ideas |
-| `chorus_get_documents` / `chorus_get_document` | 列出/获取 Documents |
-| `chorus_get_proposals` / `chorus_get_proposal` | 列出/获取 Proposals（含草稿） |
-| `chorus_list_tasks` / `chorus_get_task` | 列出/获取 Tasks |
-| `chorus_get_activity` | 项目活动流 |
-| `chorus_get_my_assignments` | 我认领的 Ideas + Tasks |
-| `chorus_get_available_ideas` | 可认领的 Ideas |
-| `chorus_get_available_tasks` | 可认领的 Tasks |
-| `chorus_get_unblocked_tasks` | 依赖已全部完成的 Tasks（调度用） |
-| `chorus_add_comment` / `chorus_get_comments` | 评论 CRUD |
+| `synapse_checkin` | 签到：获取 persona、assignments、pending work |
+| `synapse_get_project` | 获取项目详情 |
+| `synapse_get_ideas` / `synapse_get_idea` | 列出/获取 Ideas |
+| `synapse_get_documents` / `synapse_get_document` | 列出/获取 Documents |
+| `synapse_get_proposals` / `synapse_get_proposal` | 列出/获取 Proposals（含草稿） |
+| `synapse_list_tasks` / `synapse_get_task` | 列出/获取 Tasks |
+| `synapse_get_activity` | 项目活动流 |
+| `synapse_get_my_assignments` | 我认领的 Ideas + Tasks |
+| `synapse_get_available_ideas` | 可认领的 Ideas |
+| `synapse_get_available_tasks` | 可认领的 Tasks |
+| `synapse_get_unblocked_tasks` | 依赖已全部完成的 Tasks（调度用） |
+| `synapse_add_comment` / `synapse_get_comments` | 评论 CRUD |
 
 #### Session 工具（All Agents）
 
 | 工具 | 描述 |
 |-----|------|
-| `chorus_create_session` | 创建命名 Session |
-| `chorus_list_sessions` | 列出 Sessions |
-| `chorus_close_session` / `chorus_reopen_session` | 关闭/重开 Session |
-| `chorus_session_checkin_task` / `chorus_session_checkout_task` | Task Checkin/Checkout |
-| `chorus_session_heartbeat` | Session 心跳 |
+| `synapse_create_session` | 创建命名 Session |
+| `synapse_list_sessions` | 列出 Sessions |
+| `synapse_close_session` / `synapse_reopen_session` | 关闭/重开 Session |
+| `synapse_session_checkin_task` / `synapse_session_checkout_task` | Task Checkin/Checkout |
+| `synapse_session_heartbeat` | Session 心跳 |
 
 #### Developer Agent 工具
 
 | 工具 | 描述 |
 |-----|------|
-| `chorus_claim_task` / `chorus_release_task` | 认领/释放 Task |
-| `chorus_update_task` | 更新任务状态（含 sessionUuid 归因） |
-| `chorus_submit_for_verify` | 提交任务验证 |
-| `chorus_report_work` | 报告工作（含 sessionUuid 归因） |
+| `synapse_claim_task` / `synapse_release_task` | 认领/释放 Task |
+| `synapse_update_task` | 更新任务状态（含 sessionUuid 归因） |
+| `synapse_submit_for_verify` | 提交任务验证 |
+| `synapse_report_work` | 报告工作（含 sessionUuid 归因） |
 
 #### PM Agent 工具
 
 | 工具 | 描述 |
 |-----|------|
-| `chorus_claim_idea` / `chorus_release_idea` | 认领/释放 Idea |
-| `chorus_update_idea_status` | 更新 Idea 状态 |
-| `chorus_pm_create_proposal` / `chorus_pm_submit_proposal` | 创建/提交 Proposal |
-| `chorus_pm_create_document` / `chorus_pm_update_document` | Document CRUD |
-| `chorus_pm_create_tasks` | 批量创建 Tasks |
-| `chorus_pm_assign_task` | 分配 Task |
-| `chorus_pm_add_document_draft` / `chorus_pm_update_document_draft` / `chorus_pm_remove_document_draft` | 文档草稿管理 |
-| `chorus_pm_add_task_draft` / `chorus_pm_update_task_draft` / `chorus_pm_remove_task_draft` | 任务草稿管理 |
-| `chorus_add_task_dependency` / `chorus_remove_task_dependency` | Task 依赖 DAG 管理 |
+| `synapse_claim_idea` / `synapse_release_idea` | 认领/释放 Idea |
+| `synapse_update_idea_status` | 更新 Idea 状态 |
+| `synapse_pm_create_proposal` / `synapse_pm_submit_proposal` | 创建/提交 Proposal |
+| `synapse_pm_create_document` / `synapse_pm_update_document` | Document CRUD |
+| `synapse_pm_create_tasks` | 批量创建 Tasks |
+| `synapse_pm_assign_task` | 分配 Task |
+| `synapse_pm_add_document_draft` / `synapse_pm_update_document_draft` / `synapse_pm_remove_document_draft` | 文档草稿管理 |
+| `synapse_pm_add_task_draft` / `synapse_pm_update_task_draft` / `synapse_pm_remove_task_draft` | 任务草稿管理 |
+| `synapse_add_task_dependency` / `synapse_remove_task_dependency` | Task 依赖 DAG 管理 |
 
 #### Admin Agent 工具
 
 | 工具 | 描述 |
 |-----|------|
-| `chorus_admin_create_project` | 创建项目 |
-| `chorus_admin_approve_proposal` / `chorus_admin_reject_proposal` / `chorus_admin_close_proposal` | Proposal 审批 |
-| `chorus_admin_verify_task` / `chorus_admin_reopen_task` / `chorus_admin_close_task` | Task 验证/管理 |
-| `chorus_admin_close_idea` / `chorus_admin_delete_idea` | Idea 管理 |
-| `chorus_admin_delete_task` / `chorus_admin_delete_document` | 删除管理 |
+| `synapse_admin_create_project` | 创建项目 |
+| `synapse_admin_approve_proposal` / `synapse_admin_reject_proposal` / `synapse_admin_close_proposal` | Proposal 审批 |
+| `synapse_admin_verify_task` / `synapse_admin_reopen_task` / `synapse_admin_close_task` | Task 验证/管理 |
+| `synapse_admin_close_idea` / `synapse_admin_delete_idea` | Idea 管理 |
+| `synapse_admin_delete_task` / `synapse_admin_delete_document` | 删除管理 |
 
 Admin Agent 同时拥有 PM 和 Developer 的所有工具。
 
@@ -1146,7 +1146,7 @@ SUPER_ADMIN_PASSWORD_HASH=$2b$10$...  # bcrypt 哈希
 **登录流程**：
 ```
 ┌──────────┐     ┌──────────┐     ┌──────────────┐
-│  Browser │     │  Chorus  │     │   Database   │
+│  Browser │     │  Synapse  │     │   Database   │
 │          │     │  Server  │     │              │
 └────┬─────┘     └────┬─────┘     └──────┬───────┘
      │                │                   │
@@ -1190,7 +1190,7 @@ SUPER_ADMIN_PASSWORD_HASH=$2b$10$...  # bcrypt 哈希
 
 ```
 ┌──────────┐     ┌──────────┐     ┌──────────────┐
-│  Browser │     │  Chorus  │     │    OIDC      │
+│  Browser │     │  Synapse  │     │    OIDC      │
 │          │     │  Server  │     │   Provider   │
 └────┬─────┘     └────┬─────┘     └──────┬───────┘
      │                │                   │
@@ -1223,7 +1223,7 @@ SUPER_ADMIN_PASSWORD_HASH=$2b$10$...  # bcrypt 哈希
 
 ```
 ┌──────────┐     ┌──────────┐     ┌──────────────┐
-│  Claude  │     │  Chorus  │     │   Database   │
+│  Claude  │     │  Synapse  │     │   Database   │
 │   Code   │     │  Server  │     │              │
 └────┬─────┘     └────┬─────┘     └──────┬───────┘
      │                │                   │
@@ -1272,9 +1272,9 @@ SUPER_ADMIN_PASSWORD_HASH=$2b$10$...  # bcrypt 哈希
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  2. PM Agent 创建 PRD Proposal                                   │
-│     - 获取 Ideas (chorus_pm_get_ideas)                          │
-│     - 读取项目知识库 (chorus_query_knowledge)                    │
-│     - 创建提议 (chorus_pm_create_proposal)                       │
+│     - 获取 Ideas (synapse_pm_get_ideas)                          │
+│     - 读取项目知识库 (synapse_query_knowledge)                    │
+│     - 创建提议 (synapse_pm_create_proposal)                       │
 │       inputType: idea, inputIds: [idea1, idea2, ...]            │
 │       支持选择多个 Ideas 组合作为输入来源                          │
 │       outputType: document, outputData: { PRD 草稿 }             │
@@ -1293,7 +1293,7 @@ SUPER_ADMIN_PASSWORD_HASH=$2b$10$...  # bcrypt 哈希
 ┌─────────────────────────────────────────────────────────────────┐
 │  4. PM Agent 创建 Task Breakdown Proposal                        │
 │     - 读取 Document(PRD)                                         │
-│     - 创建提议 (chorus_pm_create_proposal)                       │
+│     - 创建提议 (synapse_pm_create_proposal)                       │
 │       inputType: document, inputIds: [prd_id]                   │
 │       outputType: task, outputData: { Task 列表 }                │
 └─────────────────────────────────────────────────────────────────┘
@@ -1308,17 +1308,17 @@ SUPER_ADMIN_PASSWORD_HASH=$2b$10$...  # bcrypt 哈希
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  6. Personal Agent 执行任务                                       │
-│     - 获取任务 (chorus_get_task)                                 │
-│     - 获取相关文档 (chorus_get_document)                         │
+│     - 获取任务 (synapse_get_task)                                 │
+│     - 获取相关文档 (synapse_get_document)                         │
 │     - 执行开发工作                                               │
-│     - 报告完成 (chorus_report_work)                              │
+│     - 报告完成 (synapse_report_work)                              │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  7. PM Agent 持续追踪                                            │
-│     - 分析进度 (chorus_pm_analyze_progress)                      │
-│     - 识别风险 (chorus_pm_identify_risks)                        │
+│     - 分析进度 (synapse_pm_analyze_progress)                      │
+│     - 识别风险 (synapse_pm_identify_risks)                        │
 │     - 必要时创建新 Proposal 调整计划                              │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -1496,14 +1496,14 @@ Ideas → Proposal → Document(PRD) → Proposal → Tasks
 version: '3.8'
 
 services:
-  chorus:
+  synapse:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgres://chorus:chorus@db:5432/chorus
+      - DATABASE_URL=postgres://synapse:synapse@db:5432/synapse
       - NEXTAUTH_URL=http://localhost:3000
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - OIDC_ISSUER=${OIDC_ISSUER}
@@ -1519,15 +1519,15 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      - POSTGRES_USER=chorus
-      - POSTGRES_PASSWORD=chorus
-      - POSTGRES_DB=chorus
+      - POSTGRES_USER=synapse
+      - POSTGRES_PASSWORD=synapse
+      - POSTGRES_DB=synapse
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U chorus"]
+      test: ["CMD-SHELL", "pg_isready -U synapse"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -1561,7 +1561,7 @@ volumes:
             └───────────────┘  └──────────────────────┘
 ```
 
-**CDK 基础设施** (`packages/chorus-cdk/`):
+**CDK 基础设施** (`packages/synapse-cdk/`):
 
 | Construct | 文件 | 资源 |
 |-----------|------|------|
@@ -1570,7 +1570,7 @@ volumes:
 | Cache | `cache.ts` | ElastiCache Serverless Redis 7、RBAC 用户 + 密码存 Secrets Manager |
 | Service | `service.ts` | ECS Fargate 集群、ALB、Task Definition、ECR 镜像构建 |
 
-**Redis 鉴权**: RBAC 密码认证（用户 `chorus`），默认用户已禁用。密码自动生成并存储在 Secrets Manager，通过 `REDIS_PASSWORD` 环境变量注入 ECS 容器。
+**Redis 鉴权**: RBAC 密码认证（用户 `synapse`），默认用户已禁用。密码自动生成并存储在 Secrets Manager，通过 `REDIS_PASSWORD` 环境变量注入 ECS 容器。
 
 ---
 
@@ -1609,8 +1609,8 @@ volumes:
 |-----|------|------|
 | ✅ 任务 DAG | 依赖关系建模 + 环检测 + 可视化 | 已实现 |
 | ✅ Session 可观测性 | Agent Session + Checkin + Kanban 集成 | 已实现 |
-| ✅ Chorus Plugin | Claude Code 插件，自动化 Session 生命周期 | 已实现 |
-| ✅ Task 自动调度查询 | `chorus_get_unblocked_tasks` MCP 工具 | 已实现 |
+| ✅ Synapse Plugin | Claude Code 插件，自动化 Session 生命周期 | 已实现 |
+| ✅ Task 自动调度查询 | `synapse_get_unblocked_tasks` MCP 工具 | 已实现 |
 | 通知系统 | 应用内通知 + SSE 推送 + Redis Pub/Sub | **已实现** |
 | 执行度量 | Agent Hours、velocity 统计 | 待开发 (P1) |
 | Git 集成 | 关联 commit 和 PR | 待开发 |
@@ -1629,7 +1629,7 @@ volumes:
 
 ```bash
 # Database
-DATABASE_URL=postgres://chorus:chorus@localhost:5432/chorus
+DATABASE_URL=postgres://synapse:synapse@localhost:5432/synapse
 
 # NextAuth
 NEXTAUTH_URL=http://localhost:3000
@@ -1640,9 +1640,9 @@ SUPER_ADMIN_EMAIL=admin@example.com
 SUPER_ADMIN_PASSWORD_HASH=$2b$10$...  # bcrypt 哈希
 
 # Redis（可选 — 未设置时退化为内存 EventBus）
-# 本地开发: redis://default:chorus-redis@localhost:6379
+# 本地开发: redis://default:synapse-redis@localhost:6379
 # CDK 部署: 由 REDIS_HOST + REDIS_PORT + REDIS_USERNAME + REDIS_PASSWORD 组装
-REDIS_URL=redis://default:chorus-redis@localhost:6379
+REDIS_URL=redis://default:synapse-redis@localhost:6379
 
 # 注意：OIDC 配置已移至数据库（Company 表），每个 Company 独立配置
 # 仅支持 PKCE，无需 Client Secret

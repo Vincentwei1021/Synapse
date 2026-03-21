@@ -190,7 +190,7 @@ importers:
         specifier: ^3.1.0
         version: 3.1.0(typescript@5.9.3)(vitest@4.1.0(@types/node@22.19.8)(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)))
 
-  packages/chorus-cdk:
+  packages/synapse-cdk:
     dependencies:
       aws-cdk-lib:
         specifier: ^2.233.0

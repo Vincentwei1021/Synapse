@@ -1,6 +1,6 @@
 > [中文版本](./ARCHITECTURE.zh.md)
 
-# Project Chorus - Technical Architecture
+# Project Synapse - Technical Architecture
 
 **Version**: 2.0
 **Updated**: 2026-02-18
@@ -11,7 +11,7 @@
 
 ### 1.1 Positioning
 
-Chorus is a platform for AI Agent and human collaboration, implementing the AI-DLC (AI-Driven Development Lifecycle) methodology. The core philosophy is **Reversed Conversation**: AI proposes, humans verify.
+Synapse is a platform for AI Agent and human collaboration, implementing the AI-DLC (AI-Driven Development Lifecycle) methodology. The core philosophy is **Reversed Conversation**: AI proposes, humans verify.
 
 ### 1.2 Core Capabilities
 
@@ -25,14 +25,14 @@ Chorus is a platform for AI Agent and human collaboration, implementing the AI-D
 | **Activity Stream** | Real-time tracking of all participant actions (with Session attribution) |
 | **Notification System** | In-app notifications with SSE push, preference controls, MCP tools for agents |
 | **Session Observability** | Agent Session + Task Checkin, Kanban/Task Detail displays active Workers in real-time |
-| **Chorus Plugin** | Claude Code plugin, automating Session lifecycle (create/heartbeat/close) |
+| **Synapse Plugin** | Claude Code plugin, automating Session lifecycle (create/heartbeat/close) |
 | **Task DAG** | Task dependency modeling, cycle detection, @xyflow/react + dagre visualization |
 
 ### 1.3 Participants
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         Chorus Platform                              │
+│                         Synapse Platform                              │
 └─────────────────────────────────────────────────────────────────────┘
         ↑               ↑               ↑               ↑
         │               │               │               │
@@ -137,7 +137,7 @@ Chorus is a platform for AI Agent and human collaboration, implementing the AI-D
 
 ### 3.2 Controller-Service-DAO Architecture
 
-Chorus adopts the classic three-layer architecture pattern with clear separation of concerns:
+Synapse adopts the classic three-layer architecture pattern with clear separation of concerns:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -247,7 +247,7 @@ export async function listProjects({ companyUuid, skip, take }) {
 
 ### 3.3 Frontend Architecture: Server Components + Server Actions
 
-Chorus adopts the Next.js 15 React Server Components (RSC) and Server Actions architecture to maximize server-side rendering and reduce client-side JavaScript.
+Synapse adopts the Next.js 15 React Server Components (RSC) and Server Actions architecture to maximize server-side rendering and reduce client-side JavaScript.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -403,7 +403,7 @@ These are auth infrastructure that need to maintain session state on the client 
 ### 3.4 Directory Structure
 
 ```
-chorus/
+synapse/
 ├── docker-compose.yml          # Local development environment
 ├── Dockerfile                  # Production image
 ├── package.json
@@ -587,10 +587,10 @@ chorus/
 │   │   ├── SKILL.md
 │   │   ├── package.json
 │   │   └── references/             # Role-specific workflow docs (7 files)
-│   └── chorus-plugin/              # Chorus Plugin for Claude Code
+│   └── synapse-plugin/              # Synapse Plugin for Claude Code
 │       ├── hooks/                  # Claude Code hooks configuration
 │       ├── bin/                    # Hook scripts (on-subagent-start/stop/idle)
-│       ├── skills/chorus/          # Plugin-embedded Skill (with session automation)
+│       ├── skills/synapse/          # Plugin-embedded Skill (with session automation)
 │       └── .mcp.json               # MCP server config template
 │
 └── tests/
@@ -1065,28 +1065,28 @@ Agents can filter results by project(s) using optional HTTP headers:
 
 | Header | Format | Description |
 |--------|--------|-------------|
-| `X-Chorus-Project` | Single UUID or comma-separated UUIDs | Filter by specific project(s) |
-| `X-Chorus-Project-Group` | Group UUID | Filter by project group |
+| `X-Synapse-Project` | Single UUID or comma-separated UUIDs | Filter by specific project(s) |
+| `X-Synapse-Project-Group` | Group UUID | Filter by project group |
 
 **Behavior**:
 - No header: Returns all projects (default, backward compatible)
-- `X-Chorus-Project`: Returns only specified project(s)
-- `X-Chorus-Project-Group`: Returns all projects in the group
-- Priority: `X-Chorus-Project-Group` > `X-Chorus-Project`
+- `X-Synapse-Project`: Returns only specified project(s)
+- `X-Synapse-Project-Group`: Returns all projects in the group
+- Priority: `X-Synapse-Project-Group` > `X-Synapse-Project`
 
-**Affected tools**: `chorus_checkin`, `chorus_get_my_assignments`
+**Affected tools**: `synapse_checkin`, `synapse_get_my_assignments`
 
 **Example**:
 ```json
 // .mcp.json
 {
   "mcpServers": {
-    "chorus": {
+    "synapse": {
       "type": "http",
       "url": "http://localhost:3000/api/mcp",
       "headers": {
-        "Authorization": "Bearer cho_xxx",
-        "X-Chorus-Project": "project-uuid-1,project-uuid-2"
+        "Authorization": "Bearer syn_xxx",
+        "X-Synapse-Project": "project-uuid-1,project-uuid-2"
       }
     }
   }
@@ -1127,61 +1127,61 @@ Time 1:00  - Cleanup runs, session deleted
 
 | Tool | Description |
 |-----|------|
-| `chorus_checkin` | Check in: get persona, assignments, pending work |
-| `chorus_get_project` | Get project details |
-| `chorus_get_ideas` / `chorus_get_idea` | List/get Ideas |
-| `chorus_get_documents` / `chorus_get_document` | List/get Documents |
-| `chorus_get_proposals` / `chorus_get_proposal` | List/get Proposals (including drafts) |
-| `chorus_list_tasks` / `chorus_get_task` | List/get Tasks |
-| `chorus_get_activity` | Project activity stream |
-| `chorus_get_my_assignments` | My claimed Ideas + Tasks |
-| `chorus_get_available_ideas` | Claimable Ideas |
-| `chorus_get_available_tasks` | Claimable Tasks |
-| `chorus_get_unblocked_tasks` | Tasks with all dependencies completed (for scheduling) |
-| `chorus_add_comment` / `chorus_get_comments` | Comment CRUD |
+| `synapse_checkin` | Check in: get persona, assignments, pending work |
+| `synapse_get_project` | Get project details |
+| `synapse_get_ideas` / `synapse_get_idea` | List/get Ideas |
+| `synapse_get_documents` / `synapse_get_document` | List/get Documents |
+| `synapse_get_proposals` / `synapse_get_proposal` | List/get Proposals (including drafts) |
+| `synapse_list_tasks` / `synapse_get_task` | List/get Tasks |
+| `synapse_get_activity` | Project activity stream |
+| `synapse_get_my_assignments` | My claimed Ideas + Tasks |
+| `synapse_get_available_ideas` | Claimable Ideas |
+| `synapse_get_available_tasks` | Claimable Tasks |
+| `synapse_get_unblocked_tasks` | Tasks with all dependencies completed (for scheduling) |
+| `synapse_add_comment` / `synapse_get_comments` | Comment CRUD |
 
 #### Session Tools (All Agents)
 
 | Tool | Description |
 |-----|------|
-| `chorus_create_session` | Create a named Session |
-| `chorus_list_sessions` | List Sessions |
-| `chorus_close_session` / `chorus_reopen_session` | Close/reopen Session |
-| `chorus_session_checkin_task` / `chorus_session_checkout_task` | Task Checkin/Checkout |
-| `chorus_session_heartbeat` | Session heartbeat |
+| `synapse_create_session` | Create a named Session |
+| `synapse_list_sessions` | List Sessions |
+| `synapse_close_session` / `synapse_reopen_session` | Close/reopen Session |
+| `synapse_session_checkin_task` / `synapse_session_checkout_task` | Task Checkin/Checkout |
+| `synapse_session_heartbeat` | Session heartbeat |
 
 #### Developer Agent Tools
 
 | Tool | Description |
 |-----|------|
-| `chorus_claim_task` / `chorus_release_task` | Claim/release Task |
-| `chorus_update_task` | Update task status (with sessionUuid attribution) |
-| `chorus_submit_for_verify` | Submit task for verification |
-| `chorus_report_work` | Report work (with sessionUuid attribution) |
+| `synapse_claim_task` / `synapse_release_task` | Claim/release Task |
+| `synapse_update_task` | Update task status (with sessionUuid attribution) |
+| `synapse_submit_for_verify` | Submit task for verification |
+| `synapse_report_work` | Report work (with sessionUuid attribution) |
 
 #### PM Agent Tools
 
 | Tool | Description |
 |-----|------|
-| `chorus_claim_idea` / `chorus_release_idea` | Claim/release Idea |
-| `chorus_update_idea_status` | Update Idea status |
-| `chorus_pm_create_proposal` / `chorus_pm_submit_proposal` | Create/submit Proposal |
-| `chorus_pm_create_document` / `chorus_pm_update_document` | Document CRUD |
-| `chorus_pm_create_tasks` | Batch create Tasks |
-| `chorus_pm_assign_task` | Assign Task |
-| `chorus_pm_add_document_draft` / `chorus_pm_update_document_draft` / `chorus_pm_remove_document_draft` | Document draft management |
-| `chorus_pm_add_task_draft` / `chorus_pm_update_task_draft` / `chorus_pm_remove_task_draft` | Task draft management |
-| `chorus_add_task_dependency` / `chorus_remove_task_dependency` | Task dependency DAG management |
+| `synapse_claim_idea` / `synapse_release_idea` | Claim/release Idea |
+| `synapse_update_idea_status` | Update Idea status |
+| `synapse_pm_create_proposal` / `synapse_pm_submit_proposal` | Create/submit Proposal |
+| `synapse_pm_create_document` / `synapse_pm_update_document` | Document CRUD |
+| `synapse_pm_create_tasks` | Batch create Tasks |
+| `synapse_pm_assign_task` | Assign Task |
+| `synapse_pm_add_document_draft` / `synapse_pm_update_document_draft` / `synapse_pm_remove_document_draft` | Document draft management |
+| `synapse_pm_add_task_draft` / `synapse_pm_update_task_draft` / `synapse_pm_remove_task_draft` | Task draft management |
+| `synapse_add_task_dependency` / `synapse_remove_task_dependency` | Task dependency DAG management |
 
 #### Admin Agent Tools
 
 | Tool | Description |
 |-----|------|
-| `chorus_admin_create_project` | Create project |
-| `chorus_admin_approve_proposal` / `chorus_admin_reject_proposal` / `chorus_admin_close_proposal` | Proposal approval |
-| `chorus_admin_verify_task` / `chorus_admin_reopen_task` / `chorus_admin_close_task` | Task verification/management |
-| `chorus_admin_close_idea` / `chorus_admin_delete_idea` | Idea management |
-| `chorus_admin_delete_task` / `chorus_admin_delete_document` | Delete management |
+| `synapse_admin_create_project` | Create project |
+| `synapse_admin_approve_proposal` / `synapse_admin_reject_proposal` / `synapse_admin_close_proposal` | Proposal approval |
+| `synapse_admin_verify_task` / `synapse_admin_reopen_task` / `synapse_admin_close_task` | Task verification/management |
+| `synapse_admin_close_idea` / `synapse_admin_delete_idea` | Idea management |
+| `synapse_admin_delete_task` / `synapse_admin_delete_document` | Delete management |
 
 Admin Agent also has all PM and Developer tools.
 
@@ -1210,7 +1210,7 @@ SUPER_ADMIN_PASSWORD_HASH=$2b$10$...  # bcrypt hash
 **Login Flow**:
 ```
 ┌──────────┐     ┌──────────┐     ┌──────────────┐
-│  Browser │     │  Chorus  │     │   Database   │
+│  Browser │     │  Synapse  │     │   Database   │
 │          │     │  Server  │     │              │
 └────┬─────┘     └────┬─────┘     └──────┬───────┘
      │                │                   │
@@ -1258,7 +1258,7 @@ SUPER_ADMIN_PASSWORD_HASH=$2b$10$...  # bcrypt hash
 
 ```
 ┌──────────┐     ┌──────────┐     ┌──────────────┐
-│  Browser │     │  Chorus  │     │    OIDC      │
+│  Browser │     │  Synapse  │     │    OIDC      │
 │          │     │  Server  │     │   Provider   │
 └────┬─────┘     └────┬─────┘     └──────┬───────┘
      │                │                   │
@@ -1291,7 +1291,7 @@ SUPER_ADMIN_PASSWORD_HASH=$2b$10$...  # bcrypt hash
 
 ```
 ┌──────────┐     ┌──────────┐     ┌──────────────┐
-│  Claude  │     │  Chorus  │     │   Database   │
+│  Claude  │     │  Synapse  │     │   Database   │
 │   Code   │     │  Server  │     │              │
 └────┬─────┘     └────┬─────┘     └──────┬───────┘
      │                │                   │
@@ -1341,9 +1341,9 @@ SUPER_ADMIN_PASSWORD_HASH=$2b$10$...  # bcrypt hash
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  2. PM Agent creates PRD Proposal                               │
-│     - Get Ideas (chorus_pm_get_ideas)                          │
-│     - Read project knowledge base (chorus_query_knowledge)     │
-│     - Create proposal (chorus_pm_create_proposal)              │
+│     - Get Ideas (synapse_pm_get_ideas)                          │
+│     - Read project knowledge base (synapse_query_knowledge)     │
+│     - Create proposal (synapse_pm_create_proposal)              │
 │       inputType: idea, inputIds: [idea1, idea2, ...]           │
 │       Supports selecting multiple Ideas combined as input      │
 │       outputType: document, outputData: { PRD draft }          │
@@ -1362,7 +1362,7 @@ SUPER_ADMIN_PASSWORD_HASH=$2b$10$...  # bcrypt hash
 ┌─────────────────────────────────────────────────────────────────┐
 │  4. PM Agent creates Task Breakdown Proposal                    │
 │     - Read Document(PRD)                                        │
-│     - Create proposal (chorus_pm_create_proposal)              │
+│     - Create proposal (synapse_pm_create_proposal)              │
 │       inputType: document, inputIds: [prd_id]                  │
 │       outputType: task, outputData: { Task list }              │
 └─────────────────────────────────────────────────────────────────┘
@@ -1377,17 +1377,17 @@ SUPER_ADMIN_PASSWORD_HASH=$2b$10$...  # bcrypt hash
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  6. Personal Agent executes tasks                               │
-│     - Get task (chorus_get_task)                               │
-│     - Get related documents (chorus_get_document)              │
+│     - Get task (synapse_get_task)                               │
+│     - Get related documents (synapse_get_document)              │
 │     - Execute development work                                  │
-│     - Report completion (chorus_report_work)                   │
+│     - Report completion (synapse_report_work)                   │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  7. PM Agent continuous tracking                                │
-│     - Analyze progress (chorus_pm_analyze_progress)            │
-│     - Identify risks (chorus_pm_identify_risks)                │
+│     - Analyze progress (synapse_pm_analyze_progress)            │
+│     - Identify risks (synapse_pm_identify_risks)                │
 │     - Create new Proposals to adjust plans when needed          │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -1568,14 +1568,14 @@ Each assignment/release operation automatically creates an Activity:
 version: '3.8'
 
 services:
-  chorus:
+  synapse:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgres://chorus:chorus@db:5432/chorus
+      - DATABASE_URL=postgres://synapse:synapse@db:5432/synapse
       - NEXTAUTH_URL=http://localhost:3000
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - OIDC_ISSUER=${OIDC_ISSUER}
@@ -1591,15 +1591,15 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      - POSTGRES_USER=chorus
-      - POSTGRES_PASSWORD=chorus
-      - POSTGRES_DB=chorus
+      - POSTGRES_USER=synapse
+      - POSTGRES_PASSWORD=synapse
+      - POSTGRES_DB=synapse
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U chorus"]
+      test: ["CMD-SHELL", "pg_isready -U synapse"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -1633,7 +1633,7 @@ volumes:
             └───────────────┘  └──────────────────────┘
 ```
 
-**CDK Infrastructure** (`packages/chorus-cdk/`):
+**CDK Infrastructure** (`packages/synapse-cdk/`):
 
 | Construct | File | Resources |
 |-----------|------|-----------|
@@ -1642,7 +1642,7 @@ volumes:
 | Cache | `cache.ts` | ElastiCache Serverless Redis 7, RBAC user + password in Secrets Manager |
 | Service | `service.ts` | ECS Fargate cluster, ALB, Task Definition, ECR image build |
 
-**Redis Authentication**: RBAC with password user (`chorus`), default user disabled. Password auto-generated and stored in Secrets Manager, injected into ECS container as `REDIS_PASSWORD` secret.
+**Redis Authentication**: RBAC with password user (`synapse`), default user disabled. Password auto-generated and stored in Secrets Manager, injected into ECS container as `REDIS_PASSWORD` secret.
 
 ---
 
@@ -1681,8 +1681,8 @@ volumes:
 |-----|------|------|
 | Task DAG | Dependency modeling + cycle detection + visualization | Implemented |
 | Session Observability | Agent Session + Checkin + Kanban integration | Implemented |
-| Chorus Plugin | Claude Code plugin, automating Session lifecycle | Implemented |
-| Task Auto-Scheduling Query | `chorus_get_unblocked_tasks` MCP tool | Implemented |
+| Synapse Plugin | Claude Code plugin, automating Session lifecycle | Implemented |
+| Task Auto-Scheduling Query | `synapse_get_unblocked_tasks` MCP tool | Implemented |
 | Notification System | In-app notifications + SSE push + Redis Pub/Sub | **Implemented** |
 | Execution Metrics | Agent Hours, velocity statistics | To be developed (P1) |
 | Git Integration | Associate commits and PRs | To be developed |
@@ -1701,7 +1701,7 @@ volumes:
 
 ```bash
 # Database
-DATABASE_URL=postgres://chorus:chorus@localhost:5432/chorus
+DATABASE_URL=postgres://synapse:synapse@localhost:5432/synapse
 
 # NextAuth
 NEXTAUTH_URL=http://localhost:3000
@@ -1712,9 +1712,9 @@ SUPER_ADMIN_EMAIL=admin@example.com
 SUPER_ADMIN_PASSWORD_HASH=$2b$10$...  # bcrypt hash
 
 # Redis (optional — falls back to in-memory EventBus when unset)
-# Local dev: redis://default:chorus-redis@localhost:6379
+# Local dev: redis://default:synapse-redis@localhost:6379
 # CDK: assembled from REDIS_HOST + REDIS_PORT + REDIS_USERNAME + REDIS_PASSWORD
-REDIS_URL=redis://default:chorus-redis@localhost:6379
+REDIS_URL=redis://default:synapse-redis@localhost:6379
 
 # Note: OIDC configuration has been moved to the database (Company table),
 # each Company is independently configured

@@ -1,15 +1,15 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type OpenClawPluginApi = any;
 
-import { chorusConfigSchema, type ChorusPluginConfig, validateConfigWithWarnings } from "./config.js";
-import { ChorusMcpClient } from "./mcp-client.js";
-import { ChorusSseListener } from "./sse-listener.js";
-import { ChorusEventRouter } from "./event-router.js";
+import { synapseConfigSchema, type SynapsePluginConfig, validateConfigWithWarnings } from "./config.js";
+import { SynapseMcpClient } from "./mcp-client.js";
+import { SynapseSseListener } from "./sse-listener.js";
+import { SynapseEventRouter } from "./event-router.js";
 import { registerPmTools } from "./tools/pm-tools.js";
 import { registerDevTools } from "./tools/dev-tools.js";
 import { registerCommonTools } from "./tools/common-tools.js";
 import { registerAdminTools } from "./tools/admin-tools.js";
-import { registerChorusCommands } from "./commands.js";
+import { registerSynapseCommands } from "./commands.js";
 
 /**
  * Trigger the OpenClaw agent by posting a system event to the gateway's
@@ -42,16 +42,16 @@ async function wakeAgent(
 }
 
 const plugin = {
-  id: "chorus-openclaw-plugin",
-  name: "Chorus",
+  id: "synapse-openclaw-plugin",
+  name: "Synapse",
   description:
-    "Chorus AI-DLC collaboration platform — SSE real-time events + MCP tool integration",
-  configSchema: chorusConfigSchema,
+    "Synapse AI-DLC collaboration platform — SSE real-time events + MCP tool integration",
+  configSchema: synapseConfigSchema,
 
   register(api: OpenClawPluginApi) {
     const rawConfig = api.pluginConfig ?? {};
-    const config: ChorusPluginConfig = {
-      chorusUrl: rawConfig.chorusUrl || undefined,
+    const config: SynapsePluginConfig = {
+      synapseUrl: rawConfig.synapseUrl || undefined,
       apiKey: rawConfig.apiKey || undefined,
       projectUuids: rawConfig.projectUuids ?? [],
       autoStart: rawConfig.autoStart ?? true,
@@ -62,8 +62,8 @@ const plugin = {
       return;
     }
 
-    // After validateConfigWithWarnings, chorusUrl and apiKey are guaranteed present
-    const chorusUrl = config.chorusUrl!;
+    // After validateConfigWithWarnings, synapseUrl and apiKey are guaranteed present
+    const synapseUrl = config.synapseUrl!;
     const apiKey = config.apiKey!;
 
     // Resolve gateway URL and hooks token from OpenClaw config
@@ -72,18 +72,18 @@ const plugin = {
     const hooksToken = api.config?.hooks?.token ?? "";
 
     logger.info(
-      `Chorus plugin initializing — ${chorusUrl} (${config.projectUuids?.length || "all"} projects)`
+      `Synapse plugin initializing — ${synapseUrl} (${config.projectUuids?.length || "all"} projects)`
     );
 
     // --- MCP Client ---
-    const mcpClient = new ChorusMcpClient({
-      chorusUrl,
+    const mcpClient = new SynapseMcpClient({
+      synapseUrl,
       apiKey,
       logger,
     });
 
     // --- Event Router ---
-    const eventRouter = new ChorusEventRouter({
+    const eventRouter = new SynapseEventRouter({
       mcpClient,
       config,
       logger,
@@ -93,27 +93,27 @@ const plugin = {
           wakeAgent(gatewayUrl, hooksToken, message, logger);
         } else {
           logger.warn(
-            `[Chorus] Cannot wake agent — gateway.auth.token not configured. Event: ${message.slice(0, 100)}`
+            `[Synapse] Cannot wake agent — gateway.auth.token not configured. Event: ${message.slice(0, 100)}`
           );
         }
       },
     });
 
     // --- SSE Listener (background service) ---
-    let sseListener: ChorusSseListener | null = null;
+    let sseListener: SynapseSseListener | null = null;
 
     api.registerService({
-      id: "chorus-sse",
+      id: "synapse-sse",
       async start() {
-        sseListener = new ChorusSseListener({
-          chorusUrl,
+        sseListener = new SynapseSseListener({
+          synapseUrl,
           apiKey,
           logger,
           onEvent: (event) => eventRouter.dispatch(event),
           onReconnect: async () => {
             // Back-fill missed notifications after reconnect
             try {
-              const result = (await mcpClient.callTool("chorus_get_notifications", {
+              const result = (await mcpClient.callTool("synapse_get_notifications", {
                 status: "unread",
                 autoMarkRead: false,
               })) as { notifications?: Array<{ uuid: string }> } | null;
@@ -141,7 +141,7 @@ const plugin = {
     registerAdminTools(api, mcpClient);
 
     // --- Commands ---
-    registerChorusCommands(api, mcpClient, () => sseListener?.status ?? "disconnected");
+    registerSynapseCommands(api, mcpClient, () => sseListener?.status ?? "disconnected");
   },
 };
 

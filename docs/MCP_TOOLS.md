@@ -1,10 +1,10 @@
-# Chorus MCP Tools Documentation
+# Synapse MCP Tools Documentation
 
-This document covers all tools provided by the Chorus MCP Server, including tool names, descriptions, input parameters, and output formats.
+This document covers all tools provided by the Synapse MCP Server, including tool names, descriptions, input parameters, and output formats.
 
 ## Overview
 
-The Chorus MCP Server provides different tool sets based on Agent roles:
+The Synapse MCP Server provides different tool sets based on Agent roles:
 
 | Role | Tool Set |
 |------|----------|
@@ -20,21 +20,21 @@ Agents can filter results by project(s) using HTTP headers during MCP connection
 
 | Header | Format | Example | Description |
 |--------|--------|---------|-------------|
-| `X-Chorus-Project` | Single UUID or comma-separated UUIDs | `uuid1` or `uuid1,uuid2,uuid3` | Filter by specific project(s) |
-| `X-Chorus-Project-Group` | Group UUID | `group-uuid-here` | Filter by project group (includes all projects in the group) |
+| `X-Synapse-Project` | Single UUID or comma-separated UUIDs | `uuid1` or `uuid1,uuid2,uuid3` | Filter by specific project(s) |
+| `X-Synapse-Project-Group` | Group UUID | `group-uuid-here` | Filter by project group (includes all projects in the group) |
 
 ### Behavior
 
 - **No header**: Returns results from all projects (default, backward compatible)
-- **X-Chorus-Project**: Returns results only from specified project(s)
-- **X-Chorus-Project-Group**: Returns results from all projects in the specified group
-- **Priority**: `X-Chorus-Project-Group` takes precedence over `X-Chorus-Project` if both are provided
+- **X-Synapse-Project**: Returns results only from specified project(s)
+- **X-Synapse-Project-Group**: Returns results from all projects in the specified group
+- **Priority**: `X-Synapse-Project-Group` takes precedence over `X-Synapse-Project` if both are provided
 
 ### Affected Tools
 
 The following tools respect project filtering:
-- `chorus_checkin` - Returns filtered assignments
-- `chorus_get_my_assignments` - Returns filtered ideas and tasks
+- `synapse_checkin` - Returns filtered assignments
+- `synapse_get_my_assignments` - Returns filtered ideas and tasks
 
 ### Usage Example
 
@@ -42,12 +42,12 @@ The following tools respect project filtering:
 // .mcp.json configuration for single project
 {
   "mcpServers": {
-    "chorus": {
+    "synapse": {
       "type": "http",
       "url": "http://localhost:3000/api/mcp",
       "headers": {
-        "Authorization": "Bearer cho_xxx",
-        "X-Chorus-Project": "project-uuid-here"
+        "Authorization": "Bearer syn_xxx",
+        "X-Synapse-Project": "project-uuid-here"
       }
     }
   }
@@ -56,12 +56,12 @@ The following tools respect project filtering:
 // .mcp.json configuration for multiple projects
 {
   "mcpServers": {
-    "chorus": {
+    "synapse": {
       "type": "http",
       "url": "http://localhost:3000/api/mcp",
       "headers": {
-        "Authorization": "Bearer cho_xxx",
-        "X-Chorus-Project": "uuid1,uuid2,uuid3"
+        "Authorization": "Bearer syn_xxx",
+        "X-Synapse-Project": "uuid1,uuid2,uuid3"
       }
     }
   }
@@ -70,12 +70,12 @@ The following tools respect project filtering:
 // .mcp.json configuration for project group
 {
   "mcpServers": {
-    "chorus": {
+    "synapse": {
       "type": "http",
       "url": "http://localhost:3000/api/mcp",
       "headers": {
-        "Authorization": "Bearer cho_xxx",
-        "X-Chorus-Project-Group": "group-uuid-here"
+        "Authorization": "Bearer syn_xxx",
+        "X-Synapse-Project-Group": "group-uuid-here"
       }
     }
   }
@@ -132,13 +132,13 @@ When a session expires:
 
 Tools available to all Agents.
 
-### chorus_checkin
+### synapse_checkin
 
 **Description**: Agent check-in. Returns agent identity (including owner/master info), roles, assigned work, and pending counts. Recommended at session start.
 
 **Project Filtering**: Results can be filtered by project using HTTP headers during MCP connection:
-- `X-Chorus-Project`: Single or multiple project UUIDs (comma-separated)
-- `X-Chorus-Project-Group`: Project group UUID (includes all projects in the group)
+- `X-Synapse-Project`: Single or multiple project UUIDs (comma-separated)
+- `X-Synapse-Project-Group`: Project group UUID (includes all projects in the group)
 - No header: Returns all projects (default behavior)
 
 **Input**: None
@@ -169,7 +169,7 @@ Tools available to all Agents.
 }
 ```
 
-### chorus_list_projects
+### synapse_list_projects
 
 **Description**: List all projects for the current company (paginated). Returns projects with counts of ideas, documents, tasks, and proposals.
 
@@ -181,7 +181,7 @@ Tools available to all Agents.
 
 **Output**: `{ projects: [...], total: number }`
 
-### chorus_get_project
+### synapse_get_project
 
 **Description**: Get project details and background information
 
@@ -192,7 +192,7 @@ Tools available to all Agents.
 
 **Output**: Project details JSON
 
-### chorus_get_ideas
+### synapse_get_ideas
 
 **Description**: Get the list of Ideas for a project
 
@@ -214,7 +214,7 @@ Tools available to all Agents.
 }
 ```
 
-### chorus_get_idea
+### synapse_get_idea
 
 **Description**: Get detailed information for a single Idea
 
@@ -225,7 +225,7 @@ Tools available to all Agents.
 
 **Output**: Idea details JSON
 
-### chorus_get_documents
+### synapse_get_documents
 
 **Description**: Get the list of documents for a project
 
@@ -239,7 +239,7 @@ Tools available to all Agents.
 
 **Output**: Document list JSON
 
-### chorus_get_document
+### synapse_get_document
 
 **Description**: Get detailed content of a single document
 
@@ -250,7 +250,7 @@ Tools available to all Agents.
 
 **Output**: Document details JSON
 
-### chorus_get_proposals
+### synapse_get_proposals
 
 **Description**: Get the list of proposals and their statuses for a project
 
@@ -264,7 +264,7 @@ Tools available to all Agents.
 
 **Output**: Proposal list JSON
 
-### chorus_get_proposal
+### synapse_get_proposal
 
 **Description**: Get detailed information for a single proposal, including document drafts and task drafts
 
@@ -275,7 +275,7 @@ Tools available to all Agents.
 
 **Output**: Proposal details JSON (includes documentDrafts and taskDrafts)
 
-### chorus_list_tasks
+### synapse_list_tasks
 
 **Description**: List tasks for a project
 
@@ -291,7 +291,7 @@ Tools available to all Agents.
 
 **Output**: Task list JSON
 
-### chorus_get_task
+### synapse_get_task
 
 **Description**: Get detailed information and context for a single task
 
@@ -305,7 +305,7 @@ Tools available to all Agents.
 - `acceptanceStatus`: Computed status — `"not_started"` | `"in_progress"` | `"passed"` | `"failed"`
 - `acceptanceSummary`: `{ total, required, passed, failed, pending, requiredPassed, requiredFailed, requiredPending }`
 
-### chorus_get_activity
+### synapse_get_activity
 
 **Description**: Get the activity stream for a project
 
@@ -318,13 +318,13 @@ Tools available to all Agents.
 
 **Output**: Activity list JSON
 
-### chorus_get_my_assignments
+### synapse_get_my_assignments
 
 **Description**: Get all Ideas and Tasks assigned to the current Agent
 
 **Project Filtering**: Results can be filtered by project using HTTP headers during MCP connection:
-- `X-Chorus-Project`: Single or multiple project UUIDs (comma-separated)
-- `X-Chorus-Project-Group`: Project group UUID (includes all projects in the group)
+- `X-Synapse-Project`: Single or multiple project UUIDs (comma-separated)
+- `X-Synapse-Project-Group`: Project group UUID (includes all projects in the group)
 - No header: Returns all projects (default behavior)
 
 **Input**: None
@@ -337,7 +337,7 @@ Tools available to all Agents.
 }
 ```
 
-### chorus_get_available_ideas
+### synapse_get_available_ideas
 
 **Description**: Get claimable Ideas in a project (status=open)
 
@@ -348,7 +348,7 @@ Tools available to all Agents.
 
 **Output**: List of claimable Ideas
 
-### chorus_get_available_tasks
+### synapse_get_available_tasks
 
 **Description**: Get claimable Tasks in a project (status=open)
 
@@ -360,7 +360,7 @@ Tools available to all Agents.
 
 **Output**: List of claimable Tasks
 
-### chorus_get_unblocked_tasks
+### synapse_get_unblocked_tasks
 
 **Description**: Get unblocked tasks — tasks with status open/assigned where all dependencies are resolved (done/closed). Used to discover which tasks are ready to start. Note: `to_verify` is NOT considered resolved — only `done` and `closed` unblock dependents.
 
@@ -382,7 +382,7 @@ Each task in the response includes the full TaskResponse format (with dependsOn,
 
 ---
 
-### chorus_answer_elaboration
+### synapse_answer_elaboration
 
 **Description**: Answer elaboration questions for an Idea. Submits answers for a specific elaboration round. When all required questions are answered, the round moves to validation.
 
@@ -402,7 +402,7 @@ Each task in the response includes the full TaskResponse format (with dependsOn,
 
 **Output**: Updated Elaboration Round JSON (includes questions with their answers)
 
-### chorus_get_elaboration
+### synapse_get_elaboration
 
 **Description**: Get the full elaboration state for an Idea, including all rounds, questions, answers, and a summary of progress.
 
@@ -437,7 +437,7 @@ Each task in the response includes the full TaskResponse format (with dependsOn,
 
 ---
 
-### chorus_search_mentionables
+### synapse_search_mentionables
 
 **Description**: Search for users and agents that can be @mentioned. Returns name, type, and UUID. Use the UUID to write mentions as `@[Name](type:uuid)` in comment/description text.
 
@@ -461,7 +461,7 @@ Each task in the response includes the full TaskResponse format (with dependsOn,
 
 ---
 
-### chorus_get_project_groups
+### synapse_get_project_groups
 
 **Description**: List all project groups for the current company. Returns groups with project counts.
 
@@ -484,7 +484,7 @@ Each task in the response includes the full TaskResponse format (with dependsOn,
 }
 ```
 
-### chorus_get_project_group
+### synapse_get_project_group
 
 **Description**: Get a single project group by UUID with its projects list.
 
@@ -508,7 +508,7 @@ Each task in the response includes the full TaskResponse format (with dependsOn,
 }
 ```
 
-### chorus_get_group_dashboard
+### synapse_get_group_dashboard
 
 **Description**: Get aggregated dashboard stats for a project group (project count, tasks, completion rate, ideas, proposals, activity stream).
 
@@ -538,7 +538,7 @@ Each task in the response includes the full TaskResponse format (with dependsOn,
 
 ---
 
-### chorus_add_comment
+### synapse_add_comment
 
 **Description**: Add a comment to an Idea/Proposal/Task/Document
 
@@ -551,7 +551,7 @@ Each task in the response includes the full TaskResponse format (with dependsOn,
 
 **Output**: Created comment JSON
 
-### chorus_get_comments
+### synapse_get_comments
 
 **Description**: Get the list of comments for an Idea/Proposal/Task/Document
 
@@ -571,7 +571,7 @@ Each task in the response includes the full TaskResponse format (with dependsOn,
 
 Available to all Agents. Used to manage Agent work sessions (e.g., sub-agent workers in swarm mode).
 
-### chorus_create_session
+### synapse_create_session
 
 **Description**: Create a new Agent Session (e.g., representing a sub-agent worker)
 
@@ -597,7 +597,7 @@ Available to all Agents. Used to manage Agent work sessions (e.g., sub-agent wor
 }
 ```
 
-### chorus_list_sessions
+### synapse_list_sessions
 
 **Description**: List all Sessions for the current Agent
 
@@ -614,7 +614,7 @@ Available to all Agents. Used to manage Agent work sessions (e.g., sub-agent wor
 }
 ```
 
-### chorus_get_session
+### synapse_get_session
 
 **Description**: Get Session details and its active Task checkins
 
@@ -625,7 +625,7 @@ Available to all Agents. Used to manage Agent work sessions (e.g., sub-agent wor
 
 **Output**: Session details JSON (includes activeCheckins list)
 
-### chorus_close_session
+### synapse_close_session
 
 **Description**: Close a Session (active/inactive → closed). Automatically checks out all active Task checkins.
 
@@ -636,7 +636,7 @@ Available to all Agents. Used to manage Agent work sessions (e.g., sub-agent wor
 
 **Output**: Updated Session JSON
 
-### chorus_reopen_session
+### synapse_reopen_session
 
 **Description**: Reopen a closed Session (closed → active). Used to reuse a previous session without creating a new one.
 
@@ -647,7 +647,7 @@ Available to all Agents. Used to manage Agent work sessions (e.g., sub-agent wor
 
 **Output**: Updated Session JSON (status=active, lastActiveAt refreshed)
 
-### chorus_session_checkin_task
+### synapse_session_checkin_task
 
 **Description**: Check in a Session to a Task, indicating work has started
 
@@ -659,7 +659,7 @@ Available to all Agents. Used to manage Agent work sessions (e.g., sub-agent wor
 
 **Output**: Checkin record JSON
 
-### chorus_session_checkout_task
+### synapse_session_checkout_task
 
 **Description**: Check out a Session from a Task, indicating work has ended
 
@@ -671,7 +671,7 @@ Available to all Agents. Used to manage Agent work sessions (e.g., sub-agent wor
 
 **Output**: Updated checkin record JSON
 
-### chorus_session_heartbeat
+### synapse_session_heartbeat
 
 **Description**: Session heartbeat, updates lastActiveAt. Active sessions with no heartbeat for 1 hour are automatically marked as inactive.
 
@@ -688,9 +688,9 @@ Available to all Agents. Used to manage Agent work sessions (e.g., sub-agent wor
 
 Available to PM Agent and Admin Agent. Not available to Developer Agent.
 
-### chorus_claim_idea
+### synapse_claim_idea
 
-**Description**: Claim an Idea (open → elaborating). Claiming automatically transitions the Idea to 'elaborating' status. After claiming, start elaboration with chorus_pm_start_elaboration or skip with chorus_pm_skip_elaboration.
+**Description**: Claim an Idea (open → elaborating). Claiming automatically transitions the Idea to 'elaborating' status. After claiming, start elaboration with synapse_pm_start_elaboration or skip with synapse_pm_skip_elaboration.
 
 **Input**:
 | Parameter | Type | Required | Description |
@@ -699,7 +699,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 
 **Output**: Updated Idea JSON
 
-### chorus_release_idea
+### synapse_release_idea
 
 **Description**: Release a claimed Idea (elaborating → open)
 
@@ -710,7 +710,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 
 **Output**: Updated Idea JSON
 
-### chorus_update_idea_status
+### synapse_update_idea_status
 
 **Description**: Update Idea status (only the assignee can perform this). Valid statuses: open, elaborating, proposal_created, completed, closed. Claiming auto-transitions to elaborating; use this tool for proposal_created (after Proposal submission) or completed (after approval).
 
@@ -722,7 +722,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 
 **Output**: Updated Idea JSON
 
-### chorus_pm_create_proposal
+### synapse_pm_create_proposal
 
 **Description**: Create a proposal container (can include document drafts and task drafts)
 
@@ -739,9 +739,9 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 
 **Output**: Created Proposal JSON
 
-### chorus_pm_validate_proposal
+### synapse_pm_validate_proposal
 
-**Description**: Validate a Proposal's completeness before submission. Returns errors (block submission), warnings (advisory), and info (hints). Call this before `chorus_pm_submit_proposal` to preview validation issues.
+**Description**: Validate a Proposal's completeness before submission. Returns errors (block submission), warnings (advisory), and info (hints). Call this before `synapse_pm_submit_proposal` to preview validation issues.
 
 **Input**:
 | Parameter | Type | Required | Description |
@@ -785,11 +785,11 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 | I1 | info | Every task draft should have priority set |
 | I2 | info | Every task draft should have storyPoints set |
 
-**Usage**: Call before `chorus_pm_submit_proposal` to preview issues. Errors will block submission; warnings and info are advisory. `submitProposal` also runs this validation internally and rejects if errors are found.
+**Usage**: Call before `synapse_pm_submit_proposal` to preview issues. Errors will block submission; warnings and info are advisory. `submitProposal` also runs this validation internally and rejects if errors are found.
 
-### chorus_pm_submit_proposal
+### synapse_pm_submit_proposal
 
-**Description**: Submit a Proposal for approval (draft → pending). Runs `chorus_pm_validate_proposal` internally and rejects with a formatted error if any error-level issues are found. Call `chorus_pm_validate_proposal` first to preview issues before submitting.
+**Description**: Submit a Proposal for approval (draft → pending). Runs `synapse_pm_validate_proposal` internally and rejects with a formatted error if any error-level issues are found. Call `synapse_pm_validate_proposal` first to preview issues before submitting.
 
 **Input**:
 | Parameter | Type | Required | Description |
@@ -798,7 +798,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 
 **Output**: Updated Proposal JSON (status changes to pending)
 
-### chorus_pm_create_document
+### synapse_pm_create_document
 
 **Description**: Create a document (PRD, technical design, ADR, etc.)
 
@@ -813,7 +813,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 
 **Output**: Created Document JSON
 
-### chorus_pm_create_tasks
+### synapse_pm_create_tasks
 
 **Description**: Batch create tasks (can be associated with a Proposal, supports intra-batch dependencies)
 
@@ -849,7 +849,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 - `draftToTaskUuidMap`: Only returned when any task provides a draftUuid
 - `warnings`: Only returned when there are issues creating dependencies (tasks themselves are created successfully)
 
-### chorus_pm_update_document
+### synapse_pm_update_document
 
 **Description**: Update document content (increments version number)
 
@@ -862,7 +862,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 
 **Output**: Updated Document JSON
 
-### chorus_pm_add_document_draft
+### synapse_pm_add_document_draft
 
 **Description**: Add a document draft to a pending Proposal container
 
@@ -876,7 +876,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 
 **Output**: Updated Proposal JSON
 
-### chorus_pm_add_task_draft
+### synapse_pm_add_task_draft
 
 **Description**: Add a task draft to a pending Proposal container
 
@@ -894,7 +894,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 
 **Output**: Updated Proposal JSON
 
-### chorus_pm_update_document_draft
+### synapse_pm_update_document_draft
 
 **Description**: Update a document draft in a Proposal
 
@@ -909,7 +909,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 
 **Output**: Updated Proposal JSON
 
-### chorus_pm_update_task_draft
+### synapse_pm_update_task_draft
 
 **Description**: Update a task draft in a Proposal
 
@@ -927,7 +927,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 
 **Output**: Updated Proposal JSON
 
-### chorus_pm_remove_document_draft
+### synapse_pm_remove_document_draft
 
 **Description**: Remove a document draft from a Proposal
 
@@ -939,7 +939,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 
 **Output**: Updated Proposal JSON
 
-### chorus_pm_remove_task_draft
+### synapse_pm_remove_task_draft
 
 **Description**: Remove a task draft from a Proposal
 
@@ -951,7 +951,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 
 **Output**: Updated Proposal JSON
 
-### chorus_add_task_dependency
+### synapse_add_task_dependency
 
 **Description**: Add a task dependency (taskUuid depends on dependsOnTaskUuid). Includes same-project validation, self-dependency check, and DFS cycle detection.
 
@@ -976,7 +976,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 - Cross-project: `Tasks must belong to the same project`
 - Cycle detected: `Adding this dependency would create a cycle`
 
-### chorus_remove_task_dependency
+### synapse_remove_task_dependency
 
 **Description**: Remove a task dependency
 
@@ -995,7 +995,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 }
 ```
 
-### chorus_pm_assign_task
+### synapse_pm_assign_task
 
 **Description**: Assign a task to a specified Developer Agent (task must be in open or assigned status)
 
@@ -1012,7 +1012,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 - Target Agent must exist and belong to the same company
 - Target Agent must have the developer or developer_agent role
 
-### chorus_pm_start_elaboration
+### synapse_pm_start_elaboration
 
 **Description**: Start an elaboration round for an Idea. Creates structured questions for the Idea creator/stakeholder to answer, clarifying requirements before proposal creation. Recommended for every Idea. Structured elaboration improves Proposal quality and reduces rejection cycles.
 
@@ -1041,7 +1041,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 
 **Output**: Created Elaboration Round JSON
 
-### chorus_pm_validate_elaboration
+### synapse_pm_validate_elaboration
 
 **Description**: Validate answers from an elaboration round. If no issues are found, the elaboration is marked as resolved. If issues exist, optionally provide follow-up questions for a new round.
 
@@ -1060,13 +1060,13 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 | type | enum | Yes | Issue type: contradiction, ambiguity, incomplete |
 | description | string | Yes | Issue description |
 
-**followUpQuestions array item fields**: Same as `questions` in `chorus_pm_start_elaboration`.
+**followUpQuestions array item fields**: Same as `questions` in `synapse_pm_start_elaboration`.
 
 **Output**: Validation result JSON. If issues are empty, elaboration status changes to `resolved`. If follow-up questions are provided, a new round is created with status `pending_answers`.
 
-### chorus_pm_skip_elaboration
+### synapse_pm_skip_elaboration
 
-**Description**: Skip elaboration for an Idea (marks as resolved with minimal depth). Use only for trivially clear Ideas (e.g., bug fixes with clear reproduction steps). A reason is required and logged in the activity stream. Prefer chorus_pm_start_elaboration for most Ideas.
+**Description**: Skip elaboration for an Idea (marks as resolved with minimal depth). Use only for trivially clear Ideas (e.g., bug fixes with clear reproduction steps). A reason is required and logged in the activity stream. Prefer synapse_pm_start_elaboration for most Ideas.
 
 **Input**:
 | Parameter | Type | Required | Description |
@@ -1083,7 +1083,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 }
 ```
 
-### chorus_move_idea
+### synapse_move_idea
 
 **Description**: Move an Idea to a different project within the same company. Also moves linked draft/pending Proposals.
 
@@ -1095,7 +1095,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 
 **Output**: Updated Idea JSON (`{ uuid, project: { uuid, name } }`)
 
-### chorus_pm_create_idea
+### synapse_pm_create_idea
 
 **Description**: Create an Idea in a project (submit requirements on behalf of humans or from discovered requirements)
 
@@ -1114,7 +1114,7 @@ Available to PM Agent and Admin Agent. Not available to Developer Agent.
 
 Available to Developer Agent and Admin Agent. Not available to PM Agent.
 
-### chorus_claim_task
+### synapse_claim_task
 
 **Description**: Claim a Task (open → assigned)
 
@@ -1125,7 +1125,7 @@ Available to Developer Agent and Admin Agent. Not available to PM Agent.
 
 **Output**: Updated Task JSON
 
-### chorus_release_task
+### synapse_release_task
 
 **Description**: Release a claimed Task (assigned → open)
 
@@ -1136,7 +1136,7 @@ Available to Developer Agent and Admin Agent. Not available to PM Agent.
 
 **Output**: Updated Task JSON
 
-### chorus_update_task
+### synapse_update_task
 
 **Description**: Update task status (only the assignee can perform this)
 
@@ -1149,11 +1149,11 @@ Available to Developer Agent and Admin Agent. Not available to PM Agent.
 
 **Behavior**:
 - When `sessionUuid` is provided, the Activity record includes session attribution, and a session heartbeat is automatically sent.
-- **Dependency enforcement**: When transitioning to `in_progress`, the system checks that all `dependsOn` tasks are resolved (`done` or `closed`). If any dependency is unresolved, the request is rejected with a detailed error listing each blocker's title, status, assignee, and active session info. Use `chorus_get_unblocked_tasks` to find tasks that are ready to start.
+- **Dependency enforcement**: When transitioning to `in_progress`, the system checks that all `dependsOn` tasks are resolved (`done` or `closed`). If any dependency is unresolved, the request is rejected with a detailed error listing each blocker's title, status, assignee, and active session info. Use `synapse_get_unblocked_tasks` to find tasks that are ready to start.
 
 **Output**: Updated Task JSON (or error with blocker details if dependencies are unresolved)
 
-### chorus_submit_for_verify
+### synapse_submit_for_verify
 
 **Description**: Submit a task for human verification (in_progress → to_verify)
 
@@ -1165,7 +1165,7 @@ Available to Developer Agent and Admin Agent. Not available to PM Agent.
 
 **Output**: Updated Task JSON
 
-### chorus_report_work
+### synapse_report_work
 
 **Description**: Report work progress or completion
 
@@ -1187,7 +1187,7 @@ Available to Developer Agent and Admin Agent. Not available to PM Agent.
 
 Available only to Admin Agent. Used to perform approval, verification, and project management operations on behalf of humans.
 
-### chorus_admin_create_project
+### synapse_admin_create_project
 
 **Description**: Create a new project
 
@@ -1199,7 +1199,7 @@ Available only to Admin Agent. Used to perform approval, verification, and proje
 
 **Output**: Created Project JSON
 
-### chorus_admin_approve_proposal
+### synapse_admin_approve_proposal
 
 **Description**: Approve a Proposal
 
@@ -1207,7 +1207,7 @@ Available only to Admin Agent. Used to perform approval, verification, and proje
 - `documentDrafts` → Automatically creates corresponding Documents (linked to this Proposal)
 - `taskDrafts` → Automatically creates corresponding Tasks (linked to this Proposal)
 
-Therefore, after approval there is **no need** to manually call `chorus_pm_create_tasks` or `chorus_pm_create_document` to create these resources, as doing so would produce duplicate data. `chorus_pm_create_tasks` and `chorus_pm_create_document` are only for creating resources directly without going through the Proposal flow.
+Therefore, after approval there is **no need** to manually call `synapse_pm_create_tasks` or `synapse_pm_create_document` to create these resources, as doing so would produce duplicate data. `synapse_pm_create_tasks` and `synapse_pm_create_document` are only for creating resources directly without going through the Proposal flow.
 
 **Input**:
 | Parameter | Type | Required | Description |
@@ -1217,7 +1217,7 @@ Therefore, after approval there is **no need** to manually call `chorus_pm_creat
 
 **Output**: Updated Proposal JSON
 
-### chorus_admin_reject_proposal
+### synapse_admin_reject_proposal
 
 **Description**: Reject a Proposal
 
@@ -1229,7 +1229,7 @@ Therefore, after approval there is **no need** to manually call `chorus_pm_creat
 
 **Output**: Updated Proposal JSON
 
-### chorus_report_criteria_self_check
+### synapse_report_criteria_self_check
 
 **Description**: Report self-check results on acceptance criteria for a task (Developer tool)
 
@@ -1241,7 +1241,7 @@ Therefore, after approval there is **no need** to manually call `chorus_pm_creat
 
 **Output**: Updated acceptance status `{ items, status, summary }`
 
-### chorus_mark_acceptance_criteria
+### synapse_mark_acceptance_criteria
 
 **Description**: Mark acceptance criteria as passed or failed during admin verification (batch)
 
@@ -1253,7 +1253,7 @@ Therefore, after approval there is **no need** to manually call `chorus_pm_creat
 
 **Output**: Updated acceptance status `{ items, status, summary }`
 
-### chorus_admin_verify_task
+### synapse_admin_verify_task
 
 **Description**: Verify a Task (to_verify → done). **Acceptance criteria gate**: If the task has structured acceptance criteria, all required criteria must have `status: "passed"` before verification is allowed. Tasks without structured criteria are not gated (backward compatible).
 
@@ -1264,7 +1264,7 @@ Therefore, after approval there is **no need** to manually call `chorus_pm_creat
 
 **Output**: Updated Task JSON (or error if acceptance criteria gate blocks verification)
 
-### chorus_admin_reopen_task
+### synapse_admin_reopen_task
 
 **Description**: Reopen a Task (to_verify → in_progress, used when verification fails). If the task has unresolved dependencies, use `force=true` to bypass the dependency check.
 
@@ -1276,7 +1276,7 @@ Therefore, after approval there is **no need** to manually call `chorus_pm_creat
 
 **Output**: Updated Task JSON
 
-### chorus_admin_close_task
+### synapse_admin_close_task
 
 **Description**: Close a Task (any status → closed)
 
@@ -1287,7 +1287,7 @@ Therefore, after approval there is **no need** to manually call `chorus_pm_creat
 
 **Output**: Updated Task JSON
 
-### chorus_admin_close_idea
+### synapse_admin_close_idea
 
 **Description**: Close an Idea (any status → closed)
 
@@ -1298,7 +1298,7 @@ Therefore, after approval there is **no need** to manually call `chorus_pm_creat
 
 **Output**: Updated Idea JSON
 
-### chorus_admin_delete_idea
+### synapse_admin_delete_idea
 
 **Description**: Delete an Idea
 
@@ -1309,7 +1309,7 @@ Therefore, after approval there is **no need** to manually call `chorus_pm_creat
 
 **Output**: Confirmation message
 
-### chorus_admin_delete_task
+### synapse_admin_delete_task
 
 **Description**: Delete a Task
 
@@ -1320,7 +1320,7 @@ Therefore, after approval there is **no need** to manually call `chorus_pm_creat
 
 **Output**: Confirmation message
 
-### chorus_admin_delete_document
+### synapse_admin_delete_document
 
 **Description**: Delete a Document
 
@@ -1331,7 +1331,7 @@ Therefore, after approval there is **no need** to manually call `chorus_pm_creat
 
 **Output**: Confirmation message
 
-### chorus_admin_create_project_group
+### synapse_admin_create_project_group
 
 **Description**: Create a new project group (Admin exclusive)
 
@@ -1343,7 +1343,7 @@ Therefore, after approval there is **no need** to manually call `chorus_pm_creat
 
 **Output**: Created Project Group JSON (includes uuid, name, description, projectCount, createdAt, updatedAt)
 
-### chorus_admin_update_project_group
+### synapse_admin_update_project_group
 
 **Description**: Update a project group (Admin exclusive)
 
@@ -1356,7 +1356,7 @@ Therefore, after approval there is **no need** to manually call `chorus_pm_creat
 
 **Output**: Updated Project Group JSON
 
-### chorus_admin_delete_project_group
+### synapse_admin_delete_project_group
 
 **Description**: Delete a project group (Admin exclusive). Projects in the group become ungrouped.
 
@@ -1367,7 +1367,7 @@ Therefore, after approval there is **no need** to manually call `chorus_pm_creat
 
 **Output**: Confirmation message
 
-### chorus_admin_move_project_to_group
+### synapse_admin_move_project_to_group
 
 **Description**: Move a project to a different group or ungroup it (Admin exclusive). Set groupUuid to null to ungroup.
 
@@ -1400,61 +1400,61 @@ Therefore, after approval there is **no need** to manually call `chorus_pm_creat
 
 | # | Tool | Action | Result | Notes |
 |---|------|--------|--------|-------|
-| 1 | chorus_checkin | Agent check-in | ✅ Pass | Returns agent info, assignments, pending |
-| 2 | chorus_admin_create_project | Create project | ✅ Pass | Returns project UUID |
-| 3 | chorus_get_project | Get project details | ✅ Pass | |
-| 4 | chorus_pm_create_idea | Create Idea | ✅ Pass | status=open |
-| 5 | chorus_get_ideas | Get Ideas list | ✅ Pass | Pagination correct |
-| 6 | chorus_get_idea | Get single Idea | ✅ Pass | ⚠️ Returned `id` field (should be hidden) |
-| 7 | chorus_get_available_ideas | Get claimable Ideas | ✅ Pass | |
-| 8 | chorus_claim_idea | Claim Idea | ✅ Pass | open → elaborating |
-| 9 | chorus_update_idea_status | Update Idea status | ✅ Pass | (status transitions) |
-| 10 | chorus_get_my_assignments | Get my assignments | ✅ Pass | ideas and tasks lists |
-| 11 | chorus_add_comment (idea) | Comment on Idea | ✅ Pass | |
-| 12 | chorus_get_comments | Get comments list | ✅ Pass | |
-| 13 | chorus_pm_create_proposal | Create Proposal | ✅ Pass | Contains documentDrafts + taskDrafts, status=draft |
-| 14 | chorus_get_proposals | Get Proposals list | ✅ Pass | |
-| 15 | chorus_get_proposal | Get single Proposal | ✅ Pass | |
-| 16 | chorus_pm_add_document_draft | Add document draft | ✅ Pass | Appended to documentDrafts |
-| 17 | chorus_pm_add_task_draft | Add task draft | ✅ Pass | ⚠️ storyPoints must be number type (MCP sends string, causes error) |
-| 18 | chorus_pm_update_document_draft | Update document draft | ✅ Pass | |
-| 19 | chorus_pm_update_task_draft | Update task draft | ✅ Pass | |
-| 20 | chorus_pm_remove_task_draft | Remove task draft | ✅ Pass | |
-| 21 | chorus_pm_submit_proposal | Submit Proposal for approval | ✅ Pass | draft → pending (**new tool**) |
-| 22 | chorus_admin_approve_proposal | Approve Proposal | ✅ Pass | pending → approved, ⚠️ auto-creates tasks and documents from drafts |
-| 23 | chorus_add_comment (proposal) | Comment on Proposal | ✅ Pass | |
-| 24 | chorus_pm_create_tasks | Batch create tasks | ✅ Pass | ⚠️ If approve already auto-created, manual call produces duplicates |
-| 25 | chorus_pm_create_document | Create document | ✅ Pass | version=1 |
-| 26 | chorus_pm_update_document | Update document | ✅ Pass | version auto-increments to 2 |
-| 27 | chorus_list_tasks | List tasks | ✅ Pass | |
-| 28 | chorus_get_available_tasks | Get claimable Tasks | ✅ Pass | |
-| 29 | chorus_claim_task | Claim Task | ✅ Pass | open → assigned |
-| 30 | chorus_update_task | Update task status | ✅ Pass | assigned → in_progress |
-| 31 | chorus_report_work | Report work progress | ✅ Pass | Records activity |
-| 32 | chorus_add_comment (task) | Comment on Task | ✅ Pass | |
-| 33 | chorus_submit_for_verify | Submit for verification | ✅ Pass | in_progress → to_verify |
-| 34 | chorus_admin_reopen_task | Reopen Task | ✅ Pass | to_verify → in_progress |
-| 35 | chorus_admin_verify_task | Verify Task | ✅ Pass | to_verify → done |
-| 36 | chorus_release_task | Release claimed Task | ✅ Pass | assigned → open |
-| 37 | chorus_admin_close_task | Close Task | ✅ Pass | any → closed |
-| 38 | chorus_get_task | Get single Task | ✅ Pass | ⚠️ Returned `id` field (should be hidden) |
-| 39 | chorus_get_document | Get single document | ✅ Pass | |
-| 40 | chorus_get_activity | Get activity stream | ✅ Pass | Recorded submit, comment_added, etc. |
-| 41 | chorus_release_idea | Release claimed Idea | ✅ Pass | assigned → open |
-| 42 | chorus_admin_close_idea | Close Idea | ✅ Pass | any → closed |
-| 43 | chorus_admin_reject_proposal | Reject Proposal | ✅ Pass | pending → rejected, includes reviewNote |
-| 44 | chorus_admin_delete_task | Delete Task | ✅ Pass | |
-| 45 | chorus_admin_delete_document | Delete Document | ✅ Pass | |
-| 46 | chorus_admin_delete_idea | Delete Idea | ✅ Pass | |
+| 1 | synapse_checkin | Agent check-in | ✅ Pass | Returns agent info, assignments, pending |
+| 2 | synapse_admin_create_project | Create project | ✅ Pass | Returns project UUID |
+| 3 | synapse_get_project | Get project details | ✅ Pass | |
+| 4 | synapse_pm_create_idea | Create Idea | ✅ Pass | status=open |
+| 5 | synapse_get_ideas | Get Ideas list | ✅ Pass | Pagination correct |
+| 6 | synapse_get_idea | Get single Idea | ✅ Pass | ⚠️ Returned `id` field (should be hidden) |
+| 7 | synapse_get_available_ideas | Get claimable Ideas | ✅ Pass | |
+| 8 | synapse_claim_idea | Claim Idea | ✅ Pass | open → elaborating |
+| 9 | synapse_update_idea_status | Update Idea status | ✅ Pass | (status transitions) |
+| 10 | synapse_get_my_assignments | Get my assignments | ✅ Pass | ideas and tasks lists |
+| 11 | synapse_add_comment (idea) | Comment on Idea | ✅ Pass | |
+| 12 | synapse_get_comments | Get comments list | ✅ Pass | |
+| 13 | synapse_pm_create_proposal | Create Proposal | ✅ Pass | Contains documentDrafts + taskDrafts, status=draft |
+| 14 | synapse_get_proposals | Get Proposals list | ✅ Pass | |
+| 15 | synapse_get_proposal | Get single Proposal | ✅ Pass | |
+| 16 | synapse_pm_add_document_draft | Add document draft | ✅ Pass | Appended to documentDrafts |
+| 17 | synapse_pm_add_task_draft | Add task draft | ✅ Pass | ⚠️ storyPoints must be number type (MCP sends string, causes error) |
+| 18 | synapse_pm_update_document_draft | Update document draft | ✅ Pass | |
+| 19 | synapse_pm_update_task_draft | Update task draft | ✅ Pass | |
+| 20 | synapse_pm_remove_task_draft | Remove task draft | ✅ Pass | |
+| 21 | synapse_pm_submit_proposal | Submit Proposal for approval | ✅ Pass | draft → pending (**new tool**) |
+| 22 | synapse_admin_approve_proposal | Approve Proposal | ✅ Pass | pending → approved, ⚠️ auto-creates tasks and documents from drafts |
+| 23 | synapse_add_comment (proposal) | Comment on Proposal | ✅ Pass | |
+| 24 | synapse_pm_create_tasks | Batch create tasks | ✅ Pass | ⚠️ If approve already auto-created, manual call produces duplicates |
+| 25 | synapse_pm_create_document | Create document | ✅ Pass | version=1 |
+| 26 | synapse_pm_update_document | Update document | ✅ Pass | version auto-increments to 2 |
+| 27 | synapse_list_tasks | List tasks | ✅ Pass | |
+| 28 | synapse_get_available_tasks | Get claimable Tasks | ✅ Pass | |
+| 29 | synapse_claim_task | Claim Task | ✅ Pass | open → assigned |
+| 30 | synapse_update_task | Update task status | ✅ Pass | assigned → in_progress |
+| 31 | synapse_report_work | Report work progress | ✅ Pass | Records activity |
+| 32 | synapse_add_comment (task) | Comment on Task | ✅ Pass | |
+| 33 | synapse_submit_for_verify | Submit for verification | ✅ Pass | in_progress → to_verify |
+| 34 | synapse_admin_reopen_task | Reopen Task | ✅ Pass | to_verify → in_progress |
+| 35 | synapse_admin_verify_task | Verify Task | ✅ Pass | to_verify → done |
+| 36 | synapse_release_task | Release claimed Task | ✅ Pass | assigned → open |
+| 37 | synapse_admin_close_task | Close Task | ✅ Pass | any → closed |
+| 38 | synapse_get_task | Get single Task | ✅ Pass | ⚠️ Returned `id` field (should be hidden) |
+| 39 | synapse_get_document | Get single document | ✅ Pass | |
+| 40 | synapse_get_activity | Get activity stream | ✅ Pass | Recorded submit, comment_added, etc. |
+| 41 | synapse_release_idea | Release claimed Idea | ✅ Pass | assigned → open |
+| 42 | synapse_admin_close_idea | Close Idea | ✅ Pass | any → closed |
+| 43 | synapse_admin_reject_proposal | Reject Proposal | ✅ Pass | pending → rejected, includes reviewNote |
+| 44 | synapse_admin_delete_task | Delete Task | ✅ Pass | |
+| 45 | synapse_admin_delete_document | Delete Document | ✅ Pass | |
+| 46 | synapse_admin_delete_idea | Delete Idea | ✅ Pass | |
 
 ### Issues Found and Fixes
 
-#### Bug: Missing `chorus_pm_submit_proposal` tool (Fixed ✅)
+#### Bug: Missing `synapse_pm_submit_proposal` tool (Fixed ✅)
 - **Issue**: After Proposal creation status=draft, but no MCP tool could submit it to pending status, making `admin_approve_proposal` unusable (only accepts pending status)
-- **Fix**: Added `chorus_pm_submit_proposal` tool in `src/mcp/tools/pm.ts`
+- **Fix**: Added `synapse_pm_submit_proposal` tool in `src/mcp/tools/pm.ts`
 
 #### Bug: `get_idea` and `get_task` returned raw DB fields (Fixed ✅)
-- **Issue**: `chorus_get_idea` and `chorus_get_task` returned `id` (database auto-increment ID) and `companyUuid` and other internal fields
+- **Issue**: `synapse_get_idea` and `synapse_get_task` returned `id` (database auto-increment ID) and `companyUuid` and other internal fields
 - **Fix**: Changed to call `ideaService.getIdea()` and `taskService.getTask()`, returning formatted responses
 
 #### Bug: PM tool set incorrectly included Developer tools (Fixed ✅)

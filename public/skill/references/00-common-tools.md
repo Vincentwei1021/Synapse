@@ -8,7 +8,7 @@ All Agent roles can use the following tools for querying information and collabo
 
 | Tool | Purpose |
 |------|---------|
-| `chorus_checkin` | First call: get Agent persona, role, current assignments, pending work counts, and **unread notification count** |
+| `synapse_checkin` | First call: get Agent persona, role, current assignments, pending work counts, and **unread notification count** |
 
 The checkin response includes **owner/master information** for the agent:
 - `agent.owner`: `{ uuid, name, email }` or `null` — the human user who owns this agent
@@ -20,27 +20,27 @@ Results can be filtered by project(s) using optional HTTP headers in your `.mcp.
 
 | Header | Format | Example |
 |--------|--------|---------|
-| `X-Chorus-Project` | Single UUID or comma-separated UUIDs | `project-uuid-1` or `uuid1,uuid2,uuid3` |
-| `X-Chorus-Project-Group` | Group UUID | `group-uuid-here` |
+| `X-Synapse-Project` | Single UUID or comma-separated UUIDs | `project-uuid-1` or `uuid1,uuid2,uuid3` |
+| `X-Synapse-Project-Group` | Group UUID | `group-uuid-here` |
 
 **Behavior**:
 - **No header**: Returns all projects (default, backward compatible)
-- **X-Chorus-Project**: Returns only specified project(s)
-- **X-Chorus-Project-Group**: Returns all projects in the group
-- **Priority**: `X-Chorus-Project-Group` takes precedence if both headers are provided
+- **X-Synapse-Project**: Returns only specified project(s)
+- **X-Synapse-Project-Group**: Returns all projects in the group
+- **Priority**: `X-Synapse-Project-Group` takes precedence if both headers are provided
 
-**Affected tools**: `chorus_checkin`, `chorus_get_my_assignments`
+**Affected tools**: `synapse_checkin`, `synapse_get_my_assignments`
 
 **Example `.mcp.json`**:
 ```json
 {
   "mcpServers": {
-    "chorus": {
+    "synapse": {
       "type": "http",
       "url": "http://localhost:3000/api/mcp",
       "headers": {
-        "Authorization": "Bearer cho_xxx",
-        "X-Chorus-Project": "project-uuid-1,project-uuid-2"
+        "Authorization": "Bearer syn_xxx",
+        "X-Synapse-Project": "project-uuid-1,project-uuid-2"
       }
     }
   }
@@ -74,9 +74,9 @@ Projects can be organized into **Project Groups** — a single-level grouping fo
 
 | Tool | Purpose |
 |------|---------|
-| `chorus_get_project_groups` | List all project groups with project counts |
-| `chorus_get_project_group` | Get a single project group by UUID with its projects list |
-| `chorus_get_group_dashboard` | Get aggregated dashboard stats for a project group |
+| `synapse_get_project_groups` | List all project groups with project counts |
+| `synapse_get_project_group` | Get a single project group by UUID with its projects list |
+| `synapse_get_group_dashboard` | Get aggregated dashboard stats for a project group |
 
 ---
 
@@ -84,9 +84,9 @@ Projects can be organized into **Project Groups** — a single-level grouping fo
 
 | Tool | Purpose |
 |------|---------|
-| `chorus_list_projects` | List all projects for the current company (paginated). Returns projects with counts of ideas, documents, tasks, and proposals. |
-| `chorus_get_project` | Get project details and background information |
-| `chorus_get_activity` | Get project activity stream (paginated) |
+| `synapse_list_projects` | List all projects for the current company (paginated). Returns projects with counts of ideas, documents, tasks, and proposals. |
+| `synapse_get_project` | Get project details and background information |
+| `synapse_get_activity` | Get project activity stream (paginated) |
 
 ---
 
@@ -94,9 +94,9 @@ Projects can be organized into **Project Groups** — a single-level grouping fo
 
 | Tool | Purpose |
 |------|---------|
-| `chorus_get_ideas` | List project Ideas (filterable by status, paginated) |
-| `chorus_get_idea` | Get a single Idea's details |
-| `chorus_get_available_ideas` | Get claimable Ideas (status=open) |
+| `synapse_get_ideas` | List project Ideas (filterable by status, paginated) |
+| `synapse_get_idea` | Get a single Idea's details |
+| `synapse_get_available_ideas` | Get claimable Ideas (status=open) |
 
 ---
 
@@ -104,8 +104,8 @@ Projects can be organized into **Project Groups** — a single-level grouping fo
 
 | Tool | Purpose |
 |------|---------|
-| `chorus_get_documents` | List project documents (filterable by type: prd, tech_design, adr, spec, guide) |
-| `chorus_get_document` | Get a single document's content |
+| `synapse_get_documents` | List project documents (filterable by type: prd, tech_design, adr, spec, guide) |
+| `synapse_get_document` | Get a single document's content |
 
 ---
 
@@ -113,8 +113,8 @@ Projects can be organized into **Project Groups** — a single-level grouping fo
 
 | Tool | Purpose |
 |------|---------|
-| `chorus_get_proposals` | List project Proposals (filterable by status: pending, approved, rejected) |
-| `chorus_get_proposal` | Get a single Proposal's details, including documentDrafts and taskDrafts |
+| `synapse_get_proposals` | List project Proposals (filterable by status: pending, approved, rejected) |
+| `synapse_get_proposal` | Get a single Proposal's details, including documentDrafts and taskDrafts |
 
 ---
 
@@ -122,16 +122,16 @@ Projects can be organized into **Project Groups** — a single-level grouping fo
 
 | Tool | Purpose |
 |------|---------|
-| `chorus_list_tasks` | List project Tasks (filterable by status/priority/proposalUuids, paginated) |
-| `chorus_get_task` | Get a single Task's details and context |
-| `chorus_get_available_tasks` | Get claimable Tasks (status=open, optional proposalUuids filter) |
-| `chorus_get_unblocked_tasks` | Get tasks ready to start — all dependencies resolved (done/closed). Optional proposalUuids filter. `to_verify` is NOT considered resolved. |
+| `synapse_list_tasks` | List project Tasks (filterable by status/priority/proposalUuids, paginated) |
+| `synapse_get_task` | Get a single Task's details and context |
+| `synapse_get_available_tasks` | Get claimable Tasks (status=open, optional proposalUuids filter) |
+| `synapse_get_unblocked_tasks` | Get tasks ready to start — all dependencies resolved (done/closed). Optional proposalUuids filter. `to_verify` is NOT considered resolved. |
 
-**Proposal filtering** — `chorus_list_tasks`, `chorus_get_available_tasks`, and `chorus_get_unblocked_tasks` all accept an optional `proposalUuids` parameter (array of proposal UUID strings). When provided, only tasks belonging to those proposals are returned. When omitted, all tasks are returned (backward compatible).
+**Proposal filtering** — `synapse_list_tasks`, `synapse_get_available_tasks`, and `synapse_get_unblocked_tasks` all accept an optional `proposalUuids` parameter (array of proposal UUID strings). When provided, only tasks belonging to those proposals are returned. When omitted, all tasks are returned (backward compatible).
 
 ```
 // Example: filter tasks by two proposals
-chorus_list_tasks({ projectUuid: "...", proposalUuids: ["proposal-uuid-1", "proposal-uuid-2"] })
+synapse_list_tasks({ projectUuid: "...", proposalUuids: ["proposal-uuid-1", "proposal-uuid-2"] })
 ```
 
 ---
@@ -140,7 +140,7 @@ chorus_list_tasks({ projectUuid: "...", proposalUuids: ["proposal-uuid-1", "prop
 
 | Tool | Purpose |
 |------|---------|
-| `chorus_get_my_assignments` | Get all Ideas and Tasks claimed by you |
+| `synapse_get_my_assignments` | Get all Ideas and Tasks claimed by you |
 
 ---
 
@@ -148,10 +148,10 @@ chorus_list_tasks({ projectUuid: "...", proposalUuids: ["proposal-uuid-1", "prop
 
 | Tool | Purpose |
 |------|---------|
-| `chorus_add_comment` | Add a comment to an idea/proposal/task/document |
-| `chorus_get_comments` | Get the comment list for a target (paginated) |
+| `synapse_add_comment` | Add a comment to an idea/proposal/task/document |
+| `synapse_get_comments` | Get the comment list for a target (paginated) |
 
-**Parameters for `chorus_add_comment`:**
+**Parameters for `synapse_add_comment`:**
 - `targetType`: `"idea"` / `"proposal"` / `"task"` / `"document"`
 - `targetUuid`: Target UUID
 - `content`: Comment content (Markdown)
@@ -160,14 +160,14 @@ chorus_list_tasks({ projectUuid: "...", proposalUuids: ["proposal-uuid-1", "prop
 
 ## Elaboration
 
-Requirements elaboration tools allow any agent to answer elaboration questions and view elaboration state for Ideas. The PM Agent creates elaboration rounds (via `chorus_pm_start_elaboration`), and any agent or user can answer questions and check status.
+Requirements elaboration tools allow any agent to answer elaboration questions and view elaboration state for Ideas. The PM Agent creates elaboration rounds (via `synapse_pm_start_elaboration`), and any agent or user can answer questions and check status.
 
 | Tool | Purpose |
 |------|---------|
-| `chorus_answer_elaboration` | Submit answers for an elaboration round on an Idea |
-| `chorus_get_elaboration` | Get the full elaboration state for an Idea (rounds, questions, answers, summary) |
+| `synapse_answer_elaboration` | Submit answers for an elaboration round on an Idea |
+| `synapse_get_elaboration` | Get the full elaboration state for an Idea (rounds, questions, answers, summary) |
 
-**Parameters for `chorus_answer_elaboration`:**
+**Parameters for `synapse_answer_elaboration`:**
 - `ideaUuid`: Idea UUID
 - `roundUuid`: Elaboration round UUID
 - `answers`: Array of answer objects:
@@ -175,7 +175,7 @@ Requirements elaboration tools allow any agent to answer elaboration questions a
   - `selectedOptionId`: Selected option ID (or `null` if using custom text only)
   - `customText`: Custom text answer (or `null` if using selected option only)
 
-**Parameters for `chorus_get_elaboration`:**
+**Parameters for `synapse_get_elaboration`:**
 - `ideaUuid`: Idea UUID
 
 ---
@@ -186,14 +186,14 @@ Use @mentions to notify specific users or agents in comments, task descriptions,
 
 | Tool | Purpose |
 |------|---------|
-| `chorus_search_mentionables` | Search for users and agents that can be @mentioned |
+| `synapse_search_mentionables` | Search for users and agents that can be @mentioned |
 
-**Parameters for `chorus_search_mentionables`:**
+**Parameters for `synapse_search_mentionables`:**
 - `query`: Name or keyword to search
 - `limit`: Max results to return (default: 10)
 
 **Mention workflow:**
-1. Search for mentionable users/agents: `chorus_search_mentionables({ query: "yifei" })`
+1. Search for mentionable users/agents: `synapse_search_mentionables({ query: "yifei" })`
 2. Use the returned UUID to write mentions in your content: `@[Yifei](user:uuid-here)`
 3. When the content is saved (comment, task update, idea update), mentioned users/agents automatically receive a notification
 
@@ -211,28 +211,28 @@ Use @mentions to notify specific users or agents in comments, task descriptions,
 
 ## Notifications
 
-Agents receive in-app notifications for events relevant to them (task assignments, proposal approvals, comments, etc.). The `chorus_checkin` response includes an `notifications.unreadCount` field — **check this value after checkin** and review your notifications if the count is non-zero.
+Agents receive in-app notifications for events relevant to them (task assignments, proposal approvals, comments, etc.). The `synapse_checkin` response includes an `notifications.unreadCount` field — **check this value after checkin** and review your notifications if the count is non-zero.
 
 | Tool | Purpose |
 |------|---------|
-| `chorus_get_notifications` | Get your notifications (default: unread only, paginated) |
-| `chorus_mark_notification_read` | Mark a single notification or all notifications as read |
+| `synapse_get_notifications` | Get your notifications (default: unread only, paginated) |
+| `synapse_mark_notification_read` | Mark a single notification or all notifications as read |
 
-**Parameters for `chorus_get_notifications`:**
+**Parameters for `synapse_get_notifications`:**
 - `status`: `"unread"` (default) / `"read"` / `"all"`
 - `limit`: Max results (default: 20)
 - `offset`: Pagination offset (default: 0)
 - `autoMarkRead`: Automatically mark fetched unread notifications as read (default: `true`)
 
-**Parameters for `chorus_mark_notification_read`:**
+**Parameters for `synapse_mark_notification_read`:**
 - `notificationUuid`: UUID of a single notification to mark as read
 - `all`: Set to `true` to mark all notifications as read (use one or the other)
 
 **Recommended workflow:**
-1. Call `chorus_checkin()` — check `notifications.unreadCount`
-2. If unreadCount > 0, call `chorus_get_notifications()` to review them — notifications are auto-marked as read
-3. To peek without marking read: `chorus_get_notifications({ autoMarkRead: false })`
-4. `chorus_mark_notification_read` is still available for manual control if needed
+1. Call `synapse_checkin()` — check `notifications.unreadCount`
+2. If unreadCount > 0, call `synapse_get_notifications()` to review them — notifications are auto-marked as read
+3. To peek without marking read: `synapse_get_notifications({ autoMarkRead: false })`
+4. `synapse_mark_notification_read` is still available for manual control if needed
 
 **Notification types you may receive:**
 - `task_assigned` — A task was assigned to you
@@ -247,7 +247,7 @@ Agents receive in-app notifications for events relevant to them (task assignment
 
 ## Usage Tips
 
-- Call `chorus_checkin()` at the start of each conversation to understand your role, pending items, and unread notifications
-- Use `chorus_get_project` + `chorus_get_documents` to understand project background before starting work
-- Use `chorus_get_activity` to see what happened recently and avoid duplicate work
-- Use `chorus_add_comment` to record decision rationale, ask questions, and hold discussions
+- Call `synapse_checkin()` at the start of each conversation to understand your role, pending items, and unread notifications
+- Use `synapse_get_project` + `synapse_get_documents` to understand project background before starting work
+- Use `synapse_get_activity` to see what happened recently and avoid duplicate work
+- Use `synapse_add_comment` to record decision rationale, ask questions, and hold discussions

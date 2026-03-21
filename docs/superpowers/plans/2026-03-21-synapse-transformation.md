@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Transform Chorus into Synapse — an AI Research Lifecycle Platform — by renaming all models, services, routes, MCP tools, UI strings, and adding research-specific features.
+**Goal:** Transform Synapse into Synapse — an AI Research Lifecycle Platform — by renaming all models, services, routes, MCP tools, UI strings, and adding research-specific features.
 
 **Architecture:** Layered transformation: Schema (Prisma models + fields) → Backend (services, routes, MCP, auth) → Frontend (pages, components, i18n, docs). Each layer builds on the previous. Existing tests serve as regression verification after each rename phase. New features (Baseline, ExperimentRegistry, criteria-evaluation) use TDD.
 
@@ -24,11 +24,11 @@
 - `src/types/elaboration.ts` → `src/types/hypothesis-formulation.ts`
 
 **Lib:**
-- `src/lib/api-key.ts` — `cho_` → `syn_`
+- `src/lib/api-key.ts` — `syn_` → `syn_`
 - `src/lib/auth.ts` — role helpers rename
-- `src/lib/event-bus.ts` — `ChorusEventBus` → `SynapseEventBus`
+- `src/lib/event-bus.ts` — `SynapseEventBus` → `SynapseEventBus`
 - `src/lib/uuid-resolver.ts` — TargetType values
-- `src/i18n/request.ts` — `chorus-locale` → `synapse-locale`
+- `src/i18n/request.ts` — `synapse-locale` → `synapse-locale`
 
 **Services:**
 - `src/services/idea.service.ts` → `src/services/research-question.service.ts`
@@ -71,8 +71,8 @@
 **Config/Docs:**
 - `package.json`, `.env.example`, `docker-compose.yml`, `Dockerfile`, `docker-entrypoint.sh`, `install.sh`
 - `README.md`, `README.zh.md`, `CLAUDE.md`, `CHANGELOG.md`
-- `public/chorus-plugin/` → `public/synapse-plugin/`
-- `packages/chorus-cdk/` → `packages/synapse-cdk/`
+- `public/synapse-plugin/` → `public/synapse-plugin/`
+- `packages/synapse-cdk/` → `packages/synapse-cdk/`
 - `.claude-plugin/marketplace.json`
 
 ### New Files
@@ -237,12 +237,12 @@ This requires a running PostgreSQL instance:
 ```bash
 pnpm docker:db
 # Wait for DB to be ready, then:
-DATABASE_URL="postgresql://chorus:chorus@localhost:5432/chorus" npx prisma migrate dev --name synapse_init
+DATABASE_URL="postgresql://synapse:synapse@localhost:5432/synapse" npx prisma migrate dev --name synapse_init
 ```
 
 If the database doesn't exist or has old schema, reset it first:
 ```bash
-DATABASE_URL="postgresql://chorus:chorus@localhost:5432/chorus" npx prisma migrate reset --force
+DATABASE_URL="postgresql://synapse:synapse@localhost:5432/synapse" npx prisma migrate reset --force
 ```
 
 - [ ] **Step 3: Generate Prisma client**
@@ -305,7 +305,7 @@ git commit -m "types: rename AgentRole values and elaboration types"
 
 - [ ] **Step 1: Update api-key.ts**
 
-Replace all `"cho_"` → `"syn_"` including:
+Replace all `"syn_"` → `"syn_"` including:
 - Key generation prefix
 - Key validation prefix check
 - Comments referencing the prefix
@@ -320,11 +320,11 @@ Replace all `"cho_"` → `"syn_"` including:
 
 - [ ] **Step 3: Update event-bus.ts**
 
-- `class ChorusEventBus` → `class SynapseEventBus`
-- `globalThis.chorusEventBus` → `globalThis.synapseEventBus`
-- Redis channel `"chorus:events"` → `"synapse:events"`
+- `class SynapseEventBus` → `class SynapseEventBus`
+- `globalThis.synapseEventBus` → `globalThis.synapseEventBus`
+- Redis channel `"synapse:events"` → `"synapse:events"`
 - Update `RealtimeEvent` interface: entity type values `"task"` → `"experiment_run"`, `"idea"` → `"research_question"`, `"proposal"` → `"experiment_design"`
-- All comments mentioning "Chorus" → "Synapse"
+- All comments mentioning "Synapse" → "Synapse"
 
 - [ ] **Step 4: Update uuid-resolver.ts**
 
@@ -334,12 +334,12 @@ Update any resolver functions that map between entity types and Prisma models.
 
 - [ ] **Step 5: Update locale cookie name**
 
-In `src/i18n/request.ts`: `"chorus-locale"` → `"synapse-locale"`
-In `src/contexts/locale-context.tsx`: `"chorus-locale"` → `"synapse-locale"`
+In `src/i18n/request.ts`: `"synapse-locale"` → `"synapse-locale"`
+In `src/contexts/locale-context.tsx`: `"synapse-locale"` → `"synapse-locale"`
 
 - [ ] **Step 6: Update redis.ts**
 
-Update any `chorus` references in connection naming or channel prefixes.
+Update any `synapse` references in connection naming or channel prefixes.
 
 - [ ] **Step 7: Commit**
 
@@ -635,14 +635,14 @@ import { registerResearcherTools } from "./tools/researcher";
 import { registerPiTools } from "./tools/pi";
 ```
 
-- Server name: `"chorus"` → `"synapse"`
+- Server name: `"synapse"` → `"synapse"`
 - Role checks: `"pm"` / `"pm_agent"` → `"research_lead"` / `"research_lead_agent"`, etc.
 - Register calls: `registerPmTools` → `registerResearchLeadTools`, `registerDeveloperTools` → `registerResearcherTools`, `registerAdminTools` → `registerPiTools`
 
 - [ ] **Step 3: Update all tool files**
 
 In every tool file:
-- Tool name prefix: `chorus_` → `synapse_`
+- Tool name prefix: `synapse_` → `synapse_`
 - All service imports update to new names
 - All Prisma model references update
 - All field references update (`projectUuid` → `researchProjectUuid`, etc.)
@@ -658,7 +658,7 @@ Update all internal references.
 
 ```bash
 git add src/mcp/
-git commit -m "mcp: rename tools chorus→synapse, update roles and entity types"
+git commit -m "mcp: rename tools synapse→synapse, update roles and entity types"
 ```
 
 ### Task 11: Rename API Routes
@@ -708,8 +708,8 @@ For every `route.ts` inside the renamed directories:
 - [ ] **Step 3: Update MCP route headers**
 
 In `src/app/api/mcp/route.ts`:
-- `X-Chorus-Project` → `X-Synapse-Project`
-- `X-Chorus-Project-Group` → `X-Synapse-Project-Group`
+- `X-Synapse-Project` → `X-Synapse-Project`
+- `X-Synapse-Project-Group` → `X-Synapse-Project-Group`
 
 - [ ] **Step 4: Update other API routes**
 
@@ -933,7 +933,7 @@ For each renamed component, update:
 
 `src/app/(dashboard)/settings/page.tsx` and `actions.ts`:
 - Agent role display: "PM" → "Research Lead", "Developer" → "Researcher", "Admin" → "PI"
-- API key prefix display: `cho_` → `syn_`
+- API key prefix display: `syn_` → `syn_`
 
 - [ ] **Step 5: Update contexts**
 
@@ -981,7 +981,7 @@ Systematic replacements:
 - "PM" / "PM Agent" → "Research Lead"
 - "Developer" / "Developer Agent" → "Research Agent"
 - "Admin" / "Admin Agent" → "Principal Investigator"
-- "Chorus" → "Synapse"
+- "Synapse" → "Synapse"
 - "Project Group" display values → "Research Program"
 - "Acceptance Criteria" → "Go/No-Go Criteria"
 
@@ -1030,7 +1030,7 @@ Same key renames. Chinese translations:
 
 ```bash
 git add messages/
-git commit -m "i18n: update all strings from Chorus/software to Synapse/research terminology"
+git commit -m "i18n: update all strings from Synapse/software to Synapse/research terminology"
 ```
 
 ### Task 17: Update Static Assets, Config, and Docs
@@ -1044,8 +1044,8 @@ git commit -m "i18n: update all strings from Chorus/software to Synapse/research
 - Modify: `install.sh`
 - Modify: `.dockerignore`
 - Modify: `.gitignore`
-- Rename: `public/chorus-plugin/` → `public/synapse-plugin/`
-- Rename: `packages/chorus-cdk/` → `packages/synapse-cdk/`
+- Rename: `public/synapse-plugin/` → `public/synapse-plugin/`
+- Rename: `packages/synapse-cdk/` → `packages/synapse-cdk/`
 - Modify: `.claude-plugin/marketplace.json`
 - Modify: `pnpm-workspace.yaml`
 - Modify: `README.md`, `README.zh.md`
@@ -1058,7 +1058,7 @@ git commit -m "i18n: update all strings from Chorus/software to Synapse/research
 
 - [ ] **Step 1: Update package.json**
 
-- `"name": "chorus"` → `"name": "synapse"`
+- `"name": "synapse"` → `"name": "synapse"`
 
 - [ ] **Step 2: Update .env.example**
 
@@ -1071,61 +1071,61 @@ DEFAULT_PASSWORD="synapse123"
 
 - [ ] **Step 3: Update docker-compose.yml**
 
-- Service names: `chorus` refs → `synapse`
-- Image names: `chorusaidlc/chorus-app` → update
+- Service names: `synapse` refs → `synapse`
+- Image names: `synapseaidlc/synapse-app` → update
 - Environment variables: match .env.example changes
 - Database name, user, password
 
 - [ ] **Step 4: Update Dockerfile, docker-entrypoint.sh**
 
-Replace all `chorus` references with `synapse`.
+Replace all `synapse` references with `synapse`.
 
 - [ ] **Step 5: Update install.sh**
 
-Default stack name: `Chorus` → `Synapse`
-All `chorus` refs → `synapse`
+Default stack name: `Synapse` → `Synapse`
+All `synapse` refs → `synapse`
 
 - [ ] **Step 6: Rename plugin directory**
 
 ```bash
-git mv public/chorus-plugin public/synapse-plugin
+git mv public/synapse-plugin public/synapse-plugin
 ```
 
 Update ALL files inside `public/synapse-plugin/`:
-- `CHORUS_URL` → `SYNAPSE_URL`
-- `CHORUS_API_KEY` → `SYNAPSE_API_KEY`
-- `chorus` → `synapse` in all scripts, skill docs, config files
+- `SYNAPSE_URL` → `SYNAPSE_URL`
+- `SYNAPSE_API_KEY` → `SYNAPSE_API_KEY`
+- `synapse` → `synapse` in all scripts, skill docs, config files
 - Role terminology: PM → Research Lead, Developer → Researcher, Admin → PI
-- Tool names: `chorus_*` → `synapse_*`
+- Tool names: `synapse_*` → `synapse_*`
 
 - [ ] **Step 7: Rename CDK directory**
 
 ```bash
-git mv packages/chorus-cdk packages/synapse-cdk
+git mv packages/synapse-cdk packages/synapse-cdk
 ```
 
 Update ALL files inside:
 - Package name in `package.json`
-- All `chorus` refs → `synapse`
+- All `synapse` refs → `synapse`
 - CDK stack names, construct names
 
 - [ ] **Step 8: Update packages/openclaw-plugin/**
 
-- All `chorus` refs → `synapse`
-- Tool names: `chorus_*` → `synapse_*`
+- All `synapse` refs → `synapse`
+- Tool names: `synapse_*` → `synapse_*`
 - Role terminology
-- `cho_` → `syn_`
+- `syn_` → `syn_`
 
 - [ ] **Step 9: Update .claude-plugin/marketplace.json**
 
-- `"chorus-plugins"` → `"synapse-plugins"`
+- `"synapse-plugins"` → `"synapse-plugins"`
 - Plugin name and descriptions
 
 - [ ] **Step 10: Update README.md and README.zh.md**
 
 Full rewrite for Synapse identity:
 - Title, description, badges
-- All "Chorus" → "Synapse"
+- All "Synapse" → "Synapse"
 - All terminology (Idea→Research Question, Task→Experiment Run, etc.)
 - Docker commands, env vars
 - Plugin install commands
@@ -1133,7 +1133,7 @@ Full rewrite for Synapse identity:
 - [ ] **Step 11: Update CLAUDE.md**
 
 Full rewrite:
-- "Chorus" → "Synapse" throughout
+- "Synapse" → "Synapse" throughout
 - Tech stack section: same stack, new name
 - Project structure: update directory names
 - Architecture patterns: update terminology
@@ -1145,23 +1145,23 @@ Full rewrite:
 - [ ] **Step 12: Update all docs/ files**
 
 For each file in `docs/`:
-- `PRD_Chorus.md` → `PRD_Synapse.md` (rename + content update)
+- `PRD_Synapse.md` → `PRD_Synapse.md` (rename + content update)
 - `ARCHITECTURE.md` → update terminology
 - `MCP_TOOLS.md` → update all tool names
-- `chorus-plugin.md` → `synapse-plugin.md` (rename + content update)
+- `synapse-plugin.md` → `synapse-plugin.md` (rename + content update)
 - `AIDLC_GAP_ANALYSIS.md` → update
 - `DOCKER.md` → update
-- All other docs: find/replace Chorus → Synapse + terminology updates
+- All other docs: find/replace Synapse → Synapse + terminology updates
 
 - [ ] **Step 13: Update pnpm-workspace.yaml**
 
-If it references `chorus-cdk`, update to `synapse-cdk`.
+If it references `synapse-cdk`, update to `synapse-cdk`.
 
 - [ ] **Step 14: Commit**
 
 ```bash
 git add -A
-git commit -m "config: rename all static assets, docs, and config from Chorus to Synapse"
+git commit -m "config: rename all static assets, docs, and config from Synapse to Synapse"
 ```
 
 ### Task 18: Frontend Verification

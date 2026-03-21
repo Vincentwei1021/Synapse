@@ -1,16 +1,16 @@
 ---
 name: plugin-maintenance
-description: Guide for modifying the Chorus plugin, updating skill documentation, and releasing new plugin versions.
+description: Guide for modifying the Synapse plugin, updating skill documentation, and releasing new plugin versions.
 license: AGPL-3.0
 metadata:
-  author: chorus
+  author: synapse
   version: "0.1.0"
   category: development
 ---
 
-# Chorus Plugin & Skill Maintenance
+# Synapse Plugin & Skill Maintenance
 
-How to modify the Chorus plugin, update skill documentation, and release new versions.
+How to modify the Synapse plugin, update skill documentation, and release new versions.
 
 ## File Structure
 
@@ -18,12 +18,12 @@ How to modify the Chorus plugin, update skill documentation, and release new ver
 .claude-plugin/
   marketplace.json              ← Marketplace registry (version here)
 
-public/chorus-plugin/           ← The plugin package
+public/synapse-plugin/           ← The plugin package
   .claude-plugin/
     plugin.json                 ← Plugin metadata (version here)
   hooks.json                    ← Hook definitions (SubagentStart, etc.)
   bin/                          ← Hook scripts (bash)
-  skills/chorus/
+  skills/synapse/
     SKILL.md                    ← Main skill file (execution rules, lifecycle)
     references/
       00-common-tools.md        ← Public MCP tools shared by all roles
@@ -48,26 +48,26 @@ public/skill/                   ← Standalone skill (non-CC agents)
 | New workflow step | Plugin `02-pm-workflow.md` (or 03/04) + standalone equivalent |
 | New Idea/Task status | Plugin `SKILL.md` lifecycle diagram + standalone `SKILL.md` + `messages/en.json` + `messages/zh.json` |
 | New execution rule | Plugin `SKILL.md` execution rules + standalone `SKILL.md` (softer wording) |
-| Hook script change | `public/chorus-plugin/bin/*.sh` + `hooks.json` if new hook |
+| Hook script change | `public/synapse-plugin/bin/*.sh` + `hooks.json` if new hook |
 | Any plugin change | Bump version in BOTH files (see below) |
 
 ## Version Bump Checklist
 
 Every time the plugin content changes, bump the version in **both** files:
 
-1. `public/chorus-plugin/.claude-plugin/plugin.json` — `"version": "X.Y.Z"`
+1. `public/synapse-plugin/.claude-plugin/plugin.json` — `"version": "X.Y.Z"`
 2. `.claude-plugin/marketplace.json` — `"version": "X.Y.Z"`
 
 Both must match. Users update via:
 ```bash
-/plugin update chorus@chorus-plugins
+/plugin update synapse@synapse-plugins
 ```
 
 ## Plugin vs Standalone Skill: Tone Differences
 
 The plugin skill targets Claude Code specifically. The standalone skill targets any MCP-compatible agent (Cursor, Kiro, etc.).
 
-| Aspect | Plugin (`public/chorus-plugin/skills/`) | Standalone (`public/skill/`) |
+| Aspect | Plugin (`public/synapse-plugin/skills/`) | Standalone (`public/skill/`) |
 |--------|----------------------------------------|------------------------------|
 | AskUserQuestion | "ALWAYS use... NEVER display as text" | "prefer your IDE's interactive prompt if available" |
 | Session management | "Do NOT create sessions — plugin handles it" | "Create or reopen a session before starting work" |
@@ -88,7 +88,7 @@ The plugin skill targets Claude Code specifically. The standalone skill targets 
 
 ## Modifying Hook Scripts
 
-Hook scripts are in `public/chorus-plugin/bin/`:
+Hook scripts are in `public/synapse-plugin/bin/`:
 - `on-session-start.sh` — SessionStart hook
 - `on-user-prompt.sh` — UserPromptSubmit hook
 - `on-subagent-start.sh` — SubagentStart hook
@@ -107,8 +107,8 @@ Hook scripts are in `public/chorus-plugin/bin/`:
 | `&>>` (append both) | `>> file 2>&1` |
 
 After modifying:
-1. Run `/bin/bash public/chorus-plugin/bin/test-syntax.sh` on macOS to verify Bash 3.2 compatibility
-2. Test locally: `claude --plugin-dir public/chorus-plugin`
+1. Run `/bin/bash public/synapse-plugin/bin/test-syntax.sh` on macOS to verify Bash 3.2 compatibility
+2. Test locally: `claude --plugin-dir public/synapse-plugin`
 3. Bump plugin version
 4. Users must restart CC and run `/plugin update` to get changes
 
@@ -116,10 +116,10 @@ After modifying:
 
 ```bash
 # Load plugin locally (no install needed)
-claude --plugin-dir public/chorus-plugin
+claude --plugin-dir public/synapse-plugin
 
 # Or update installed plugin
-/plugin update chorus@chorus-plugins
+/plugin update synapse@synapse-plugins
 
 # Verify plugin loaded
 /plugin list

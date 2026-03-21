@@ -8,8 +8,8 @@ export interface SseNotificationEvent {
   [key: string]: unknown;
 }
 
-export interface ChorusSseListenerOptions {
-  chorusUrl: string;
+export interface SynapseSseListenerOptions {
+  synapseUrl: string;
   apiKey: string;
   onEvent: (event: SseNotificationEvent) => void;
   onReconnect: () => Promise<void>;
@@ -19,14 +19,14 @@ export interface ChorusSseListenerOptions {
 const INITIAL_DELAY_MS = 1_000;
 const MAX_DELAY_MS = 30_000;
 
-export class ChorusSseListener {
-  private readonly opts: ChorusSseListenerOptions;
+export class SynapseSseListener {
+  private readonly opts: SynapseSseListenerOptions;
   private _status: SseListenerStatus = "disconnected";
   private abortController: AbortController | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectDelay = INITIAL_DELAY_MS;
 
-  constructor(opts: ChorusSseListenerOptions) {
+  constructor(opts: SynapseSseListenerOptions) {
     this.opts = opts;
   }
 
@@ -41,7 +41,7 @@ export class ChorusSseListener {
     const abortController = new AbortController();
     this.abortController = abortController;
 
-    const url = `${this.opts.chorusUrl.replace(/\/$/, "")}/api/events/notifications`;
+    const url = `${this.opts.synapseUrl.replace(/\/$/, "")}/api/events/notifications`;
 
     let response: Response;
     try {
@@ -75,7 +75,7 @@ export class ChorusSseListener {
     const isReconnect = this._status === "reconnecting";
     this._status = "connected";
     this.reconnectDelay = INITIAL_DELAY_MS;
-    this.opts.logger.info("[Chorus] SSE connection established");
+    this.opts.logger.info("[Synapse] SSE connection established");
 
     if (isReconnect) {
       // Fire onReconnect callback so the caller can back-fill missed notifications

@@ -1,11 +1,11 @@
 {
-  "name": "chorus-skill",
+  "name": "synapse-skill",
   "version": "0.1.0",
-  "description": "Chorus AI Agent collaboration platform skill. Supports PM, Developer, and Admin roles via MCP tools for the Idea-Proposal-Task workflow.",
-  "author": "chorus",
+  "description": "Synapse AI Agent collaboration platform skill. Supports PM, Developer, and Admin roles via MCP tools for the Idea-Proposal-Task workflow.",
+  "author": "synapse",
   "license": "AGPL-3.0",
   "keywords": [
-    "chorus",
+    "synapse",
     "skill",
     "project-management",
     "ai-agent",
@@ -15,9 +15,9 @@
     "admin",
     "collaboration"
   ],
-  "chorus": {
+  "synapse": {
     "category": "project-management",
-    "mcp_server": "chorus",
+    "mcp_server": "synapse",
     "files": {
       "SKILL.md": "/skill/SKILL.md",
       "references/00-common-tools.md": "/skill/references/00-common-tools.md",
@@ -28,10 +28,10 @@
       "references/06-claude-code-agent-teams.md": "/skill/references/06-claude-code-agent-teams.md"
     },
     "requires": {
-      "mcp": ["chorus"]
+      "mcp": ["synapse"]
     },
     "triggers": [
-      "chorus",
+      "synapse",
       "checkin",
       "claim task",
       "claim idea",
@@ -58,10 +58,10 @@
       "references/06-claude-code-agent-teams.md": "/skill/references/06-claude-code-agent-teams.md"
     },
     "requires": {
-      "mcp": ["chorus"]
+      "mcp": ["synapse"]
     },
     "triggers": [
-      "chorus",
+      "synapse",
       "checkin",
       "claim task",
       "claim idea",

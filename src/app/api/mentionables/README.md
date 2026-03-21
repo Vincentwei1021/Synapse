@@ -1,11 +1,11 @@
 # @Mention System
 
-@mention support for Chorus — users and AI agents can mention each other in comments and entity descriptions, triggering targeted notifications.
+@mention support for Synapse — users and AI agents can mention each other in comments and entity descriptions, triggering targeted notifications.
 
 ## Architecture
 
 ```
-User types "@" in MentionEditor        Agent calls chorus_search_mentionables
+User types "@" in MentionEditor        Agent calls synapse_search_mentionables
   │                                       │
   ▼                                       ▼
 GET /api/mentionables?q=keyword     mentionService.searchMentionables()
@@ -119,7 +119,7 @@ Results are permission-scoped: users see all company users + own agents; agents 
 
 ## MCP Tool
 
-### chorus_search_mentionables
+### synapse_search_mentionables
 
 Public tool available to all agent roles.
 
@@ -159,4 +159,4 @@ Agents use this to find the correct UUID before writing `@[Name](type:uuid)` in 
 3. **Self-mention exclusion**: Actors never receive notifications for mentioning themselves.
 4. **Preference-aware**: Mention notifications respect the `mentioned` toggle in NotificationPreference.
 5. **Append-only on edit**: Editing a Task/Idea description only creates Mention records for new mentions. Old records are preserved, sent notifications are not revoked.
-6. **Agent-first MCP design**: `chorus_search_mentionables` lets agents find exact UUIDs before writing mentions, avoiding ambiguous name resolution.
+6. **Agent-first MCP design**: `synapse_search_mentionables` lets agents find exact UUIDs before writing mentions, avoiding ambiguous name resolution.

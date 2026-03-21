@@ -6,9 +6,9 @@
 
 ## 1. Executive Summary
 
-本报告调研了为 Linear 构建一套类似 Chorus Plugin 的 AI-DLC（AI-Driven Development Lifecycle）插件的可行性。插件目标是让 Claude Code Agent 能够通过 Linear 管理项目、任务、文档，实现 Idea → Proposal → Task → Execute → Verify → Done 的 AI-DLC 工作流。
+本报告调研了为 Linear 构建一套类似 Synapse Plugin 的 AI-DLC（AI-Driven Development Lifecycle）插件的可行性。插件目标是让 Claude Code Agent 能够通过 Linear 管理项目、任务、文档，实现 Idea → Proposal → Task → Execute → Verify → Done 的 AI-DLC 工作流。
 
-**结论**: Linear 的 API 能力和官方 MCP 服务器可以支撑大部分 AI-DLC 工作流，但 Linear 的数据模型缺少 Chorus 的一些核心概念（Proposal、Elaboration、Agent Session），需要通过 Label + Custom View + 约定映射来模拟。某些场景下 Linear 的原生能力（Cycles、Initiatives、Workflow States）反而比 Chorus 更成熟。
+**结论**: Linear 的 API 能力和官方 MCP 服务器可以支撑大部分 AI-DLC 工作流，但 Linear 的数据模型缺少 Synapse 的一些核心概念（Proposal、Elaboration、Agent Session），需要通过 Label + Custom View + 约定映射来模拟。某些场景下 Linear 的原生能力（Cycles、Initiatives、Workflow States）反而比 Synapse 更成熟。
 
 ---
 
@@ -64,11 +64,11 @@ Workspace
 
 ---
 
-## 3. Chorus vs Linear 概念映射
+## 3. Synapse vs Linear 概念映射
 
 ### 3.1 可直接映射的概念
 
-| Chorus 概念 | Linear 对应 | 映射方式 | 完整度 |
+| Synapse 概念 | Linear 对应 | 映射方式 | 完整度 |
 |-------------|------------|---------|--------|
 | **Project** | **Project** | 1:1 | ★★★★★ |
 | **Task** | **Issue** | 1:1 | ★★★★★ |
@@ -83,7 +83,7 @@ Workspace
 
 ### 3.2 需要约定/模拟的概念
 
-| Chorus 概念 | Linear 模拟方案 | 复杂度 | 说明 |
+| Synapse 概念 | Linear 模拟方案 | 复杂度 | 说明 |
 |-------------|---------------|--------|------|
 | **Idea + Proposal** (合并容器) | **单个 Parent Issue** — Label 从 `harness:idea` → `harness:elaborating` → `harness:proposal` → `harness:approved` 流转 | 低 | 同一个 Issue 既是 Idea 也是 Proposal，通过 Label 状态机流转，PRD 作为 Document，Tasks 作为 Sub-issues |
 | **Proposal Approval/Reject** | Label `harness:proposal` → `harness:approved` / `harness:rejected` + Comment | 低 | Admin 在 Parent Issue 上操作 Label + Comment |
@@ -95,7 +95,7 @@ Workspace
 
 ### 3.3 Agent Session — 核心缺失
 
-Chorus 的 Agent Session 是一套**专为 AI Agent 设计的可观测性系统**：
+Synapse 的 Agent Session 是一套**专为 AI Agent 设计的可观测性系统**：
 - Session 绑定 sub-agent 生命周期
 - Session checkin/checkout 追踪 "哪个 agent 在做哪个 task"
 - Heartbeat 保活、自动超时
@@ -107,17 +107,17 @@ Chorus 的 Agent Session 是一套**专为 AI Agent 设计的可观测性系统*
 
 | 方案 | 描述 | 优劣 |
 |------|------|------|
-| **A. 本地 State 文件** | 插件在 `.linear-aidlc/sessions/` 维护 session 状态（同 Chorus 插件） | 简单但不可视化，多机器不同步 |
+| **A. 本地 State 文件** | 插件在 `.linear-aidlc/sessions/` 维护 session 状态（同 Synapse 插件） | 简单但不可视化，多机器不同步 |
 | **B. Issue Comment 日志** | sub-agent 开始/结束时在 Issue 上留 Comment："🤖 agent-worker-1 started / completed" | 可视化但嘈杂 |
 | **C. 自建 Session 服务** | 用一个轻量 SQLite/JSON 文件或独立服务存储 session | 最灵活但增加复杂度 |
 | **D. 混合方案 (推荐)** | 本地 State 文件 (方案 A) + 关键节点 Comment 日志 (方案 B) | 平衡可视化和简洁 |
 
 ---
 
-## 4. Linear 相比 Chorus 的优势
+## 4. Linear 相比 Synapse 的优势
 
 ### 4.1 Cycles (迭代管理)
-Chorus 没有原生的迭代/Sprint 概念。Linear 的 Cycles 提供：
+Synapse 没有原生的迭代/Sprint 概念。Linear 的 Cycles 提供：
 - 自动滚动（未完成 Issue 自动移入下一个 Cycle）
 - Burndown chart
 - Cycle-level 进度追踪
@@ -125,7 +125,7 @@ Chorus 没有原生的迭代/Sprint 概念。Linear 的 Cycles 提供：
 **AI-DLC 插件可利用**: PM Agent 创建 Cycle，将 approved 的 Task 分配到当前 Cycle。
 
 ### 4.2 Initiatives (战略级目标)
-Linear Initiatives 聚合多个 Projects，提供高层目标视图。比 Chorus 的 Project Group 功能更丰富（有进度追踪、Update 时间线）。
+Linear Initiatives 聚合多个 Projects，提供高层目标视图。比 Synapse 的 Project Group 功能更丰富（有进度追踪、Update 时间线）。
 
 ### 4.3 Workflow States 高度可定制
 Linear 允许每个 Team 自定义完整的状态流（不限于固定的几个状态），支持状态分类：Triage / Backlog / Unstarted / Started / Completed / Canceled。
@@ -142,13 +142,13 @@ Canceled    → closed (关闭)
 ```
 
 ### 4.4 Sub-Issues (原生层级)
-Linear 原生支持 Issue 的 parent/child 关系，比 Chorus 的 flat task list 更灵活。可以用 parent Issue 表示 Epic/Story，child Issues 表示具体 Task。
+Linear 原生支持 Issue 的 parent/child 关系，比 Synapse 的 flat task list 更灵活。可以用 parent Issue 表示 Epic/Story，child Issues 表示具体 Task。
 
 ### 4.5 Issue Relations (DAG)
-Linear 的 `blocking` / `blocked-by` 关系天然形成 DAG，与 Chorus 的 TaskDependency 等价。
+Linear 的 `blocking` / `blocked-by` 关系天然形成 DAG，与 Synapse 的 TaskDependency 等价。
 
 ### 4.6 SLA 与 Due Date
-Linear 原生支持 SLA（Issue 响应时间、解决时间目标），Chorus 目前没有。
+Linear 原生支持 SLA（Issue 响应时间、解决时间目标），Synapse 目前没有。
 
 ---
 
@@ -227,19 +227,19 @@ public/linear-aidlc-plugin/
 
 ### 5.3 Hook 设计
 
-#### Session 生命周期 (与 Chorus 插件一致)
+#### Session 生命周期 (与 Synapse 插件一致)
 
-| Hook | 脚本 | 作用 | 与 Chorus 差异 |
+| Hook | 脚本 | 作用 | 与 Synapse 差异 |
 |------|------|------|---------------|
 | SessionStart | `on-session-start.sh` | 调用 `list_teams` + `list_projects` 获取上下文 | 无 `checkin` 概念，改为查询 viewer + 活跃 Projects |
 | UserPromptSubmit | `on-user-prompt.sh` | 本地文件检查，提醒 session 状态 | 相同 |
-| PreToolUse:EnterPlanMode | `on-pre-enter-plan.sh` | 注入 "创建 Document + Issue 计划" 引导 | Chorus 注入 Proposal 流程，这里注入 Document 流程 |
+| PreToolUse:EnterPlanMode | `on-pre-enter-plan.sh` | 注入 "创建 Document + Issue 计划" 引导 | Synapse 注入 Proposal 流程，这里注入 Document 流程 |
 | PreToolUse:ExitPlanMode | `on-pre-exit-plan.sh` | 提醒提交 Document 和创建 Issues | 相同 |
 | PreToolUse:Task | `on-pre-spawn-agent.sh` | 写 pending 文件 | 相同 |
 | SubagentStart | `on-subagent-start.sh` | 本地 session 创建 + Comment 日志 + 上下文注入 | 无 MCP session，改用本地文件 + Issue Comment |
 | SubagentStop | `on-subagent-stop.sh` | 更新 Issue 状态 + Comment + 清理 | 无 session checkout，改为 Issue Comment + 状态更新 |
 | TeammateIdle | `on-teammate-idle.sh` | 更新 Issue Comment "still working..." | 无 heartbeat API，改为 Comment 更新 |
-| TaskCompleted | `on-task-completed.sh` | `linear:issue:<id>` 标记 → 更新 Issue 状态 | 同 Chorus 的 `chorus:task:<uuid>` |
+| TaskCompleted | `on-task-completed.sh` | `linear:issue:<id>` 标记 → 更新 Issue 状态 | 同 Synapse 的 `synapse:task:<uuid>` |
 | SessionEnd | `on-session-end.sh` | 清理 `.linear-aidlc/` | 相同 |
 
 #### `linear-api.sh` — GraphQL API 封装
@@ -265,7 +265,7 @@ linear_mcp_call() {
 }
 ```
 
-**关键区别**: Chorus 插件的 `chorus-api.sh` 通过 HTTP 直接调用 Chorus 的 REST API。Linear 插件需要调用 GraphQL API 或者通过 MCP Proxy。
+**关键区别**: Synapse 插件的 `synapse-api.sh` 通过 HTTP 直接调用 Synapse 的 REST API。Linear 插件需要调用 GraphQL API 或者通过 MCP Proxy。
 
 ### 5.4 Label 约定 (Convention over Configuration)
 
@@ -375,7 +375,7 @@ linear_mcp_call() {
 
 ### 6.1 功能完整度对比
 
-| AI-DLC 功能 | Chorus 实现 | Linear 实现 | 可行性 |
+| AI-DLC 功能 | Synapse 实现 | Linear 实现 | 可行性 |
 |-------------|------------|------------|--------|
 | Idea 管理 | 原生 Idea 实体 | Issue + Label `aidlc:idea` | ✅ 可行，略有妥协 |
 | Elaboration (AI 追问) | 原生 Elaboration API | Issue Comment Thread | ✅ 可行 |
@@ -398,7 +398,7 @@ linear_mcp_call() {
 
 | 模块 | 难度 | 工作量估计 | 说明 |
 |------|------|-----------|------|
-| 插件骨架 (plugin.json, .mcp.json, hooks.json) | 低 | 可从 Chorus 插件复制 | 结构完全一致 |
+| 插件骨架 (plugin.json, .mcp.json, hooks.json) | 低 | 可从 Synapse 插件复制 | 结构完全一致 |
 | Hook 脚本 (bin/*.sh) | 中 | 需重写 API 调用层 | GraphQL 替代 REST，无 session API |
 | `linear-api.sh` (GraphQL 封装) | 中 | 新写 | curl + GraphQL，比 REST 复杂一些 |
 | Skill 文档 (skills/) | 中 | 大量文档工作 | 重写 workflow 文档 |
@@ -423,7 +423,7 @@ linear_mcp_call() {
 6. TaskCompleted hook — `linear:issue:<id>` 标记
 7. TeammateIdle hook — 本地心跳
 
-**可复用 Chorus 代码**: 80% 的 hook 逻辑（文件管理、并发安全、context injection）。
+**可复用 Synapse 代码**: 80% 的 hook 逻辑（文件管理、并发安全、context injection）。
 
 ### Phase 2: PM Workflow + Proposal 模拟
 
@@ -472,7 +472,7 @@ linear_mcp_call() {
 
 ## 10. 总结
 
-| 维度 | Chorus Plugin | Linear AI-DLC Plugin |
+| 维度 | Synapse Plugin | Linear AI-DLC Plugin |
 |------|--------------|---------------------|
 | **原生 AI-DLC 支持** | ★★★★★ — 专为此设计 | ★★☆☆☆ — 需大量约定 |
 | **项目管理成熟度** | ★★★☆☆ — 基础功能 | ★★★★★ — Cycles, SLA, Initiatives |
@@ -485,4 +485,4 @@ linear_mcp_call() {
 | **多 Agent 协作** | ★★★★★ — 核心设计 | ★★☆☆☆ — 单 assignee 限制 |
 | **插件复用度** | — (参考基准) | ~60% Hook 逻辑可复用 |
 
-**最终建议**: Linear AI-DLC 插件是可行的，且能利用 Linear 成熟的项目管理 UI 作为可视化层。最大的妥协在 Agent Session 和 Proposal 流程上——这些是 Chorus 的核心差异化功能，在 Linear 中只能通过约定模拟。建议 Phase 1 先聚焦 Developer Workflow（映射最直接），快速验证价值后再逐步扩展 PM 和 Admin 流程。
+**最终建议**: Linear AI-DLC 插件是可行的，且能利用 Linear 成熟的项目管理 UI 作为可视化层。最大的妥协在 Agent Session 和 Proposal 流程上——这些是 Synapse 的核心差异化功能，在 Linear 中只能通过约定模拟。建议 Phase 1 先聚焦 Developer Workflow（映射最直接），快速验证价值后再逐步扩展 PM 和 Admin 流程。

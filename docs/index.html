@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chorus - The Agent Harness for AI-Human Collaboration</title>
-  <meta name="description" content="Chorus is an agent harness — the infrastructure that wraps around LLM agents to manage session lifecycle, task state, sub-agent orchestration, and observability. AI proposes, humans verify." />
-  <link rel="icon" type="image/png" href="images/chorus-icon.png" />
-  <meta property="og:title" content="Chorus - The Agent Harness for AI-Human Collaboration" />
+  <title>Synapse - The Agent Harness for AI-Human Collaboration</title>
+  <meta name="description" content="Synapse is an agent harness — the infrastructure that wraps around LLM agents to manage session lifecycle, task state, sub-agent orchestration, and observability. AI proposes, humans verify." />
+  <link rel="icon" type="image/png" href="images/synapse-icon.png" />
+  <meta property="og:title" content="Synapse - The Agent Harness for AI-Human Collaboration" />
   <meta property="og:description" content="The agent harness for AI-human collaboration. AI proposes, humans verify." />
-  <meta property="og:image" content="images/chorus-icon.png" />
+  <meta property="og:image" content="images/synapse-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -766,14 +766,14 @@
 <!-- NAV -->
 <nav>
   <div class="nav-inner">
-    <a href="#" class="logo"><img src="images/chorus-icon.png" alt="Chorus">Chorus<span>.</span></a>
+    <a href="#" class="logo"><img src="images/synapse-icon.png" alt="Synapse">Synapse<span>.</span></a>
     <div class="nav-links">
       <a href="#quickstart">Quick Start</a>
       <a href="#features">Features</a>
       <a href="#showcase">Showcase</a>
       <a href="#agents">Agents</a>
-      <a href="https://hub.docker.com/repository/docker/chorusaidlc/chorus-app/general" class="btn btn-outline">Docker Hub</a>
-      <a href="https://github.com/Chorus-AIDLC/chorus" class="btn btn-primary">GitHub</a>
+      <a href="https://hub.docker.com/repository/docker/synapseaidlc/synapse-app/general" class="btn btn-outline">Docker Hub</a>
+      <a href="https://github.com/Synapse-AIDLC/synapse" class="btn btn-primary">GitHub</a>
     </div>
   </div>
 </nav>
@@ -781,10 +781,10 @@
 <!-- HERO -->
 <section class="hero">
   <div class="hero-badge">The Agent Harness</div>
-  <h1>The Model Is the Brain. <span class="highlight">Chorus</span> Is Everything Else.</h1>
-  <p>Session lifecycle, task state, sub-agent orchestration, observability, failure recovery — Chorus is the harness that wraps around LLM agents so they can ship reliably. AI proposes, humans verify.</p>
+  <h1>The Model Is the Brain. <span class="highlight">Synapse</span> Is Everything Else.</h1>
+  <p>Session lifecycle, task state, sub-agent orchestration, observability, failure recovery — Synapse is the harness that wraps around LLM agents so they can ship reliably. AI proposes, humans verify.</p>
   <div class="hero-actions">
-    <a href="https://github.com/Chorus-AIDLC/chorus" class="btn btn-primary">View on GitHub</a>
+    <a href="https://github.com/Synapse-AIDLC/synapse" class="btn btn-primary">View on GitHub</a>
     <a href="#workflow" class="btn btn-outline">See How It Works</a>
   </div>
 </section>
@@ -822,7 +822,7 @@
 <div class="reversed" id="concept">
   <div class="reversed-text">
     <h2>Reversed Conversation</h2>
-    <p>Traditional tools: you prompt, AI responds. Chorus flips this. AI agents proactively analyze your codebase, propose PRDs, design task DAGs, and write implementations.</p>
+    <p>Traditional tools: you prompt, AI responds. Synapse flips this. AI agents proactively analyze your codebase, propose PRDs, design task DAGs, and write implementations.</p>
     <p>Your role shifts from "writing prompts" to "reviewing proposals." You stay in control while AI handles the heavy lifting.</p>
   </div>
   <div class="reversed-visual">
@@ -843,7 +843,7 @@
         <svg width="24" height="24" fill="none" stroke="#E65100" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
       </div>
       <h3>Zero Context Injection</h3>
-      <p>With the Chorus Plugin, agents automatically receive role persona, current assignments, and project context on checkin &mdash; no manual prompt engineering needed.</p>
+      <p>With the Synapse Plugin, agents automatically receive role persona, current assignments, and project context on checkin &mdash; no manual prompt engineering needed.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon fi-agents">
@@ -895,8 +895,8 @@
       <div class="int-icon int-icon-plugin">
         <svg width="24" height="24" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
       </div>
-      <h3>Chorus Plugin</h3>
-      <p>Install the Chorus Plugin to get automated session lifecycle, context injection, and skill documentation — all handled by hooks.</p>
+      <h3>Synapse Plugin</h3>
+      <p>Install the Synapse Plugin to get automated session lifecycle, context injection, and skill documentation — all handled by hooks.</p>
       <div class="int-hooks">
         <span class="int-hook">SubagentStart</span>
         <span class="int-hook">TeammateIdle</span>
@@ -904,8 +904,8 @@
       </div>
       <div class="int-code" style="margin-top:16px;">
         <span class="comment"># Install from Plugin Marketplace</span><br>
-        <span class="cmd">claude</span> <span class="flag">/plugin marketplace add</span> Chorus-AIDLC/chorus<br>
-        <span class="cmd">claude</span> <span class="flag">/plugin install</span> chorus@chorus-plugins
+        <span class="cmd">claude</span> <span class="flag">/plugin marketplace add</span> Synapse-AIDLC/synapse<br>
+        <span class="cmd">claude</span> <span class="flag">/plugin install</span> synapse@synapse-plugins
       </div>
     </div>
     <div class="int-card">
@@ -913,7 +913,7 @@
         <svg width="24" height="24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
       </div>
       <h3>Agent Teams (Swarm Mode)</h3>
-      <p>Team Lead spawns multiple sub-agents as a swarm. Each agent gets its own Chorus session, checks in to tasks, and reports progress independently.</p>
+      <p>Team Lead spawns multiple sub-agents as a swarm. Each agent gets its own Synapse session, checks in to tasks, and reports progress independently.</p>
       <div class="int-hooks">
         <span class="int-hook">Auto Session</span>
         <span class="int-hook">Auto Heartbeat</span>
@@ -934,7 +934,7 @@
   <div class="section-header">
     <div class="section-label">Showcase</div>
     <h2>See It in Action</h2>
-    <p>Real screenshots from Chorus running with multiple AI agents collaborating on a project.</p>
+    <p>Real screenshots from Synapse running with multiple AI agents collaborating on a project.</p>
   </div>
   <div class="showcase-grid">
     <div class="showcase-item wide">
@@ -1091,8 +1091,8 @@
   <h2>Ready to Build with AI Agents?</h2>
   <p>Clone the repo, connect your AI agents via MCP, and start the reversed conversation.</p>
   <div class="cta-actions">
-    <a href="https://github.com/Chorus-AIDLC/chorus" class="btn btn-primary">View on GitHub</a>
-    <a href="https://github.com/Chorus-AIDLC/chorus#getting-started" class="btn btn-outline">Quick Start Guide</a>
+    <a href="https://github.com/Synapse-AIDLC/synapse" class="btn btn-primary">View on GitHub</a>
+    <a href="https://github.com/Synapse-AIDLC/synapse#getting-started" class="btn btn-outline">Quick Start Guide</a>
   </div>
 </section>
 
@@ -1102,8 +1102,8 @@
     <div class="quickstart-header">
       <span class="quickstart-badge">Docker</span>
     </div>
-    <h2>Run Chorus in 60 Seconds</h2>
-    <p>Pre-built image on <a href="https://hub.docker.com/repository/docker/chorusaidlc/chorus-app/general">Docker Hub</a>. Supports amd64 &amp; arm64 (Apple Silicon).</p>
+    <h2>Run Synapse in 60 Seconds</h2>
+    <p>Pre-built image on <a href="https://hub.docker.com/repository/docker/synapseaidlc/synapse-app/general">Docker Hub</a>. Supports amd64 &amp; arm64 (Apple Silicon).</p>
     <div class="qs-steps">
       <div class="qs-step">
         <div class="qs-num">1</div>
@@ -1112,11 +1112,11 @@
           <div class="qs-code-wrap"><button class="qs-copy" onclick="copyCode(this)" title="Copy"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="7" height="7" rx="1"/><path d="M5 11H4a1 1 0 01-1-1V4a1 1 0 011-1h6a1 1 0 011 1v1"/></svg></button><div class="qs-code"><span class="qs-comment"># docker-compose.yml</span>
 services:
   app:
-    <span class="qs-flag">image</span>: chorusaidlc/chorus-app:<span class="qs-env">latest</span>
+    <span class="qs-flag">image</span>: synapseaidlc/synapse-app:<span class="qs-env">latest</span>
     <span class="qs-flag">ports</span>: [<span class="qs-env">"3000:3000"</span>]
     <span class="qs-flag">environment</span>:
-      - DATABASE_URL=<span class="qs-env">postgresql://chorus:chorus@db:5432/chorus</span>
-      - REDIS_URL=<span class="qs-env">redis://default:chorus-redis@redis:6379</span>
+      - DATABASE_URL=<span class="qs-env">postgresql://synapse:synapse@db:5432/synapse</span>
+      - REDIS_URL=<span class="qs-env">redis://default:synapse-redis@redis:6379</span>
       - NEXTAUTH_SECRET=<span class="qs-env">change-me-to-a-random-secret</span>
       - DEFAULT_USER=<span class="qs-env">admin@example.com</span>
       - DEFAULT_PASSWORD=<span class="qs-env">changeme</span>
@@ -1125,17 +1125,17 @@ services:
       redis: { <span class="qs-flag">condition</span>: service_healthy }
   redis:
     <span class="qs-flag">image</span>: redis:7-alpine
-    <span class="qs-flag">command</span>: redis-server --requirepass chorus-redis
+    <span class="qs-flag">command</span>: redis-server --requirepass synapse-redis
     <span class="qs-flag">healthcheck</span>:
-      <span class="qs-flag">test</span>: [<span class="qs-env">"CMD"</span>, <span class="qs-env">"redis-cli"</span>, <span class="qs-env">"-a"</span>, <span class="qs-env">"chorus-redis"</span>, <span class="qs-env">"ping"</span>]
+      <span class="qs-flag">test</span>: [<span class="qs-env">"CMD"</span>, <span class="qs-env">"redis-cli"</span>, <span class="qs-env">"-a"</span>, <span class="qs-env">"synapse-redis"</span>, <span class="qs-env">"ping"</span>]
   db:
     <span class="qs-flag">image</span>: postgres:16-alpine
     <span class="qs-flag">environment</span>:
-      POSTGRES_USER: <span class="qs-env">chorus</span>
-      POSTGRES_PASSWORD: <span class="qs-env">chorus</span>
-      POSTGRES_DB: <span class="qs-env">chorus</span>
+      POSTGRES_USER: <span class="qs-env">synapse</span>
+      POSTGRES_PASSWORD: <span class="qs-env">synapse</span>
+      POSTGRES_DB: <span class="qs-env">synapse</span>
     <span class="qs-flag">healthcheck</span>:
-      <span class="qs-flag">test</span>: [<span class="qs-env">"CMD-SHELL"</span>, <span class="qs-env">"pg_isready -U chorus"</span>]</div></div>
+      <span class="qs-flag">test</span>: [<span class="qs-env">"CMD-SHELL"</span>, <span class="qs-env">"pg_isready -U synapse"</span>]</div></div>
         </div>
       </div>
       <div class="qs-step">
@@ -1157,8 +1157,8 @@ services:
       </div>
     </div>
     <div class="qs-footer">
-      <a href="https://hub.docker.com/repository/docker/chorusaidlc/chorus-app/general" class="qs-link qs-link-primary">Docker Hub</a>
-      <a href="https://github.com/Chorus-AIDLC/chorus" class="qs-link qs-link-outline">GitHub</a>
+      <a href="https://hub.docker.com/repository/docker/synapseaidlc/synapse-app/general" class="qs-link qs-link-primary">Docker Hub</a>
+      <a href="https://github.com/Synapse-AIDLC/synapse" class="qs-link qs-link-outline">GitHub</a>
     </div>
   </div>
 </div>
@@ -1166,14 +1166,14 @@ services:
 <!-- FOOTER -->
 <footer>
   <div class="footer-left">
-    &copy; 2026 Chorus. AI-Driven Development Lifecycle.
+    &copy; 2026 Synapse. AI-Driven Development Lifecycle.
   </div>
   <div class="footer-links">
     <a href="#features">Features</a>
     <a href="#showcase">Showcase</a>
     <a href="#agents">Agents</a>
     <a href="#workflow">Workflow</a>
-    <a href="https://github.com/Chorus-AIDLC/chorus">GitHub</a>
+    <a href="https://github.com/Synapse-AIDLC/synapse">GitHub</a>
   </div>
 </footer>
 

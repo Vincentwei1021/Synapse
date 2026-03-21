@@ -1,11 +1,11 @@
-# Chorus Docker Image
+# Synapse Docker Image
 
-**`chorusaidlc/chorus-app`** — The official Docker image for [Chorus](https://github.com/Chorus-AIDLC/Chorus), an AI Agent & Human collaboration platform implementing the AI-DLC (AI-Driven Development Lifecycle) workflow.
+**`synapseaidlc/synapse-app`** — The official Docker image for [Synapse](https://github.com/Synapse-AIDLC/Synapse), an AI Agent & Human collaboration platform implementing the AI-DLC (AI-Driven Development Lifecycle) workflow.
 
 ## Quick Start
 
 ```bash
-docker pull chorusaidlc/chorus-app:latest
+docker pull synapseaidlc/synapse-app:latest
 ```
 
 ### Docker Compose (Recommended)
@@ -15,12 +15,12 @@ Create a `docker-compose.yml`:
 ```yaml
 services:
   app:
-    image: chorusaidlc/chorus-app:latest
+    image: synapseaidlc/synapse-app:latest
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://chorus:chorus@db:5432/chorus
-      - REDIS_URL=redis://default:chorus-redis@redis:6379
+      - DATABASE_URL=postgresql://synapse:synapse@db:5432/synapse
+      - REDIS_URL=redis://default:synapse-redis@redis:6379
       - NEXTAUTH_SECRET=change-me-to-a-random-secret
       - DEFAULT_USER=admin@example.com
       - DEFAULT_PASSWORD=your-password
@@ -32,11 +32,11 @@ services:
 
   redis:
     image: redis:7-alpine
-    command: redis-server --requirepass chorus-redis
+    command: redis-server --requirepass synapse-redis
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "chorus-redis", "ping"]
+      test: ["CMD", "redis-cli", "-a", "synapse-redis", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -44,19 +44,19 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: chorus
-      POSTGRES_PASSWORD: chorus
-      POSTGRES_DB: chorus
+      POSTGRES_USER: synapse
+      POSTGRES_PASSWORD: synapse
+      POSTGRES_DB: synapse
     volumes:
-      - chorus-data:/var/lib/postgresql/data
+      - synapse-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U chorus -d chorus"]
+      test: ["CMD-SHELL", "pg_isready -U synapse -d synapse"]
       interval: 5s
       timeout: 5s
       retries: 5
 
 volumes:
-  chorus-data:
+  synapse-data:
   redis-data:
 ```
 
@@ -77,13 +77,13 @@ If you already have PostgreSQL and Redis running:
 ```bash
 docker run -d \
   -p 3000:3000 \
-  -e DATABASE_URL=postgresql://user:pass@your-db-host:5432/chorus \
+  -e DATABASE_URL=postgresql://user:pass@your-db-host:5432/synapse \
   -e REDIS_URL=redis://default:password@your-redis-host:6379 \
   -e NEXTAUTH_SECRET=change-me-to-a-random-secret \
   -e COOKIE_SECURE=false \
   -e DEFAULT_USER=admin@example.com \
   -e DEFAULT_PASSWORD=your-password \
-  chorusaidlc/chorus-app:latest
+  synapseaidlc/synapse-app:latest
 ```
 
 ## Environment Variables
@@ -149,4 +149,4 @@ If `DATABASE_URL` is not set, the entrypoint builds it from these individual var
 
 ## Source Code
 
-https://github.com/Chorus-AIDLC/Chorus
+https://github.com/Synapse-AIDLC/Synapse

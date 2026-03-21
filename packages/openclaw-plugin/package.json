@@ -1,7 +1,7 @@
 {
-  "name": "@chorus-aidlc/chorus-openclaw-plugin",
+  "name": "@synapse-aidlc/synapse-openclaw-plugin",
   "version": "0.2.5",
-  "description": "OpenClaw plugin for Chorus AI-DLC collaboration platform — SSE real-time events + MCP tool integration",
+  "description": "OpenClaw plugin for Synapse AI-DLC collaboration platform — SSE real-time events + MCP tool integration",
   "license": "MIT",
   "type": "module",
   "main": "src/index.ts",
@@ -23,11 +23,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Chorus-AIDLC/Chorus",
+    "url": "https://github.com/Synapse-AIDLC/Synapse",
     "directory": "packages/openclaw-plugin"
   },
-  "homepage": "https://chorus-aidlc.github.io/Chorus/",
-  "keywords": ["openclaw", "chorus", "ai-dlc", "mcp", "plugin", "agent"],
+  "homepage": "https://synapse-aidlc.github.io/Synapse/",
+  "keywords": ["openclaw", "synapse", "ai-dlc", "mcp", "plugin", "agent"],
   "files": [
     "src",
     "openclaw.plugin.json",

@@ -1,16 +1,16 @@
 {
-  "name": "chorus-plugins",
+  "name": "synapse-plugins",
   "owner": {
-    "name": "Chorus-AIDLC"
+    "name": "Synapse-AIDLC"
   },
   "metadata": {
-    "description": "Official plugins for the Chorus AI-DLC collaboration platform"
+    "description": "Official plugins for the Synapse AI-DLC collaboration platform"
   },
   "plugins": [
     {
-      "name": "chorus",
-      "source": "./public/chorus-plugin",
-      "description": "Chorus AI-DLC collaboration platform plugin. Automates session lifecycle, provides MCP tools for PM/Developer/Admin workflows, and enables multi-agent team observability.",
+      "name": "synapse",
+      "source": "./public/synapse-plugin",
+      "description": "Synapse AI-DLC collaboration platform plugin. Automates session lifecycle, provides MCP tools for Research Lead/Researcher/PI workflows, and enables multi-agent team observability.",
       "version": "0.3.6",
       "category": "project-management",
       "tags": ["ai-dlc", "collaboration", "mcp", "session", "multi-agent"]

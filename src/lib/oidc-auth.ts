@@ -99,8 +99,8 @@ export async function verifyOidcAccessToken(
 
 // Check if a token looks like an OIDC JWT (for routing purposes)
 export function isOidcToken(token: string): boolean {
-  // OIDC tokens are JWTs, API keys start with "cho_"
-  if (token.startsWith("cho_")) return false;
+  // OIDC tokens are JWTs, API keys start with "syn_"
+  if (token.startsWith("syn_")) return false;
 
   // Check if it's a valid JWT structure
   const parts = token.split(".");

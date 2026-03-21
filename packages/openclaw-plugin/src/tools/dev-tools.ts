@@ -1,9 +1,9 @@
-import type { ChorusMcpClient } from "../mcp-client.js";
+import type { SynapseMcpClient } from "../mcp-client.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function registerDevTools(api: any, mcpClient: ChorusMcpClient) {
+export function registerDevTools(api: any, mcpClient: SynapseMcpClient) {
   api.registerTool({
-    name: "chorus_claim_task",
+    name: "synapse_claim_task",
     description: "Claim an open task (open -> assigned)",
     parameters: {
       type: "object",
@@ -14,14 +14,14 @@ export function registerDevTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { taskUuid }: { taskUuid: string }) {
-      const result = await mcpClient.callTool("chorus_claim_task", { taskUuid });
+      const result = await mcpClient.callTool("synapse_claim_task", { taskUuid });
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_update_task",
-    description: "Update task status (only the assignee can operate). Moving to in_progress requires all dependsOn tasks to be done or closed — otherwise the request is rejected with blocker details. Use chorus_get_unblocked_tasks to find tasks ready to start.",
+    name: "synapse_update_task",
+    description: "Update task status (only the assignee can operate). Moving to in_progress requires all dependsOn tasks to be done or closed — otherwise the request is rejected with blocker details. Use synapse_get_unblocked_tasks to find tasks ready to start.",
     parameters: {
       type: "object",
       properties: {
@@ -35,13 +35,13 @@ export function registerDevTools(api: any, mcpClient: ChorusMcpClient) {
     async execute(_id: string, { taskUuid, status, sessionUuid }: { taskUuid: string; status: string; sessionUuid?: string }) {
       const args: Record<string, unknown> = { taskUuid, status };
       if (sessionUuid) args.sessionUuid = sessionUuid;
-      const result = await mcpClient.callTool("chorus_update_task", args);
+      const result = await mcpClient.callTool("synapse_update_task", args);
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_report_work",
+    name: "synapse_report_work",
     description: "Report work progress or completion on a task",
     parameters: {
       type: "object",
@@ -58,13 +58,13 @@ export function registerDevTools(api: any, mcpClient: ChorusMcpClient) {
       const args: Record<string, unknown> = { taskUuid, report };
       if (status) args.status = status;
       if (sessionUuid) args.sessionUuid = sessionUuid;
-      const result = await mcpClient.callTool("chorus_report_work", args);
+      const result = await mcpClient.callTool("synapse_report_work", args);
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_submit_for_verify",
+    name: "synapse_submit_for_verify",
     description: "Submit task for human verification (in_progress -> to_verify)",
     parameters: {
       type: "object",
@@ -78,13 +78,13 @@ export function registerDevTools(api: any, mcpClient: ChorusMcpClient) {
     async execute(_id: string, { taskUuid, summary }: { taskUuid: string; summary?: string }) {
       const args: Record<string, unknown> = { taskUuid };
       if (summary) args.summary = summary;
-      const result = await mcpClient.callTool("chorus_submit_for_verify", args);
+      const result = await mcpClient.callTool("synapse_submit_for_verify", args);
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_report_criteria_self_check",
+    name: "synapse_report_criteria_self_check",
     description: "Report self-check results on acceptance criteria for a task you're working on. For required criteria, keep working until all pass. Only mark optional criteria as failed if out of scope.",
     parameters: {
       type: "object",
@@ -108,7 +108,7 @@ export function registerDevTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { taskUuid, criteria }: { taskUuid: string; criteria: Array<{ uuid: string; devStatus: string; devEvidence?: string }> }) {
-      const result = await mcpClient.callTool("chorus_report_criteria_self_check", { taskUuid, criteria });
+      const result = await mcpClient.callTool("synapse_report_criteria_self_check", { taskUuid, criteria });
       return JSON.stringify(result, null, 2);
     },
   });

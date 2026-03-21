@@ -1,9 +1,9 @@
-import type { ChorusMcpClient } from "../mcp-client.js";
+import type { SynapseMcpClient } from "../mcp-client.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
+export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
   api.registerTool({
-    name: "chorus_checkin",
+    name: "synapse_checkin",
     description: "Agent check-in. Returns persona, roles, and pending assignments. Recommended at session start.",
     parameters: {
       type: "object",
@@ -11,13 +11,13 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute() {
-      const result = await mcpClient.callTool("chorus_checkin", {});
+      const result = await mcpClient.callTool("synapse_checkin", {});
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_get_notifications",
+    name: "synapse_get_notifications",
     description: "Get notifications. By default fetches unread and auto-marks them as read.",
     parameters: {
       type: "object",
@@ -31,13 +31,13 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       const args: Record<string, unknown> = {};
       if (status) args.status = status;
       if (autoMarkRead !== undefined) args.autoMarkRead = autoMarkRead;
-      const result = await mcpClient.callTool("chorus_get_notifications", args);
+      const result = await mcpClient.callTool("synapse_get_notifications", args);
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_get_project",
+    name: "synapse_get_project",
     description: "Get project details and context",
     parameters: {
       type: "object",
@@ -48,13 +48,13 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { projectUuid }: { projectUuid: string }) {
-      const result = await mcpClient.callTool("chorus_get_project", { projectUuid });
+      const result = await mcpClient.callTool("synapse_get_project", { projectUuid });
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_get_task",
+    name: "synapse_get_task",
     description: "Get detailed information and context for a single task",
     parameters: {
       type: "object",
@@ -65,13 +65,13 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { taskUuid }: { taskUuid: string }) {
-      const result = await mcpClient.callTool("chorus_get_task", { taskUuid });
+      const result = await mcpClient.callTool("synapse_get_task", { taskUuid });
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_get_idea",
+    name: "synapse_get_idea",
     description: "Get detailed information for a single idea",
     parameters: {
       type: "object",
@@ -82,13 +82,13 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { ideaUuid }: { ideaUuid: string }) {
-      const result = await mcpClient.callTool("chorus_get_idea", { ideaUuid });
+      const result = await mcpClient.callTool("synapse_get_idea", { ideaUuid });
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_get_available_tasks",
+    name: "synapse_get_available_tasks",
     description: "Get tasks available to claim in a project (status=open). Optionally filter by proposal UUIDs.",
     parameters: {
       type: "object",
@@ -102,13 +102,13 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
     async execute(_id: string, { projectUuid, proposalUuids }: { projectUuid: string; proposalUuids?: string[] }) {
       const args: Record<string, unknown> = { projectUuid };
       if (proposalUuids && proposalUuids.length > 0) args.proposalUuids = proposalUuids;
-      const result = await mcpClient.callTool("chorus_get_available_tasks", args);
+      const result = await mcpClient.callTool("synapse_get_available_tasks", args);
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_get_available_ideas",
+    name: "synapse_get_available_ideas",
     description: "Get ideas available to claim in a project (status=open)",
     parameters: {
       type: "object",
@@ -119,7 +119,7 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { projectUuid }: { projectUuid: string }) {
-      const result = await mcpClient.callTool("chorus_get_available_ideas", { projectUuid });
+      const result = await mcpClient.callTool("synapse_get_available_ideas", { projectUuid });
       return JSON.stringify(result, null, 2);
     },
   });
@@ -127,7 +127,7 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
   // --- List tools for project exploration ---
 
   api.registerTool({
-    name: "chorus_list_projects",
+    name: "synapse_list_projects",
     description: "List all projects for the current company. Returns projects with counts of ideas, documents, tasks, and proposals.",
     parameters: {
       type: "object",
@@ -141,13 +141,13 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       const args: Record<string, unknown> = {};
       if (page !== undefined) args.page = page;
       if (pageSize !== undefined) args.pageSize = pageSize;
-      const result = await mcpClient.callTool("chorus_list_projects", args);
+      const result = await mcpClient.callTool("synapse_list_projects", args);
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_list_tasks",
+    name: "synapse_list_tasks",
     description: "List tasks for a project. Can filter by status, priority, and proposal UUIDs.",
     parameters: {
       type: "object",
@@ -169,13 +169,13 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       if (proposalUuids && proposalUuids.length > 0) args.proposalUuids = proposalUuids;
       if (page !== undefined) args.page = page;
       if (pageSize !== undefined) args.pageSize = pageSize;
-      const result = await mcpClient.callTool("chorus_list_tasks", args);
+      const result = await mcpClient.callTool("synapse_list_tasks", args);
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_get_ideas",
+    name: "synapse_get_ideas",
     description: "List ideas for a project. Can filter by status.",
     parameters: {
       type: "object",
@@ -193,13 +193,13 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       if (status) args.status = status;
       if (page !== undefined) args.page = page;
       if (pageSize !== undefined) args.pageSize = pageSize;
-      const result = await mcpClient.callTool("chorus_get_ideas", args);
+      const result = await mcpClient.callTool("synapse_get_ideas", args);
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_get_proposals",
+    name: "synapse_get_proposals",
     description: "List proposals for a project. Can filter by status.",
     parameters: {
       type: "object",
@@ -217,13 +217,13 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       if (status) args.status = status;
       if (page !== undefined) args.page = page;
       if (pageSize !== undefined) args.pageSize = pageSize;
-      const result = await mcpClient.callTool("chorus_get_proposals", args);
+      const result = await mcpClient.callTool("synapse_get_proposals", args);
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_get_documents",
+    name: "synapse_get_documents",
     description: "List documents for a project. Can filter by type.",
     parameters: {
       type: "object",
@@ -241,13 +241,13 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       if (type) args.type = type;
       if (page !== undefined) args.page = page;
       if (pageSize !== undefined) args.pageSize = pageSize;
-      const result = await mcpClient.callTool("chorus_get_documents", args);
+      const result = await mcpClient.callTool("synapse_get_documents", args);
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_get_document",
+    name: "synapse_get_document",
     description: "Get the detailed content of a single document.",
     parameters: {
       type: "object",
@@ -258,13 +258,13 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { documentUuid }: { documentUuid: string }) {
-      const result = await mcpClient.callTool("chorus_get_document", { documentUuid });
+      const result = await mcpClient.callTool("synapse_get_document", { documentUuid });
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_get_unblocked_tasks",
+    name: "synapse_get_unblocked_tasks",
     description: "Get tasks that are ready to start — status is open/assigned and all dependencies are resolved (done/closed). Optionally filter by proposal UUIDs. Note: to_verify is NOT considered resolved.",
     parameters: {
       type: "object",
@@ -278,13 +278,13 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
     async execute(_id: string, { projectUuid, proposalUuids }: { projectUuid: string; proposalUuids?: string[] }) {
       const args: Record<string, unknown> = { projectUuid };
       if (proposalUuids && proposalUuids.length > 0) args.proposalUuids = proposalUuids;
-      const result = await mcpClient.callTool("chorus_get_unblocked_tasks", args);
+      const result = await mcpClient.callTool("synapse_get_unblocked_tasks", args);
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_get_activity",
+    name: "synapse_get_activity",
     description: "Get the activity stream for a project. Shows all actions taken by agents and users.",
     parameters: {
       type: "object",
@@ -300,13 +300,13 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       const args: Record<string, unknown> = { projectUuid };
       if (page !== undefined) args.page = page;
       if (pageSize !== undefined) args.pageSize = pageSize;
-      const result = await mcpClient.callTool("chorus_get_activity", args);
+      const result = await mcpClient.callTool("synapse_get_activity", args);
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_get_comments",
+    name: "synapse_get_comments",
     description: "Get comments for an Idea, Proposal, Task, or Document. Useful for understanding context, decisions, and feedback.",
     parameters: {
       type: "object",
@@ -323,13 +323,13 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       const args: Record<string, unknown> = { targetType, targetUuid };
       if (page !== undefined) args.page = page;
       if (pageSize !== undefined) args.pageSize = pageSize;
-      const result = await mcpClient.callTool("chorus_get_comments", args);
+      const result = await mcpClient.callTool("synapse_get_comments", args);
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_get_elaboration",
+    name: "synapse_get_elaboration",
     description: "Get the full elaboration state for an Idea, including all rounds, questions, answers, and progress summary.",
     parameters: {
       type: "object",
@@ -340,13 +340,13 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { ideaUuid }: { ideaUuid: string }) {
-      const result = await mcpClient.callTool("chorus_get_elaboration", { ideaUuid });
+      const result = await mcpClient.callTool("synapse_get_elaboration", { ideaUuid });
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_get_my_assignments",
+    name: "synapse_get_my_assignments",
     description: "Get all Ideas and Tasks currently assigned to you.",
     parameters: {
       type: "object",
@@ -354,7 +354,7 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute() {
-      const result = await mcpClient.callTool("chorus_get_my_assignments", {});
+      const result = await mcpClient.callTool("synapse_get_my_assignments", {});
       return JSON.stringify(result, null, 2);
     },
   });
@@ -362,7 +362,7 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
   // --- Project group tools ---
 
   api.registerTool({
-    name: "chorus_get_project_groups",
+    name: "synapse_get_project_groups",
     description: "List all project groups. Returns groups with project counts and completion rates.",
     parameters: {
       type: "object",
@@ -370,13 +370,13 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute() {
-      const result = await mcpClient.callTool("chorus_get_project_groups", {});
+      const result = await mcpClient.callTool("synapse_get_project_groups", {});
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_get_project_group",
+    name: "synapse_get_project_group",
     description: "Get a single project group with its projects and stats.",
     parameters: {
       type: "object",
@@ -387,7 +387,7 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { groupUuid }: { groupUuid: string }) {
-      const result = await mcpClient.callTool("chorus_get_project_group", { groupUuid });
+      const result = await mcpClient.callTool("synapse_get_project_group", { groupUuid });
       return JSON.stringify(result, null, 2);
     },
   });
@@ -395,7 +395,7 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
   // --- Write tools ---
 
   api.registerTool({
-    name: "chorus_add_comment",
+    name: "synapse_add_comment",
     description: "Add a comment to an Idea, Proposal, Task, or Document",
     parameters: {
       type: "object",
@@ -408,13 +408,13 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { targetType, targetUuid, content }: { targetType: string; targetUuid: string; content: string }) {
-      const result = await mcpClient.callTool("chorus_add_comment", { targetType, targetUuid, content });
+      const result = await mcpClient.callTool("synapse_add_comment", { targetType, targetUuid, content });
       return JSON.stringify(result, null, 2);
     },
   });
 
   api.registerTool({
-    name: "chorus_search_mentionables",
+    name: "synapse_search_mentionables",
     description: "Search for users and agents that can be @mentioned. Returns name, type, and UUID. Use the UUID to write mentions as @[Name](type:uuid) in comment text.",
     parameters: {
       type: "object",
@@ -428,7 +428,7 @@ export function registerCommonTools(api: any, mcpClient: ChorusMcpClient) {
     async execute(_id: string, { query, limit }: { query: string; limit?: number }) {
       const args: Record<string, unknown> = { query };
       if (limit !== undefined) args.limit = limit;
-      const result = await mcpClient.callTool("chorus_search_mentionables", args);
+      const result = await mcpClient.callTool("synapse_search_mentionables", args);
       return JSON.stringify(result, null, 2);
     },
   });

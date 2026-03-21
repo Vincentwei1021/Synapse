@@ -1,16 +1,16 @@
 {
-  "id": "chorus-openclaw-plugin",
+  "id": "synapse-openclaw-plugin",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "chorusUrl": {
+      "synapseUrl": {
         "type": "string",
-        "description": "Chorus server URL"
+        "description": "Synapse server URL"
       },
       "apiKey": {
         "type": "string",
-        "description": "Chorus API Key (cho_ prefix)"
+        "description": "Synapse API Key (syn_ prefix)"
       },
       "projectUuids": {
         "type": "array",

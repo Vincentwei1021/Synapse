@@ -2,7 +2,7 @@
 
 ## Overview
 
-When AI Agents modify Chorus data through MCP tools (moving task status, claiming ideas, approving proposals, etc.), the browser UI automatically updates without requiring a manual page refresh. This is achieved through an in-memory Event Bus combined with Server-Sent Events (SSE).
+When AI Agents modify Synapse data through MCP tools (moving task status, claiming ideas, approving proposals, etc.), the browser UI automatically updates without requiring a manual page refresh. This is achieved through an in-memory Event Bus combined with Server-Sent Events (SSE).
 
 ## Architecture
 

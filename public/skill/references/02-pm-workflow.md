@@ -7,39 +7,39 @@ PM Agent is responsible for **analyzing Ideas, producing Proposals (with PRD doc
 ### Your MCP Tools
 
 **Idea Management:**
-- `chorus_pm_create_idea` - Create a new idea in a project (on behalf of humans or from discovered requirements)
-- `chorus_claim_idea` - Claim an open idea (open -> elaborating). Claiming auto-transitions to elaborating.
-- `chorus_release_idea` - Release a claimed idea (elaborating -> open)
-- `chorus_update_idea_status` - Update idea status (proposal_created / completed)
-- `chorus_move_idea` - Move an idea to a different project within the same company (also moves linked draft/pending proposals)
+- `synapse_pm_create_idea` - Create a new idea in a project (on behalf of humans or from discovered requirements)
+- `synapse_claim_idea` - Claim an open idea (open -> elaborating). Claiming auto-transitions to elaborating.
+- `synapse_release_idea` - Release a claimed idea (elaborating -> open)
+- `synapse_update_idea_status` - Update idea status (proposal_created / completed)
+- `synapse_move_idea` - Move an idea to a different project within the same company (also moves linked draft/pending proposals)
 
 **Requirements Elaboration:**
-- `chorus_pm_start_elaboration` - Start an elaboration round with structured questions for an Idea
-- `chorus_pm_validate_elaboration` - Validate answers from an elaboration round (resolve or create follow-up)
-- `chorus_pm_skip_elaboration` - Skip elaboration for clear/simple Ideas
+- `synapse_pm_start_elaboration` - Start an elaboration round with structured questions for an Idea
+- `synapse_pm_validate_elaboration` - Validate answers from an elaboration round (resolve or create follow-up)
+- `synapse_pm_skip_elaboration` - Skip elaboration for clear/simple Ideas
 
 **Proposal Management:**
-- `chorus_pm_create_proposal` - Create empty proposal container (add drafts separately via add_document_draft / add_task_draft)
-- `chorus_pm_validate_proposal` - Validate proposal completeness before submission (returns errors, warnings, info)
-- `chorus_pm_submit_proposal` - Submit proposal for Admin approval (draft -> pending). Runs validation internally.
-- `chorus_pm_add_document_draft` - Add document draft to proposal
-- `chorus_pm_add_task_draft` - Add task draft to proposal
-- `chorus_pm_update_document_draft` - Update document draft in proposal
-- `chorus_pm_update_task_draft` - Update task draft in proposal
-- `chorus_pm_remove_document_draft` - Remove document draft from proposal
-- `chorus_pm_remove_task_draft` - Remove task draft from proposal
+- `synapse_pm_create_proposal` - Create empty proposal container (add drafts separately via add_document_draft / add_task_draft)
+- `synapse_pm_validate_proposal` - Validate proposal completeness before submission (returns errors, warnings, info)
+- `synapse_pm_submit_proposal` - Submit proposal for Admin approval (draft -> pending). Runs validation internally.
+- `synapse_pm_add_document_draft` - Add document draft to proposal
+- `synapse_pm_add_task_draft` - Add task draft to proposal
+- `synapse_pm_update_document_draft` - Update document draft in proposal
+- `synapse_pm_update_task_draft` - Update task draft in proposal
+- `synapse_pm_remove_document_draft` - Remove document draft from proposal
+- `synapse_pm_remove_task_draft` - Remove task draft from proposal
 
 **Task Assignment:**
-- `chorus_pm_assign_task` - Assign a task to a Developer Agent (task must be open or assigned; target agent must have developer role)
+- `synapse_pm_assign_task` - Assign a task to a Developer Agent (task must be open or assigned; target agent must have developer role)
 
 **Document & Task Management:**
-- `chorus_pm_create_document` - Create standalone document (PRD, tech_design, ADR, spec, guide)
-- `chorus_pm_update_document` - Update document content (increments version)
-- `chorus_pm_create_tasks` - Batch create tasks (supports intra-batch dependencies via draftUuid)
+- `synapse_pm_create_document` - Create standalone document (PRD, tech_design, ADR, spec, guide)
+- `synapse_pm_update_document` - Update document content (increments version)
+- `synapse_pm_create_tasks` - Batch create tasks (supports intra-batch dependencies via draftUuid)
 
 **Task Dependency Management:**
-- `chorus_add_task_dependency` - Add dependency between two existing tasks (with cycle detection)
-- `chorus_remove_task_dependency` - Remove a task dependency
+- `synapse_add_task_dependency` - Add dependency between two existing tasks (with cycle detection)
+- `synapse_remove_task_dependency` - Remove a task dependency
 
 **Public Tools (shared with all roles):** see [00-common-tools.md](00-common-tools.md) for full list (checkin, query, comment tools)
 
@@ -50,7 +50,7 @@ PM Agent is responsible for **analyzing Ideas, producing Proposals (with PRD doc
 ### Step 1: Check In
 
 ```
-chorus_checkin()
+synapse_checkin()
 ```
 
 Review your persona, current assignments, and pending work counts.
@@ -60,13 +60,13 @@ Review your persona, current assignments, and pending work counts.
 Check for available ideas to analyze:
 
 ```
-chorus_get_available_ideas({ projectUuid: "<project-uuid>" })
+synapse_get_available_ideas({ projectUuid: "<project-uuid>" })
 ```
 
 Or check your existing assignments:
 
 ```
-chorus_get_my_assignments()
+synapse_get_my_assignments()
 ```
 
 ### Step 3: Claim an Idea
@@ -74,7 +74,7 @@ chorus_get_my_assignments()
 Pick an idea and claim it. Claiming automatically transitions the Idea to `elaborating` status:
 
 ```
-chorus_claim_idea({ ideaUuid: "<idea-uuid>" })
+synapse_claim_idea({ ideaUuid: "<idea-uuid>" })
 ```
 
 ### Step 4: Elaborate on the Idea
@@ -87,37 +87,37 @@ Gather context before writing a proposal:
 
 1. **Read the idea in detail:**
    ```
-   chorus_get_idea({ ideaUuid: "<idea-uuid>" })
+   synapse_get_idea({ ideaUuid: "<idea-uuid>" })
    ```
 
 2. **Read existing project documents** (for context, tech stack, conventions):
    ```
-   chorus_get_documents({ projectUuid: "<project-uuid>" })
-   chorus_get_document({ documentUuid: "<doc-uuid>" })
+   synapse_get_documents({ projectUuid: "<project-uuid>" })
+   synapse_get_document({ documentUuid: "<doc-uuid>" })
    ```
 
 3. **Review past proposals** (to understand patterns and standards):
    ```
-   chorus_get_proposals({ projectUuid: "<project-uuid>", status: "approved" })
+   synapse_get_proposals({ projectUuid: "<project-uuid>", status: "approved" })
    ```
 
 4. **Check existing tasks** (to avoid duplication):
    ```
-   chorus_list_tasks({ projectUuid: "<project-uuid>" })
+   synapse_list_tasks({ projectUuid: "<project-uuid>" })
    ```
 
 5. **Read comments** on the idea for additional context:
    ```
-   chorus_get_comments({ targetType: "idea", targetUuid: "<idea-uuid>" })
+   synapse_get_comments({ targetType: "idea", targetUuid: "<idea-uuid>" })
    ```
 
 After gathering context, determine if structured elaboration is needed or can be skipped.
 
 **Simple Ideas** (bug fixes, small changes with clear requirements):
-You may skip elaboration, but **confirm with the user first** before calling `chorus_pm_skip_elaboration`. Never skip on your own judgment alone.
+You may skip elaboration, but **confirm with the user first** before calling `synapse_pm_skip_elaboration`. Never skip on your own judgment alone.
 
 ```
-chorus_pm_skip_elaboration({
+synapse_pm_skip_elaboration({
   ideaUuid: "<idea-uuid>",
   reason: "Bug fix with clear reproduction steps"
 })
@@ -136,7 +136,7 @@ Start an elaboration round to clarify requirements:
    > **Note:** Do NOT include an "Other" option in your questions. The UI automatically adds a free-text "Other" option to every question. When the user selects "Other", the answer is submitted as `selectedOptionId: null, customText: "user's text"`.
 
    ```
-   chorus_pm_start_elaboration({
+   synapse_pm_start_elaboration({
      ideaUuid: "<idea-uuid>",
      depth: "standard",
      questions: [
@@ -174,11 +174,11 @@ Start an elaboration round to clarify requirements:
    })
    ```
 
-3. **Present questions to the user** for them to answer. Prefer using your IDE's interactive question/prompt mechanism if available (e.g., `AskUserQuestion` in Claude Code) so the user can select options directly. If no interactive tool is available, present questions clearly with numbered options and collect answers. Alternatively, the user can answer via the Chorus web UI (Idea detail page).
+3. **Present questions to the user** for them to answer. Prefer using your IDE's interactive question/prompt mechanism if available (e.g., `AskUserQuestion` in Claude Code) so the user can select options directly. If no interactive tool is available, present questions clearly with numbered options and collect answers. Alternatively, the user can answer via the Synapse web UI (Idea detail page).
 
 4. **Submit answers** (or the user/stakeholder submits via the UI):
    ```
-   chorus_answer_elaboration({
+   synapse_answer_elaboration({
      ideaUuid: "<idea-uuid>",
      roundUuid: "<round-uuid>",
      answers: [
@@ -200,12 +200,12 @@ Start an elaboration round to clarify requirements:
 
    a. **Get owner info** from your checkin response (`agent.owner`) or search for the answerer:
       ```
-      chorus_search_mentionables({ query: "owner-name" })
+      synapse_search_mentionables({ query: "owner-name" })
       ```
 
    b. **Post a summary comment** on the idea, @mentioning the answerer:
       ```
-      chorus_add_comment({
+      synapse_add_comment({
         targetType: "idea",
         targetUuid: "<idea-uuid>",
         content: "@[Owner Name](user:owner-uuid) I've reviewed the elaboration answers. Here's my understanding:\n\n- Key requirement 1: ...\n- Key requirement 2: ...\n- Scope decision: ...\n\nDoes this match your intent? Any additions or corrections before I proceed?"
@@ -214,7 +214,7 @@ Start an elaboration round to clarify requirements:
 
    c. **Wait for confirmation.** The owner will be notified and can reply via comment. Check for their response:
       ```
-      chorus_get_comments({ targetType: "idea", targetUuid: "<idea-uuid>" })
+      synapse_get_comments({ targetType: "idea", targetUuid: "<idea-uuid>" })
       ```
 
    d. **Based on the response**, take one of three actions:
@@ -225,7 +225,7 @@ Start an elaboration round to clarify requirements:
    Once confirmed, validate the elaboration:
 
    ```
-   chorus_pm_validate_elaboration({
+   synapse_pm_validate_elaboration({
      ideaUuid: "<idea-uuid>",
      roundUuid: "<round-uuid>",
      issues: [],
@@ -234,7 +234,7 @@ Start an elaboration round to clarify requirements:
    ```
    - If issues are found (contradictions, ambiguities, incomplete answers), include them in `issues` and provide `followUpQuestions` to start a new round:
    ```
-   chorus_pm_validate_elaboration({
+   synapse_pm_validate_elaboration({
      ideaUuid: "<idea-uuid>",
      roundUuid: "<round-uuid>",
      issues: [
@@ -261,7 +261,7 @@ Start an elaboration round to clarify requirements:
 
 6. **Check elaboration status** at any time:
    ```
-   chorus_get_elaboration({ ideaUuid: "<idea-uuid>" })
+   synapse_get_elaboration({ ideaUuid: "<idea-uuid>" })
    ```
 
 7. Once all rounds are resolved, proceed to Step 5 (Create Proposal). The elaboration answers provide rich context for writing the PRD and task breakdown.
@@ -277,7 +277,7 @@ Start an elaboration round to clarify requirements:
 **Recommended approach:** Create the proposal container first without any drafts, then incrementally add document and task drafts one by one. This avoids overly large tool calls, lets you build the proposal iteratively, and makes it easier to review/adjust each draft individually.
 
 ```
-chorus_pm_create_proposal({
+synapse_pm_create_proposal({
   projectUuid: "<project-uuid>",
   title: "Implement <feature name>",
   description: "Analysis and implementation plan for Idea #xxx",
@@ -290,11 +290,11 @@ chorus_pm_create_proposal({
 
 ### Step 6: Add Document Drafts
 
-Add document drafts to the proposal one at a time using `chorus_pm_add_document_draft`:
+Add document drafts to the proposal one at a time using `synapse_pm_add_document_draft`:
 
 ```
 # Add PRD
-chorus_pm_add_document_draft({
+synapse_pm_add_document_draft({
   proposalUuid: "<proposal-uuid>",
   type: "prd",
   title: "PRD: <Feature Name>",
@@ -302,7 +302,7 @@ chorus_pm_add_document_draft({
 })
 
 # Add Tech Design
-chorus_pm_add_document_draft({
+synapse_pm_add_document_draft({
   proposalUuid: "<proposal-uuid>",
   type: "tech_design",
   title: "Tech Design: <Feature Name>",
@@ -310,7 +310,7 @@ chorus_pm_add_document_draft({
 })
 
 # Add ADR (if needed)
-chorus_pm_add_document_draft({
+synapse_pm_add_document_draft({
   proposalUuid: "<proposal-uuid>",
   type: "adr",
   title: "ADR: Choice of <technology>",
@@ -322,11 +322,11 @@ chorus_pm_add_document_draft({
 
 ### Step 7: Add Task Drafts
 
-Add task drafts one at a time using `chorus_pm_add_task_draft`. The response returns the new draft's `draftUuid` — use it directly for `dependsOnDraftUuids` in subsequent drafts without needing to call `chorus_get_proposal`.
+Add task drafts one at a time using `synapse_pm_add_task_draft`. The response returns the new draft's `draftUuid` — use it directly for `dependsOnDraftUuids` in subsequent drafts without needing to call `synapse_get_proposal`.
 
 ```
 # Add first task → response includes { draftUuid, draftTitle }
-chorus_pm_add_task_draft({
+synapse_pm_add_task_draft({
   proposalUuid: "<proposal-uuid>",
   title: "Implement <component>",
   description: "Detailed description of what to build...",
@@ -336,7 +336,7 @@ chorus_pm_add_task_draft({
 })
 
 # Add second task — use draftUuid from the first task's response
-chorus_pm_add_task_draft({
+synapse_pm_add_task_draft({
   proposalUuid: "<proposal-uuid>",
   title: "Write tests for <component>",
   description: "Unit and integration tests...",
@@ -355,17 +355,17 @@ After adding all drafts, review the full proposal and refine as needed:
 
 ```
 # Review current state
-chorus_get_proposal({ proposalUuid: "<proposal-uuid>" })
+synapse_get_proposal({ proposalUuid: "<proposal-uuid>" })
 
 # Update a document draft
-chorus_pm_update_document_draft({
+synapse_pm_update_document_draft({
   proposalUuid: "<proposal-uuid>",
   draftUuid: "<draft-uuid>",
   content: "Updated content with more detail..."
 })
 
 # Update a task draft
-chorus_pm_update_task_draft({
+synapse_pm_update_task_draft({
   proposalUuid: "<proposal-uuid>",
   draftUuid: "<draft-uuid>",
   description: "Updated description with more detail...",
@@ -373,7 +373,7 @@ chorus_pm_update_task_draft({
 })
 
 # Remove a draft that's no longer needed
-chorus_pm_remove_task_draft({
+synapse_pm_remove_task_draft({
   proposalUuid: "<proposal-uuid>",
   draftUuid: "<draft-uuid>"
 })
@@ -384,7 +384,7 @@ chorus_pm_remove_task_draft({
 Before submitting, validate the proposal to preview any issues:
 
 ```
-chorus_pm_validate_proposal({ proposalUuid: "<proposal-uuid>" })
+synapse_pm_validate_proposal({ proposalUuid: "<proposal-uuid>" })
 ```
 
 This returns `{ valid, issues }` with error, warning, and info levels. Fix any errors before submitting. Warnings and info are advisory but worth addressing.
@@ -392,7 +392,7 @@ This returns `{ valid, issues }` with error, warning, and info levels. Fix any e
 When the proposal passes validation (no errors):
 
 ```
-chorus_pm_submit_proposal({ proposalUuid: "<proposal-uuid>" })
+synapse_pm_submit_proposal({ proposalUuid: "<proposal-uuid>" })
 ```
 
 This changes the proposal status from `draft` to `pending`. An Admin will review it. Note: `submit` also runs validation internally and rejects if errors exist.
@@ -400,7 +400,7 @@ This changes the proposal status from `draft` to `pending`. An Admin will review
 Add a comment explaining your reasoning:
 
 ```
-chorus_add_comment({
+synapse_add_comment({
   targetType: "proposal",
   targetUuid: "<proposal-uuid>",
   content: "This proposal covers... Key decisions: ..."
@@ -412,7 +412,7 @@ chorus_add_comment({
 Mark the idea as proposal_created:
 
 ```
-chorus_update_idea_status({ ideaUuid: "<idea-uuid>", status: "proposal_created" })
+synapse_update_idea_status({ ideaUuid: "<idea-uuid>", status: "proposal_created" })
 ```
 
 ### Step 11: Handle Feedback
@@ -420,8 +420,8 @@ chorus_update_idea_status({ ideaUuid: "<idea-uuid>", status: "proposal_created" 
 If the proposal is rejected, check the review note:
 
 ```
-chorus_get_proposal({ proposalUuid: "<proposal-uuid>" })
-chorus_get_comments({ targetType: "proposal", targetUuid: "<proposal-uuid>" })
+synapse_get_proposal({ proposalUuid: "<proposal-uuid>" })
+synapse_get_comments({ targetType: "proposal", targetUuid: "<proposal-uuid>" })
 ```
 
 Revise the drafts and resubmit.
@@ -436,17 +436,17 @@ When the Admin approves the proposal:
 Mark the idea as completed:
 
 ```
-chorus_update_idea_status({ ideaUuid: "<idea-uuid>", status: "completed" })
+synapse_update_idea_status({ ideaUuid: "<idea-uuid>", status: "completed" })
 ```
 
 ### Step 13: Manage Task Dependencies (Optional)
 
-After tasks are created (either via proposal approval or `chorus_pm_create_tasks`), you can manage dependencies between them.
+After tasks are created (either via proposal approval or `synapse_pm_create_tasks`), you can manage dependencies between them.
 
-**Add dependency using `chorus_pm_create_tasks` with intra-batch dependencies:**
+**Add dependency using `synapse_pm_create_tasks` with intra-batch dependencies:**
 
 ```
-chorus_pm_create_tasks({
+synapse_pm_create_tasks({
   projectUuid: "<project-uuid>",
   tasks: [
     {
@@ -477,13 +477,13 @@ chorus_pm_create_tasks({
 
 ```
 # Add dependency: task B depends on task A
-chorus_add_task_dependency({
+synapse_add_task_dependency({
   taskUuid: "<task-B-uuid>",
   dependsOnTaskUuid: "<task-A-uuid>"
 })
 
 # Remove dependency
-chorus_remove_task_dependency({
+synapse_remove_task_dependency({
   taskUuid: "<task-B-uuid>",
   dependsOnTaskUuid: "<task-A-uuid>"
 })
@@ -491,14 +491,14 @@ chorus_remove_task_dependency({
 
 **Notes:**
 - Dependencies are validated: same project, no self-dependency, no cycles (DFS detection)
-- Use `chorus_get_task` to see `dependsOn` and `dependedBy` arrays
+- Use `synapse_get_task` to see `dependsOn` and `dependedBy` arrays
 
 ### Step 14: Assign Tasks to Developer Agents (Optional)
 
 After approval, you can directly assign tasks to specific Developer Agents instead of waiting for them to self-claim:
 
 ```
-chorus_pm_assign_task({
+synapse_pm_assign_task({
   taskUuid: "<task-uuid>",
   agentUuid: "<developer-agent-uuid>"
 })
@@ -512,7 +512,7 @@ chorus_pm_assign_task({
 To find available developer agents, use the project activity or check with the admin. To find open tasks:
 
 ```
-chorus_get_available_tasks({ projectUuid: "<project-uuid>" })
+synapse_get_available_tasks({ projectUuid: "<project-uuid>" })
 ```
 
 ---

@@ -1,4 +1,4 @@
-# Dockerfile for Chorus
+# Dockerfile for Synapse
 
 # Development stage
 FROM node:22-alpine AS development

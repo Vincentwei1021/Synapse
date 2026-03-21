@@ -1,13 +1,13 @@
 # Synapse — AI Research Lifecycle Platform
 
-> Fork of [Chorus](https://github.com/Chorus-AIDLC/Chorus) · Adapted for AI-driven research workflows
+> Fork of [Synapse](https://github.com/Synapse-AIDLC/Synapse) · Adapted for AI-driven research workflows
 > Created: 2026-03-20
 
 ---
 
 ## 1. Vision
 
-**Chorus is the collaboration platform for AI-driven software development. Synapse is the collaboration platform for AI-driven research.**
+**Synapse is the collaboration platform for AI-driven software development. Synapse is the collaboration platform for AI-driven research.**
 
 Existing research tools fall into two extremes:
 - **Too shallow**: Paper search / summarization tools that don't touch the actual research process
@@ -28,7 +28,7 @@ Human decides: pivot, iterate, or publish
 
 ## 2. Concept Mapping: Software Dev → Research
 
-| Chorus (Software) | Synapse (Research) | Notes |
+| Synapse (Software) | Synapse (Research) | Notes |
 |---|---|---|
 | Idea | **Research Question** | Free-form question + optional hypothesis statement |
 | Elaboration | **Hypothesis Formulation** | Structured Q&A to refine question → testable hypothesis |
@@ -75,7 +75,7 @@ Experiment Design (proposal_created)
 Human Review → Approve / Reject / Revise
 ```
 
-**Key difference from Chorus**: The elaboration phase MUST produce a **falsifiable hypothesis** with **quantitative acceptance criteria**. This is enforced by the PM Agent's elaboration questions.
+**Key difference from Synapse**: The elaboration phase MUST produce a **falsifiable hypothesis** with **quantitative acceptance criteria**. This is enforced by the PM Agent's elaboration questions.
 
 ### Phase 2: Construction — "Run the experiments"
 
@@ -259,7 +259,7 @@ model Baseline {
 
 ## 5. Agent Role Adaptations
 
-| Chorus Role | Synapse Role | Responsibilities |
+| Synapse Role | Synapse Role | Responsibilities |
 |---|---|---|
 | PM Agent | **Research Lead** | Formulate hypotheses, design experiments, synthesize results, recommend next steps |
 | Developer Agent | **Research Agent** | Execute experiments, collect data, run evaluations, report metrics |
@@ -329,7 +329,7 @@ model Baseline {
 ## 8. Implementation Roadmap
 
 ### Phase 0: Foundation (Week 1-2)
-- [ ] Rename all Chorus references → Synapse in codebase
+- [ ] Rename all Synapse references → Synapse in codebase
 - [ ] Add research-specific fields to Prisma schema
 - [ ] Create database migrations
 - [ ] Add new document types (literature_review, methodology, rdr, results_report)
@@ -364,7 +364,7 @@ model Baseline {
 
 ---
 
-## 9. What We Keep from Chorus (No Changes)
+## 9. What We Keep from Synapse (No Changes)
 
 - ✅ UUID-first architecture
 - ✅ Multi-tenant isolation (companyUuid)
@@ -382,13 +382,13 @@ model Baseline {
 
 ## 10. Key Design Decisions
 
-### Why fork Chorus, not build from scratch?
+### Why fork Synapse, not build from scratch?
 1. **80% of the infrastructure is identical**: task management, DAG, proposals, MCP, auth, multi-tenant
 2. **AIDLC methodology applies**: "AI proposes, human verifies" is even MORE natural for research
 3. **Time to value**: Research-specific features can be built on top of a working platform in weeks, not months
-4. **Upstream sync**: Can pull improvements from Chorus (bugfixes, UI polish, new MCP features)
+4. **Upstream sync**: Can pull improvements from Synapse (bugfixes, UI polish, new MCP features)
 
-### Why not just use Chorus as-is?
+### Why not just use Synapse as-is?
 1. **Research is non-linear**: Software dev has a relatively linear flow; research has parallel exploration, pivots, and dead ends
 2. **Verification is different**: Software verification is subjective ("does it meet requirements?"); research verification is objective ("does it beat baseline by X%?")
 3. **Outputs are different**: Software produces code; research produces knowledge (hypotheses, evidence, decisions)

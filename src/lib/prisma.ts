@@ -6,7 +6,7 @@ import pg from "pg";
 const connectionString =
   process.env.DATABASE_URL ||
   (process.env.DB_HOST
-    ? `postgresql://${process.env.DB_USERNAME}:${encodeURIComponent(process.env.DB_PASSWORD || "")}@${process.env.DB_HOST}:${process.env.DB_PORT || "5432"}/${process.env.DB_NAME || "chorus"}`
+    ? `postgresql://${process.env.DB_USERNAME}:${encodeURIComponent(process.env.DB_PASSWORD || "")}@${process.env.DB_HOST}:${process.env.DB_PORT || "5432"}/${process.env.DB_NAME || "synapse"}`
     : undefined);
 
 const globalForPrisma = globalThis as unknown as {

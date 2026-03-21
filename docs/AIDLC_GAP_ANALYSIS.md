@@ -1,4 +1,4 @@
-# AI-DLC Gap Analysis — Chorus vs Standard AI-DLC
+# AI-DLC Gap Analysis — Synapse vs Standard AI-DLC
 
 > Generated: 2026-02-18 | Updated: 2026-02-24
 > Scope: All three phases (Inception, Construction, Operations)
@@ -305,11 +305,11 @@ When all stages execute (worst case — brownfield project with new multi-servic
 
 For a simple greenfield bug fix (Minimal depth), this shrinks to ~4-5 artifacts (state, requirements questions, requirements, execution plan, audit).
 
-### Chorus vs AI-DLC Inception: Detailed Mapping
+### Synapse vs AI-DLC Inception: Detailed Mapping
 
-| AI-DLC Inception Concept | Chorus Equivalent | Gap |
+| AI-DLC Inception Concept | Synapse Equivalent | Gap |
 |--------------------------|-------------------|-----|
-| Workspace Detection | N/A (Chorus is a platform, not an IDE plugin) | Not applicable — different architecture |
+| Workspace Detection | N/A (Synapse is a platform, not an IDE plugin) | Not applicable — different architecture |
 | Reverse Engineering | N/A (agents do this in their own IDE context) | Not applicable |
 | Requirements Analysis | **Idea** entity — human or AI creates Idea with title + content | ⚠️ No structured clarification process; Idea content is free-form |
 | Clarification Questions | **Comments** on Ideas | ⚠️ Unstructured; no multiple-choice format, no validation, no contradiction detection |
@@ -323,20 +323,20 @@ For a simple greenfield bug fix (Minimal depth), this shrinks to ~4-5 artifacts 
 | Audit Trail | **Activity stream** | ⚠️ Logs actions but not raw user inputs with timestamps for requirements traceability |
 | Human Approval Gates | **Proposal approve/reject** | ⚠️ Single gate at Proposal level; AI-DLC has gates at every stage |
 
-**Key insight**: Chorus maps the Inception phase **outputs** well (requirements → documents, units → tasks with DAG), but largely skips the Inception phase **process** (structured clarification, multi-stage gates, adaptive depth, audit trail). The AI-DLC Inception is as much about the *how* (disciplined question-answer loops) as the *what* (final artifacts).
+**Key insight**: Synapse maps the Inception phase **outputs** well (requirements → documents, units → tasks with DAG), but largely skips the Inception phase **process** (structured clarification, multi-stage gates, adaptive depth, audit trail). The AI-DLC Inception is as much about the *how* (disciplined question-answer loops) as the *what* (final artifacts).
 
 ---
 
-## What Chorus Does Well
+## What Synapse Does Well
 
-Chorus implements the AI-DLC pipeline: Idea → Proposal → Document + Task → Execute → Verify → Done.
+Synapse implements the AI-DLC pipeline: Idea → Proposal → Document + Task → Execute → Verify → Done.
 
-| AI-DLC Concept | Chorus Implementation | Strength |
+| AI-DLC Concept | Synapse Implementation | Strength |
 |----------------|----------------------|----------|
 | Reversed Conversation | Proposal approval flow — PM Agent proposes, Admin/Human verifies | Strong |
 | Inception Phase | Idea → Proposal → Document + Task decomposition with DAG dependencies | Strong |
 | Construction Phase | Task claim → in_progress → to_verify → done with session tracking | Moderate (has skeleton, lacks scheduling/metrics) |
-| Context Continuity | Chorus Plugin auto-injects checkin context at CC session start via hooks | Moderate (functional but not dense enough) |
+| Context Continuity | Synapse Plugin auto-injects checkin context at CC session start via hooks | Moderate (functional but not dense enough) |
 | Task DAG | TaskDependency modeling with cycle detection, rendered with @xyflow/react + dagre | Strong |
 | Parallel Execution | Swarm mode with per-sub-agent sessions, checkin/checkout tracking | Strong |
 | Session Observability | AgentSession + SessionTaskCheckin + Activity stream with session attribution | Moderate (lacks auto-expiry) |
@@ -350,17 +350,17 @@ Chorus implements the AI-DLC pipeline: Idea → Proposal → Document + Task →
 
 ### P0 — Critical for "Management Tool" Status
 
-These gaps determine whether Chorus is a "record-keeper" or an "orchestrator."
+These gaps determine whether Synapse is a "record-keeper" or an "orchestrator."
 
 #### 1. Notification & Event Push
 
-**Current state**: ✅ Largely implemented. Chorus has a production-ready in-app notification system (see `src/app/api/notifications/README.md`):
+**Current state**: ✅ Largely implemented. Synapse has a production-ready in-app notification system (see `src/app/api/notifications/README.md`):
 
 **What's implemented**:
 - **Event Bus** with local EventEmitter + optional Redis Pub/Sub for multi-instance (ElastiCache Serverless)
 - **NotificationListener** that maps Activity events → resolves recipients → creates Notification records
 - **SSE real-time delivery** to browser UI (NotificationProvider + EventSource)
-- **MCP tools** for agents: `chorus_get_notifications`, `chorus_mark_notification_read`
+- **MCP tools** for agents: `synapse_get_notifications`, `synapse_mark_notification_read`
 - **Per-user/agent notification preferences** with 9 toggleable notification types
 - **Frontend**: Bell icon with unread badge, popup with Unread/All tabs, deep linking to entities
 - **10 notification types**: task_assigned, task_status_changed, task_verified, task_reopened, task_submitted_for_verify, proposal_submitted, proposal_approved, proposal_rejected, idea_claimed, comment_added
@@ -370,7 +370,7 @@ These gaps determine whether Chorus is a "record-keeper" or an "orchestrator."
 - Session inactive/expired → push to Team Lead
 - Comment @mention parsing → push to mentioned role (currently pushes to entity assignee only)
 - Webhook delivery channel (for external integrations like Slack, email)
-- True push to MCP-connected agents (agents must poll via `chorus_get_notifications`; no server-initiated push)
+- True push to MCP-connected agents (agents must poll via `synapse_get_notifications`; no server-initiated push)
 
 **AI-DLC alignment**: The core infrastructure is solid. The main gap is **expanding notification types** (especially task-unblocked and elaboration events) and adding a **webhook channel** for external delivery. Mob Elaboration is now feasible via the existing SSE + MCP notification polling pattern.
 
@@ -378,11 +378,11 @@ These gaps determine whether Chorus is a "record-keeper" or an "orchestrator."
 
 #### 2. Task Auto-Scheduling (DAG Scheduler)
 
-**Current state**: ⚠️ Partially addressed. `chorus_get_unblocked_tasks` MCP tool provides on-demand discovery of tasks whose dependencies are all resolved. The Chorus Plugin's SubagentStop hook automatically calls this tool when a sub-agent finishes, surfacing newly unblocked tasks to the Team Lead.
+**Current state**: ⚠️ Partially addressed. `synapse_get_unblocked_tasks` MCP tool provides on-demand discovery of tasks whose dependencies are all resolved. The Synapse Plugin's SubagentStop hook automatically calls this tool when a sub-agent finishes, surfacing newly unblocked tasks to the Team Lead.
 
 **What's implemented**:
 - `getUnblockedTasks()` service method: queries tasks with status open/assigned where all dependencies are done/to_verify
-- `chorus_get_unblocked_tasks` public MCP tool: available to all agents for on-demand scheduling queries
+- `synapse_get_unblocked_tasks` public MCP tool: available to all agents for on-demand scheduling queries
 - Plugin SubagentStop hook integration: when a sub-agent exits, the hook fetches unblocked tasks and includes them in the Team Lead's context
 
 **Still missing**:
@@ -398,7 +398,7 @@ These gaps determine whether Chorus is a "record-keeper" or an "orchestrator."
 
 #### 3. Structured Inception Process (Clarification Loops + Multi-Stage Gates)
 
-**Current state**: ✅ Largely implemented. Chorus now has a full Requirements Elaboration system:
+**Current state**: ✅ Largely implemented. Synapse now has a full Requirements Elaboration system:
 
 **What's implemented**:
 - **Structured Q&A on Ideas**: PM Agents create multiple-choice questions categorized by type (functional, scope, technical, etc.). Stored in dedicated `ElaborationRound` + `ElaborationQuestion` tables.
@@ -461,7 +461,7 @@ These gaps determine whether Chorus is a "record-keeper" or an "orchestrator."
 
 #### 7. Checkin Context Density
 
-**Current state**: `chorus_checkin` returns persona + assignments + pending count. Plugin injects this at session start.
+**Current state**: `synapse_checkin` returns persona + assignments + pending count. Plugin injects this at session start.
 
 **AI-DLC alignment**: Context Continuity (Practice 4) calls for zero-cost context injection. The current checkin response requires agents to make multiple follow-up tool calls to build a full picture.
 
@@ -483,23 +483,23 @@ These gaps determine whether Chorus is a "record-keeper" or an "orchestrator."
 
 #### 9. Operations Phase
 
-**Current state**: Entirely absent. Chorus covers Inception and Construction only.
+**Current state**: Entirely absent. Synapse covers Inception and Construction only.
 
 **AI-DLC alignment**: The Operations phase (Phase 3) covers deployment automation, infrastructure setup, monitoring/observability, and production readiness validation. This is a full domain requiring integration with CI/CD pipelines, cloud providers, and observability toolchains.
 
 **What would be needed**:
 - Deployment pipeline integration (trigger deploys from Task completion)
 - Environment management (staging, production)
-- Health check / smoke test results fed back into Chorus
+- Health check / smoke test results fed back into Synapse
 - Incident → Idea feedback loop (production issues auto-generate Ideas)
 
-**Impact**: Without Operations, Chorus covers only the planning and building phases. The feedback loop from production back to Inception (a key AI-DLC principle) relies on manual Idea creation rather than automated signals.
+**Impact**: Without Operations, Synapse covers only the planning and building phases. The feedback loop from production back to Inception (a key AI-DLC principle) relies on manual Idea creation rather than automated signals.
 
 **Implementation scope**: Large. Would likely require webhook/plugin integrations with external CI/CD and monitoring tools rather than building these capabilities natively.
 
 #### 10. Cross-Session Learning and Memory
 
-**Current state**: Each agent session starts with `chorus_checkin` context injection. No mechanism for aggregating lessons learned, recurring patterns, or decision history across sessions.
+**Current state**: Each agent session starts with `synapse_checkin` context injection. No mechanism for aggregating lessons learned, recurring patterns, or decision history across sessions.
 
 **AI-DLC alignment**: Context Continuity (Practice 4) envisions persistent context across all phases. However, even the official AI-DLC methodology is vague here — [critics note](https://medium.com/data-science-collective/the-ai-driven-development-lifecycle-ai-dlc-a-critical-yet-hopeful-view-edc966173f2f) that "the promise of context memory that AI-DLC models would reference across the lifecycle sounds powerful, but the implementation details remain opaque."
 
@@ -508,7 +508,7 @@ These gaps determine whether Chorus is a "record-keeper" or an "orchestrator."
 - Pattern library: recurring solutions/approaches discovered during execution
 - Agent performance history: which approaches worked, which were rejected and why
 
-**Impact**: Low urgency — Chorus is at parity with the AI-DLC standard here, as neither has solved cross-session learning well. This is a frontier problem for the entire industry.
+**Impact**: Low urgency — Synapse is at parity with the AI-DLC standard here, as neither has solved cross-session learning well. This is a frontier problem for the entire industry.
 
 **Implementation scope**: Research-level. Could start with a structured decision log (lightweight) and evolve toward richer memory systems as the industry matures.
 
@@ -516,7 +516,7 @@ These gaps determine whether Chorus is a "record-keeper" or an "orchestrator."
 
 ## Feature Inventory
 
-| Feature | AI-DLC Standard | Chorus Status | Gap |
+| Feature | AI-DLC Standard | Synapse Status | Gap |
 |---------|----------------|---------------|-----|
 | **Values & Principles** | | | |
 | Reversed Conversation | AI proposes, human verifies | ✅ Proposal approval flow | — |
@@ -572,13 +572,13 @@ Overall (excl. Ops)              ~7.5/10
 Overall (incl. Ops)              ~5.5/10
 ```
 
-**Summary**: Chorus now covers AI-DLC Inception phase well — structured Q&A elaboration with iterative rounds, elaboration gate enforcing clarification before Proposal creation, adaptive depth, and a simplified Idea lifecycle (`open → elaborating → proposal_created → completed`). The remaining critical gap is **task auto-scheduling** (P0) for the Construction phase. Addressing this would raise the score to ~8.5 (excluding Operations).
+**Summary**: Synapse now covers AI-DLC Inception phase well — structured Q&A elaboration with iterative rounds, elaboration gate enforcing clarification before Proposal creation, adaptive depth, and a simplified Idea lifecycle (`open → elaborating → proposal_created → completed`). The remaining critical gap is **task auto-scheduling** (P0) for the Construction phase. Addressing this would raise the score to ~8.5 (excluding Operations).
 
 ---
 
 ## Notes on Bolt Cycles
 
-Bolt Cycles (short iterations replacing Sprints) are an AI-DLC concept, but Chorus currently has no iteration/milestone grouping. However:
+Bolt Cycles (short iterations replacing Sprints) are an AI-DLC concept, but Synapse currently has no iteration/milestone grouping. However:
 
 - Bolt Cycles are more of a **process practice** than a **platform feature**
 - Teams can practice Bolt-style short iterations using Projects as iteration containers
@@ -589,7 +589,7 @@ Implementing P0 (scheduler + notifications) effectively enables Bolt-style veloc
 
 ## Recommended Implementation Order
 
-1. **Task auto-scheduling** (P0) — Most impactful remaining feature. Transforms Chorus from record-keeper to orchestrator. Add `task_unblocked` notification type; event-driven push when task dependencies resolve.
+1. **Task auto-scheduling** (P0) — Most impactful remaining feature. Transforms Synapse from record-keeper to orchestrator. Add `task_unblocked` notification type; event-driven push when task dependencies resolve.
 2. ~~**Structured inception process** (P1)~~ — ✅ **DONE**. Requirements Elaboration implemented with structured Q&A, elaboration gate, simplified Idea lifecycle, dual-channel answering.
 3. ~~**Expand notification types** (P1)~~ — ✅ **DONE**. Elaboration notification types added (`elaboration_started`, `elaboration_answered`, `elaboration_followup`, `elaboration_resolved`). Remaining: `task_unblocked`, `session_expired`.
 4. **Session auto-expiry** (P1) — Quick win. Cron job + status update. Add `session_expired` notification type.

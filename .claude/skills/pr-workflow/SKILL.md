@@ -3,7 +3,7 @@ name: pr-workflow
 description: Complete workflow for submitting code changes — create branch, commit, open PR, check CI, fix failures, and merge.
 license: AGPL-3.0
 metadata:
-  author: chorus
+  author: synapse
   version: "0.1.0"
   category: development
 ---

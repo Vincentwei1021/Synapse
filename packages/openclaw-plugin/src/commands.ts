@@ -1,6 +1,6 @@
-import type { ChorusMcpClient } from "./mcp-client.js";
+import type { SynapseMcpClient } from "./mcp-client.js";
 
-// ===== Response types from Chorus MCP tools =====
+// ===== Response types from Synapse MCP tools =====
 
 interface CheckinResponse {
   checkinTime: string;
@@ -78,41 +78,41 @@ function formatIdeaList(ideas: AssignedIdea[] | undefined): string {
 }
 
 const HELP_TEXT = [
-  "Chorus commands:",
-  "  /chorus           Show connection status and summary",
-  "  /chorus status    Same as above",
-  "  /chorus tasks     List assigned tasks",
-  "  /chorus ideas     List assigned ideas",
+  "Synapse commands:",
+  "  /synapse           Show connection status and summary",
+  "  /synapse status    Same as above",
+  "  /synapse tasks     List assigned tasks",
+  "  /synapse ideas     List assigned ideas",
 ].join("\n");
 
 // ===== Registration =====
 
-export function registerChorusCommands(
+export function registerSynapseCommands(
   api: any,
-  mcpClient: ChorusMcpClient,
+  mcpClient: SynapseMcpClient,
   getStatus: () => string
 ): void {
   api.registerCommand({
-    name: "chorus",
-    description: "Chorus plugin commands: status, tasks, ideas",
+    name: "synapse",
+    description: "Synapse plugin commands: status, tasks, ideas",
     async handler(ctx: { args: string }) {
       const sub = (ctx.args ?? "").trim().toLowerCase();
 
-      // /chorus or /chorus status
+      // /synapse or /synapse status
       if (!sub || sub === "status") {
         try {
-          const checkin = (await mcpClient.callTool("chorus_checkin", {})) as CheckinResponse;
+          const checkin = (await mcpClient.callTool("synapse_checkin", {})) as CheckinResponse;
           return { text: formatStatus(checkin, getStatus()) };
         } catch (err) {
           return { text: `Failed to check in: ${err instanceof Error ? err.message : String(err)}` };
         }
       }
 
-      // /chorus tasks
+      // /synapse tasks
       if (sub === "tasks") {
         try {
           const data = (await mcpClient.callTool(
-            "chorus_get_my_assignments",
+            "synapse_get_my_assignments",
             {}
           )) as AssignmentsResponse;
           return { text: formatTaskList(data?.tasks) };
@@ -121,11 +121,11 @@ export function registerChorusCommands(
         }
       }
 
-      // /chorus ideas
+      // /synapse ideas
       if (sub === "ideas") {
         try {
           const data = (await mcpClient.callTool(
-            "chorus_get_my_assignments",
+            "synapse_get_my_assignments",
             {}
           )) as AssignmentsResponse;
           return { text: formatIdeaList(data?.ideas) };

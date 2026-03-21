@@ -49,14 +49,14 @@ next-env.d.ts
 .testdata/
 
 # CDK
-packages/chorus-cdk/cdk.out/
+packages/synapse-cdk/cdk.out/
 default_deploy.sh
 
-packages/chorus-cdk/lib/*.js
-packages/chorus-cdk/lib/*.d.ts
+packages/synapse-cdk/lib/*.js
+packages/synapse-cdk/lib/*.d.ts
 
-# Chorus plugin state
-.chorus/
+# Synapse plugin state
+.synapse/
 
 #demo
 dev-story-demo/
