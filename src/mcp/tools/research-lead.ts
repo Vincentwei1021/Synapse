@@ -844,7 +844,7 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
         questions: zArray(z.object({
           id: z.string().describe("Unique question identifier"),
           text: z.string().describe("Question text"),
-          category: z.enum(["functional", "non_functional", "business_context", "technical_context", "user_scenario", "scope"]).describe("Question category"),
+          category: z.enum(["hypothesis", "methodology", "prior_work", "resources", "success_metrics", "scope"]).describe("Question category"),
           options: zArray(z.object({
             id: z.string().describe("Option identifier"),
             label: z.string().describe("Option label"),
@@ -893,7 +893,7 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
         followUpQuestions: zArray(z.object({
           id: z.string().describe("Unique question identifier"),
           text: z.string().describe("Question text"),
-          category: z.enum(["functional", "non_functional", "business_context", "technical_context", "user_scenario", "scope"]).describe("Question category"),
+          category: z.enum(["hypothesis", "methodology", "prior_work", "resources", "success_metrics", "scope"]).describe("Question category"),
           options: zArray(z.object({
             id: z.string().describe("Option identifier"),
             label: z.string().describe("Option label"),

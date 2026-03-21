@@ -798,11 +798,11 @@
     "skipReasonRequired": "Please provide a reason",
     "hypothesisFormulationRequiredHint": "Complete or skip hypothesis formulation to create an experiment design",
     "category": {
-      "functional": "Functional",
-      "nonFunctional": "Non-functional",
-      "businessContext": "Business Context",
-      "technicalContext": "Technical Context",
-      "userScenario": "User Scenario",
+      "hypothesis": "Hypothesis",
+      "methodology": "Methodology",
+      "priorWork": "Prior Work",
+      "resources": "Resources",
+      "successMetrics": "Success Metrics",
       "scope": "Scope"
     }
   },

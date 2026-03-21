@@ -8,11 +8,11 @@ export type HypothesisFormulationStatus = "pending_answers" | "validating" | "re
 export type RoundStatus = "pending_answers" | "answered" | "validated" | "needs_followup";
 
 export type QuestionCategory =
-  | "functional"
-  | "non_functional"
-  | "business_context"
-  | "technical_context"
-  | "user_scenario"
+  | "hypothesis"
+  | "methodology"
+  | "prior_work"
+  | "resources"
+  | "success_metrics"
   | "scope";
 
 export type ValidationIssueType = "contradiction" | "ambiguity" | "incomplete";

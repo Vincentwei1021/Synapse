@@ -511,7 +511,7 @@ model HypothesisFormulationQuestion {
   round            HypothesisFormulation @relation(fields: [roundUuid], references: [uuid], onDelete: Cascade)
   questionId       String // Round-scoped ID: "q1", "q2", etc.
   text             String
-  category         String // functional | non_functional | business_context | technical_context | user_scenario | scope
+  category         String // hypothesis | methodology | prior_work | resources | success_metrics | scope
   options          Json // [{id, label, description?}] -- 2-5 options
   required         Boolean               @default(true)
   // Answer (null = unanswered)

@@ -799,11 +799,11 @@
     "skipReasonRequired": "请提供跳过原因",
     "hypothesisFormulationRequiredHint": "完成或跳过假说构建后才能创建实验设计",
     "category": {
-      "functional": "功能性",
-      "nonFunctional": "非功能性",
-      "businessContext": "业务背景",
-      "technicalContext": "技术背景",
-      "userScenario": "用户场景",
+      "hypothesis": "假设",
+      "methodology": "方法论",
+      "priorWork": "先前工作",
+      "resources": "资源",
+      "successMetrics": "成功指标",
       "scope": "范围"
     }
   },

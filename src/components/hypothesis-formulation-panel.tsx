@@ -28,21 +28,21 @@ const OTHER_OPTION_ID = "__other__";
 
 // Category i18n key mapping
 const categoryI18nKeys: Record<string, string> = {
-  functional: "functional",
-  non_functional: "nonFunctional",
-  business_context: "businessContext",
-  technical_context: "technicalContext",
-  user_scenario: "userScenario",
+  hypothesis: "hypothesis",
+  methodology: "methodology",
+  prior_work: "priorWork",
+  resources: "resources",
+  success_metrics: "successMetrics",
   scope: "scope",
 };
 
 // Category background color mapping
 const categoryBgColors: Record<string, string> = {
-  functional: "bg-[#E8F5E9] text-[#2E7D32]",
-  non_functional: "bg-[#E3F2FD] text-[#1565C0]",
-  business_context: "bg-[#FFF3E0] text-[#E65100]",
-  technical_context: "bg-[#F3E5F5] text-[#7B1FA2]",
-  user_scenario: "bg-[#E0F2F1] text-[#00796B]",
+  hypothesis: "bg-[#E8F5E9] text-[#2E7D32]",
+  methodology: "bg-[#E3F2FD] text-[#1565C0]",
+  prior_work: "bg-[#FFF3E0] text-[#E65100]",
+  resources: "bg-[#F3E5F5] text-[#7B1FA2]",
+  success_metrics: "bg-[#E0F2F1] text-[#00796B]",
   scope: "bg-[#FBE9E7] text-[#BF360C]",
 };
 

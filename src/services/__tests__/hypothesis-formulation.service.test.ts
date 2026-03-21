@@ -64,7 +64,7 @@ const validQuestions = [
   {
     id: "q2",
     text: "Target platform?",
-    category: "technical_context" as const,
+    category: "resources" as const,
     options: [
       { id: "o1", label: "Web" },
       { id: "o2", label: "Mobile" },
@@ -120,7 +120,7 @@ function makeRound(overrides: Record<string, unknown> = {}) {
         uuid: "qrec-2222",
         questionId: "q2",
         text: "Target platform?",
-        category: "technical_context",
+        category: "resources",
         options: [{ id: "o1", label: "Web" }, { id: "o2", label: "Mobile" }],
         required: false,
         selectedOptionId: null,
