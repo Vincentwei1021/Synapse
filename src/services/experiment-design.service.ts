@@ -1,7 +1,7 @@
-// src/services/proposal.service.ts
-// Proposal Service Layer (ARCHITECTURE.md §3.1 Service Layer)
+// src/services/experiment-design.service.ts
+// ExperimentDesign Service Layer (ARCHITECTURE.md §3.1 Service Layer)
 // UUID-Based Architecture: All operations use UUIDs
-// Container Model: Proposal contains documentDrafts and taskDrafts
+// Container Model: ExperimentDesign contains documentDrafts and taskDrafts
 
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
@@ -9,7 +9,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { formatCreatedBy, formatReview } from "@/lib/uuid-resolver";
 import { eventBus } from "@/lib/event-bus";
 import { createDocumentFromProposal } from "./document.service";
-import { createTasksFromProposal } from "./task.service";
+import { createExperimentRunsFromDesign } from "./experiment-run.service";
 
 // ===== UUID Helper Functions =====
 
@@ -22,7 +22,7 @@ export function ensureDocumentDraftUuid(draft: Omit<DocumentDraft, "uuid"> & { u
 }
 
 // Ensure TaskDraft has a UUID
-export function ensureTaskDraftUuid(draft: Omit<TaskDraft, "uuid"> & { uuid?: string }): TaskDraft {
+export function ensureRunDraftUuid(draft: Omit<TaskDraft, "uuid"> & { uuid?: string }): TaskDraft {
   return {
     ...draft,
     uuid: draft.uuid || randomUUID(),
@@ -31,9 +31,9 @@ export function ensureTaskDraftUuid(draft: Omit<TaskDraft, "uuid"> & { uuid?: st
 
 // ===== Type Definitions =====
 
-export interface ProposalListParams {
+export interface ExperimentDesignListParams {
   companyUuid: string;
-  projectUuid: string;
+  researchProjectUuid: string;
   skip: number;
   take: number;
   status?: string;
@@ -58,7 +58,7 @@ export interface TaskDraft {
   uuid: string;      // Draft UUID for tracking
   title: string;
   description?: string;
-  storyPoints?: number;
+  computeBudgetHours?: number;
   priority?: string;
   acceptanceCriteria?: string;  // legacy Markdown (read-only, kept for backward-compatible viewing of old data)
   acceptanceCriteriaItems?: AcceptanceCriteriaItem[];  // structured acceptance criteria items (primary format)
@@ -67,23 +67,23 @@ export interface TaskDraft {
 
 // Input types (uuid is optional, will be auto-generated)
 export type DocumentDraftInput = Omit<DocumentDraft, "uuid"> & { uuid?: string };
-export type TaskDraftInput = Omit<TaskDraft, "uuid"> & { uuid?: string };
+export type RunDraftInput = Omit<TaskDraft, "uuid"> & { uuid?: string };
 
-export interface ProposalCreateParams {
+export interface ExperimentDesignCreateParams {
   companyUuid: string;
-  projectUuid: string;
+  researchProjectUuid: string;
   title: string;
   description?: string | null;
   inputType: string;
   inputUuids: string[];  // UUID array
   documentDrafts?: DocumentDraftInput[];  // Optional: used by frontend, not exposed via MCP
-  taskDrafts?: TaskDraftInput[];          // Optional: used by frontend, not exposed via MCP
+  taskDrafts?: RunDraftInput[];          // Optional: used by frontend, not exposed via MCP
   createdByUuid: string;
   createdByType?: string;  // agent | user
 }
 
 // API response format
-export interface ProposalResponse {
+export interface ExperimentDesignResponse {
   uuid: string;
   title: string;
   description: string | null;
@@ -107,7 +107,7 @@ export interface ProposalResponse {
 // ===== Internal Helper Functions =====
 
 // Format a single Proposal into API response format
-async function formatProposalResponse(
+async function formatExperimentDesignResponse(
   proposal: {
     uuid: string;
     title: string;
@@ -126,14 +126,14 @@ async function formatProposalResponse(
     updatedAt: Date;
     project?: { uuid: string; name: string };
   }
-): Promise<ProposalResponse> {
+): Promise<ExperimentDesignResponse> {
   const creatorType = proposal.createdByType === "user" ? "user" : "agent";
   const [createdBy, review] = await Promise.all([
     formatCreatedBy(proposal.createdByUuid, creatorType),
     formatReview(proposal.reviewedByUuid, proposal.reviewNote, proposal.reviewedAt),
   ]);
 
-  const response: ProposalResponse = {
+  const response: ExperimentDesignResponse = {
     uuid: proposal.uuid,
     title: proposal.title,
     description: proposal.description,
@@ -171,16 +171,16 @@ export interface ValidationResult {
 }
 
 // Validate Proposal completeness before submission
-export async function validateProposal(
+export async function validateExperimentDesign(
   companyUuid: string,
-  proposalUuid: string
+  experimentDesignUuid: string
 ): Promise<ValidationResult> {
-  const proposal = await prisma.proposal.findFirst({
-    where: { uuid: proposalUuid, companyUuid },
+  const proposal = await prisma.experimentDesign.findFirst({
+    where: { uuid: experimentDesignUuid, companyUuid },
   });
 
   if (!proposal) {
-    throw new Error("Proposal not found");
+    throw new Error("ExperimentDesign not found");
   }
 
   const issues: ValidationIssue[] = [];
@@ -230,8 +230,8 @@ export async function validateProposal(
   }
 
   // E5: All input Ideas must have elaborationStatus === "resolved"
-  if (proposal.inputType === "idea" && inputUuids.length > 0) {
-    const ideas = await prisma.idea.findMany({
+  if (proposal.inputType === "research_question" && inputUuids.length > 0) {
+    const ideas = await prisma.researchQuestion.findMany({
       where: { uuid: { in: inputUuids }, companyUuid },
       select: { uuid: true, title: true, elaborationStatus: true },
     });
@@ -319,9 +319,9 @@ export async function validateProposal(
     }
   }
 
-  // I2: Every task draft should have storyPoints set
+  // I2: Every task draft should have computeBudgetHours set
   for (const draft of taskDrafts) {
-    if (draft.storyPoints == null) {
+    if (draft.computeBudgetHours == null) {
       issues.push({
         id: "I2",
         level: "info",
@@ -338,16 +338,16 @@ export async function validateProposal(
   };
 }
 
-// Check if Ideas are already used by other Proposals
-export async function checkIdeasAvailability(
+// Check if ResearchQuestions are already used by other Proposals
+export async function checkResearchQuestionsAvailability(
   companyUuid: string,
-  ideaUuids: string[]
-): Promise<{ available: boolean; usedIdeas: { uuid: string; proposalUuid: string; proposalTitle: string }[] }> {
+  researchQuestionUuids: string[]
+): Promise<{ available: boolean; usedResearchQuestions: { uuid: string; experimentDesignUuid: string; proposalTitle: string }[] }> {
   // Find all proposals that use any of the given ideas
-  const proposals = await prisma.proposal.findMany({
+  const proposals = await prisma.experimentDesign.findMany({
     where: {
       companyUuid,
-      inputType: "idea",
+      inputType: "research_question",
     },
     select: {
       uuid: true,
@@ -356,15 +356,15 @@ export async function checkIdeasAvailability(
     },
   });
 
-  const usedIdeas: { uuid: string; proposalUuid: string; proposalTitle: string }[] = [];
+  const usedResearchQuestions: { uuid: string; experimentDesignUuid: string; proposalTitle: string }[] = [];
 
   for (const proposal of proposals) {
     const proposalInputUuids = proposal.inputUuids as string[];
-    for (const ideaUuid of ideaUuids) {
-      if (proposalInputUuids.includes(ideaUuid)) {
-        usedIdeas.push({
-          uuid: ideaUuid,
-          proposalUuid: proposal.uuid,
+    for (const researchQuestionUuid of researchQuestionUuids) {
+      if (proposalInputUuids.includes(researchQuestionUuid)) {
+        usedResearchQuestions.push({
+          uuid: researchQuestionUuid,
+          experimentDesignUuid: proposal.uuid,
           proposalTitle: proposal.title,
         });
       }
@@ -372,21 +372,21 @@ export async function checkIdeasAvailability(
   }
 
   return {
-    available: usedIdeas.length === 0,
-    usedIdeas,
+    available: usedResearchQuestions.length === 0,
+    usedResearchQuestions,
   };
 }
 
-// Check if the current user is the assignee of the Ideas
-export async function checkIdeasAssignee(
+// Check if the current user is the assignee of the ResearchQuestions
+export async function checkResearchQuestionsAssignee(
   companyUuid: string,
-  ideaUuids: string[],
+  researchQuestionUuids: string[],
   actorUuid: string,
   actorType: string
-): Promise<{ valid: boolean; unassignedIdeas: string[] }> {
-  const ideas = await prisma.idea.findMany({
+): Promise<{ valid: boolean; unassignedResearchQuestions: string[] }> {
+  const ideas = await prisma.researchQuestion.findMany({
     where: {
-      uuid: { in: ideaUuids },
+      uuid: { in: researchQuestionUuids },
       companyUuid,
     },
     select: {
@@ -396,7 +396,7 @@ export async function checkIdeasAssignee(
     },
   });
 
-  const unassignedIdeas: string[] = [];
+  const unassignedResearchQuestions: string[] = [];
 
   for (const idea of ideas) {
     // Check if current actor is the assignee
@@ -404,34 +404,34 @@ export async function checkIdeasAssignee(
       idea.assigneeType === actorType && idea.assigneeUuid === actorUuid;
 
     if (!isAssignee) {
-      unassignedIdeas.push(idea.uuid);
+      unassignedResearchQuestions.push(idea.uuid);
     }
   }
 
   return {
-    valid: unassignedIdeas.length === 0,
-    unassignedIdeas,
+    valid: unassignedResearchQuestions.length === 0,
+    unassignedResearchQuestions,
   };
 }
 
 // ===== Service Methods =====
 
 // List proposals query
-export async function listProposals({
+export async function listExperimentDesigns({
   companyUuid,
-  projectUuid,
+  researchProjectUuid,
   skip,
   take,
   status,
-}: ProposalListParams): Promise<{ proposals: ProposalResponse[]; total: number }> {
+}: ExperimentDesignListParams): Promise<{ proposals: ExperimentDesignResponse[]; total: number }> {
   const where = {
-    projectUuid,
+    researchProjectUuid,
     companyUuid,
     ...(status && { status }),
   };
 
   const [rawProposals, total] = await Promise.all([
-    prisma.proposal.findMany({
+    prisma.experimentDesign.findMany({
       where,
       skip,
       take,
@@ -454,21 +454,21 @@ export async function listProposals({
         updatedAt: true,
       },
     }),
-    prisma.proposal.count({ where }),
+    prisma.experimentDesign.count({ where }),
   ]);
 
   const proposals = await Promise.all(
-    rawProposals.map((p) => formatProposalResponse(p))
+    rawProposals.map((p) => formatExperimentDesignResponse(p))
   );
   return { proposals, total };
 }
 
 // Get Proposal details
-export async function getProposal(
+export async function getExperimentDesign(
   companyUuid: string,
   uuid: string
-): Promise<ProposalResponse | null> {
-  const proposal = await prisma.proposal.findFirst({
+): Promise<ExperimentDesignResponse | null> {
+  const proposal = await prisma.experimentDesign.findFirst({
     where: { uuid, companyUuid },
     include: {
       project: { select: { uuid: true, name: true } },
@@ -476,28 +476,28 @@ export async function getProposal(
   });
 
   if (!proposal) return null;
-  return formatProposalResponse(proposal);
+  return formatExperimentDesignResponse(proposal);
 }
 
 // Get raw Proposal data by UUID (internal use)
-export async function getProposalByUuid(companyUuid: string, uuid: string) {
-  return prisma.proposal.findFirst({
+export async function getExperimentDesignByUuid(companyUuid: string, uuid: string) {
+  return prisma.experimentDesign.findFirst({
     where: { uuid, companyUuid },
   });
 }
 
 // Create Proposal (container)
-export async function createProposal(
-  params: ProposalCreateParams
-): Promise<ProposalResponse> {
+export async function createExperimentDesign(
+  params: ExperimentDesignCreateParams
+): Promise<ExperimentDesignResponse> {
   // Ensure all drafts have UUIDs (frontend may still pass drafts at creation time)
   const documentDraftsWithUuids = params.documentDrafts?.map(ensureDocumentDraftUuid);
-  const taskDraftsWithUuids = params.taskDrafts?.map(ensureTaskDraftUuid);
+  const taskDraftsWithUuids = params.taskDrafts?.map(ensureRunDraftUuid);
 
-  const proposal = await prisma.proposal.create({
+  const proposal = await prisma.experimentDesign.create({
     data: {
       companyUuid: params.companyUuid,
-      projectUuid: params.projectUuid,
+      researchProjectUuid: params.researchProjectUuid,
       title: params.title,
       description: params.description,
       inputType: params.inputType,
@@ -527,14 +527,14 @@ export async function createProposal(
     },
   });
 
-  eventBus.emitChange({ companyUuid: params.companyUuid, projectUuid: params.projectUuid, entityType: "proposal", entityUuid: proposal.uuid, action: "created" });
+  eventBus.emitChange({ companyUuid: params.companyUuid, researchProjectUuid: params.researchProjectUuid, entityType: "experiment_design", entityUuid: proposal.uuid, action: "created" });
 
-  return formatProposalResponse(proposal);
+  return formatExperimentDesignResponse(proposal);
 }
 
 // Update Proposal content (add/modify document drafts and tasks)
-export async function updateProposalContent(
-  proposalUuid: string,
+export async function updateExperimentDesignContent(
+  experimentDesignUuid: string,
   companyUuid: string,
   updates: {
     title?: string;
@@ -542,9 +542,9 @@ export async function updateProposalContent(
     documentDrafts?: DocumentDraft[] | null;
     taskDrafts?: TaskDraft[] | null;
   }
-): Promise<ProposalResponse> {
+): Promise<ExperimentDesignResponse> {
   // Build update data with proper JSON null handling
-  const updateData: Prisma.ProposalUpdateInput = {};
+  const updateData: Prisma.ExperimentDesignUpdateInput = {};
 
   if (updates.title) {
     updateData.title = updates.title;
@@ -563,42 +563,42 @@ export async function updateProposalContent(
       : (updates.taskDrafts as unknown as Prisma.InputJsonValue);
   }
 
-  const proposal = await prisma.proposal.update({
-    where: { uuid: proposalUuid, companyUuid },
+  const proposal = await prisma.experimentDesign.update({
+    where: { uuid: experimentDesignUuid, companyUuid },
     data: updateData,
     include: {
       project: { select: { uuid: true, name: true } },
     },
   });
 
-  return formatProposalResponse(proposal);
+  return formatExperimentDesignResponse(proposal);
 }
 
 // Approve Proposal
-export interface ApprovalResult extends ProposalResponse {
-  materializedTasks?: Array<{ draftUuid: string; taskUuid: string; title: string }>;
+export interface ApprovalResult extends ExperimentDesignResponse {
+  materializedTasks?: Array<{ draftUuid: string; runUuid: string; title: string }>;
   materializedDocuments?: Array<{ draftUuid: string; documentUuid: string; title: string }>;
 }
 
-export async function approveProposal(
-  proposalUuid: string,
+export async function approveExperimentDesign(
+  experimentDesignUuid: string,
   companyUuid: string,
   reviewedByUuid: string,
   reviewNote?: string | null
 ): Promise<ApprovalResult> {
-  const proposal = await prisma.proposal.findFirst({
-    where: { uuid: proposalUuid, companyUuid },
+  const proposal = await prisma.experimentDesign.findFirst({
+    where: { uuid: experimentDesignUuid, companyUuid },
   });
 
   if (!proposal) {
-    throw new Error("Proposal not found");
+    throw new Error("ExperimentDesign not found");
   }
 
   // Start transaction
   const { updatedProposal, materializedTasks, materializedDocuments } = await prisma.$transaction(async (tx) => {
     // Update Proposal status
     const updated = await tx.proposal.update({
-      where: { uuid: proposalUuid },
+      where: { uuid: experimentDesignUuid },
       data: {
         status: "approved",
         reviewedByUuid,
@@ -615,7 +615,7 @@ export async function approveProposal(
     const taskDrafts = proposal.taskDrafts as TaskDraft[] | null;
 
     // Track materialized entities
-    const matTasks: Array<{ draftUuid: string; taskUuid: string; title: string }> = [];
+    const matTasks: Array<{ draftUuid: string; runUuid: string; title: string }> = [];
     const matDocs: Array<{ draftUuid: string; documentUuid: string; title: string }> = [];
 
     // Create documents (if document drafts exist)
@@ -623,7 +623,7 @@ export async function approveProposal(
       for (const draft of documentDrafts) {
         const doc = await createDocumentFromProposal(
           proposal.companyUuid,
-          proposal.projectUuid,
+          proposal.researchProjectUuid,
           proposal.uuid,
           proposal.createdByUuid,
           draft
@@ -648,9 +648,9 @@ export async function approveProposal(
         }
       }
 
-      const { draftToTaskUuidMap } = await createTasksFromProposal(
+      const { draftToTaskUuidMap } = await createExperimentRunsFromDesign(
         proposal.companyUuid,
-        proposal.projectUuid,
+        proposal.researchProjectUuid,
         proposal.uuid,
         proposal.createdByUuid,
         taskDrafts
@@ -658,36 +658,36 @@ export async function approveProposal(
 
       // Build materialized tasks list
       for (const draft of taskDrafts) {
-        const taskUuid = draftToTaskUuidMap.get(draft.uuid);
-        if (taskUuid) {
-          matTasks.push({ draftUuid: draft.uuid, taskUuid, title: draft.title });
+        const runUuid = draftToTaskUuidMap.get(draft.uuid);
+        if (runUuid) {
+          matTasks.push({ draftUuid: draft.uuid, runUuid, title: draft.title });
         }
       }
 
       // Materialize dependencies: convert draftUuid references to real taskUuids
       for (const draft of taskDrafts) {
         if (draft.dependsOnDraftUuids && draft.dependsOnDraftUuids.length > 0) {
-          const taskUuid = draftToTaskUuidMap.get(draft.uuid);
-          if (!taskUuid) continue;
+          const runUuid = draftToTaskUuidMap.get(draft.uuid);
+          if (!runUuid) continue;
 
           for (const depDraftUuid of draft.dependsOnDraftUuids) {
             const depTaskUuid = draftToTaskUuidMap.get(depDraftUuid);
             if (!depTaskUuid) continue;
 
-            await tx.taskDependency.create({
-              data: { taskUuid, dependsOnUuid: depTaskUuid },
+            await tx.runDependency.create({
+              data: { runUuid, dependsOnRunUuid: depTaskUuid },
             });
           }
         }
 
         // Materialize acceptance criteria items
         if (draft.acceptanceCriteriaItems && draft.acceptanceCriteriaItems.length > 0) {
-          const taskUuid = draftToTaskUuidMap.get(draft.uuid);
-          if (!taskUuid) continue;
+          const runUuid = draftToTaskUuidMap.get(draft.uuid);
+          if (!runUuid) continue;
 
           await tx.acceptanceCriterion.createMany({
             data: draft.acceptanceCriteriaItems.map((item, index) => ({
-              taskUuid,
+              runUuid,
               description: item.description.trim(),
               required: item.required ?? true,
               sortOrder: index,
@@ -700,20 +700,20 @@ export async function approveProposal(
     return { updatedProposal: updated, materializedTasks: matTasks, materializedDocuments: matDocs };
   });
 
-  eventBus.emitChange({ companyUuid: proposal.companyUuid, projectUuid: proposal.projectUuid, entityType: "proposal", entityUuid: proposalUuid, action: "updated" });
+  eventBus.emitChange({ companyUuid: proposal.companyUuid, researchProjectUuid: proposal.researchProjectUuid, entityType: "experiment_design", entityUuid: experimentDesignUuid, action: "updated" });
 
-  // Auto-complete input Ideas when proposal is approved
-  if (proposal.inputType === "idea") {
+  // Auto-complete input ResearchQuestions when proposal is approved
+  if (proposal.inputType === "research_question") {
     const inputUuids = (proposal.inputUuids as string[]) || [];
     if (inputUuids.length > 0) {
-      await prisma.idea.updateMany({
+      await prisma.researchQuestion.updateMany({
         where: { uuid: { in: inputUuids }, companyUuid, status: "proposal_created" },
         data: { status: "completed" },
       });
     }
   }
 
-  const response: ApprovalResult = await formatProposalResponse(updatedProposal);
+  const response: ApprovalResult = await formatExperimentDesignResponse(updatedProposal);
   if (materializedTasks.length > 0) response.materializedTasks = materializedTasks;
   if (materializedDocuments.length > 0) response.materializedDocuments = materializedDocuments;
   return response;
@@ -721,13 +721,13 @@ export async function approveProposal(
 
 // Reject Proposal (reject -> draft, can be re-edited)
 // Preserve reviewedByUuid/reviewedAt/reviewNote as revision reference
-export async function rejectProposal(
-  proposalUuid: string,
+export async function rejectExperimentDesign(
+  experimentDesignUuid: string,
   reviewedByUuid: string,
   reviewNote: string
-): Promise<ProposalResponse> {
-  const proposal = await prisma.proposal.update({
-    where: { uuid: proposalUuid },
+): Promise<ExperimentDesignResponse> {
+  const proposal = await prisma.experimentDesign.update({
+    where: { uuid: experimentDesignUuid },
     data: {
       status: "draft",
       reviewedByUuid,
@@ -739,19 +739,19 @@ export async function rejectProposal(
     },
   });
 
-  eventBus.emitChange({ companyUuid: proposal.companyUuid, projectUuid: proposal.projectUuid, entityType: "proposal", entityUuid: proposal.uuid, action: "updated" });
+  eventBus.emitChange({ companyUuid: proposal.companyUuid, researchProjectUuid: proposal.researchProjectUuid, entityType: "experiment_design", entityUuid: proposal.uuid, action: "updated" });
 
-  return formatProposalResponse(proposal);
+  return formatExperimentDesignResponse(proposal);
 }
 
 // Close Proposal (terminal state)
-export async function closeProposal(
-  proposalUuid: string,
+export async function closeExperimentDesign(
+  experimentDesignUuid: string,
   closedByUuid: string,
   reviewNote: string
-): Promise<ProposalResponse> {
-  const proposal = await prisma.proposal.update({
-    where: { uuid: proposalUuid },
+): Promise<ExperimentDesignResponse> {
+  const proposal = await prisma.experimentDesign.update({
+    where: { uuid: experimentDesignUuid },
     data: {
       status: "closed",
       reviewedByUuid: closedByUuid,
@@ -763,50 +763,50 @@ export async function closeProposal(
     },
   });
 
-  eventBus.emitChange({ companyUuid: proposal.companyUuid, projectUuid: proposal.projectUuid, entityType: "proposal", entityUuid: proposal.uuid, action: "updated" });
+  eventBus.emitChange({ companyUuid: proposal.companyUuid, researchProjectUuid: proposal.researchProjectUuid, entityType: "experiment_design", entityUuid: proposal.uuid, action: "updated" });
 
-  return formatProposalResponse(proposal);
+  return formatExperimentDesignResponse(proposal);
 }
 
 // Delete Proposal (only draft or closed)
-export async function deleteProposal(
-  proposalUuid: string,
+export async function deleteExperimentDesign(
+  experimentDesignUuid: string,
   companyUuid: string
 ): Promise<void> {
-  const proposal = await prisma.proposal.findFirst({
-    where: { uuid: proposalUuid, companyUuid },
+  const proposal = await prisma.experimentDesign.findFirst({
+    where: { uuid: experimentDesignUuid, companyUuid },
   });
 
   if (!proposal) {
-    throw new Error("Proposal not found");
+    throw new Error("ExperimentDesign not found");
   }
 
-  await prisma.proposal.delete({ where: { uuid: proposalUuid } });
+  await prisma.experimentDesign.delete({ where: { uuid: experimentDesignUuid } });
 
-  eventBus.emitChange({ companyUuid: proposal.companyUuid, projectUuid: proposal.projectUuid, entityType: "proposal", entityUuid: proposal.uuid, action: "deleted" });
+  eventBus.emitChange({ companyUuid: proposal.companyUuid, researchProjectUuid: proposal.researchProjectUuid, entityType: "experiment_design", entityUuid: proposal.uuid, action: "deleted" });
 }
 
 // ===== Draft Management Functions =====
 
 // Submit Proposal for review (draft -> pending)
-export async function submitProposal(
-  proposalUuid: string,
+export async function submitExperimentDesign(
+  experimentDesignUuid: string,
   companyUuid: string
-): Promise<ProposalResponse> {
-  const proposal = await prisma.proposal.findFirst({
-    where: { uuid: proposalUuid, companyUuid },
+): Promise<ExperimentDesignResponse> {
+  const proposal = await prisma.experimentDesign.findFirst({
+    where: { uuid: experimentDesignUuid, companyUuid },
   });
 
   if (!proposal) {
-    throw new Error("Proposal not found");
+    throw new Error("ExperimentDesign not found");
   }
 
   if (proposal.status !== "draft") {
-    throw new Error("Only draft proposals can be submitted for review");
+    throw new Error("Only draft experiment designs can be submitted for review");
   }
 
   // Run full validation (includes elaboration gate E5 and all other checks)
-  const validation = await validateProposal(companyUuid, proposalUuid);
+  const validation = await validateExperimentDesign(companyUuid, experimentDesignUuid);
   if (!validation.valid) {
     const lines = validation.issues.map(
       (i) => `[${i.level}] ${i.message}`
@@ -814,8 +814,8 @@ export async function submitProposal(
     throw new Error(`Proposal validation failed:\n${lines.join("\n")}`);
   }
 
-  const updated = await prisma.proposal.update({
-    where: { uuid: proposalUuid },
+  const updated = await prisma.experimentDesign.update({
+    where: { uuid: experimentDesignUuid },
     data: {
       status: "pending",
     },
@@ -824,42 +824,42 @@ export async function submitProposal(
     },
   });
 
-  // Auto-transition input Ideas to proposal_created
-  if (proposal.inputType === "idea") {
+  // Auto-transition input ResearchQuestions to proposal_created
+  if (proposal.inputType === "research_question") {
     const inputUuids = (proposal.inputUuids as string[]) || [];
     if (inputUuids.length > 0) {
-      await prisma.idea.updateMany({
+      await prisma.researchQuestion.updateMany({
         where: { uuid: { in: inputUuids }, companyUuid, status: "elaborating" },
         data: { status: "proposal_created" },
       });
     }
   }
 
-  eventBus.emitChange({ companyUuid: updated.companyUuid, projectUuid: updated.projectUuid, entityType: "proposal", entityUuid: updated.uuid, action: "updated" });
+  eventBus.emitChange({ companyUuid: updated.companyUuid, researchProjectUuid: updated.researchProjectUuid, entityType: "experiment_design", entityUuid: updated.uuid, action: "updated" });
 
-  return formatProposalResponse(updated);
+  return formatExperimentDesignResponse(updated);
 }
 
 // Add document draft to Proposal
 export async function addDocumentDraft(
-  proposalUuid: string,
+  experimentDesignUuid: string,
   companyUuid: string,
   draft: Omit<DocumentDraft, "uuid"> & { uuid?: string }
-): Promise<ProposalResponse> {
-  const proposal = await prisma.proposal.findFirst({
-    where: { uuid: proposalUuid, companyUuid, status: "draft" },
+): Promise<ExperimentDesignResponse> {
+  const proposal = await prisma.experimentDesign.findFirst({
+    where: { uuid: experimentDesignUuid, companyUuid, status: "draft" },
   });
 
   if (!proposal) {
-    throw new Error("Proposal not found or not in draft status");
+    throw new Error("ExperimentDesign not found or not in draft status");
   }
 
   const existingDrafts = (proposal.documentDrafts as unknown as DocumentDraft[]) || [];
   const newDraft = ensureDocumentDraftUuid(draft);
   const updatedDrafts = [...existingDrafts, newDraft];
 
-  const updated = await prisma.proposal.update({
-    where: { uuid: proposalUuid },
+  const updated = await prisma.experimentDesign.update({
+    where: { uuid: experimentDesignUuid },
     data: {
       documentDrafts: updatedDrafts as unknown as Prisma.InputJsonValue,
     },
@@ -868,29 +868,29 @@ export async function addDocumentDraft(
     },
   });
 
-  return formatProposalResponse(updated);
+  return formatExperimentDesignResponse(updated);
 }
 
 // Add task draft to Proposal
-export async function addTaskDraft(
-  proposalUuid: string,
+export async function addRunDraft(
+  experimentDesignUuid: string,
   companyUuid: string,
   draft: Omit<TaskDraft, "uuid"> & { uuid?: string }
-): Promise<ProposalResponse> {
-  const proposal = await prisma.proposal.findFirst({
-    where: { uuid: proposalUuid, companyUuid, status: "draft" },
+): Promise<ExperimentDesignResponse> {
+  const proposal = await prisma.experimentDesign.findFirst({
+    where: { uuid: experimentDesignUuid, companyUuid, status: "draft" },
   });
 
   if (!proposal) {
-    throw new Error("Proposal not found or not in draft status");
+    throw new Error("ExperimentDesign not found or not in draft status");
   }
 
   const existingDrafts = (proposal.taskDrafts as unknown as TaskDraft[]) || [];
-  const newDraft = ensureTaskDraftUuid(draft);
+  const newDraft = ensureRunDraftUuid(draft);
   const updatedDrafts = [...existingDrafts, newDraft];
 
-  const updated = await prisma.proposal.update({
-    where: { uuid: proposalUuid },
+  const updated = await prisma.experimentDesign.update({
+    where: { uuid: experimentDesignUuid },
     data: {
       taskDrafts: updatedDrafts as unknown as Prisma.InputJsonValue,
     },
@@ -899,22 +899,22 @@ export async function addTaskDraft(
     },
   });
 
-  return formatProposalResponse(updated);
+  return formatExperimentDesignResponse(updated);
 }
 
 // Update document draft
 export async function updateDocumentDraft(
-  proposalUuid: string,
+  experimentDesignUuid: string,
   companyUuid: string,
   draftUuid: string,
   updates: Partial<Omit<DocumentDraft, "uuid">>
-): Promise<ProposalResponse> {
-  const proposal = await prisma.proposal.findFirst({
-    where: { uuid: proposalUuid, companyUuid, status: "draft" },
+): Promise<ExperimentDesignResponse> {
+  const proposal = await prisma.experimentDesign.findFirst({
+    where: { uuid: experimentDesignUuid, companyUuid, status: "draft" },
   });
 
   if (!proposal) {
-    throw new Error("Proposal not found or not in draft status");
+    throw new Error("ExperimentDesign not found or not in draft status");
   }
 
   const existingDrafts = (proposal.documentDrafts as unknown as DocumentDraft[]) || [];
@@ -926,8 +926,8 @@ export async function updateDocumentDraft(
 
   existingDrafts[draftIndex] = { ...existingDrafts[draftIndex], ...updates };
 
-  const updated = await prisma.proposal.update({
-    where: { uuid: proposalUuid },
+  const updated = await prisma.experimentDesign.update({
+    where: { uuid: experimentDesignUuid },
     data: {
       documentDrafts: existingDrafts as unknown as Prisma.InputJsonValue,
     },
@@ -936,22 +936,22 @@ export async function updateDocumentDraft(
     },
   });
 
-  return formatProposalResponse(updated);
+  return formatExperimentDesignResponse(updated);
 }
 
 // Update task draft
-export async function updateTaskDraft(
-  proposalUuid: string,
+export async function updateRunDraft(
+  experimentDesignUuid: string,
   companyUuid: string,
   draftUuid: string,
   updates: Partial<Omit<TaskDraft, "uuid">>
-): Promise<ProposalResponse> {
-  const proposal = await prisma.proposal.findFirst({
-    where: { uuid: proposalUuid, companyUuid, status: "draft" },
+): Promise<ExperimentDesignResponse> {
+  const proposal = await prisma.experimentDesign.findFirst({
+    where: { uuid: experimentDesignUuid, companyUuid, status: "draft" },
   });
 
   if (!proposal) {
-    throw new Error("Proposal not found or not in draft status");
+    throw new Error("ExperimentDesign not found or not in draft status");
   }
 
   const existingDrafts = (proposal.taskDrafts as unknown as TaskDraft[]) || [];
@@ -963,8 +963,8 @@ export async function updateTaskDraft(
 
   existingDrafts[draftIndex] = { ...existingDrafts[draftIndex], ...updates };
 
-  const updated = await prisma.proposal.update({
-    where: { uuid: proposalUuid },
+  const updated = await prisma.experimentDesign.update({
+    where: { uuid: experimentDesignUuid },
     data: {
       taskDrafts: existingDrafts as unknown as Prisma.InputJsonValue,
     },
@@ -973,28 +973,28 @@ export async function updateTaskDraft(
     },
   });
 
-  return formatProposalResponse(updated);
+  return formatExperimentDesignResponse(updated);
 }
 
 // Remove document draft
 export async function removeDocumentDraft(
-  proposalUuid: string,
+  experimentDesignUuid: string,
   companyUuid: string,
   draftUuid: string
-): Promise<ProposalResponse> {
-  const proposal = await prisma.proposal.findFirst({
-    where: { uuid: proposalUuid, companyUuid, status: "draft" },
+): Promise<ExperimentDesignResponse> {
+  const proposal = await prisma.experimentDesign.findFirst({
+    where: { uuid: experimentDesignUuid, companyUuid, status: "draft" },
   });
 
   if (!proposal) {
-    throw new Error("Proposal not found or not in draft status");
+    throw new Error("ExperimentDesign not found or not in draft status");
   }
 
   const existingDrafts = (proposal.documentDrafts as unknown as DocumentDraft[]) || [];
   const updatedDrafts = existingDrafts.filter(d => d.uuid !== draftUuid);
 
-  const updated = await prisma.proposal.update({
-    where: { uuid: proposalUuid },
+  const updated = await prisma.experimentDesign.update({
+    where: { uuid: experimentDesignUuid },
     data: {
       documentDrafts: updatedDrafts.length > 0
         ? (updatedDrafts as unknown as Prisma.InputJsonValue)
@@ -1005,21 +1005,21 @@ export async function removeDocumentDraft(
     },
   });
 
-  return formatProposalResponse(updated);
+  return formatExperimentDesignResponse(updated);
 }
 
 // Remove task draft
-export async function removeTaskDraft(
-  proposalUuid: string,
+export async function removeRunDraft(
+  experimentDesignUuid: string,
   companyUuid: string,
   draftUuid: string
-): Promise<ProposalResponse> {
-  const proposal = await prisma.proposal.findFirst({
-    where: { uuid: proposalUuid, companyUuid, status: "draft" },
+): Promise<ExperimentDesignResponse> {
+  const proposal = await prisma.experimentDesign.findFirst({
+    where: { uuid: experimentDesignUuid, companyUuid, status: "draft" },
   });
 
   if (!proposal) {
-    throw new Error("Proposal not found or not in draft status");
+    throw new Error("ExperimentDesign not found or not in draft status");
   }
 
   const existingDrafts = (proposal.taskDrafts as unknown as TaskDraft[]) || [];
@@ -1030,8 +1030,8 @@ export async function removeTaskDraft(
       dependsOnDraftUuids: d.dependsOnDraftUuids?.filter(uuid => uuid !== draftUuid),
     }));
 
-  const updated = await prisma.proposal.update({
-    where: { uuid: proposalUuid },
+  const updated = await prisma.experimentDesign.update({
+    where: { uuid: experimentDesignUuid },
     data: {
       taskDrafts: updatedDrafts.length > 0
         ? (updatedDrafts as unknown as Prisma.InputJsonValue)
@@ -1042,16 +1042,16 @@ export async function removeTaskDraft(
     },
   });
 
-  return formatProposalResponse(updated);
+  return formatExperimentDesignResponse(updated);
 }
 
 // Get lightweight proposal list with task counts (for filter dropdown)
-export async function getProjectProposals(
+export async function getProjectExperimentDesigns(
   companyUuid: string,
-  projectUuid: string,
+  researchProjectUuid: string,
 ): Promise<Array<{ uuid: string; title: string; sequenceNumber: number; taskCount: number }>> {
-  const proposals = await prisma.proposal.findMany({
-    where: { companyUuid, projectUuid, status: "approved" },
+  const proposals = await prisma.experimentDesign.findMany({
+    where: { companyUuid, researchProjectUuid, status: "approved" },
     select: {
       uuid: true,
       title: true,
@@ -1061,17 +1061,17 @@ export async function getProjectProposals(
   });
 
   // Count tasks per proposal
-  const taskCounts = await prisma.task.groupBy({
-    by: ["proposalUuid"],
+  const taskCounts = await prisma.experimentRun.groupBy({
+    by: ["experimentDesignUuid"],
     where: {
       companyUuid,
-      projectUuid,
-      proposalUuid: { in: proposals.map(p => p.uuid) },
+      researchProjectUuid,
+      experimentDesignUuid: { in: proposals.map(p => p.uuid) },
     },
     _count: true,
   });
 
-  const countMap = new Map(taskCounts.map(tc => [tc.proposalUuid, tc._count]));
+  const countMap = new Map(taskCounts.map(tc => [tc.experimentDesignUuid, tc._count]));
 
   return proposals.map((p, index) => ({
     uuid: p.uuid,

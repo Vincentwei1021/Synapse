@@ -21,7 +21,7 @@ const mockPrisma = vi.hoisted(() => {
   );
 
   return {
-    task: {
+    experimentRun: {
       findMany: vi.fn(),
       findFirst: vi.fn(),
       findUnique: vi.fn(),
@@ -40,12 +40,12 @@ const mockPrisma = vi.hoisted(() => {
       update: vi.fn(),
       updateMany: vi.fn(),
     },
-    taskDependency: {
+    runDependency: {
       findMany: vi.fn(),
       create: vi.fn(),
       deleteMany: vi.fn(),
     },
-    sessionTaskCheckin: {
+    sessionRunCheckin: {
       findMany: vi.fn(),
     },
     $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => fn(txProxy)),
@@ -86,31 +86,31 @@ vi.mock("@/services/activity.service", () => mockActivityService);
 // ===== Import under test (after mocks) =====
 
 import {
-  listTasks,
-  getTask,
-  createTask,
-  claimTask,
-  releaseTask,
-  deleteTask,
-  updateTask,
+  listExperimentRuns,
+  getExperimentRun,
+  createExperimentRun,
+  claimExperimentRun,
+  releaseExperimentRun,
+  deleteExperimentRun,
+  updateExperimentRun,
   markAcceptanceCriteria,
   reportCriteriaSelfCheck,
   checkAcceptanceCriteriaGate,
   createAcceptanceCriteria,
-} from "@/services/task.service";
+} from "@/services/experiment-run.service";
 import { AlreadyClaimedError, NotClaimedError } from "@/lib/errors";
 
 // ===== Helpers =====
 
 const COMPANY_UUID = authContexts.user.companyUuid;
 const PROJECT_UUID = "00000000-0000-0000-0000-000000000010";
-const TASK_UUID = "00000000-0000-0000-0000-000000000099";
+const RUN_UUID = "00000000-0000-0000-0000-000000000099";
 
 function rawTask(overrides: Record<string, unknown> = {}) {
   return makeTask({
-    uuid: TASK_UUID,
+    uuid: RUN_UUID,
     companyUuid: COMPANY_UUID,
-    projectUuid: PROJECT_UUID,
+    researchProjectUuid: PROJECT_UUID,
     ...overrides,
   });
 }
@@ -132,14 +132,14 @@ beforeEach(() => {
   resetFixtureCounter();
 });
 
-// ---------- listTasks ----------
+// ---------- listExperimentRuns ----------
 
-describe("listTasks", () => {
+describe("listExperimentRuns", () => {
   it("returns paginated tasks with total count", async () => {
     const task1 = rawTask({ uuid: "t1" });
     const task2 = rawTask({ uuid: "t2" });
-    mockPrisma.task.findMany.mockResolvedValue([task1, task2]);
-    mockPrisma.task.count.mockResolvedValue(5);
+    mockPrisma.experimentRun.findMany.mockResolvedValue([task1, task2]);
+    mockPrisma.experimentRun.count.mockResolvedValue(5);
     mockCommentService.batchCommentCounts.mockResolvedValue({});
     mockUuidResolver.batchGetActorNames.mockResolvedValue(new Map());
     mockUuidResolver.batchFormatCreatedBy.mockResolvedValue(
@@ -149,150 +149,150 @@ describe("listTasks", () => {
       ]),
     );
 
-    const result = await listTasks({
+    const result = await listExperimentRuns({
       companyUuid: COMPANY_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
       skip: 0,
       take: 10,
     });
 
     expect(result.total).toBe(5);
     expect(result.tasks).toHaveLength(2);
-    expect(mockPrisma.task.findMany).toHaveBeenCalledOnce();
-    expect(mockPrisma.task.count).toHaveBeenCalledOnce();
+    expect(mockPrisma.experimentRun.findMany).toHaveBeenCalledOnce();
+    expect(mockPrisma.experimentRun.count).toHaveBeenCalledOnce();
   });
 
   it("passes status filter to prisma where clause", async () => {
-    mockPrisma.task.findMany.mockResolvedValue([]);
-    mockPrisma.task.count.mockResolvedValue(0);
+    mockPrisma.experimentRun.findMany.mockResolvedValue([]);
+    mockPrisma.experimentRun.count.mockResolvedValue(0);
 
-    await listTasks({
+    await listExperimentRuns({
       companyUuid: COMPANY_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
       skip: 0,
       take: 10,
       status: "in_progress",
     });
 
-    const whereArg = mockPrisma.task.findMany.mock.calls[0][0].where;
+    const whereArg = mockPrisma.experimentRun.findMany.mock.calls[0][0].where;
     expect(whereArg.status).toBe("in_progress");
   });
 
   it("passes priority filter to prisma where clause", async () => {
-    mockPrisma.task.findMany.mockResolvedValue([]);
-    mockPrisma.task.count.mockResolvedValue(0);
+    mockPrisma.experimentRun.findMany.mockResolvedValue([]);
+    mockPrisma.experimentRun.count.mockResolvedValue(0);
 
-    await listTasks({
+    await listExperimentRuns({
       companyUuid: COMPANY_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
       skip: 0,
       take: 10,
       priority: "high",
     });
 
-    const whereArg = mockPrisma.task.findMany.mock.calls[0][0].where;
+    const whereArg = mockPrisma.experimentRun.findMany.mock.calls[0][0].where;
     expect(whereArg.priority).toBe("high");
   });
 
   it("does not include status/priority in where when not provided", async () => {
-    mockPrisma.task.findMany.mockResolvedValue([]);
-    mockPrisma.task.count.mockResolvedValue(0);
+    mockPrisma.experimentRun.findMany.mockResolvedValue([]);
+    mockPrisma.experimentRun.count.mockResolvedValue(0);
 
-    await listTasks({
+    await listExperimentRuns({
       companyUuid: COMPANY_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
       skip: 0,
       take: 10,
     });
 
-    const whereArg = mockPrisma.task.findMany.mock.calls[0][0].where;
+    const whereArg = mockPrisma.experimentRun.findMany.mock.calls[0][0].where;
     expect(whereArg).not.toHaveProperty("status");
     expect(whereArg).not.toHaveProperty("priority");
   });
 
   it("uses batch comment counts for all returned tasks", async () => {
     const task1 = rawTask({ uuid: "t1" });
-    mockPrisma.task.findMany.mockResolvedValue([task1]);
-    mockPrisma.task.count.mockResolvedValue(1);
+    mockPrisma.experimentRun.findMany.mockResolvedValue([task1]);
+    mockPrisma.experimentRun.count.mockResolvedValue(1);
     mockCommentService.batchCommentCounts.mockResolvedValue({ t1: 3 });
     mockUuidResolver.batchGetActorNames.mockResolvedValue(new Map());
     mockUuidResolver.batchFormatCreatedBy.mockResolvedValue(new Map());
 
-    const result = await listTasks({
+    const result = await listExperimentRuns({
       companyUuid: COMPANY_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
       skip: 0,
       take: 10,
     });
 
     expect(mockCommentService.batchCommentCounts).toHaveBeenCalledWith(
       COMPANY_UUID,
-      "task",
+      "experiment_run",
       ["t1"],
     );
     expect(result.tasks[0].commentCount).toBe(3);
   });
 
-  it("passes proposalUuids filter to prisma where clause", async () => {
-    mockPrisma.task.findMany.mockResolvedValue([]);
-    mockPrisma.task.count.mockResolvedValue(0);
+  it("passes experimentDesignUuids filter to prisma where clause", async () => {
+    mockPrisma.experimentRun.findMany.mockResolvedValue([]);
+    mockPrisma.experimentRun.count.mockResolvedValue(0);
 
-    await listTasks({
+    await listExperimentRuns({
       companyUuid: COMPANY_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
       skip: 0,
       take: 10,
-      proposalUuids: ["proposal-1", "proposal-2"],
+      experimentDesignUuids: ["proposal-1", "proposal-2"],
     });
 
-    const whereArg = mockPrisma.task.findMany.mock.calls[0][0].where;
-    expect(whereArg.proposalUuid).toEqual({ in: ["proposal-1", "proposal-2"] });
+    const whereArg = mockPrisma.experimentRun.findMany.mock.calls[0][0].where;
+    expect(whereArg.experimentDesignUuid).toEqual({ in: ["proposal-1", "proposal-2"] });
   });
 
-  it("does not include proposalUuid filter when proposalUuids is undefined", async () => {
-    mockPrisma.task.findMany.mockResolvedValue([]);
-    mockPrisma.task.count.mockResolvedValue(0);
+  it("does not include experimentDesignUuid filter when experimentDesignUuids is undefined", async () => {
+    mockPrisma.experimentRun.findMany.mockResolvedValue([]);
+    mockPrisma.experimentRun.count.mockResolvedValue(0);
 
-    await listTasks({
+    await listExperimentRuns({
       companyUuid: COMPANY_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
       skip: 0,
       take: 10,
     });
 
-    const whereArg = mockPrisma.task.findMany.mock.calls[0][0].where;
-    expect(whereArg).not.toHaveProperty("proposalUuid");
+    const whereArg = mockPrisma.experimentRun.findMany.mock.calls[0][0].where;
+    expect(whereArg).not.toHaveProperty("experimentDesignUuid");
   });
 
-  it("does not include proposalUuid filter when proposalUuids is empty array", async () => {
-    mockPrisma.task.findMany.mockResolvedValue([]);
-    mockPrisma.task.count.mockResolvedValue(0);
+  it("does not include experimentDesignUuid filter when experimentDesignUuids is empty array", async () => {
+    mockPrisma.experimentRun.findMany.mockResolvedValue([]);
+    mockPrisma.experimentRun.count.mockResolvedValue(0);
 
-    await listTasks({
+    await listExperimentRuns({
       companyUuid: COMPANY_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
       skip: 0,
       take: 10,
-      proposalUuids: [],
+      experimentDesignUuids: [],
     });
 
-    const whereArg = mockPrisma.task.findMany.mock.calls[0][0].where;
-    expect(whereArg).not.toHaveProperty("proposalUuid");
+    const whereArg = mockPrisma.experimentRun.findMany.mock.calls[0][0].where;
+    expect(whereArg).not.toHaveProperty("experimentDesignUuid");
   });
 });
 
-// ---------- getTask ----------
+// ---------- getExperimentRun ----------
 
-describe("getTask", () => {
+describe("getExperimentRun", () => {
   it("returns formatted task with deps and criteria when found", async () => {
     const task = rawTaskWithRelations();
-    mockPrisma.task.findFirst.mockResolvedValue(task);
+    mockPrisma.experimentRun.findFirst.mockResolvedValue(task);
     mockPrisma.comment.count.mockResolvedValue(2);
 
-    const result = await getTask(COMPANY_UUID, TASK_UUID);
+    const result = await getExperimentRun(COMPANY_UUID, RUN_UUID);
 
     expect(result).not.toBeNull();
-    expect(result!.uuid).toBe(TASK_UUID);
+    expect(result!.uuid).toBe(RUN_UUID);
     expect(result!.commentCount).toBe(2);
     expect(result!.dependsOn).toEqual([]);
     expect(result!.dependedBy).toEqual([]);
@@ -300,20 +300,20 @@ describe("getTask", () => {
   });
 
   it("returns null when task not found", async () => {
-    mockPrisma.task.findFirst.mockResolvedValue(null);
+    mockPrisma.experimentRun.findFirst.mockResolvedValue(null);
 
-    const result = await getTask(COMPANY_UUID, "nonexistent");
+    const result = await getExperimentRun(COMPANY_UUID, "nonexistent");
     expect(result).toBeNull();
   });
 
   it("scopes query by companyUuid", async () => {
-    mockPrisma.task.findFirst.mockResolvedValue(null);
+    mockPrisma.experimentRun.findFirst.mockResolvedValue(null);
 
-    await getTask(COMPANY_UUID, TASK_UUID);
+    await getExperimentRun(COMPANY_UUID, RUN_UUID);
 
-    expect(mockPrisma.task.findFirst).toHaveBeenCalledWith(
+    expect(mockPrisma.experimentRun.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { uuid: TASK_UUID, companyUuid: COMPANY_UUID },
+        where: { uuid: RUN_UUID, companyUuid: COMPANY_UUID },
       }),
     );
   });
@@ -324,7 +324,7 @@ describe("getTask", () => {
         { dependsOn: { uuid: "dep1", title: "Dep Task", status: "done" } },
       ],
       dependedBy: [
-        { task: { uuid: "rev1", title: "Reverse Dep", status: "open" } },
+        { experimentRun: { uuid: "rev1", title: "Reverse Dep", status: "open" } },
       ],
     });
     // Remove the overrides from the top-level so they only appear in the relation fields
@@ -337,14 +337,14 @@ describe("getTask", () => {
         { dependsOn: { uuid: "dep1", title: "Dep Task", status: "done" } },
       ],
       dependedBy: [
-        { task: { uuid: "rev1", title: "Reverse Dep", status: "open" } },
+        { experimentRun: { uuid: "rev1", title: "Reverse Dep", status: "open" } },
       ],
       acceptanceCriteriaItems: [],
     };
-    mockPrisma.task.findFirst.mockResolvedValue(taskWithDeps);
+    mockPrisma.experimentRun.findFirst.mockResolvedValue(taskWithDeps);
     mockPrisma.comment.count.mockResolvedValue(0);
 
-    const result = await getTask(COMPANY_UUID, TASK_UUID);
+    const result = await getExperimentRun(COMPANY_UUID, RUN_UUID);
 
     expect(result!.dependsOn).toEqual([
       { uuid: "dep1", title: "Dep Task", status: "done" },
@@ -356,7 +356,7 @@ describe("getTask", () => {
 
   it("formats acceptance criteria items", async () => {
     const criterion = makeAcceptanceCriterion({
-      taskUuid: TASK_UUID,
+      runUuid: RUN_UUID,
       status: "passed",
       markedAt: new Date("2026-02-01"),
       devMarkedAt: null,
@@ -368,10 +368,10 @@ describe("getTask", () => {
       dependedBy: [],
       acceptanceCriteriaItems: [criterion],
     };
-    mockPrisma.task.findFirst.mockResolvedValue(task);
+    mockPrisma.experimentRun.findFirst.mockResolvedValue(task);
     mockPrisma.comment.count.mockResolvedValue(0);
 
-    const result = await getTask(COMPANY_UUID, TASK_UUID);
+    const result = await getExperimentRun(COMPANY_UUID, RUN_UUID);
 
     expect(result!.acceptanceCriteriaItems).toHaveLength(1);
     expect(result!.acceptanceCriteriaItems[0].status).toBe("passed");
@@ -380,52 +380,52 @@ describe("getTask", () => {
   });
 });
 
-// ---------- createTask ----------
+// ---------- createExperimentRun ----------
 
-describe("createTask", () => {
+describe("createExperimentRun", () => {
   it("creates a task with correct defaults", async () => {
     const created = rawTask({ status: "open", priority: "medium" });
-    mockPrisma.task.create.mockResolvedValue(created);
+    mockPrisma.experimentRun.create.mockResolvedValue(created);
 
-    const result = await createTask({
+    const result = await createExperimentRun({
       companyUuid: COMPANY_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
       title: "New Task",
       createdByUuid: authContexts.user.actorUuid,
     });
 
-    expect(result.uuid).toBe(TASK_UUID);
+    expect(result.uuid).toBe(RUN_UUID);
     expect(result.status).toBe("open");
 
-    const createData = mockPrisma.task.create.mock.calls[0][0].data;
+    const createData = mockPrisma.experimentRun.create.mock.calls[0][0].data;
     expect(createData.status).toBe("open");
     expect(createData.priority).toBe("medium");
     expect(createData.companyUuid).toBe(COMPANY_UUID);
-    expect(createData.projectUuid).toBe(PROJECT_UUID);
+    expect(createData.researchProjectUuid).toBe(PROJECT_UUID);
     expect(createData.title).toBe("New Task");
   });
 
   it("uses provided priority instead of default", async () => {
-    mockPrisma.task.create.mockResolvedValue(rawTask({ priority: "high" }));
+    mockPrisma.experimentRun.create.mockResolvedValue(rawTask({ priority: "high" }));
 
-    await createTask({
+    await createExperimentRun({
       companyUuid: COMPANY_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
       title: "High Priority",
       priority: "high",
       createdByUuid: authContexts.user.actorUuid,
     });
 
-    const createData = mockPrisma.task.create.mock.calls[0][0].data;
+    const createData = mockPrisma.experimentRun.create.mock.calls[0][0].data;
     expect(createData.priority).toBe("high");
   });
 
   it("emits a change event after creation", async () => {
-    mockPrisma.task.create.mockResolvedValue(rawTask());
+    mockPrisma.experimentRun.create.mockResolvedValue(rawTask());
 
-    await createTask({
+    await createExperimentRun({
       companyUuid: COMPANY_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
       title: "Task",
       createdByUuid: authContexts.user.actorUuid,
     });
@@ -433,56 +433,56 @@ describe("createTask", () => {
     expect(mockEventBus.emitChange).toHaveBeenCalledWith(
       expect.objectContaining({
         companyUuid: COMPANY_UUID,
-        projectUuid: PROJECT_UUID,
-        entityType: "task",
+        researchProjectUuid: PROJECT_UUID,
+        entityType: "experiment_run",
         action: "created",
       }),
     );
   });
 
-  it("passes optional fields (description, storyPoints, acceptanceCriteria, proposalUuid)", async () => {
-    mockPrisma.task.create.mockResolvedValue(rawTask());
+  it("passes optional fields (description, computeBudgetHours, acceptanceCriteria, experimentDesignUuid)", async () => {
+    mockPrisma.experimentRun.create.mockResolvedValue(rawTask());
 
-    await createTask({
+    await createExperimentRun({
       companyUuid: COMPANY_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
       title: "Task",
       description: "Some desc",
-      storyPoints: 5,
+      computeBudgetHours: 5,
       acceptanceCriteria: "- [ ] criterion",
-      proposalUuid: "prop-uuid",
+      experimentDesignUuid: "prop-uuid",
       createdByUuid: authContexts.user.actorUuid,
     });
 
-    const createData = mockPrisma.task.create.mock.calls[0][0].data;
+    const createData = mockPrisma.experimentRun.create.mock.calls[0][0].data;
     expect(createData.description).toBe("Some desc");
-    expect(createData.storyPoints).toBe(5);
+    expect(createData.computeBudgetHours).toBe(5);
     expect(createData.acceptanceCriteria).toBe("- [ ] criterion");
-    expect(createData.proposalUuid).toBe("prop-uuid");
+    expect(createData.experimentDesignUuid).toBe("prop-uuid");
   });
 });
 
-// ---------- claimTask ----------
+// ---------- claimExperimentRun ----------
 
-describe("claimTask", () => {
+describe("claimExperimentRun", () => {
   it("claims an open task (sets status to assigned)", async () => {
     const claimed = {
       ...rawTask({ status: "assigned", assigneeType: "agent", assigneeUuid: "a1" }),
       project: { uuid: PROJECT_UUID, name: "Test Project" },
     };
-    mockPrisma.task.update.mockResolvedValue(claimed);
+    mockPrisma.experimentRun.update.mockResolvedValue(claimed);
 
-    const result = await claimTask({
-      taskUuid: TASK_UUID,
+    const result = await claimExperimentRun({
+      runUuid: RUN_UUID,
       companyUuid: COMPANY_UUID,
       assigneeType: "agent",
       assigneeUuid: "a1",
     });
 
     expect(result.status).toBe("assigned");
-    expect(mockPrisma.task.update).toHaveBeenCalledWith(
+    expect(mockPrisma.experimentRun.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { uuid: TASK_UUID, status: "open" },
+        where: { uuid: RUN_UUID, status: "open" },
         data: expect.objectContaining({
           status: "assigned",
           assigneeType: "agent",
@@ -493,11 +493,11 @@ describe("claimTask", () => {
   });
 
   it("throws AlreadyClaimedError when task is not open (Prisma P2025)", async () => {
-    mockPrisma.task.update.mockRejectedValue({ code: "P2025" });
+    mockPrisma.experimentRun.update.mockRejectedValue({ code: "P2025" });
 
     await expect(
-      claimTask({
-        taskUuid: TASK_UUID,
+      claimExperimentRun({
+        runUuid: RUN_UUID,
         companyUuid: COMPANY_UUID,
         assigneeType: "agent",
         assigneeUuid: "a1",
@@ -507,11 +507,11 @@ describe("claimTask", () => {
 
   it("re-throws non-P2025 errors", async () => {
     const dbError = new Error("DB connection lost");
-    mockPrisma.task.update.mockRejectedValue(dbError);
+    mockPrisma.experimentRun.update.mockRejectedValue(dbError);
 
     await expect(
-      claimTask({
-        taskUuid: TASK_UUID,
+      claimExperimentRun({
+        runUuid: RUN_UUID,
         companyUuid: COMPANY_UUID,
         assigneeType: "agent",
         assigneeUuid: "a1",
@@ -524,10 +524,10 @@ describe("claimTask", () => {
       ...rawTask({ status: "assigned" }),
       project: { uuid: PROJECT_UUID, name: "Test Project" },
     };
-    mockPrisma.task.update.mockResolvedValue(claimed);
+    mockPrisma.experimentRun.update.mockResolvedValue(claimed);
 
-    await claimTask({
-      taskUuid: TASK_UUID,
+    await claimExperimentRun({
+      runUuid: RUN_UUID,
       companyUuid: COMPANY_UUID,
       assigneeType: "agent",
       assigneeUuid: "a1",
@@ -535,7 +535,7 @@ describe("claimTask", () => {
 
     expect(mockEventBus.emitChange).toHaveBeenCalledWith(
       expect.objectContaining({
-        entityType: "task",
+        entityType: "experiment_run",
         action: "updated",
       }),
     );
@@ -546,37 +546,37 @@ describe("claimTask", () => {
       ...rawTask({ status: "assigned" }),
       project: { uuid: PROJECT_UUID, name: "Test Project" },
     };
-    mockPrisma.task.update.mockResolvedValue(claimed);
+    mockPrisma.experimentRun.update.mockResolvedValue(claimed);
 
-    await claimTask({
-      taskUuid: TASK_UUID,
+    await claimExperimentRun({
+      runUuid: RUN_UUID,
       companyUuid: COMPANY_UUID,
       assigneeType: "agent",
       assigneeUuid: "a1",
       assignedByUuid: "user-123",
     });
 
-    const updateData = mockPrisma.task.update.mock.calls[0][0].data;
+    const updateData = mockPrisma.experimentRun.update.mock.calls[0][0].data;
     expect(updateData.assignedByUuid).toBe("user-123");
   });
 });
 
-// ---------- releaseTask ----------
+// ---------- releaseExperimentRun ----------
 
-describe("releaseTask", () => {
+describe("releaseExperimentRun", () => {
   it("releases an assigned task (reverts to open, clears assignee)", async () => {
     const released = {
       ...rawTask({ status: "open", assigneeType: null, assigneeUuid: null }),
       project: { uuid: PROJECT_UUID, name: "Test Project" },
     };
-    mockPrisma.task.update.mockResolvedValue(released);
+    mockPrisma.experimentRun.update.mockResolvedValue(released);
 
-    const result = await releaseTask(TASK_UUID);
+    const result = await releaseExperimentRun(RUN_UUID);
 
     expect(result.status).toBe("open");
-    expect(mockPrisma.task.update).toHaveBeenCalledWith(
+    expect(mockPrisma.experimentRun.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { uuid: TASK_UUID, status: "assigned" },
+        where: { uuid: RUN_UUID, status: "assigned" },
         data: expect.objectContaining({
           status: "open",
           assigneeType: null,
@@ -589,16 +589,16 @@ describe("releaseTask", () => {
   });
 
   it("throws NotClaimedError when task is not assigned (Prisma P2025)", async () => {
-    mockPrisma.task.update.mockRejectedValue({ code: "P2025" });
+    mockPrisma.experimentRun.update.mockRejectedValue({ code: "P2025" });
 
-    await expect(releaseTask(TASK_UUID)).rejects.toThrow(NotClaimedError);
+    await expect(releaseExperimentRun(RUN_UUID)).rejects.toThrow(NotClaimedError);
   });
 
   it("re-throws non-P2025 errors", async () => {
     const dbError = new Error("Timeout");
-    mockPrisma.task.update.mockRejectedValue(dbError);
+    mockPrisma.experimentRun.update.mockRejectedValue(dbError);
 
-    await expect(releaseTask(TASK_UUID)).rejects.toThrow("Timeout");
+    await expect(releaseExperimentRun(RUN_UUID)).rejects.toThrow("Timeout");
   });
 
   it("emits change event on successful release", async () => {
@@ -606,42 +606,42 @@ describe("releaseTask", () => {
       ...rawTask({ status: "open" }),
       project: { uuid: PROJECT_UUID, name: "Test Project" },
     };
-    mockPrisma.task.update.mockResolvedValue(released);
+    mockPrisma.experimentRun.update.mockResolvedValue(released);
 
-    await releaseTask(TASK_UUID);
+    await releaseExperimentRun(RUN_UUID);
 
     expect(mockEventBus.emitChange).toHaveBeenCalledWith(
       expect.objectContaining({
-        entityType: "task",
+        entityType: "experiment_run",
         action: "updated",
       }),
     );
   });
 });
 
-// ---------- deleteTask ----------
+// ---------- deleteExperimentRun ----------
 
-describe("deleteTask", () => {
+describe("deleteExperimentRun", () => {
   it("deletes the task by uuid", async () => {
     const task = rawTask();
-    mockPrisma.task.delete.mockResolvedValue(task);
+    mockPrisma.experimentRun.delete.mockResolvedValue(task);
 
-    const result = await deleteTask(TASK_UUID);
+    const result = await deleteExperimentRun(RUN_UUID);
 
-    expect(result.uuid).toBe(TASK_UUID);
-    expect(mockPrisma.task.delete).toHaveBeenCalledWith({ where: { uuid: TASK_UUID } });
+    expect(result.uuid).toBe(RUN_UUID);
+    expect(mockPrisma.experimentRun.delete).toHaveBeenCalledWith({ where: { uuid: RUN_UUID } });
   });
 
   it("emits change event with action deleted", async () => {
     const task = rawTask();
-    mockPrisma.task.delete.mockResolvedValue(task);
+    mockPrisma.experimentRun.delete.mockResolvedValue(task);
 
-    await deleteTask(TASK_UUID);
+    await deleteExperimentRun(RUN_UUID);
 
     expect(mockEventBus.emitChange).toHaveBeenCalledWith(
       expect.objectContaining({
         companyUuid: COMPANY_UUID,
-        entityType: "task",
+        entityType: "experiment_run",
         action: "deleted",
       }),
     );
@@ -655,19 +655,19 @@ describe("markAcceptanceCriteria", () => {
 
   it("validates task belongs to company and updates criteria", async () => {
     const task = rawTask();
-    mockPrisma.task.findFirst
+    mockPrisma.experimentRun.findFirst
       .mockResolvedValueOnce(task)   // validation in markAcceptanceCriteria
       .mockResolvedValueOnce(task);  // validation in getAcceptanceStatus
     mockPrisma.acceptanceCriterion.findMany
       .mockResolvedValueOnce([{ uuid: criterionUuid }])  // pre-validation
       .mockResolvedValueOnce([                            // getAcceptanceStatus return
-        makeAcceptanceCriterion({ uuid: criterionUuid, status: "passed", taskUuid: TASK_UUID }),
+        makeAcceptanceCriterion({ uuid: criterionUuid, status: "passed", runUuid: RUN_UUID }),
       ]);
     mockPrisma.acceptanceCriterion.update.mockResolvedValue({});
 
     const result = await markAcceptanceCriteria(
       COMPANY_UUID,
-      TASK_UUID,
+      RUN_UUID,
       [{ uuid: criterionUuid, status: "passed", evidence: "Looks good" }],
       { type: "user", actorUuid: authContexts.user.actorUuid },
     );
@@ -687,26 +687,26 @@ describe("markAcceptanceCriteria", () => {
   });
 
   it("throws when task not found for company", async () => {
-    mockPrisma.task.findFirst.mockResolvedValue(null);
+    mockPrisma.experimentRun.findFirst.mockResolvedValue(null);
 
     await expect(
       markAcceptanceCriteria(
         COMPANY_UUID,
-        TASK_UUID,
+        RUN_UUID,
         [{ uuid: criterionUuid, status: "passed" }],
         { type: "user", actorUuid: "u1" },
       ),
-    ).rejects.toThrow("Task not found");
+    ).rejects.toThrow("ExperimentRun not found");
   });
 
   it("throws when criterion does not belong to task", async () => {
-    mockPrisma.task.findFirst.mockResolvedValue(rawTask());
+    mockPrisma.experimentRun.findFirst.mockResolvedValue(rawTask());
     mockPrisma.acceptanceCriterion.findMany.mockResolvedValue([]); // no matching criteria
 
     await expect(
       markAcceptanceCriteria(
         COMPANY_UUID,
-        TASK_UUID,
+        RUN_UUID,
         [{ uuid: "wrong-crit", status: "passed" }],
         { type: "user", actorUuid: "u1" },
       ),
@@ -715,27 +715,27 @@ describe("markAcceptanceCriteria", () => {
 
   it("emits change event after marking", async () => {
     const task = rawTask();
-    mockPrisma.task.findFirst
+    mockPrisma.experimentRun.findFirst
       .mockResolvedValueOnce(task)
       .mockResolvedValueOnce(task);
     mockPrisma.acceptanceCriterion.findMany
       .mockResolvedValueOnce([{ uuid: criterionUuid }])
       .mockResolvedValueOnce([
-        makeAcceptanceCriterion({ uuid: criterionUuid, status: "passed", taskUuid: TASK_UUID }),
+        makeAcceptanceCriterion({ uuid: criterionUuid, status: "passed", runUuid: RUN_UUID }),
       ]);
     mockPrisma.acceptanceCriterion.update.mockResolvedValue({});
 
     await markAcceptanceCriteria(
       COMPANY_UUID,
-      TASK_UUID,
+      RUN_UUID,
       [{ uuid: criterionUuid, status: "passed" }],
       { type: "user", actorUuid: "u1" },
     );
 
     expect(mockEventBus.emitChange).toHaveBeenCalledWith(
       expect.objectContaining({
-        entityType: "task",
-        entityUuid: TASK_UUID,
+        entityType: "experiment_run",
+        entityUuid: RUN_UUID,
         action: "updated",
       }),
     );
@@ -749,19 +749,19 @@ describe("reportCriteriaSelfCheck", () => {
 
   it("updates devStatus fields on criteria", async () => {
     const task = rawTask();
-    mockPrisma.task.findFirst
+    mockPrisma.experimentRun.findFirst
       .mockResolvedValueOnce(task)
       .mockResolvedValueOnce(task);
     mockPrisma.acceptanceCriterion.findMany
       .mockResolvedValueOnce([{ uuid: criterionUuid }])
       .mockResolvedValueOnce([
-        makeAcceptanceCriterion({ uuid: criterionUuid, devStatus: "passed", taskUuid: TASK_UUID }),
+        makeAcceptanceCriterion({ uuid: criterionUuid, devStatus: "passed", runUuid: RUN_UUID }),
       ]);
     mockPrisma.acceptanceCriterion.update.mockResolvedValue({});
 
     const result = await reportCriteriaSelfCheck(
       COMPANY_UUID,
-      TASK_UUID,
+      RUN_UUID,
       [{ uuid: criterionUuid, devStatus: "passed", devEvidence: "Tests pass" }],
       { type: "agent", actorUuid: authContexts.agent.actorUuid },
     );
@@ -781,26 +781,26 @@ describe("reportCriteriaSelfCheck", () => {
   });
 
   it("throws when task not found", async () => {
-    mockPrisma.task.findFirst.mockResolvedValue(null);
+    mockPrisma.experimentRun.findFirst.mockResolvedValue(null);
 
     await expect(
       reportCriteriaSelfCheck(
         COMPANY_UUID,
-        TASK_UUID,
+        RUN_UUID,
         [{ uuid: "c1", devStatus: "passed" }],
         { type: "agent", actorUuid: "a1" },
       ),
-    ).rejects.toThrow("Task not found");
+    ).rejects.toThrow("ExperimentRun not found");
   });
 
   it("throws when criterion does not belong to task", async () => {
-    mockPrisma.task.findFirst.mockResolvedValue(rawTask());
+    mockPrisma.experimentRun.findFirst.mockResolvedValue(rawTask());
     mockPrisma.acceptanceCriterion.findMany.mockResolvedValue([]);
 
     await expect(
       reportCriteriaSelfCheck(
         COMPANY_UUID,
-        TASK_UUID,
+        RUN_UUID,
         [{ uuid: "wrong-crit", devStatus: "failed" }],
         { type: "agent", actorUuid: "a1" },
       ),
@@ -809,19 +809,19 @@ describe("reportCriteriaSelfCheck", () => {
 
   it("sets devEvidence to null when not provided", async () => {
     const task = rawTask();
-    mockPrisma.task.findFirst
+    mockPrisma.experimentRun.findFirst
       .mockResolvedValueOnce(task)
       .mockResolvedValueOnce(task);
     mockPrisma.acceptanceCriterion.findMany
       .mockResolvedValueOnce([{ uuid: "c1" }])
       .mockResolvedValueOnce([
-        makeAcceptanceCriterion({ uuid: "c1", devStatus: "passed", taskUuid: TASK_UUID }),
+        makeAcceptanceCriterion({ uuid: "c1", devStatus: "passed", runUuid: RUN_UUID }),
       ]);
     mockPrisma.acceptanceCriterion.update.mockResolvedValue({});
 
     await reportCriteriaSelfCheck(
       COMPANY_UUID,
-      TASK_UUID,
+      RUN_UUID,
       [{ uuid: "c1", devStatus: "passed" }],
       { type: "agent", actorUuid: "a1" },
     );
@@ -837,7 +837,7 @@ describe("checkAcceptanceCriteriaGate", () => {
   it("allows transition when no criteria exist (backward compat)", async () => {
     mockPrisma.acceptanceCriterion.findMany.mockResolvedValue([]);
 
-    const result = await checkAcceptanceCriteriaGate(TASK_UUID);
+    const result = await checkAcceptanceCriteriaGate(RUN_UUID);
 
     expect(result.allowed).toBe(true);
     expect(result.reason).toBeUndefined();
@@ -850,7 +850,7 @@ describe("checkAcceptanceCriteriaGate", () => {
       makeAcceptanceCriterion({ required: false, status: "pending" }),
     ]);
 
-    const result = await checkAcceptanceCriteriaGate(TASK_UUID);
+    const result = await checkAcceptanceCriteriaGate(RUN_UUID);
 
     expect(result.allowed).toBe(true);
   });
@@ -861,7 +861,7 @@ describe("checkAcceptanceCriteriaGate", () => {
       makeAcceptanceCriterion({ uuid: "c2", required: true, status: "pending" }),
     ]);
 
-    const result = await checkAcceptanceCriteriaGate(TASK_UUID);
+    const result = await checkAcceptanceCriteriaGate(RUN_UUID);
 
     expect(result.allowed).toBe(false);
     expect(result.reason).toContain("Not all required acceptance criteria are passed");
@@ -875,7 +875,7 @@ describe("checkAcceptanceCriteriaGate", () => {
       makeAcceptanceCriterion({ uuid: "c2", required: true, status: "passed" }),
     ]);
 
-    const result = await checkAcceptanceCriteriaGate(TASK_UUID);
+    const result = await checkAcceptanceCriteriaGate(RUN_UUID);
 
     expect(result.allowed).toBe(false);
     expect(result.summary!.requiredFailed).toBe(1);
@@ -906,7 +906,7 @@ describe("checkAcceptanceCriteriaGate", () => {
       failedCrit,
     ]);
 
-    const result = await checkAcceptanceCriteriaGate(TASK_UUID);
+    const result = await checkAcceptanceCriteriaGate(RUN_UUID);
 
     expect(result.allowed).toBe(false);
     expect(result.unresolvedCriteria).toHaveLength(2);
@@ -922,85 +922,85 @@ describe("checkAcceptanceCriteriaGate", () => {
       makeAcceptanceCriterion({ required: false, status: "failed" }),
     ]);
 
-    const result = await checkAcceptanceCriteriaGate(TASK_UUID);
+    const result = await checkAcceptanceCriteriaGate(RUN_UUID);
 
     expect(result.allowed).toBe(true);
   });
 });
 
-// ---------- addTaskDependency ----------
+// ---------- addRunDependency ----------
 
-describe("addTaskDependency", () => {
+describe("addRunDependency", () => {
   const taskUuid1 = "task-0001";
   const taskUuid2 = "task-0002";
   const taskUuid3 = "task-0003";
 
   it("should throw when task depends on itself", async () => {
     await expect(
-      (await import("@/services/task.service")).addTaskDependency(
+      (await import("@/services/experiment-run.service")).addRunDependency(
         COMPANY_UUID,
         taskUuid1,
         taskUuid1,
       ),
-    ).rejects.toThrow("A task cannot depend on itself");
+    ).rejects.toThrow("An experiment run cannot depend on itself");
   });
 
   it("should throw when task not found", async () => {
-    mockPrisma.task.findFirst
+    mockPrisma.experimentRun.findFirst
       .mockResolvedValueOnce(null) // task not found
       .mockResolvedValueOnce(rawTask({ uuid: taskUuid2 })); // dependsOn exists
 
     await expect(
-      (await import("@/services/task.service")).addTaskDependency(
+      (await import("@/services/experiment-run.service")).addRunDependency(
         COMPANY_UUID,
         "nonexistent",
         taskUuid2,
       ),
-    ).rejects.toThrow("Task not found");
+    ).rejects.toThrow("ExperimentRun not found");
   });
 
   it("should throw when dependency task not found", async () => {
-    mockPrisma.task.findFirst
+    mockPrisma.experimentRun.findFirst
       .mockResolvedValueOnce(rawTask({ uuid: taskUuid1 }))
       .mockResolvedValueOnce(null); // dependsOn not found
 
     await expect(
-      (await import("@/services/task.service")).addTaskDependency(
+      (await import("@/services/experiment-run.service")).addRunDependency(
         COMPANY_UUID,
         taskUuid1,
         "nonexistent",
       ),
-    ).rejects.toThrow("Dependency task not found");
+    ).rejects.toThrow("Dependency experiment run not found");
   });
 
   it("should throw when tasks belong to different projects", async () => {
-    mockPrisma.task.findFirst
-      .mockResolvedValueOnce(rawTask({ uuid: taskUuid1, projectUuid: "proj-a" }))
-      .mockResolvedValueOnce(rawTask({ uuid: taskUuid2, projectUuid: "proj-b" }));
+    mockPrisma.experimentRun.findFirst
+      .mockResolvedValueOnce(rawTask({ uuid: taskUuid1, researchProjectUuid: "proj-a" }))
+      .mockResolvedValueOnce(rawTask({ uuid: taskUuid2, researchProjectUuid: "proj-b" }));
 
     await expect(
-      (await import("@/services/task.service")).addTaskDependency(
+      (await import("@/services/experiment-run.service")).addRunDependency(
         COMPANY_UUID,
         taskUuid1,
         taskUuid2,
       ),
-    ).rejects.toThrow("Tasks must belong to the same project");
+    ).rejects.toThrow("Experiment runs must belong to the same project");
   });
 
   it("should throw when adding dependency would create a cycle", async () => {
     // Task1 -> Task2 -> Task3, trying to add Task3 -> Task1 (cycle)
-    mockPrisma.task.findFirst
-      .mockResolvedValueOnce(rawTask({ uuid: taskUuid3, projectUuid: PROJECT_UUID }))
-      .mockResolvedValueOnce(rawTask({ uuid: taskUuid1, projectUuid: PROJECT_UUID }));
+    mockPrisma.experimentRun.findFirst
+      .mockResolvedValueOnce(rawTask({ uuid: taskUuid3, researchProjectUuid: PROJECT_UUID }))
+      .mockResolvedValueOnce(rawTask({ uuid: taskUuid1, researchProjectUuid: PROJECT_UUID }));
 
     // Existing edges: task1 -> task2, task2 -> task3
-    mockPrisma.taskDependency.findMany.mockResolvedValue([
-      { taskUuid: taskUuid1, dependsOnUuid: taskUuid2 },
-      { taskUuid: taskUuid2, dependsOnUuid: taskUuid3 },
+    mockPrisma.runDependency.findMany.mockResolvedValue([
+      { runUuid: taskUuid1, dependsOnRunUuid: taskUuid2 },
+      { runUuid: taskUuid2, dependsOnRunUuid: taskUuid3 },
     ]);
 
     await expect(
-      (await import("@/services/task.service")).addTaskDependency(
+      (await import("@/services/experiment-run.service")).addRunDependency(
         COMPANY_UUID,
         taskUuid3,
         taskUuid1,
@@ -1009,57 +1009,57 @@ describe("addTaskDependency", () => {
   });
 
   it("should create dependency when no cycle detected", async () => {
-    mockPrisma.task.findFirst
-      .mockResolvedValueOnce(rawTask({ uuid: taskUuid1, projectUuid: PROJECT_UUID }))
-      .mockResolvedValueOnce(rawTask({ uuid: taskUuid2, projectUuid: PROJECT_UUID }));
-    mockPrisma.taskDependency.findMany.mockResolvedValue([]);
-    mockPrisma.taskDependency.create.mockResolvedValue({
-      taskUuid: taskUuid1,
-      dependsOnUuid: taskUuid2,
+    mockPrisma.experimentRun.findFirst
+      .mockResolvedValueOnce(rawTask({ uuid: taskUuid1, researchProjectUuid: PROJECT_UUID }))
+      .mockResolvedValueOnce(rawTask({ uuid: taskUuid2, researchProjectUuid: PROJECT_UUID }));
+    mockPrisma.runDependency.findMany.mockResolvedValue([]);
+    mockPrisma.runDependency.create.mockResolvedValue({
+      runUuid: taskUuid1,
+      dependsOnRunUuid: taskUuid2,
       createdAt: new Date("2026-03-01"),
     });
 
-    const result = await (await import("@/services/task.service")).addTaskDependency(
+    const result = await (await import("@/services/experiment-run.service")).addRunDependency(
       COMPANY_UUID,
       taskUuid1,
       taskUuid2,
     );
 
-    expect(result.taskUuid).toBe(taskUuid1);
-    expect(result.dependsOnUuid).toBe(taskUuid2);
-    expect(mockPrisma.taskDependency.create).toHaveBeenCalledWith({
-      data: { taskUuid: taskUuid1, dependsOnUuid: taskUuid2 },
+    expect(result.runUuid).toBe(taskUuid1);
+    expect(result.dependsOnRunUuid).toBe(taskUuid2);
+    expect(mockPrisma.runDependency.create).toHaveBeenCalledWith({
+      data: { runUuid: taskUuid1, dependsOnRunUuid: taskUuid2 },
     });
   });
 });
 
-// ---------- removeTaskDependency ----------
+// ---------- removeRunDependency ----------
 
-describe("removeTaskDependency", () => {
+describe("removeRunDependency", () => {
   it("should throw when task not found", async () => {
-    mockPrisma.task.findFirst.mockResolvedValue(null);
+    mockPrisma.experimentRun.findFirst.mockResolvedValue(null);
 
     await expect(
-      (await import("@/services/task.service")).removeTaskDependency(
+      (await import("@/services/experiment-run.service")).removeRunDependency(
         COMPANY_UUID,
         "nonexistent",
         "dep-uuid",
       ),
-    ).rejects.toThrow("Task not found");
+    ).rejects.toThrow("ExperimentRun not found");
   });
 
   it("should delete dependency", async () => {
-    mockPrisma.task.findFirst.mockResolvedValue(rawTask({ uuid: "t1" }));
-    mockPrisma.taskDependency.deleteMany.mockResolvedValue({ count: 1 });
+    mockPrisma.experimentRun.findFirst.mockResolvedValue(rawTask({ uuid: "t1" }));
+    mockPrisma.runDependency.deleteMany.mockResolvedValue({ count: 1 });
 
-    await (await import("@/services/task.service")).removeTaskDependency(
+    await (await import("@/services/experiment-run.service")).removeRunDependency(
       COMPANY_UUID,
       "t1",
       "dep-uuid",
     );
 
-    expect(mockPrisma.taskDependency.deleteMany).toHaveBeenCalledWith({
-      where: { taskUuid: "t1", dependsOnUuid: "dep-uuid" },
+    expect(mockPrisma.runDependency.deleteMany).toHaveBeenCalledWith({
+      where: { runUuid: "t1", dependsOnRunUuid: "dep-uuid" },
     });
   });
 });
@@ -1068,14 +1068,14 @@ describe("removeTaskDependency", () => {
 
 describe("computeAcceptanceStatus", () => {
   it("should return not_started when no items", async () => {
-    const { computeAcceptanceStatus } = await import("@/services/task.service");
+    const { computeAcceptanceStatus } = await import("@/services/experiment-run.service");
     const result = computeAcceptanceStatus([]);
     expect(result.status).toBe("not_started");
     expect(result.summary.total).toBe(0);
   });
 
   it("should return failed when any required criterion failed", async () => {
-    const { computeAcceptanceStatus } = await import("@/services/task.service");
+    const { computeAcceptanceStatus } = await import("@/services/experiment-run.service");
     const result = computeAcceptanceStatus([
       { required: true, status: "passed" },
       { required: true, status: "failed" },
@@ -1085,7 +1085,7 @@ describe("computeAcceptanceStatus", () => {
   });
 
   it("should return passed when all required criteria passed", async () => {
-    const { computeAcceptanceStatus } = await import("@/services/task.service");
+    const { computeAcceptanceStatus } = await import("@/services/experiment-run.service");
     const result = computeAcceptanceStatus([
       { required: true, status: "passed" },
       { required: true, status: "passed" },
@@ -1096,7 +1096,7 @@ describe("computeAcceptanceStatus", () => {
   });
 
   it("should return in_progress when some criteria evaluated but not all required passed", async () => {
-    const { computeAcceptanceStatus } = await import("@/services/task.service");
+    const { computeAcceptanceStatus } = await import("@/services/experiment-run.service");
     const result = computeAcceptanceStatus([
       { required: true, status: "passed" },
       { required: true, status: "pending" },
@@ -1106,7 +1106,7 @@ describe("computeAcceptanceStatus", () => {
   });
 
   it("should return not_started when all criteria pending", async () => {
-    const { computeAcceptanceStatus } = await import("@/services/task.service");
+    const { computeAcceptanceStatus } = await import("@/services/experiment-run.service");
     const result = computeAcceptanceStatus([
       { required: true, status: "pending" },
       { required: false, status: "pending" },
@@ -1115,9 +1115,9 @@ describe("computeAcceptanceStatus", () => {
   });
 });
 
-// ---------- getTaskDependencies ----------
+// ---------- getRunDependencies ----------
 
-describe("getTaskDependencies", () => {
+describe("getRunDependencies", () => {
   it("should return dependencies for a task", async () => {
     const task = {
       ...rawTask({ uuid: "t1" }),
@@ -1125,13 +1125,13 @@ describe("getTaskDependencies", () => {
         { dependsOn: { uuid: "dep1", title: "Dep 1", status: "done" } },
       ],
       dependedBy: [
-        { task: { uuid: "rev1", title: "Rev 1", status: "open" } },
+        { experimentRun: { uuid: "rev1", title: "Rev 1", status: "open" } },
       ],
       acceptanceCriteriaItems: [],
     };
-    mockPrisma.task.findFirst.mockResolvedValue(task);
+    mockPrisma.experimentRun.findFirst.mockResolvedValue(task);
 
-    const result = await (await import("@/services/task.service")).getTaskDependencies(
+    const result = await (await import("@/services/experiment-run.service")).getRunDependencies(
       COMPANY_UUID,
       "t1",
     );
@@ -1143,33 +1143,33 @@ describe("getTaskDependencies", () => {
   });
 
   it("should throw when task not found", async () => {
-    mockPrisma.task.findFirst.mockResolvedValue(null);
+    mockPrisma.experimentRun.findFirst.mockResolvedValue(null);
 
     await expect(
-      (await import("@/services/task.service")).getTaskDependencies(
+      (await import("@/services/experiment-run.service")).getRunDependencies(
         COMPANY_UUID,
         "nonexistent",
       ),
-    ).rejects.toThrow("Task not found");
+    ).rejects.toThrow("ExperimentRun not found");
   });
 });
 
-// ---------- getUnblockedTasks ----------
+// ---------- getUnblockedExperimentRuns ----------
 
-describe("getUnblockedTasks", () => {
+describe("getUnblockedExperimentRuns", () => {
   it("should return tasks without unresolved dependencies", async () => {
     const task1 = rawTask({ uuid: "t1", status: "open" });
-    mockPrisma.task.findMany.mockResolvedValue([task1]);
-    mockPrisma.task.count.mockResolvedValue(1);
+    mockPrisma.experimentRun.findMany.mockResolvedValue([task1]);
+    mockPrisma.experimentRun.count.mockResolvedValue(1);
     mockCommentService.batchCommentCounts.mockResolvedValue({});
     mockUuidResolver.batchGetActorNames.mockResolvedValue(new Map());
     mockUuidResolver.batchFormatCreatedBy.mockResolvedValue(
       new Map([[task1.createdByUuid, { type: "user", uuid: task1.createdByUuid, name: "User" }]]),
     );
 
-    const result = await (await import("@/services/task.service")).getUnblockedTasks({
+    const result = await (await import("@/services/experiment-run.service")).getUnblockedExperimentRuns({
       companyUuid: COMPANY_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
     });
 
     expect(result.tasks).toHaveLength(1);
@@ -1177,43 +1177,43 @@ describe("getUnblockedTasks", () => {
   });
 
   it("should filter for open/assigned status", async () => {
-    mockPrisma.task.findMany.mockResolvedValue([]);
-    mockPrisma.task.count.mockResolvedValue(0);
+    mockPrisma.experimentRun.findMany.mockResolvedValue([]);
+    mockPrisma.experimentRun.count.mockResolvedValue(0);
 
-    await (await import("@/services/task.service")).getUnblockedTasks({
+    await (await import("@/services/experiment-run.service")).getUnblockedExperimentRuns({
       companyUuid: COMPANY_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
     });
 
-    const whereArg = mockPrisma.task.findMany.mock.calls[0][0].where;
+    const whereArg = mockPrisma.experimentRun.findMany.mock.calls[0][0].where;
     expect(whereArg.status.in).toEqual(["open", "assigned"]);
   });
 
-  it("should pass proposalUuids filter to where clause", async () => {
-    mockPrisma.task.findMany.mockResolvedValue([]);
-    mockPrisma.task.count.mockResolvedValue(0);
+  it("should pass experimentDesignUuids filter to where clause", async () => {
+    mockPrisma.experimentRun.findMany.mockResolvedValue([]);
+    mockPrisma.experimentRun.count.mockResolvedValue(0);
 
-    await (await import("@/services/task.service")).getUnblockedTasks({
+    await (await import("@/services/experiment-run.service")).getUnblockedExperimentRuns({
       companyUuid: COMPANY_UUID,
-      projectUuid: PROJECT_UUID,
-      proposalUuids: ["prop-1", "prop-2"],
+      researchProjectUuid: PROJECT_UUID,
+      experimentDesignUuids: ["prop-1", "prop-2"],
     });
 
-    const whereArg = mockPrisma.task.findMany.mock.calls[0][0].where;
-    expect(whereArg.proposalUuid).toEqual({ in: ["prop-1", "prop-2"] });
+    const whereArg = mockPrisma.experimentRun.findMany.mock.calls[0][0].where;
+    expect(whereArg.experimentDesignUuid).toEqual({ in: ["prop-1", "prop-2"] });
   });
 
-  it("should not include proposalUuid filter when proposalUuids is not provided", async () => {
-    mockPrisma.task.findMany.mockResolvedValue([]);
-    mockPrisma.task.count.mockResolvedValue(0);
+  it("should not include experimentDesignUuid filter when experimentDesignUuids is not provided", async () => {
+    mockPrisma.experimentRun.findMany.mockResolvedValue([]);
+    mockPrisma.experimentRun.count.mockResolvedValue(0);
 
-    await (await import("@/services/task.service")).getUnblockedTasks({
+    await (await import("@/services/experiment-run.service")).getUnblockedExperimentRuns({
       companyUuid: COMPANY_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
     });
 
-    const whereArg = mockPrisma.task.findMany.mock.calls[0][0].where;
-    expect(whereArg).not.toHaveProperty("proposalUuid");
+    const whereArg = mockPrisma.experimentRun.findMany.mock.calls[0][0].where;
+    expect(whereArg).not.toHaveProperty("experimentDesignUuid");
   });
 });
 
@@ -1221,10 +1221,10 @@ describe("getUnblockedTasks", () => {
 
 describe("checkDependenciesResolved", () => {
   it("should return resolved=true when no dependencies", async () => {
-    mockPrisma.taskDependency.findMany.mockResolvedValue([]);
+    mockPrisma.runDependency.findMany.mockResolvedValue([]);
 
-    const result = await (await import("@/services/task.service")).checkDependenciesResolved(
-      TASK_UUID,
+    const result = await (await import("@/services/experiment-run.service")).checkDependenciesResolved(
+      RUN_UUID,
     );
 
     expect(result.resolved).toBe(true);
@@ -1232,13 +1232,13 @@ describe("checkDependenciesResolved", () => {
   });
 
   it("should return resolved=true when all dependencies are done/closed", async () => {
-    mockPrisma.taskDependency.findMany.mockResolvedValue([
+    mockPrisma.runDependency.findMany.mockResolvedValue([
       { dependsOn: { uuid: "d1", title: "Dep 1", status: "done", assigneeType: null, assigneeUuid: null } },
       { dependsOn: { uuid: "d2", title: "Dep 2", status: "closed", assigneeType: null, assigneeUuid: null } },
     ]);
 
-    const result = await (await import("@/services/task.service")).checkDependenciesResolved(
-      TASK_UUID,
+    const result = await (await import("@/services/experiment-run.service")).checkDependenciesResolved(
+      RUN_UUID,
     );
 
     expect(result.resolved).toBe(true);
@@ -1246,14 +1246,14 @@ describe("checkDependenciesResolved", () => {
   });
 
   it("should return resolved=false with blockers when dependencies unresolved", async () => {
-    mockPrisma.taskDependency.findMany.mockResolvedValue([
+    mockPrisma.runDependency.findMany.mockResolvedValue([
       { dependsOn: { uuid: "d1", title: "Blocker Task", status: "in_progress", assigneeType: "agent", assigneeUuid: "a1" } },
     ]);
-    mockPrisma.sessionTaskCheckin.findMany.mockResolvedValue([]);
+    mockPrisma.sessionRunCheckin.findMany.mockResolvedValue([]);
     mockUuidResolver.batchGetActorNames.mockResolvedValue(new Map([["a1", "Agent 1"]]));
 
-    const result = await (await import("@/services/task.service")).checkDependenciesResolved(
-      TASK_UUID,
+    const result = await (await import("@/services/experiment-run.service")).checkDependenciesResolved(
+      RUN_UUID,
     );
 
     expect(result.resolved).toBe(false);
@@ -1267,16 +1267,16 @@ describe("checkDependenciesResolved", () => {
   });
 
   it("should include session checkin info in blockers", async () => {
-    mockPrisma.taskDependency.findMany.mockResolvedValue([
+    mockPrisma.runDependency.findMany.mockResolvedValue([
       { dependsOn: { uuid: "d1", title: "Blocker", status: "in_progress", assigneeType: null, assigneeUuid: null } },
     ]);
-    mockPrisma.sessionTaskCheckin.findMany.mockResolvedValue([
-      { taskUuid: "d1", sessionUuid: "s1", session: { name: "worker-1" } },
+    mockPrisma.sessionRunCheckin.findMany.mockResolvedValue([
+      { runUuid: "d1", sessionUuid: "s1", session: { name: "worker-1" } },
     ]);
     mockUuidResolver.batchGetActorNames.mockResolvedValue(new Map());
 
-    const result = await (await import("@/services/task.service")).checkDependenciesResolved(
-      TASK_UUID,
+    const result = await (await import("@/services/experiment-run.service")).checkDependenciesResolved(
+      RUN_UUID,
     );
 
     expect(result.blockers[0].sessionCheckin).toEqual({
@@ -1286,35 +1286,35 @@ describe("checkDependenciesResolved", () => {
   });
 });
 
-// ---------- getProjectTaskDependencies ----------
+// ---------- getProjectRunDependencies ----------
 
-describe("getProjectTaskDependencies", () => {
+describe("getProjectRunDependencies", () => {
   it("should return nodes and edges for project DAG", async () => {
-    mockPrisma.task.findMany.mockResolvedValue([
-      { uuid: "t1", title: "Task 1", status: "open", priority: "high", proposalUuid: "p1" },
-      { uuid: "t2", title: "Task 2", status: "done", priority: "medium", proposalUuid: "p1" },
+    mockPrisma.experimentRun.findMany.mockResolvedValue([
+      { uuid: "t1", title: "Task 1", status: "open", priority: "high", experimentDesignUuid: "p1" },
+      { uuid: "t2", title: "Task 2", status: "done", priority: "medium", experimentDesignUuid: "p1" },
     ]);
-    mockPrisma.taskDependency.findMany.mockResolvedValue([
-      { taskUuid: "t2", dependsOnUuid: "t1" },
+    mockPrisma.runDependency.findMany.mockResolvedValue([
+      { runUuid: "t2", dependsOnRunUuid: "t1" },
     ]);
 
-    const result = await (await import("@/services/task.service")).getProjectTaskDependencies(
+    const result = await (await import("@/services/experiment-run.service")).getProjectRunDependencies(
       COMPANY_UUID,
       PROJECT_UUID,
     );
 
     expect(result.nodes).toHaveLength(2);
     expect(result.nodes[0].uuid).toBe("t1");
-    expect(result.nodes[0].proposalUuid).toBe("p1");
+    expect(result.nodes[0].experimentDesignUuid).toBe("p1");
     expect(result.edges).toHaveLength(1);
     expect(result.edges[0]).toEqual({ from: "t2", to: "t1" });
   });
 
   it("should return empty arrays when no tasks", async () => {
-    mockPrisma.task.findMany.mockResolvedValue([]);
-    mockPrisma.taskDependency.findMany.mockResolvedValue([]);
+    mockPrisma.experimentRun.findMany.mockResolvedValue([]);
+    mockPrisma.runDependency.findMany.mockResolvedValue([]);
 
-    const result = await (await import("@/services/task.service")).getProjectTaskDependencies(
+    const result = await (await import("@/services/experiment-run.service")).getProjectRunDependencies(
       COMPANY_UUID,
       PROJECT_UUID,
     );
@@ -1329,15 +1329,15 @@ describe("getProjectTaskDependencies", () => {
 describe("resetAcceptanceCriterion", () => {
   it("should reset criterion to pending", async () => {
     const task = rawTask();
-    mockPrisma.task.findFirst.mockResolvedValue(task);
+    mockPrisma.experimentRun.findFirst.mockResolvedValue(task);
     mockPrisma.acceptanceCriterion.findFirst.mockResolvedValue(
-      makeAcceptanceCriterion({ uuid: "c1", taskUuid: TASK_UUID })
+      makeAcceptanceCriterion({ uuid: "c1", runUuid: RUN_UUID })
     );
     mockPrisma.acceptanceCriterion.update.mockResolvedValue({});
 
-    await (await import("@/services/task.service")).resetAcceptanceCriterion(
+    await (await import("@/services/experiment-run.service")).resetAcceptanceCriterion(
       COMPANY_UUID,
-      TASK_UUID,
+      RUN_UUID,
       "c1",
     );
 
@@ -1355,25 +1355,25 @@ describe("resetAcceptanceCriterion", () => {
   });
 
   it("should throw when task not found", async () => {
-    mockPrisma.task.findFirst.mockResolvedValue(null);
+    mockPrisma.experimentRun.findFirst.mockResolvedValue(null);
 
     await expect(
-      (await import("@/services/task.service")).resetAcceptanceCriterion(
+      (await import("@/services/experiment-run.service")).resetAcceptanceCriterion(
         COMPANY_UUID,
         "nonexistent",
         "c1",
       ),
-    ).rejects.toThrow("Task not found");
+    ).rejects.toThrow("ExperimentRun not found");
   });
 
   it("should throw when criterion not found for task", async () => {
-    mockPrisma.task.findFirst.mockResolvedValue(rawTask());
+    mockPrisma.experimentRun.findFirst.mockResolvedValue(rawTask());
     mockPrisma.acceptanceCriterion.findFirst.mockResolvedValue(null);
 
     await expect(
-      (await import("@/services/task.service")).resetAcceptanceCriterion(
+      (await import("@/services/experiment-run.service")).resetAcceptanceCriterion(
         COMPANY_UUID,
-        TASK_UUID,
+        RUN_UUID,
         "wrong-crit",
       ),
     ).rejects.toThrow("Criterion not found for this task");
@@ -1385,15 +1385,15 @@ describe("resetAcceptanceCriterion", () => {
 describe("getAcceptanceStatus", () => {
   it("should return acceptance status and criteria items", async () => {
     const task = rawTask();
-    mockPrisma.task.findFirst.mockResolvedValue(task);
+    mockPrisma.experimentRun.findFirst.mockResolvedValue(task);
     mockPrisma.acceptanceCriterion.findMany.mockResolvedValue([
       makeAcceptanceCriterion({ required: true, status: "passed" }),
       makeAcceptanceCriterion({ required: true, status: "pending" }),
     ]);
 
-    const result = await (await import("@/services/task.service")).getAcceptanceStatus(
+    const result = await (await import("@/services/experiment-run.service")).getAcceptanceStatus(
       COMPANY_UUID,
-      TASK_UUID,
+      RUN_UUID,
     );
 
     expect(result.items).toHaveLength(2);
@@ -1402,14 +1402,14 @@ describe("getAcceptanceStatus", () => {
   });
 
   it("should throw when task not found", async () => {
-    mockPrisma.task.findFirst.mockResolvedValue(null);
+    mockPrisma.experimentRun.findFirst.mockResolvedValue(null);
 
     await expect(
-      (await import("@/services/task.service")).getAcceptanceStatus(
+      (await import("@/services/experiment-run.service")).getAcceptanceStatus(
         COMPANY_UUID,
         "nonexistent",
       ),
-    ).rejects.toThrow("Task not found");
+    ).rejects.toThrow("ExperimentRun not found");
   });
 });
 
@@ -1421,7 +1421,7 @@ describe("createAcceptanceCriteria", () => {
       .mockResolvedValueOnce(makeAcceptanceCriterion({ uuid: "c1", description: "Criterion 1" }))
       .mockResolvedValueOnce(makeAcceptanceCriterion({ uuid: "c2", description: "Criterion 2" }));
 
-    const result = await createAcceptanceCriteria(TASK_UUID, [
+    const result = await createAcceptanceCriteria(RUN_UUID, [
       { description: "Criterion 1", required: true },
       { description: "Criterion 2", required: false },
     ]);
@@ -1431,7 +1431,7 @@ describe("createAcceptanceCriteria", () => {
   });
 
   it("should return empty array when no items provided", async () => {
-    const result = await createAcceptanceCriteria(TASK_UUID, []);
+    const result = await createAcceptanceCriteria(RUN_UUID, []);
     expect(result).toEqual([]);
   });
 
@@ -1440,7 +1440,7 @@ describe("createAcceptanceCriteria", () => {
       makeAcceptanceCriterion({ uuid: "c1" })
     );
 
-    await createAcceptanceCriteria(TASK_UUID, [{ description: "Test" }]);
+    await createAcceptanceCriteria(RUN_UUID, [{ description: "Test" }]);
 
     const createData = mockPrisma.acceptanceCriterion.create.mock.calls[0][0].data;
     expect(createData.required).toBe(true);
@@ -1451,7 +1451,7 @@ describe("createAcceptanceCriteria", () => {
       .mockResolvedValueOnce(makeAcceptanceCriterion({ uuid: "c1" }))
       .mockResolvedValueOnce(makeAcceptanceCriterion({ uuid: "c2" }));
 
-    await createAcceptanceCriteria(TASK_UUID, [
+    await createAcceptanceCriteria(RUN_UUID, [
       { description: "First" },
       { description: "Second" },
     ]);
@@ -1461,18 +1461,18 @@ describe("createAcceptanceCriteria", () => {
   });
 });
 
-// ---------- updateTask (mention processing) ----------
+// ---------- updateExperimentRun (mention processing) ----------
 
-describe("updateTask", () => {
+describe("updateExperimentRun", () => {
   it("should update task fields", async () => {
-    mockPrisma.task.findUnique.mockResolvedValue(null);
+    mockPrisma.experimentRun.findUnique.mockResolvedValue(null);
     const updated = {
       ...rawTask({ title: "Updated Title", status: "in_progress" }),
       project: { uuid: PROJECT_UUID, name: "Test Project" },
     };
-    mockPrisma.task.update.mockResolvedValue(updated);
+    mockPrisma.experimentRun.update.mockResolvedValue(updated);
 
-    const result = await updateTask(TASK_UUID, {
+    const result = await updateExperimentRun(RUN_UUID, {
       title: "Updated Title",
       status: "in_progress",
     });
@@ -1483,19 +1483,19 @@ describe("updateTask", () => {
   });
 
   it("should reset acceptance criteria when moving from to_verify to other status", async () => {
-    mockPrisma.task.findUnique.mockResolvedValue(null);
+    mockPrisma.experimentRun.findUnique.mockResolvedValue(null);
     const updated = {
       ...rawTask({ status: "in_progress" }),
       project: { uuid: PROJECT_UUID, name: "Test Project" },
     };
-    mockPrisma.task.findUnique.mockResolvedValue({ status: "to_verify" });
-    mockPrisma.task.update.mockResolvedValue(updated);
+    mockPrisma.experimentRun.findUnique.mockResolvedValue({ status: "to_verify" });
+    mockPrisma.experimentRun.update.mockResolvedValue(updated);
     mockPrisma.acceptanceCriterion.updateMany.mockResolvedValue({ count: 2 });
 
-    await updateTask(TASK_UUID, { status: "in_progress" });
+    await updateExperimentRun(RUN_UUID, { status: "in_progress" });
 
     expect(mockPrisma.acceptanceCriterion.updateMany).toHaveBeenCalledWith({
-      where: { taskUuid: TASK_UUID },
+      where: { runUuid: RUN_UUID },
       data: expect.objectContaining({
         status: "pending",
         devStatus: "pending",
@@ -1504,15 +1504,15 @@ describe("updateTask", () => {
   });
 
   it("should NOT reset criteria when moving from to_verify to done", async () => {
-    mockPrisma.task.findUnique.mockResolvedValue(null);
+    mockPrisma.experimentRun.findUnique.mockResolvedValue(null);
     const updated = {
       ...rawTask({ status: "done" }),
       project: { uuid: PROJECT_UUID, name: "Test Project" },
     };
-    mockPrisma.task.findUnique.mockResolvedValue({ status: "to_verify" });
-    mockPrisma.task.update.mockResolvedValue(updated);
+    mockPrisma.experimentRun.findUnique.mockResolvedValue({ status: "to_verify" });
+    mockPrisma.experimentRun.update.mockResolvedValue(updated);
 
-    await updateTask(TASK_UUID, { status: "done" });
+    await updateExperimentRun(RUN_UUID, { status: "done" });
 
     expect(mockPrisma.acceptanceCriterion.updateMany).not.toHaveBeenCalled();
   });
@@ -1521,19 +1521,19 @@ describe("updateTask", () => {
     const oldDesc = "Old description";
     const newDesc = "New description with @user[uuid1]";
 
-    mockPrisma.task.findUnique.mockResolvedValue({ description: oldDesc });
+    mockPrisma.experimentRun.findUnique.mockResolvedValue({ description: oldDesc });
     const updated = {
       ...rawTask({ description: newDesc }),
       project: { uuid: PROJECT_UUID, name: "Test Project" },
     };
-    mockPrisma.task.update.mockResolvedValue(updated);
+    mockPrisma.experimentRun.update.mockResolvedValue(updated);
 
     mockMentionService.parseMentions
       .mockReturnValueOnce([]) // old mentions
       .mockReturnValueOnce([{ type: "user", uuid: "uuid1", displayName: "User 1" }]); // new mentions
 
-    await updateTask(
-      TASK_UUID,
+    await updateExperimentRun(
+      RUN_UUID,
       { description: newDesc },
       { actorType: "agent", actorUuid: "agent1" },
     );

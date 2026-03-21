@@ -1,5 +1,5 @@
-// src/services/idea.service.ts
-// Idea Service Layer (ARCHITECTURE.md §3.1 Service Layer)
+// src/services/research-question.service.ts
+// ResearchQuestion Service Layer (ARCHITECTURE.md §3.1 Service Layer)
 // UUID-Based Architecture: All operations use UUIDs
 
 import { prisma } from "@/lib/prisma";
@@ -12,9 +12,9 @@ import * as activityService from "@/services/activity.service";
 
 // ===== Type Definitions =====
 
-export interface IdeaListParams {
+export interface ResearchQuestionListParams {
   companyUuid: string;
-  projectUuid: string;
+  researchProjectUuid: string;
   skip: number;
   take: number;
   status?: string;
@@ -23,17 +23,17 @@ export interface IdeaListParams {
   actorType?: string;      // "user" | "agent" for assignedToMe filter
 }
 
-export interface IdeaCreateParams {
+export interface ResearchQuestionCreateParams {
   companyUuid: string;
-  projectUuid: string;
+  researchProjectUuid: string;
   title: string;
   content?: string | null;
   attachments?: unknown;
   createdByUuid: string;
 }
 
-export interface IdeaClaimParams {
-  ideaUuid: string;
+export interface ResearchQuestionClaimParams {
+  researchQuestionUuid: string;
   companyUuid: string;
   assigneeType: string;
   assigneeUuid: string;
@@ -41,7 +41,7 @@ export interface IdeaClaimParams {
 }
 
 // API response format
-export interface IdeaResponse {
+export interface ResearchQuestionResponse {
   uuid: string;
   title: string;
   content: string | null;
@@ -62,9 +62,9 @@ export interface IdeaResponse {
   updatedAt: string;
 }
 
-// Idea status transition rules — simplified AI-DLC lifecycle
+// ResearchQuestion status transition rules — simplified AI-DLC lifecycle
 // open → elaborating → proposal_created → completed → closed
-export const IDEA_STATUS_TRANSITIONS: Record<string, string[]> = {
+export const RESEARCH_QUESTION_STATUS_TRANSITIONS: Record<string, string[]> = {
   open: ["elaborating", "closed"],
   elaborating: ["proposal_created", "closed"],
   proposal_created: ["completed", "elaborating", "closed"],
@@ -73,7 +73,7 @@ export const IDEA_STATUS_TRANSITIONS: Record<string, string[]> = {
 };
 
 // Map legacy statuses to current ones (for backward compatibility with historical data)
-export function normalizeIdeaStatus(status: string): string {
+export function normalizeResearchQuestionStatus(status: string): string {
   switch (status) {
     case "assigned":
     case "in_progress":
@@ -86,16 +86,16 @@ export function normalizeIdeaStatus(status: string): string {
 }
 
 // Validate whether a status transition is valid
-export function isValidIdeaStatusTransition(from: string, to: string): boolean {
-  const normalizedFrom = normalizeIdeaStatus(from);
-  const allowed = IDEA_STATUS_TRANSITIONS[normalizedFrom] || [];
+export function isValidResearchQuestionStatusTransition(from: string, to: string): boolean {
+  const normalizedFrom = normalizeResearchQuestionStatus(from);
+  const allowed = RESEARCH_QUESTION_STATUS_TRANSITIONS[normalizedFrom] || [];
   return allowed.includes(to);
 }
 
 // ===== Internal Helper Functions =====
 
 // Format a single Idea into API response format
-async function formatIdeaResponse(
+async function formatResearchQuestionResponse(
   idea: {
     uuid: string;
     title: string;
@@ -113,7 +113,7 @@ async function formatIdeaResponse(
     updatedAt: Date;
     project?: { uuid: string; name: string };
   }
-): Promise<IdeaResponse> {
+): Promise<ResearchQuestionResponse> {
   const [assignee, createdBy] = await Promise.all([
     formatAssigneeComplete(idea.assigneeType, idea.assigneeUuid, idea.assignedAt, idea.assignedByUuid),
     formatCreatedBy(idea.createdByUuid),
@@ -124,7 +124,7 @@ async function formatIdeaResponse(
     title: idea.title,
     content: idea.content,
     attachments: idea.attachments,
-    status: normalizeIdeaStatus(idea.status),
+    status: normalizeResearchQuestionStatus(idea.status),
     assignee,
     ...(idea.project && { project: idea.project }),
     ...(idea.elaborationStatus != null && { elaborationStatus: idea.elaborationStatus }),
@@ -138,24 +138,24 @@ async function formatIdeaResponse(
 // ===== Service Methods =====
 
 // List ideas query
-export async function listIdeas({
+export async function listResearchQuestions({
   companyUuid,
-  projectUuid,
+  researchProjectUuid,
   skip,
   take,
   status,
   assignedToMe,
   actorUuid,
   actorType,
-}: IdeaListParams): Promise<{ ideas: IdeaResponse[]; total: number }> {
+}: ResearchQuestionListParams): Promise<{ researchQuestions: ResearchQuestionResponse[]; total: number }> {
   const where: {
-    projectUuid: string;
+    researchProjectUuid: string;
     companyUuid: string;
     status?: string;
     assigneeUuid?: string;
     assigneeType?: string;
   } = {
-    projectUuid,
+    researchProjectUuid,
     companyUuid,
     ...(status && { status }),
   };
@@ -167,7 +167,7 @@ export async function listIdeas({
   }
 
   const [rawIdeas, total] = await Promise.all([
-    prisma.idea.findMany({
+    prisma.researchQuestion.findMany({
       where,
       skip,
       take,
@@ -189,19 +189,19 @@ export async function listIdeas({
         updatedAt: true,
       },
     }),
-    prisma.idea.count({ where }),
+    prisma.researchQuestion.count({ where }),
   ]);
 
-  const ideas = await Promise.all(rawIdeas.map(formatIdeaResponse));
-  return { ideas, total };
+  const researchQuestions = await Promise.all(rawIdeas.map(formatResearchQuestionResponse));
+  return { researchQuestions, total };
 }
 
 // Get Idea details
-export async function getIdea(
+export async function getResearchQuestion(
   companyUuid: string,
   uuid: string
-): Promise<IdeaResponse | null> {
-  const idea = await prisma.idea.findFirst({
+): Promise<ResearchQuestionResponse | null> {
+  const idea = await prisma.researchQuestion.findFirst({
     where: { uuid, companyUuid },
     include: {
       project: { select: { uuid: true, name: true } },
@@ -209,22 +209,22 @@ export async function getIdea(
   });
 
   if (!idea) return null;
-  return formatIdeaResponse(idea);
+  return formatResearchQuestionResponse(idea);
 }
 
 // Get raw Idea data by UUID (internal use, for permission checks etc.)
-export async function getIdeaByUuid(companyUuid: string, uuid: string) {
-  return prisma.idea.findFirst({
+export async function getResearchQuestionByUuid(companyUuid: string, uuid: string) {
+  return prisma.researchQuestion.findFirst({
     where: { uuid, companyUuid },
   });
 }
 
 // Create Idea
-export async function createIdea(params: IdeaCreateParams): Promise<IdeaResponse> {
-  const idea = await prisma.idea.create({
+export async function createResearchQuestion(params: ResearchQuestionCreateParams): Promise<ResearchQuestionResponse> {
+  const idea = await prisma.researchQuestion.create({
     data: {
       companyUuid: params.companyUuid,
-      projectUuid: params.projectUuid,
+      researchProjectUuid: params.researchProjectUuid,
       title: params.title,
       content: params.content,
       attachments: params.attachments || undefined,
@@ -249,26 +249,26 @@ export async function createIdea(params: IdeaCreateParams): Promise<IdeaResponse
     },
   });
 
-  eventBus.emitChange({ companyUuid: params.companyUuid, projectUuid: params.projectUuid, entityType: "idea", entityUuid: idea.uuid, action: "created" });
+  eventBus.emitChange({ companyUuid: params.companyUuid, projectUuid: params.researchProjectUuid, entityType: "research_question", entityUuid: idea.uuid, action: "created" });
 
-  return formatIdeaResponse(idea);
+  return formatResearchQuestionResponse(idea);
 }
 
 // Update Idea
-export async function updateIdea(
+export async function updateResearchQuestion(
   uuid: string,
   companyUuid: string,
   data: { title?: string; content?: string | null; status?: string },
   actorContext?: { actorType: string; actorUuid: string }
-): Promise<IdeaResponse> {
+): Promise<ResearchQuestionResponse> {
   // If content is being updated and we have actor context, capture old content for mention diffing
   let oldContent: string | null = null;
   if (data.content !== undefined && actorContext) {
-    const existing = await prisma.idea.findUnique({ where: { uuid }, select: { content: true } });
+    const existing = await prisma.researchQuestion.findUnique({ where: { uuid }, select: { content: true } });
     oldContent = existing?.content ?? null;
   }
 
-  const idea = await prisma.idea.update({
+  const idea = await prisma.researchQuestion.update({
     where: { uuid },
     data,
     include: {
@@ -276,11 +276,11 @@ export async function updateIdea(
     },
   });
 
-  eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.project!.uuid, entityType: "idea", entityUuid: idea.uuid, action: "updated" });
+  eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.project!.uuid, entityType: "research_question", entityUuid: idea.uuid, action: "updated" });
 
   // Process new @mentions in content (append-only: only new mentions)
   if (data.content !== undefined && actorContext && data.content) {
-    processNewIdeaMentions(
+    processNewResearchQuestionMentions(
       idea.companyUuid,
       idea.project!.uuid,
       idea.uuid,
@@ -292,19 +292,19 @@ export async function updateIdea(
     ).catch((err) => console.error("[Idea] Failed to process mentions:", err));
   }
 
-  return formatIdeaResponse(idea);
+  return formatResearchQuestionResponse(idea);
 }
 
 // Claim Idea (self-claim: only works when no assignee)
-export async function claimIdea({
-  ideaUuid,
+export async function claimResearchQuestion({
+  researchQuestionUuid,
   companyUuid,
   assigneeType,
   assigneeUuid,
   assignedByUuid,
-}: IdeaClaimParams): Promise<IdeaResponse> {
-  const existing = await prisma.idea.findFirst({
-    where: { uuid: ideaUuid, companyUuid },
+}: ResearchQuestionClaimParams): Promise<ResearchQuestionResponse> {
+  const existing = await prisma.researchQuestion.findFirst({
+    where: { uuid: researchQuestionUuid, companyUuid },
   });
   if (!existing) throw new AlreadyClaimedError("Idea");
   if (existing.assigneeUuid) {
@@ -314,8 +314,8 @@ export async function claimIdea({
     throw new Error("Cannot claim a completed or closed Idea");
   }
 
-  const idea = await prisma.idea.update({
-    where: { uuid: ideaUuid },
+  const idea = await prisma.researchQuestion.update({
+    where: { uuid: researchQuestionUuid },
     data: {
       status: "elaborating",
       assigneeType,
@@ -328,21 +328,21 @@ export async function claimIdea({
     },
   });
 
-  eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.project!.uuid, entityType: "idea", entityUuid: idea.uuid, action: "updated" });
+  eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.project!.uuid, entityType: "research_question", entityUuid: idea.uuid, action: "updated" });
 
-  return formatIdeaResponse(idea);
+  return formatResearchQuestionResponse(idea);
 }
 
 // Assign Idea (reassign: works regardless of current assignee, any non-terminal status)
-export async function assignIdea({
-  ideaUuid,
+export async function assignResearchQuestion({
+  researchQuestionUuid,
   companyUuid,
   assigneeType,
   assigneeUuid,
   assignedByUuid,
-}: IdeaClaimParams): Promise<IdeaResponse> {
-  const existing = await prisma.idea.findFirst({
-    where: { uuid: ideaUuid, companyUuid },
+}: ResearchQuestionClaimParams): Promise<ResearchQuestionResponse> {
+  const existing = await prisma.researchQuestion.findFirst({
+    where: { uuid: researchQuestionUuid, companyUuid },
   });
   if (!existing) throw new Error("Idea not found");
   if (existing.status === "completed" || existing.status === "closed") {
@@ -352,8 +352,8 @@ export async function assignIdea({
   // If currently open, move to elaborating; otherwise keep current status
   const newStatus = existing.status === "open" ? "elaborating" : existing.status;
 
-  const idea = await prisma.idea.update({
-    where: { uuid: ideaUuid },
+  const idea = await prisma.researchQuestion.update({
+    where: { uuid: researchQuestionUuid },
     data: {
       status: newStatus,
       assigneeType,
@@ -366,20 +366,20 @@ export async function assignIdea({
     },
   });
 
-  eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.project!.uuid, entityType: "idea", entityUuid: idea.uuid, action: "updated" });
+  eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.project!.uuid, entityType: "research_question", entityUuid: idea.uuid, action: "updated" });
 
-  return formatIdeaResponse(idea);
+  return formatResearchQuestionResponse(idea);
 }
 
 // Release Idea (clears assignee, resets to open; any non-terminal status)
-export async function releaseIdea(uuid: string): Promise<IdeaResponse> {
-  const existing = await prisma.idea.findUnique({ where: { uuid } });
+export async function releaseResearchQuestion(uuid: string): Promise<ResearchQuestionResponse> {
+  const existing = await prisma.researchQuestion.findUnique({ where: { uuid } });
   if (!existing) throw new Error("Idea not found");
   if (existing.status === "completed" || existing.status === "closed") {
     throw new Error("Cannot release a completed or closed Idea");
   }
 
-  const idea = await prisma.idea.update({
+  const idea = await prisma.researchQuestion.update({
     where: { uuid },
     data: {
       status: "open",
@@ -395,17 +395,17 @@ export async function releaseIdea(uuid: string): Promise<IdeaResponse> {
     },
   });
 
-  eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.project!.uuid, entityType: "idea", entityUuid: idea.uuid, action: "updated" });
+  eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.project!.uuid, entityType: "research_question", entityUuid: idea.uuid, action: "updated" });
 
-  return formatIdeaResponse(idea);
+  return formatResearchQuestionResponse(idea);
 }
 
 // Process new @mentions in idea content (append-only: only new mentions)
-async function processNewIdeaMentions(
+async function processNewResearchQuestionMentions(
   companyUuid: string,
   projectUuid: string,
-  ideaUuid: string,
-  ideaTitle: string,
+  researchQuestionUuid: string,
+  researchQuestionTitle: string,
   oldContent: string | null,
   newContent: string,
   actorType: string,
@@ -421,13 +421,13 @@ async function processNewIdeaMentions(
 
   await mentionService.createMentions({
     companyUuid,
-    sourceType: "idea",
-    sourceUuid: ideaUuid,
+    sourceType: "research_question",
+    sourceUuid: researchQuestionUuid,
     content: newContent,
     actorType,
     actorUuid,
     projectUuid,
-    entityTitle: ideaTitle,
+    entityTitle: researchQuestionTitle,
   });
 
   for (const mention of brandNewMentions) {
@@ -435,8 +435,8 @@ async function processNewIdeaMentions(
     await activityService.createActivity({
       companyUuid,
       projectUuid,
-      targetType: "idea",
-      targetUuid: ideaUuid,
+      targetType: "research_question",
+      targetUuid: researchQuestionUuid,
       actorType,
       actorUuid,
       action: "mentioned",
@@ -444,65 +444,65 @@ async function processNewIdeaMentions(
         mentionedType: mention.type,
         mentionedUuid: mention.uuid,
         mentionedName: mention.displayName,
-        sourceType: "idea",
-        sourceUuid: ideaUuid,
+        sourceType: "research_question",
+        sourceUuid: researchQuestionUuid,
       },
     });
   }
 }
 
 // Delete Idea
-export async function deleteIdea(uuid: string) {
-  const idea = await prisma.idea.delete({ where: { uuid } });
-  eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.projectUuid, entityType: "idea", entityUuid: idea.uuid, action: "deleted" });
+export async function deleteResearchQuestion(uuid: string) {
+  const idea = await prisma.researchQuestion.delete({ where: { uuid } });
+  eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.researchProjectUuid, entityType: "research_question", entityUuid: idea.uuid, action: "deleted" });
   return idea;
 }
 
 // Move Idea to a different project
-export async function moveIdea(
+export async function moveResearchQuestion(
   companyUuid: string,
-  ideaUuid: string,
+  researchQuestionUuid: string,
   targetProjectUuid: string,
   actorUuid: string,
   actorType: string = "user"
-): Promise<IdeaResponse> {
+): Promise<ResearchQuestionResponse> {
   // Validate idea exists and belongs to same company
-  const idea = await prisma.idea.findFirst({
-    where: { uuid: ideaUuid, companyUuid },
+  const idea = await prisma.researchQuestion.findFirst({
+    where: { uuid: researchQuestionUuid, companyUuid },
     include: { project: { select: { uuid: true, name: true } } },
   });
   if (!idea) throw new ApiError("NOT_FOUND", "Idea not found", 404);
 
   // Validate target project exists and belongs to same company
-  const targetProject = await prisma.project.findFirst({
+  const targetProject = await prisma.researchProject.findFirst({
     where: { uuid: targetProjectUuid, companyUuid },
     select: { uuid: true, name: true },
   });
   if (!targetProject) throw new ApiError("NOT_FOUND", "Target project not found", 404);
 
-  if (idea.projectUuid === targetProjectUuid) {
+  if (idea.researchProjectUuid === targetProjectUuid) {
     throw new ApiError("BAD_REQUEST", "Idea is already in the target project", 400);
   }
 
-  const fromProjectUuid = idea.projectUuid;
+  const fromProjectUuid = idea.researchProjectUuid;
 
   // Transaction: update idea + linked proposals
   await prisma.$transaction(async (tx) => {
     // Update Idea.projectUuid
-    await tx.idea.update({
-      where: { uuid: ideaUuid },
-      data: { projectUuid: targetProjectUuid },
+    await tx.researchQuestion.update({
+      where: { uuid: researchQuestionUuid },
+      data: { researchProjectUuid: targetProjectUuid },
     });
 
-    // Update linked Proposal.projectUuid (draft or pending only)
-    await tx.proposal.updateMany({
+    // Update linked ExperimentDesign.researchProjectUuid (draft or pending only)
+    await tx.experimentDesign.updateMany({
       where: {
         companyUuid,
-        inputType: "idea",
-        inputUuids: { array_contains: [ideaUuid] },
+        inputType: "research_question",
+        inputUuids: { array_contains: [researchQuestionUuid] },
         status: { in: ["draft", "pending"] },
       },
-      data: { projectUuid: targetProjectUuid },
+      data: { researchProjectUuid: targetProjectUuid },
     });
   });
 
@@ -510,8 +510,8 @@ export async function moveIdea(
   await activityService.createActivity({
     companyUuid,
     projectUuid: targetProjectUuid,
-    targetType: "idea",
-    targetUuid: ideaUuid,
+    targetType: "research_question",
+    targetUuid: researchQuestionUuid,
     actorType,
     actorUuid,
     action: "moved",
@@ -524,13 +524,13 @@ export async function moveIdea(
   });
 
   // Emit changes for both projects
-  eventBus.emitChange({ companyUuid, projectUuid: fromProjectUuid, entityType: "idea", entityUuid: ideaUuid, action: "updated" });
-  eventBus.emitChange({ companyUuid, projectUuid: targetProjectUuid, entityType: "idea", entityUuid: ideaUuid, action: "updated" });
+  eventBus.emitChange({ companyUuid, projectUuid: fromProjectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
+  eventBus.emitChange({ companyUuid, projectUuid: targetProjectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
 
   // Return updated idea
-  const updated = await prisma.idea.findFirst({
-    where: { uuid: ideaUuid, companyUuid },
+  const updated = await prisma.researchQuestion.findFirst({
+    where: { uuid: researchQuestionUuid, companyUuid },
     include: { project: { select: { uuid: true, name: true } } },
   });
-  return formatIdeaResponse(updated!);
+  return formatResearchQuestionResponse(updated!);
 }

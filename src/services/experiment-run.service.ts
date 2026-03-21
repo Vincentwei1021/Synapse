@@ -1,5 +1,5 @@
-// src/services/task.service.ts
-// Task Service Layer (ARCHITECTURE.md §3.1 Service Layer)
+// src/services/experiment-run.service.ts
+// ExperimentRun Service Layer (ARCHITECTURE.md §3.1 Service Layer)
 // UUID-Based Architecture: All operations use UUIDs
 
 import { prisma } from "@/lib/prisma";
@@ -12,47 +12,47 @@ import * as activityService from "@/services/activity.service";
 
 // ===== Type Definitions =====
 
-export interface TaskListParams {
+export interface ExperimentRunListParams {
   companyUuid: string;
-  projectUuid: string;
+  researchProjectUuid: string;
   skip: number;
   take: number;
   status?: string;
   priority?: string;
-  proposalUuids?: string[];
+  experimentDesignUuids?: string[];
 }
 
-export interface TaskCreateParams {
+export interface ExperimentRunCreateParams {
   companyUuid: string;
-  projectUuid: string;
+  researchProjectUuid: string;
   title: string;
   description?: string | null;
   priority?: string;
-  storyPoints?: number | null;
+  computeBudgetHours?: number | null;
   acceptanceCriteria?: string | null;  // acceptance criteria
-  proposalUuid?: string | null;
+  experimentDesignUuid?: string | null;
   createdByUuid: string;
 }
 
-export interface TaskClaimParams {
-  taskUuid: string;
+export interface ExperimentRunClaimParams {
+  runUuid: string;
   companyUuid: string;
   assigneeType: string;
   assigneeUuid: string;
   assignedByUuid?: string | null;
 }
 
-export interface TaskUpdateParams {
+export interface ExperimentRunUpdateParams {
   title?: string;
   description?: string | null;
   status?: string;
   priority?: string;
-  storyPoints?: number | null;
+  computeBudgetHours?: number | null;
   acceptanceCriteria?: string | null;  // acceptance criteria
 }
 
 // Dependency summary info
-export interface TaskDependencyInfo {
+export interface RunDependencyInfo {
   uuid: string;
   title: string;
   status: string;
@@ -87,13 +87,13 @@ export interface AcceptanceSummary {
   requiredPending: number;
 }
 
-export interface TaskResponse {
+export interface ExperimentRunResponse {
   uuid: string;
   title: string;
   description: string | null;
   status: string;
   priority: string;
-  storyPoints: number | null;
+  computeBudgetHours: number | null;
   acceptanceCriteria: string | null;  // acceptance criteria (Markdown, legacy)
   acceptanceCriteriaItems: AcceptanceCriterionResponse[];
   acceptanceStatus: string;  // not_started | in_progress | passed | failed
@@ -105,18 +105,18 @@ export interface TaskResponse {
     assignedAt: string | null;
     assignedBy: { type: string; uuid: string; name: string } | null;
   } | null;
-  proposalUuid: string | null;
+  experimentDesignUuid: string | null;
   project?: { uuid: string; name: string };
   createdBy: { type: string; uuid: string; name: string } | null;
-  dependsOn: TaskDependencyInfo[];
-  dependedBy: TaskDependencyInfo[];
+  dependsOn: RunDependencyInfo[];
+  dependedBy: RunDependencyInfo[];
   commentCount: number;
   createdAt: string;
   updatedAt: string;
 }
 
-// Task status transition rules (ARCHITECTURE.md §7.2)
-export const TASK_STATUS_TRANSITIONS: Record<string, string[]> = {
+// ExperimentRun status transition rules (ARCHITECTURE.md §7.2)
+export const EXPERIMENT_RUN_STATUS_TRANSITIONS: Record<string, string[]> = {
   open: ["assigned", "closed"],
   assigned: ["open", "in_progress", "closed"],
   in_progress: ["to_verify", "closed"],
@@ -126,8 +126,8 @@ export const TASK_STATUS_TRANSITIONS: Record<string, string[]> = {
 };
 
 // Validate whether a status transition is valid
-export function isValidTaskStatusTransition(from: string, to: string): boolean {
-  const allowed = TASK_STATUS_TRANSITIONS[from] || [];
+export function isValidExperimentRunStatusTransition(from: string, to: string): boolean {
+  const allowed = EXPERIMENT_RUN_STATUS_TRANSITIONS[from] || [];
   return allowed.includes(to);
 }
 
@@ -190,20 +190,20 @@ function formatCriterionResponse(
 // ===== Internal Helper Functions =====
 
 // Format a single Task into API response format
-async function formatTaskResponse(
+async function formatExperimentRunResponse(
   task: {
     uuid: string;
     title: string;
     description: string | null;
     status: string;
     priority: string;
-    storyPoints: number | null;
+    computeBudgetHours: number | null;
     acceptanceCriteria: string | null;
     assigneeType: string | null;
     assigneeUuid: string | null;
     assignedAt: Date | null;
     assignedByUuid: string | null;
-    proposalUuid: string | null;
+    experimentDesignUuid: string | null;
     createdByUuid: string;
     createdAt: Date;
     updatedAt: Date;
@@ -213,22 +213,22 @@ async function formatTaskResponse(
     acceptanceCriteriaItems?: Array<{ uuid: string; description: string; required: boolean; devStatus: string; devEvidence: string | null; devMarkedByType: string | null; devMarkedBy: string | null; devMarkedAt: Date | null; status: string; evidence: string | null; markedByType: string | null; markedBy: string | null; markedAt: Date | null; sortOrder: number }>;
   },
   commentCount: number = 0,
-): Promise<TaskResponse> {
+): Promise<ExperimentRunResponse> {
   const [assignee, createdBy] = await Promise.all([
     formatAssigneeComplete(task.assigneeType, task.assigneeUuid, task.assignedAt, task.assignedByUuid),
     formatCreatedBy(task.createdByUuid),
   ]);
 
-  const dependsOn: TaskDependencyInfo[] = (task.dependsOn || []).map((d) => ({
+  const dependsOn: RunDependencyInfo[] = (task.dependsOn || []).map((d) => ({
     uuid: d.dependsOn.uuid,
     title: d.dependsOn.title,
     status: d.dependsOn.status,
   }));
 
-  const dependedBy: TaskDependencyInfo[] = (task.dependedBy || []).map((d) => ({
-    uuid: d.task.uuid,
-    title: d.task.title,
-    status: d.task.status,
+  const dependedBy: RunDependencyInfo[] = (task.dependedBy || []).map((d) => ({
+    uuid: d.experimentRun.uuid,
+    title: d.experimentRun.title,
+    status: d.experimentRun.status,
   }));
 
   const criteriaItems = (task.acceptanceCriteriaItems || []).map(formatCriterionResponse);
@@ -242,13 +242,13 @@ async function formatTaskResponse(
     description: task.description,
     status: task.status,
     priority: task.priority,
-    storyPoints: task.storyPoints,
+    computeBudgetHours: task.computeBudgetHours,
     acceptanceCriteria: task.acceptanceCriteria,
     acceptanceCriteriaItems: criteriaItems,
     acceptanceStatus,
     acceptanceSummary,
     assignee,
-    proposalUuid: task.proposalUuid,
+    experimentDesignUuid: task.experimentDesignUuid,
     ...(task.project && { project: task.project }),
     createdBy,
     dependsOn,
@@ -260,19 +260,19 @@ async function formatTaskResponse(
 }
 
 // Batch format multiple tasks - 2 batch queries instead of N * (3-4) individual queries
-type RawTaskForBatch = {
+type RawExperimentRunForBatch = {
   uuid: string;
   title: string;
   description: string | null;
   status: string;
   priority: string;
-  storyPoints: number | null;
+  computeBudgetHours: number | null;
   acceptanceCriteria: string | null;
   assigneeType: string | null;
   assigneeUuid: string | null;
   assignedAt: Date | null;
   assignedByUuid: string | null;
-  proposalUuid: string | null;
+  experimentDesignUuid: string | null;
   createdByUuid: string;
   createdAt: Date;
   updatedAt: Date;
@@ -282,10 +282,10 @@ type RawTaskForBatch = {
   acceptanceCriteriaItems?: Array<{ uuid: string; description: string; required: boolean; devStatus: string; devEvidence: string | null; devMarkedByType: string | null; devMarkedBy: string | null; devMarkedAt: Date | null; status: string; evidence: string | null; markedByType: string | null; markedBy: string | null; markedAt: Date | null; sortOrder: number }>;
 };
 
-async function formatTaskResponsesBatch(
-  tasks: RawTaskForBatch[],
+async function formatExperimentRunResponsesBatch(
+  tasks: RawExperimentRunForBatch[],
   commentCounts: Record<string, number>,
-): Promise<TaskResponse[]> {
+): Promise<ExperimentRunResponse[]> {
   if (tasks.length === 0) return [];
 
   // Collect all unique actors for batch resolution
@@ -310,7 +310,7 @@ async function formatTaskResponsesBatch(
 
   // Build responses synchronously from lookup maps
   return tasks.map((task) => {
-    let assignee: TaskResponse["assignee"] = null;
+    let assignee: ExperimentRunResponse["assignee"] = null;
     if (task.assigneeType && task.assigneeUuid) {
       const assigneeName = actorNames.get(task.assigneeUuid);
       if (assigneeName) {
@@ -333,16 +333,16 @@ async function formatTaskResponsesBatch(
 
     const createdBy = createdByMap.get(task.createdByUuid) ?? null;
 
-    const dependsOn: TaskDependencyInfo[] = (task.dependsOn || []).map((d) => ({
+    const dependsOn: RunDependencyInfo[] = (task.dependsOn || []).map((d) => ({
       uuid: d.dependsOn.uuid,
       title: d.dependsOn.title,
       status: d.dependsOn.status,
     }));
 
-    const dependedBy: TaskDependencyInfo[] = (task.dependedBy || []).map((d) => ({
-      uuid: d.task.uuid,
-      title: d.task.title,
-      status: d.task.status,
+    const dependedBy: RunDependencyInfo[] = (task.dependedBy || []).map((d) => ({
+      uuid: d.experimentRun.uuid,
+      title: d.experimentRun.title,
+      status: d.experimentRun.status,
     }));
 
     const criteriaItems = (task.acceptanceCriteriaItems || []).map(formatCriterionResponse);
@@ -356,13 +356,13 @@ async function formatTaskResponsesBatch(
       description: task.description,
       status: task.status,
       priority: task.priority,
-      storyPoints: task.storyPoints,
+      computeBudgetHours: task.computeBudgetHours,
       acceptanceCriteria: task.acceptanceCriteria,
       acceptanceCriteriaItems: criteriaItems,
       acceptanceStatus,
       acceptanceSummary,
       assignee,
-      proposalUuid: task.proposalUuid,
+      experimentDesignUuid: task.experimentDesignUuid,
       ...(task.project && { project: task.project }),
       createdBy,
       dependsOn,
@@ -384,7 +384,7 @@ const dependencyInclude = {
   },
   dependedBy: {
     select: {
-      task: { select: { uuid: true, title: true, status: true } },
+      experimentRun: { select: { uuid: true, title: true, status: true } },
     },
   },
   acceptanceCriteriaItems: {
@@ -394,26 +394,26 @@ const dependencyInclude = {
 
 // ===== Service Methods =====
 
-// List tasks query
-export async function listTasks({
+// List experiment runs query
+export async function listExperimentRuns({
   companyUuid,
-  projectUuid,
+  researchProjectUuid,
   skip,
   take,
   status,
   priority,
-  proposalUuids,
-}: TaskListParams): Promise<{ tasks: TaskResponse[]; total: number }> {
+  experimentDesignUuids,
+}: ExperimentRunListParams): Promise<{ tasks: ExperimentRunResponse[]; total: number }> {
   const where = {
-    projectUuid,
+    researchProjectUuid,
     companyUuid,
     ...(status && { status }),
     ...(priority && { priority }),
-    ...(proposalUuids && proposalUuids.length > 0 && { proposalUuid: { in: proposalUuids } }),
+    ...(experimentDesignUuids && experimentDesignUuids.length > 0 && { experimentDesignUuid: { in: experimentDesignUuids } }),
   };
 
   const [rawTasks, total] = await Promise.all([
-    prisma.task.findMany({
+    prisma.experimentRun.findMany({
       where,
       skip,
       take,
@@ -424,40 +424,40 @@ export async function listTasks({
         description: true,
         status: true,
         priority: true,
-        storyPoints: true,
+        computeBudgetHours: true,
         acceptanceCriteria: true,
         assigneeType: true,
         assigneeUuid: true,
         assignedAt: true,
         assignedByUuid: true,
-        proposalUuid: true,
+        experimentDesignUuid: true,
         createdByUuid: true,
         createdAt: true,
         updatedAt: true,
         ...dependencyInclude,
       },
     }),
-    prisma.task.count({ where }),
+    prisma.experimentRun.count({ where }),
   ]);
 
   // Batch-fetch comment counts for all tasks in one query
   const commentCounts = await batchCommentCounts(
     companyUuid,
-    "task",
+    "experiment_run",
     rawTasks.map((t) => t.uuid),
   );
 
   // Batch format: 2 queries total instead of N * (3-4)
-  const tasks = await formatTaskResponsesBatch(rawTasks, commentCounts);
+  const tasks = await formatExperimentRunResponsesBatch(rawTasks, commentCounts);
   return { tasks, total };
 }
 
-// Get Task details
-export async function getTask(
+// Get ExperimentRun details
+export async function getExperimentRun(
   companyUuid: string,
   uuid: string
-): Promise<TaskResponse | null> {
-  const task = await prisma.task.findFirst({
+): Promise<ExperimentRunResponse | null> {
+  const task = await prisma.experimentRun.findFirst({
     where: { uuid, companyUuid },
     include: {
       project: { select: { uuid: true, name: true } },
@@ -468,32 +468,32 @@ export async function getTask(
   if (!task) return null;
 
   const commentCount = await prisma.comment.count({
-    where: { companyUuid, targetType: "task", targetUuid: uuid },
+    where: { companyUuid, targetType: "experiment_run", targetUuid: uuid },
   });
 
-  return formatTaskResponse(task, commentCount);
+  return formatExperimentRunResponse(task, commentCount);
 }
 
 // Get raw Task data by UUID (internal use, for permission checks etc.)
-export async function getTaskByUuid(companyUuid: string, uuid: string) {
-  return prisma.task.findFirst({
+export async function getExperimentRunByUuid(companyUuid: string, uuid: string) {
+  return prisma.experimentRun.findFirst({
     where: { uuid, companyUuid },
   });
 }
 
-// Create Task
-export async function createTask(params: TaskCreateParams): Promise<TaskResponse> {
-  const task = await prisma.task.create({
+// Create ExperimentRun
+export async function createExperimentRun(params: ExperimentRunCreateParams): Promise<ExperimentRunResponse> {
+  const task = await prisma.experimentRun.create({
     data: {
       companyUuid: params.companyUuid,
-      projectUuid: params.projectUuid,
+      researchProjectUuid: params.researchProjectUuid,
       title: params.title,
       description: params.description,
       status: "open",
       priority: params.priority || "medium",
-      storyPoints: params.storyPoints,
+      computeBudgetHours: params.computeBudgetHours,
       acceptanceCriteria: params.acceptanceCriteria,
-      proposalUuid: params.proposalUuid,
+      experimentDesignUuid: params.experimentDesignUuid,
       createdByUuid: params.createdByUuid,
     },
     select: {
@@ -502,34 +502,34 @@ export async function createTask(params: TaskCreateParams): Promise<TaskResponse
       description: true,
       status: true,
       priority: true,
-      storyPoints: true,
+      computeBudgetHours: true,
       acceptanceCriteria: true,
       assigneeType: true,
       assigneeUuid: true,
       assignedAt: true,
       assignedByUuid: true,
-      proposalUuid: true,
+      experimentDesignUuid: true,
       createdByUuid: true,
       createdAt: true,
       updatedAt: true,
     },
   });
 
-  eventBus.emitChange({ companyUuid: params.companyUuid, projectUuid: params.projectUuid, entityType: "task", entityUuid: task.uuid, action: "created" });
+  eventBus.emitChange({ companyUuid: params.companyUuid, researchProjectUuid: params.researchProjectUuid, entityType: "experiment_run", entityUuid: task.uuid, action: "created" });
 
-  return formatTaskResponse(task);
+  return formatExperimentRunResponse(task);
 }
 
-// Update Task
-export async function updateTask(
+// Update ExperimentRun
+export async function updateExperimentRun(
   uuid: string,
-  data: TaskUpdateParams,
+  data: ExperimentRunUpdateParams,
   actorContext?: { actorType: string; actorUuid: string }
-): Promise<TaskResponse> {
+): Promise<ExperimentRunResponse> {
   // If description is being updated and we have actor context, capture old description for mention diffing
   let oldDescription: string | null = null;
   if (data.description !== undefined && actorContext) {
-    const existing = await prisma.task.findUnique({ where: { uuid }, select: { description: true } });
+    const existing = await prisma.experimentRun.findUnique({ where: { uuid }, select: { description: true } });
     oldDescription = existing?.description ?? null;
   }
 
@@ -540,7 +540,7 @@ export async function updateTask(
       const current = await tx.task.findUnique({ where: { uuid }, select: { status: true } });
       if (current?.status === "to_verify") {
         await tx.acceptanceCriterion.updateMany({
-          where: { taskUuid: uuid },
+          where: { runUuid: uuid },
           data: {
             status: "pending",
             evidence: null,
@@ -566,37 +566,37 @@ export async function updateTask(
     });
   });
 
-  eventBus.emitChange({ companyUuid: task.companyUuid, projectUuid: task.project.uuid, entityType: "task", entityUuid: task.uuid, action: "updated" });
+  eventBus.emitChange({ companyUuid: task.companyUuid, researchProjectUuid: task.project.uuid, entityType: "experiment_run", entityUuid: task.uuid, action: "updated" });
 
   // Process new @mentions in description (append-only: only new mentions)
   if (data.description !== undefined && actorContext && data.description) {
     processNewMentions(
       task.companyUuid,
       task.project.uuid,
-      "task",
+      "experiment_run",
       task.uuid,
       task.title,
       oldDescription,
       data.description,
       actorContext.actorType,
       actorContext.actorUuid,
-    ).catch((err) => console.error("[Task] Failed to process mentions:", err));
+    ).catch((err) => console.error("[ExperimentRun] Failed to process mentions:", err));
   }
 
-  return formatTaskResponse(task);
+  return formatExperimentRunResponse(task);
 }
 
-// Claim Task (atomic: only succeeds if status is "open")
-export async function claimTask({
-  taskUuid,
+// Claim ExperimentRun (atomic: only succeeds if status is "open")
+export async function claimExperimentRun({
+  runUuid,
   companyUuid,
   assigneeType,
   assigneeUuid,
   assignedByUuid,
-}: TaskClaimParams): Promise<TaskResponse> {
+}: ExperimentRunClaimParams): Promise<ExperimentRunResponse> {
   try {
-    const task = await prisma.task.update({
-      where: { uuid: taskUuid, status: "open" },
+    const task = await prisma.experimentRun.update({
+      where: { uuid: runUuid, status: "open" },
       data: {
         status: "assigned",
         assigneeType,
@@ -609,21 +609,21 @@ export async function claimTask({
       },
     });
 
-    eventBus.emitChange({ companyUuid: task.companyUuid, projectUuid: task.project.uuid, entityType: "task", entityUuid: task.uuid, action: "updated" });
+    eventBus.emitChange({ companyUuid: task.companyUuid, researchProjectUuid: task.project.uuid, entityType: "experiment_run", entityUuid: task.uuid, action: "updated" });
 
-    return formatTaskResponse(task);
+    return formatExperimentRunResponse(task);
   } catch (e: unknown) {
     if (isPrismaNotFound(e)) {
-      throw new AlreadyClaimedError("Task");
+      throw new AlreadyClaimedError("ExperimentRun");
     }
     throw e;
   }
 }
 
-// Release Task (atomic: only succeeds if status is "assigned")
-export async function releaseTask(uuid: string): Promise<TaskResponse> {
+// Release ExperimentRun (atomic: only succeeds if status is "assigned")
+export async function releaseExperimentRun(uuid: string): Promise<ExperimentRunResponse> {
   try {
-    const task = await prisma.task.update({
+    const task = await prisma.experimentRun.update({
       where: { uuid, status: "assigned" },
       data: {
         status: "open",
@@ -637,47 +637,47 @@ export async function releaseTask(uuid: string): Promise<TaskResponse> {
       },
     });
 
-    eventBus.emitChange({ companyUuid: task.companyUuid, projectUuid: task.project.uuid, entityType: "task", entityUuid: task.uuid, action: "updated" });
+    eventBus.emitChange({ companyUuid: task.companyUuid, researchProjectUuid: task.project.uuid, entityType: "experiment_run", entityUuid: task.uuid, action: "updated" });
 
-    return formatTaskResponse(task);
+    return formatExperimentRunResponse(task);
   } catch (e: unknown) {
     if (isPrismaNotFound(e)) {
-      throw new NotClaimedError("Task");
+      throw new NotClaimedError("ExperimentRun");
     }
     throw e;
   }
 }
 
-// Delete Task
-export async function deleteTask(uuid: string) {
-  const task = await prisma.task.delete({ where: { uuid } });
-  eventBus.emitChange({ companyUuid: task.companyUuid, projectUuid: task.projectUuid, entityType: "task", entityUuid: task.uuid, action: "deleted" });
+// Delete ExperimentRun
+export async function deleteExperimentRun(uuid: string) {
+  const task = await prisma.experimentRun.delete({ where: { uuid } });
+  eventBus.emitChange({ companyUuid: task.companyUuid, researchProjectUuid: task.researchProjectUuid, entityType: "experiment_run", entityUuid: task.uuid, action: "deleted" });
   return task;
 }
 
-// Batch create Tasks (used for Proposal approval)
+// Batch create ExperimentRuns (used for Proposal approval)
 // Accepts a task list with draftUuids, returns { tasks, draftToTaskUuidMap }
-export async function createTasksFromProposal(
+export async function createExperimentRunsFromDesign(
   companyUuid: string,
-  projectUuid: string,
-  proposalUuid: string,
+  researchProjectUuid: string,
+  experimentDesignUuid: string,
   createdByUuid: string,
-  tasks: Array<{ uuid?: string; title: string; description?: string; priority?: string; storyPoints?: number; acceptanceCriteria?: string }>
-): Promise<{ tasks: TaskResponse[]; draftToTaskUuidMap: Map<string, string> }> {
+  tasks: Array<{ uuid?: string; title: string; description?: string; priority?: string; computeBudgetHours?: number; acceptanceCriteria?: string }>
+): Promise<{ tasks: ExperimentRunResponse[]; draftToTaskUuidMap: Map<string, string> }> {
   const draftToTaskUuidMap = new Map<string, string>();
 
   const createPromises = tasks.map((task) =>
-    prisma.task.create({
+    prisma.experimentRun.create({
       data: {
         companyUuid,
-        projectUuid,
+        researchProjectUuid,
         title: task.title,
         description: task.description || null,
         status: "open",
         priority: task.priority || "medium",
-        storyPoints: task.storyPoints || null,
+        computeBudgetHours: task.computeBudgetHours || null,
         acceptanceCriteria: task.acceptanceCriteria || null,
-        proposalUuid,
+        experimentDesignUuid,
         createdByUuid,
       },
       select: {
@@ -686,13 +686,13 @@ export async function createTasksFromProposal(
         description: true,
         status: true,
         priority: true,
-        storyPoints: true,
+        computeBudgetHours: true,
         acceptanceCriteria: true,
         assigneeType: true,
         assigneeUuid: true,
         assignedAt: true,
         assignedByUuid: true,
-        proposalUuid: true,
+        experimentDesignUuid: true,
         createdByUuid: true,
         createdAt: true,
         updatedAt: true,
@@ -702,14 +702,14 @@ export async function createTasksFromProposal(
 
   const rawTasks = await Promise.all(createPromises);
 
-  // Build draftUuid → taskUuid mapping
+  // Build draftUuid → runUuid mapping
   for (let i = 0; i < tasks.length; i++) {
     if (tasks[i].uuid) {
       draftToTaskUuidMap.set(tasks[i].uuid!, rawTasks[i].uuid);
     }
   }
 
-  const formattedTasks = await Promise.all(rawTasks.map(formatTaskResponse));
+  const formattedTasks = await Promise.all(rawTasks.map(formatExperimentRunResponse));
   return { tasks: formattedTasks, draftToTaskUuidMap };
 }
 
@@ -717,7 +717,7 @@ export async function createTasksFromProposal(
 
 // Bulk create acceptance criteria for a task (used by proposal approval flow)
 export async function createAcceptanceCriteria(
-  taskUuid: string,
+  runUuid: string,
   items: Array<{ description: string; required?: boolean; sortOrder?: number }>,
 ): Promise<AcceptanceCriterionResponse[]> {
   if (items.length === 0) return [];
@@ -725,7 +725,7 @@ export async function createAcceptanceCriteria(
   const createPromises = items.map((item, index) =>
     prisma.acceptanceCriterion.create({
       data: {
-        taskUuid,
+        runUuid,
         description: item.description,
         required: item.required ?? true,
         sortOrder: item.sortOrder ?? index,
@@ -740,20 +740,20 @@ export async function createAcceptanceCriteria(
 // Admin/user marks verification status on acceptance criteria
 export async function markAcceptanceCriteria(
   companyUuid: string,
-  taskUuid: string,
+  runUuid: string,
   criteria: Array<{ uuid: string; status: "passed" | "failed"; evidence?: string }>,
   auth: { type: string; actorUuid: string },
 ): Promise<{ items: AcceptanceCriterionResponse[]; status: string; summary: AcceptanceSummary }> {
   // Validate task belongs to company
-  const task = await prisma.task.findFirst({ where: { uuid: taskUuid, companyUuid } });
-  if (!task) throw new Error("Task not found");
+  const task = await prisma.experimentRun.findFirst({ where: { uuid: runUuid, companyUuid } });
+  if (!task) throw new Error("ExperimentRun not found");
 
   // Pre-validate all criterion UUIDs belong to this task
   const validUuids = new Set(
-    (await prisma.acceptanceCriterion.findMany({ where: { taskUuid }, select: { uuid: true } })).map((r) => r.uuid),
+    (await prisma.acceptanceCriterion.findMany({ where: { runUuid }, select: { uuid: true } })).map((r) => r.uuid),
   );
   for (const c of criteria) {
-    if (!validUuids.has(c.uuid)) throw new Error(`Criterion ${c.uuid} does not belong to task ${taskUuid}`);
+    if (!validUuids.has(c.uuid)) throw new Error(`Criterion ${c.uuid} does not belong to task ${runUuid}`);
   }
 
   // Update each criterion
@@ -771,29 +771,29 @@ export async function markAcceptanceCriteria(
   }
 
   // Notify UI of criteria change
-  eventBus.emitChange({ companyUuid, projectUuid: task.projectUuid, entityType: "task", entityUuid: taskUuid, action: "updated" });
+  eventBus.emitChange({ companyUuid, researchProjectUuid: task.researchProjectUuid, entityType: "experiment_run", entityUuid: runUuid, action: "updated" });
 
   // Return updated state
-  return getAcceptanceStatus(companyUuid, taskUuid);
+  return getAcceptanceStatus(companyUuid, runUuid);
 }
 
 // Dev agent reports self-check on acceptance criteria
 export async function reportCriteriaSelfCheck(
   companyUuid: string,
-  taskUuid: string,
+  runUuid: string,
   criteria: Array<{ uuid: string; devStatus: "passed" | "failed"; devEvidence?: string }>,
   auth: { type: string; actorUuid: string },
 ): Promise<{ items: AcceptanceCriterionResponse[]; status: string; summary: AcceptanceSummary }> {
   // Validate task belongs to company
-  const task = await prisma.task.findFirst({ where: { uuid: taskUuid, companyUuid } });
-  if (!task) throw new Error("Task not found");
+  const task = await prisma.experimentRun.findFirst({ where: { uuid: runUuid, companyUuid } });
+  if (!task) throw new Error("ExperimentRun not found");
 
   // Pre-validate all criterion UUIDs belong to this task
   const validUuids = new Set(
-    (await prisma.acceptanceCriterion.findMany({ where: { taskUuid }, select: { uuid: true } })).map((r) => r.uuid),
+    (await prisma.acceptanceCriterion.findMany({ where: { runUuid }, select: { uuid: true } })).map((r) => r.uuid),
   );
   for (const c of criteria) {
-    if (!validUuids.has(c.uuid)) throw new Error(`Criterion ${c.uuid} does not belong to task ${taskUuid}`);
+    if (!validUuids.has(c.uuid)) throw new Error(`Criterion ${c.uuid} does not belong to task ${runUuid}`);
   }
 
   // Update each criterion
@@ -811,23 +811,23 @@ export async function reportCriteriaSelfCheck(
   }
 
   // Notify UI of criteria change
-  eventBus.emitChange({ companyUuid, projectUuid: task.projectUuid, entityType: "task", entityUuid: taskUuid, action: "updated" });
+  eventBus.emitChange({ companyUuid, researchProjectUuid: task.researchProjectUuid, entityType: "experiment_run", entityUuid: runUuid, action: "updated" });
 
   // Return updated state
-  return getAcceptanceStatus(companyUuid, taskUuid);
+  return getAcceptanceStatus(companyUuid, runUuid);
 }
 
 // Reset a single acceptance criterion back to pending (admin/user undo)
 export async function resetAcceptanceCriterion(
   companyUuid: string,
-  taskUuid: string,
+  runUuid: string,
   criterionUuid: string,
 ): Promise<void> {
-  const task = await prisma.task.findFirst({ where: { uuid: taskUuid, companyUuid } });
-  if (!task) throw new Error("Task not found");
+  const task = await prisma.experimentRun.findFirst({ where: { uuid: runUuid, companyUuid } });
+  if (!task) throw new Error("ExperimentRun not found");
 
   // Validate criterion belongs to this task
-  const criterion = await prisma.acceptanceCriterion.findFirst({ where: { uuid: criterionUuid, taskUuid } });
+  const criterion = await prisma.acceptanceCriterion.findFirst({ where: { uuid: criterionUuid, runUuid } });
   if (!criterion) throw new Error("Criterion not found for this task");
 
   await prisma.acceptanceCriterion.update({
@@ -841,20 +841,20 @@ export async function resetAcceptanceCriterion(
     },
   });
 
-  eventBus.emitChange({ companyUuid, projectUuid: task.projectUuid, entityType: "task", entityUuid: taskUuid, action: "updated" });
+  eventBus.emitChange({ companyUuid, researchProjectUuid: task.researchProjectUuid, entityType: "experiment_run", entityUuid: runUuid, action: "updated" });
 }
 
 // Get acceptance status for a task
 export async function getAcceptanceStatus(
   companyUuid: string,
-  taskUuid: string,
+  runUuid: string,
 ): Promise<{ items: AcceptanceCriterionResponse[]; status: string; summary: AcceptanceSummary }> {
   // Validate task belongs to company
-  const task = await prisma.task.findFirst({ where: { uuid: taskUuid, companyUuid } });
-  if (!task) throw new Error("Task not found");
+  const task = await prisma.experimentRun.findFirst({ where: { uuid: runUuid, companyUuid } });
+  if (!task) throw new Error("ExperimentRun not found");
 
   const rows = await prisma.acceptanceCriterion.findMany({
-    where: { taskUuid },
+    where: { runUuid },
     orderBy: { sortOrder: "asc" },
   });
 
@@ -866,10 +866,10 @@ export async function getAcceptanceStatus(
 
 // Check acceptance criteria gate for verify→done transition
 export async function checkAcceptanceCriteriaGate(
-  taskUuid: string,
+  runUuid: string,
 ): Promise<{ allowed: boolean; reason?: string; summary?: AcceptanceSummary; unresolvedCriteria?: AcceptanceCriterionResponse[] }> {
   const rows = await prisma.acceptanceCriterion.findMany({
-    where: { taskUuid },
+    where: { runUuid },
     orderBy: { sortOrder: "asc" },
   });
 
@@ -905,8 +905,8 @@ export async function checkAcceptanceCriteriaGate(
 // Process new @mentions by diffing old vs new content
 async function processNewMentions(
   companyUuid: string,
-  projectUuid: string,
-  sourceType: "task" | "idea",
+  researchProjectUuid: string,
+  sourceType: "experiment_run" | "idea",
   sourceUuid: string,
   entityTitle: string,
   oldContent: string | null,
@@ -936,7 +936,7 @@ async function processNewMentions(
     content: newContent,
     actorType,
     actorUuid,
-    projectUuid,
+    researchProjectUuid,
     entityTitle,
   });
 
@@ -945,7 +945,7 @@ async function processNewMentions(
     if (mention.type === actorType && mention.uuid === actorUuid) continue;
     await activityService.createActivity({
       companyUuid,
-      projectUuid,
+      researchProjectUuid,
       targetType: sourceType,
       targetUuid: sourceUuid,
       actorType,
@@ -970,22 +970,22 @@ async function wouldCreateCycle(
   targetUuid: string
 ): Promise<boolean> {
   // Get all dependency edges within the project
-  const allDeps = await prisma.taskDependency.findMany({
-    select: { taskUuid: true, dependsOnUuid: true },
+  const allDeps = await prisma.runDependency.findMany({
+    select: { runUuid: true, dependsOnRunUuid: true },
   });
 
-  // Build adjacency list: taskUuid depends on dependsOnUuid
-  // If adding edge: taskUuid=targetUuid -> dependsOnUuid=startUuid
+  // Build adjacency list: runUuid depends on dependsOnRunUuid
+  // If adding edge: runUuid=targetUuid -> dependsOnRunUuid=startUuid
   // Need to check if startUuid can reach targetUuid via existing edges
   const adjacency = new Map<string, string[]>();
   for (const dep of allDeps) {
-    if (!adjacency.has(dep.taskUuid)) {
-      adjacency.set(dep.taskUuid, []);
+    if (!adjacency.has(dep.runUuid)) {
+      adjacency.set(dep.runUuid, []);
     }
-    adjacency.get(dep.taskUuid)!.push(dep.dependsOnUuid);
+    adjacency.get(dep.runUuid)!.push(dep.dependsOnRunUuid);
   }
 
-  // DFS from startUuid following existing edges (taskUuid -> dependsOnUuid)
+  // DFS from startUuid following existing edges (runUuid -> dependsOnRunUuid)
   const visited = new Set<string>();
   const stack = [startUuid];
 
@@ -1006,70 +1006,70 @@ async function wouldCreateCycle(
   return false;
 }
 
-// Add task dependency
-export async function addTaskDependency(
+// Add run dependency
+export async function addRunDependency(
   companyUuid: string,
-  taskUuid: string,
-  dependsOnUuid: string
-): Promise<{ taskUuid: string; dependsOnUuid: string; createdAt: Date }> {
+  runUuid: string,
+  dependsOnRunUuid: string
+): Promise<{ runUuid: string; dependsOnRunUuid: string; createdAt: Date }> {
   // Cannot depend on itself
-  if (taskUuid === dependsOnUuid) {
-    throw new Error("A task cannot depend on itself");
+  if (runUuid === dependsOnRunUuid) {
+    throw new Error("An experiment run cannot depend on itself");
   }
 
   // Verify both tasks exist and belong to the same project
   const [task, dependsOnTask] = await Promise.all([
-    prisma.task.findFirst({ where: { uuid: taskUuid, companyUuid } }),
-    prisma.task.findFirst({ where: { uuid: dependsOnUuid, companyUuid } }),
+    prisma.experimentRun.findFirst({ where: { uuid: runUuid, companyUuid } }),
+    prisma.experimentRun.findFirst({ where: { uuid: dependsOnRunUuid, companyUuid } }),
   ]);
 
-  if (!task) throw new Error("Task not found");
-  if (!dependsOnTask) throw new Error("Dependency task not found");
+  if (!task) throw new Error("ExperimentRun not found");
+  if (!dependsOnTask) throw new Error("Dependency experiment run not found");
 
-  if (task.projectUuid !== dependsOnTask.projectUuid) {
-    throw new Error("Tasks must belong to the same project");
+  if (task.researchProjectUuid !== dependsOnTask.researchProjectUuid) {
+    throw new Error("Experiment runs must belong to the same project");
   }
 
-  // Cycle detection: if adding the edge taskUuid -> dependsOnUuid,
-  // check if dependsOnUuid can reach taskUuid via existing edges (forming a cycle)
-  const cycleDetected = await wouldCreateCycle(dependsOnUuid, taskUuid);
+  // Cycle detection: if adding the edge runUuid -> dependsOnRunUuid,
+  // check if dependsOnRunUuid can reach runUuid via existing edges (forming a cycle)
+  const cycleDetected = await wouldCreateCycle(dependsOnRunUuid, runUuid);
   if (cycleDetected) {
     throw new Error("Adding this dependency would create a cycle");
   }
 
-  const dep = await prisma.taskDependency.create({
-    data: { taskUuid, dependsOnUuid },
+  const dep = await prisma.runDependency.create({
+    data: { runUuid, dependsOnRunUuid },
   });
 
-  return { taskUuid: dep.taskUuid, dependsOnUuid: dep.dependsOnUuid, createdAt: dep.createdAt };
+  return { runUuid: dep.runUuid, dependsOnRunUuid: dep.dependsOnRunUuid, createdAt: dep.createdAt };
 }
 
-// Remove task dependency
-export async function removeTaskDependency(
+// Remove run dependency
+export async function removeRunDependency(
   companyUuid: string,
-  taskUuid: string,
-  dependsOnUuid: string
+  runUuid: string,
+  dependsOnRunUuid: string
 ): Promise<void> {
   // Verify task belongs to this company
-  const task = await prisma.task.findFirst({ where: { uuid: taskUuid, companyUuid } });
-  if (!task) throw new Error("Task not found");
+  const task = await prisma.experimentRun.findFirst({ where: { uuid: runUuid, companyUuid } });
+  if (!task) throw new Error("ExperimentRun not found");
 
-  await prisma.taskDependency.deleteMany({
-    where: { taskUuid, dependsOnUuid },
+  await prisma.runDependency.deleteMany({
+    where: { runUuid, dependsOnRunUuid },
   });
 }
 
-// Get task dependencies
-export async function getTaskDependencies(
+// Get run dependencies
+export async function getRunDependencies(
   companyUuid: string,
-  taskUuid: string
-): Promise<{ dependsOn: TaskDependencyInfo[]; dependedBy: TaskDependencyInfo[] }> {
-  const task = await prisma.task.findFirst({
-    where: { uuid: taskUuid, companyUuid },
+  runUuid: string
+): Promise<{ dependsOn: RunDependencyInfo[]; dependedBy: RunDependencyInfo[] }> {
+  const task = await prisma.experimentRun.findFirst({
+    where: { uuid: runUuid, companyUuid },
     include: dependencyInclude,
   });
 
-  if (!task) throw new Error("Task not found");
+  if (!task) throw new Error("ExperimentRun not found");
 
   return {
     dependsOn: task.dependsOn.map((d) => ({
@@ -1078,28 +1078,28 @@ export async function getTaskDependencies(
       status: d.dependsOn.status,
     })),
     dependedBy: task.dependedBy.map((d) => ({
-      uuid: d.task.uuid,
-      title: d.task.title,
-      status: d.task.status,
+      uuid: d.experimentRun.uuid,
+      title: d.experimentRun.title,
+      status: d.experimentRun.status,
     })),
   };
 }
 
-// Get unblocked tasks (all dependencies are resolved)
-export async function getUnblockedTasks({
+// Get unblocked experiment runs (all dependencies are resolved)
+export async function getUnblockedExperimentRuns({
   companyUuid,
-  projectUuid,
-  proposalUuids,
+  researchProjectUuid,
+  experimentDesignUuids,
 }: {
   companyUuid: string;
-  projectUuid: string;
-  proposalUuids?: string[];
-}): Promise<{ tasks: TaskResponse[]; total: number }> {
+  researchProjectUuid: string;
+  experimentDesignUuids?: string[];
+}): Promise<{ tasks: ExperimentRunResponse[]; total: number }> {
   const where = {
-    projectUuid,
+    researchProjectUuid,
     companyUuid,
     status: { in: ["open", "assigned"] },
-    ...(proposalUuids && proposalUuids.length > 0 && { proposalUuid: { in: proposalUuids } }),
+    ...(experimentDesignUuids && experimentDesignUuids.length > 0 && { experimentDesignUuid: { in: experimentDesignUuids } }),
     // Exclude tasks that have any dependency NOT in done/closed
     NOT: {
       dependsOn: {
@@ -1113,7 +1113,7 @@ export async function getUnblockedTasks({
   };
 
   const [rawTasks, total] = await Promise.all([
-    prisma.task.findMany({
+    prisma.experimentRun.findMany({
       where,
       orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
       select: {
@@ -1122,30 +1122,30 @@ export async function getUnblockedTasks({
         description: true,
         status: true,
         priority: true,
-        storyPoints: true,
+        computeBudgetHours: true,
         acceptanceCriteria: true,
         assigneeType: true,
         assigneeUuid: true,
         assignedAt: true,
         assignedByUuid: true,
-        proposalUuid: true,
+        experimentDesignUuid: true,
         createdByUuid: true,
         createdAt: true,
         updatedAt: true,
         ...dependencyInclude,
       },
     }),
-    prisma.task.count({ where }),
+    prisma.experimentRun.count({ where }),
   ]);
 
   const commentCounts = await batchCommentCounts(
     companyUuid,
-    "task",
+    "experiment_run",
     rawTasks.map((t) => t.uuid),
   );
 
   // Batch format: 2 queries total instead of N * (3-4)
-  const tasks = await formatTaskResponsesBatch(rawTasks, commentCounts);
+  const tasks = await formatExperimentRunResponsesBatch(rawTasks, commentCounts);
   return { tasks, total };
 }
 
@@ -1160,10 +1160,10 @@ export interface BlockerInfo {
 
 // Check if all dependencies of a task are resolved (done or closed)
 export async function checkDependenciesResolved(
-  taskUuid: string
+  runUuid: string
 ): Promise<{ resolved: boolean; blockers: BlockerInfo[] }> {
-  const deps = await prisma.taskDependency.findMany({
-    where: { taskUuid },
+  const deps = await prisma.runDependency.findMany({
+    where: { runUuid },
     select: {
       dependsOn: {
         select: {
@@ -1193,13 +1193,13 @@ export async function checkDependenciesResolved(
   const unresolvedUuids = unresolvedDeps.map((d) => d.dependsOn.uuid);
 
   const [checkins, actorNames] = await Promise.all([
-    prisma.sessionTaskCheckin.findMany({
+    prisma.sessionRunCheckin.findMany({
       where: {
-        taskUuid: { in: unresolvedUuids },
+        runUuid: { in: unresolvedUuids },
         checkoutAt: null,
       },
       select: {
-        taskUuid: true,
+        runUuid: true,
         sessionUuid: true,
         session: { select: { name: true } },
       },
@@ -1211,10 +1211,10 @@ export async function checkDependenciesResolved(
     ),
   ]);
 
-  // Build checkin lookup by taskUuid
+  // Build checkin lookup by runUuid
   const checkinMap = new Map<string, { sessionUuid: string; sessionName: string }>();
   for (const c of checkins) {
-    checkinMap.set(c.taskUuid, { sessionUuid: c.sessionUuid, sessionName: c.session.name });
+    checkinMap.set(c.runUuid, { sessionUuid: c.sessionUuid, sessionName: c.session.name });
   }
 
   const blockers: BlockerInfo[] = unresolvedDeps.map((d) => {
@@ -1239,24 +1239,24 @@ export async function checkDependenciesResolved(
   return { resolved: false, blockers };
 }
 
-// Get all task dependencies within a project (for DAG visualization)
-export async function getProjectTaskDependencies(
+// Get all run dependencies within a project (for DAG visualization)
+export async function getProjectRunDependencies(
   companyUuid: string,
-  projectUuid: string
+  researchProjectUuid: string
 ): Promise<{
-  nodes: Array<{ uuid: string; title: string; status: string; priority: string; proposalUuid: string | null }>;
+  nodes: Array<{ uuid: string; title: string; status: string; priority: string; experimentDesignUuid: string | null }>;
   edges: Array<{ from: string; to: string }>;
 }> {
   const [tasks, dependencies] = await Promise.all([
-    prisma.task.findMany({
-      where: { companyUuid, projectUuid },
-      select: { uuid: true, title: true, status: true, priority: true, proposalUuid: true },
+    prisma.experimentRun.findMany({
+      where: { companyUuid, researchProjectUuid },
+      select: { uuid: true, title: true, status: true, priority: true, experimentDesignUuid: true },
     }),
-    prisma.taskDependency.findMany({
+    prisma.runDependency.findMany({
       where: {
-        task: { companyUuid, projectUuid },
+        experimentRun: { companyUuid, researchProjectUuid },
       },
-      select: { taskUuid: true, dependsOnUuid: true },
+      select: { runUuid: true, dependsOnRunUuid: true },
     }),
   ]);
 
@@ -1266,11 +1266,11 @@ export async function getProjectTaskDependencies(
       title: t.title,
       status: t.status,
       priority: t.priority,
-      proposalUuid: t.proposalUuid ?? null,
+      experimentDesignUuid: t.experimentDesignUuid ?? null,
     })),
     edges: dependencies.map((d) => ({
-      from: d.taskUuid,
-      to: d.dependsOnUuid,
+      from: d.runUuid,
+      to: d.dependsOnRunUuid,
     })),
   };
 }

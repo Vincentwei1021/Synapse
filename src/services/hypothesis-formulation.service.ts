@@ -1,5 +1,5 @@
-// src/services/elaboration.service.ts
-// Elaboration Service Layer — AI-DLC Stage 3 (Requirements Clarification)
+// src/services/hypothesis-formulation.service.ts
+// HypothesisFormulation Service Layer — AI-DLC Stage 3 (Hypothesis Formulation)
 
 import { prisma } from "@/lib/prisma";
 import { eventBus } from "@/lib/event-bus";
@@ -8,18 +8,18 @@ import {
   type QuestionInput,
   type AnswerInput,
   type ValidationIssueInput,
-  type ElaborationDepth,
-  type ElaborationResponse,
-  type ElaborationRoundResponse,
-  type ElaborationQuestionResponse,
+  type HypothesisFormulationDepth,
+  type HypothesisFormulationResponse,
+  type HypothesisFormulationRoundResponse,
+  type HypothesisFormulationQuestionResponse,
   type QuestionOption,
-} from "@/types/elaboration";
+} from "@/types/hypothesis-formulation";
 
-// ===== Start Elaboration =====
+// ===== Start HypothesisFormulation =====
 
-export async function startElaboration({
+export async function startHypothesisFormulation({
   companyUuid,
-  ideaUuid,
+  researchQuestionUuid,
   actorUuid,
   actorType,
   depth,
@@ -27,45 +27,45 @@ export async function startElaboration({
   projectUuid,
 }: {
   companyUuid: string;
-  ideaUuid: string;
+  researchQuestionUuid: string;
   actorUuid: string;
   actorType: string;
-  depth: ElaborationDepth;
+  depth: HypothesisFormulationDepth;
   questions: QuestionInput[];
   projectUuid?: string;
-}): Promise<ElaborationRoundResponse> {
+}): Promise<HypothesisFormulationRoundResponse> {
   // Validate questions format
   validateQuestionsFormat(questions);
 
   // Load idea and verify ownership + status
-  const idea = await prisma.idea.findFirst({
-    where: { uuid: ideaUuid, companyUuid },
+  const idea = await prisma.researchQuestion.findFirst({
+    where: { uuid: researchQuestionUuid, companyUuid },
   });
-  if (!idea) throw new Error("Idea not found");
+  if (!idea) throw new Error("ResearchQuestion not found");
   if (idea.assigneeUuid !== actorUuid) {
-    throw new Error("Only the assigned agent can start elaboration");
+    throw new Error("Only the assigned agent can start hypothesis formulation");
   }
   if (idea.status !== "elaborating") {
     throw new Error(
-      `Cannot start elaboration from status '${idea.status}'. Idea must be in 'elaborating' status (claim it first).`
+      `Cannot start hypothesis formulation from status '${idea.status}'. Idea must be in 'elaborating' status (claim it first).`
     );
   }
 
   // Determine round number
-  const existingRounds = await prisma.elaborationRound.count({
-    where: { ideaUuid, companyUuid },
+  const existingRounds = await prisma.hypothesisFormulation.count({
+    where: { researchQuestionUuid, companyUuid },
   });
   const roundNumber = existingRounds + 1;
 
   if (roundNumber > 5) {
-    throw new Error("Maximum 5 elaboration rounds per Idea");
+    throw new Error("Maximum 5 hypothesis formulation rounds per ResearchQuestion");
   }
 
   // Create round + questions
-  const created = await prisma.elaborationRound.create({
+  const created = await prisma.hypothesisFormulation.create({
     data: {
       companyUuid,
-      ideaUuid,
+      researchQuestionUuid,
       roundNumber,
       status: "pending_answers",
       createdByType: actorType,
@@ -83,14 +83,14 @@ export async function startElaboration({
   });
 
   // Reload with questions for response formatting
-  const round = await prisma.elaborationRound.findUniqueOrThrow({
+  const round = await prisma.hypothesisFormulation.findUniqueOrThrow({
     where: { uuid: created.uuid },
     include: { questions: true },
   });
 
   // Update idea status + elaboration fields
-  await prisma.idea.update({
-    where: { uuid: ideaUuid },
+  await prisma.researchQuestion.update({
+    where: { uuid: researchQuestionUuid },
     data: {
       status: "elaborating",
       elaborationDepth: depth,
@@ -99,46 +99,46 @@ export async function startElaboration({
   });
 
   // Log activity
-  const resolvedProjectUuid = projectUuid || idea.projectUuid;
+  const resolvedProjectUuid = projectUuid || idea.researchProjectUuid;
   await activityService.createActivity({
     companyUuid,
     projectUuid: resolvedProjectUuid,
-    targetType: "idea",
-    targetUuid: ideaUuid,
+    targetType: "research_question",
+    targetUuid: researchQuestionUuid,
     actorType,
     actorUuid,
     action: "elaboration_started",
     value: { depth, questionCount: questions.length, roundNumber },
   });
 
-  eventBus.emitChange({ companyUuid, projectUuid: resolvedProjectUuid, entityType: "idea", entityUuid: ideaUuid, action: "updated" });
+  eventBus.emitChange({ companyUuid, projectUuid: resolvedProjectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
 
   return formatRoundResponse(round);
 }
 
-// ===== Answer Elaboration =====
+// ===== Answer HypothesisFormulation =====
 
-export async function answerElaboration({
+export async function answerHypothesisFormulation({
   companyUuid,
-  ideaUuid,
+  researchQuestionUuid,
   roundUuid,
   actorUuid,
   actorType,
   answers,
 }: {
   companyUuid: string;
-  ideaUuid: string;
+  researchQuestionUuid: string;
   roundUuid: string;
   actorUuid: string;
   actorType: string;
   answers: AnswerInput[];
-}): Promise<ElaborationRoundResponse> {
+}): Promise<HypothesisFormulationRoundResponse> {
   // Load round with questions
-  const round = await prisma.elaborationRound.findFirst({
-    where: { uuid: roundUuid, ideaUuid, companyUuid },
+  const round = await prisma.hypothesisFormulation.findFirst({
+    where: { uuid: roundUuid, researchQuestionUuid, companyUuid },
     include: { questions: true },
   });
-  if (!round) throw new Error("Elaboration round not found");
+  if (!round) throw new Error("HypothesisFormulation round not found");
   if (round.status !== "pending_answers") {
     throw new Error(`Round is '${round.status}', expected 'pending_answers'`);
   }
@@ -171,7 +171,7 @@ export async function answerElaboration({
       );
     }
 
-    await prisma.elaborationQuestion.update({
+    await prisma.hypothesisFormulationQuestion.update({
       where: { uuid: question.uuid },
       data: {
         selectedOptionId: answer.selectedOptionId,
@@ -184,7 +184,7 @@ export async function answerElaboration({
   }
 
   // Check if all required questions are answered
-  const updatedQuestions = await prisma.elaborationQuestion.findMany({
+  const updatedQuestions = await prisma.hypothesisFormulationQuestion.findMany({
     where: { roundUuid },
   });
   const allRequiredAnswered = updatedQuestions
@@ -193,27 +193,27 @@ export async function answerElaboration({
 
   // Update round status if all answered
   if (allRequiredAnswered) {
-    await prisma.elaborationRound.update({
+    await prisma.hypothesisFormulation.update({
       where: { uuid: roundUuid },
       data: { status: "answered" },
     });
-    await prisma.idea.update({
-      where: { uuid: ideaUuid },
+    await prisma.researchQuestion.update({
+      where: { uuid: researchQuestionUuid },
       data: { elaborationStatus: "validating" },
     });
   }
 
   // Load idea for project UUID
-  const idea = await prisma.idea.findFirst({
-    where: { uuid: ideaUuid, companyUuid },
+  const idea = await prisma.researchQuestion.findFirst({
+    where: { uuid: researchQuestionUuid, companyUuid },
   });
 
   // Log activity
   await activityService.createActivity({
     companyUuid,
     projectUuid: idea!.projectUuid,
-    targetType: "idea",
-    targetUuid: ideaUuid,
+    targetType: "research_question",
+    targetUuid: researchQuestionUuid,
     actorType,
     actorUuid,
     action: "elaboration_answered",
@@ -223,21 +223,21 @@ export async function answerElaboration({
     },
   });
 
-  eventBus.emitChange({ companyUuid, projectUuid: idea!.projectUuid, entityType: "idea", entityUuid: ideaUuid, action: "updated" });
+  eventBus.emitChange({ companyUuid, projectUuid: idea!.projectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
 
   // Return updated round
-  const updatedRound = await prisma.elaborationRound.findUnique({
+  const updatedRound = await prisma.hypothesisFormulation.findUnique({
     where: { uuid: roundUuid },
     include: { questions: true },
   });
   return formatRoundResponse(updatedRound!);
 }
 
-// ===== Validate Elaboration =====
+// ===== Validate HypothesisFormulation =====
 
-export async function validateElaboration({
+export async function validateHypothesisFormulation({
   companyUuid,
-  ideaUuid,
+  researchQuestionUuid,
   roundUuid,
   actorUuid,
   actorType,
@@ -245,53 +245,53 @@ export async function validateElaboration({
   followUpQuestions,
 }: {
   companyUuid: string;
-  ideaUuid: string;
+  researchQuestionUuid: string;
   roundUuid: string;
   actorUuid: string;
   actorType: string;
   issues: ValidationIssueInput[];
   followUpQuestions?: QuestionInput[];
 }): Promise<{
-  validatedRound: ElaborationRoundResponse;
-  followUpRound?: ElaborationRoundResponse;
+  validatedRound: HypothesisFormulationRoundResponse;
+  followUpRound?: HypothesisFormulationRoundResponse;
 }> {
   // Load round
-  const round = await prisma.elaborationRound.findFirst({
-    where: { uuid: roundUuid, ideaUuid, companyUuid },
+  const round = await prisma.hypothesisFormulation.findFirst({
+    where: { uuid: roundUuid, researchQuestionUuid, companyUuid },
     include: { questions: true },
   });
-  if (!round) throw new Error("Elaboration round not found");
+  if (!round) throw new Error("HypothesisFormulation round not found");
   if (round.status !== "answered") {
     throw new Error(`Round is '${round.status}', expected 'answered'`);
   }
 
   // Verify actor is the idea assignee
-  const idea = await prisma.idea.findFirst({
-    where: { uuid: ideaUuid, companyUuid },
+  const idea = await prisma.researchQuestion.findFirst({
+    where: { uuid: researchQuestionUuid, companyUuid },
   });
-  if (!idea) throw new Error("Idea not found");
+  if (!idea) throw new Error("ResearchQuestion not found");
   if (idea.assigneeUuid !== actorUuid) {
-    throw new Error("Only the assigned agent can validate elaboration");
+    throw new Error("Only the assigned agent can validate hypothesis formulation");
   }
 
   const noIssues = issues.length === 0;
 
   if (noIssues) {
     // All clear — mark round as validated, elaboration as resolved
-    await prisma.elaborationRound.update({
+    await prisma.hypothesisFormulation.update({
       where: { uuid: roundUuid },
       data: { status: "validated", validatedAt: new Date() },
     });
-    await prisma.idea.update({
-      where: { uuid: ideaUuid },
+    await prisma.researchQuestion.update({
+      where: { uuid: researchQuestionUuid },
       data: { elaborationStatus: "resolved" },
     });
 
     await activityService.createActivity({
       companyUuid,
-      projectUuid: idea.projectUuid,
-      targetType: "idea",
-      targetUuid: ideaUuid,
+      projectUuid: idea.researchProjectUuid,
+      targetType: "research_question",
+      targetUuid: researchQuestionUuid,
       actorType,
       actorUuid,
       action: "elaboration_resolved",
@@ -301,9 +301,9 @@ export async function validateElaboration({
       },
     });
 
-    eventBus.emitChange({ companyUuid, projectUuid: idea.projectUuid, entityType: "idea", entityUuid: ideaUuid, action: "updated" });
+    eventBus.emitChange({ companyUuid, projectUuid: idea.researchProjectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
 
-    const updated = await prisma.elaborationRound.findUnique({
+    const updated = await prisma.hypothesisFormulation.findUnique({
       where: { uuid: roundUuid },
       include: { questions: true },
     });
@@ -316,7 +316,7 @@ export async function validateElaboration({
       (q) => q.questionId === issue.questionId
     );
     if (question) {
-      await prisma.elaborationQuestion.update({
+      await prisma.hypothesisFormulationQuestion.update({
         where: { uuid: question.uuid },
         data: {
           issueType: issue.type,
@@ -326,36 +326,36 @@ export async function validateElaboration({
     }
   }
 
-  await prisma.elaborationRound.update({
+  await prisma.hypothesisFormulation.update({
     where: { uuid: roundUuid },
     data: { status: "needs_followup", validatedAt: new Date() },
   });
 
-  let followUpRound: ElaborationRoundResponse | undefined;
+  let followUpRound: HypothesisFormulationRoundResponse | undefined;
 
   if (followUpQuestions && followUpQuestions.length > 0) {
-    followUpRound = await startElaboration({
+    followUpRound = await startHypothesisFormulation({
       companyUuid,
-      ideaUuid,
+      researchQuestionUuid,
       actorUuid,
       actorType,
-      depth: (idea.elaborationDepth as ElaborationDepth) || "standard",
+      depth: (idea.elaborationDepth as HypothesisFormulationDepth) || "standard",
       questions: followUpQuestions,
-      projectUuid: idea.projectUuid,
+      projectUuid: idea.researchProjectUuid,
     });
   } else {
     // Just mark as needs_followup, keep elaboration pending
-    await prisma.idea.update({
-      where: { uuid: ideaUuid },
+    await prisma.researchQuestion.update({
+      where: { uuid: researchQuestionUuid },
       data: { elaborationStatus: "pending_answers" },
     });
   }
 
   await activityService.createActivity({
     companyUuid,
-    projectUuid: idea.projectUuid,
-    targetType: "idea",
-    targetUuid: ideaUuid,
+    projectUuid: idea.researchProjectUuid,
+    targetType: "research_question",
+    targetUuid: researchQuestionUuid,
     actorType,
     actorUuid,
     action: "elaboration_followup",
@@ -366,45 +366,45 @@ export async function validateElaboration({
     },
   });
 
-  eventBus.emitChange({ companyUuid, projectUuid: idea.projectUuid, entityType: "idea", entityUuid: ideaUuid, action: "updated" });
+  eventBus.emitChange({ companyUuid, projectUuid: idea.researchProjectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
 
-  const updatedRound = await prisma.elaborationRound.findUnique({
+  const updatedRound = await prisma.hypothesisFormulation.findUnique({
     where: { uuid: roundUuid },
     include: { questions: true },
   });
   return { validatedRound: formatRoundResponse(updatedRound!), followUpRound };
 }
 
-// ===== Skip Elaboration =====
+// ===== Skip HypothesisFormulation =====
 
-export async function skipElaboration({
+export async function skipHypothesisFormulation({
   companyUuid,
-  ideaUuid,
+  researchQuestionUuid,
   actorUuid,
   actorType,
   reason,
 }: {
   companyUuid: string;
-  ideaUuid: string;
+  researchQuestionUuid: string;
   actorUuid: string;
   actorType: string;
   reason: string;
 }): Promise<void> {
-  const idea = await prisma.idea.findFirst({
-    where: { uuid: ideaUuid, companyUuid },
+  const idea = await prisma.researchQuestion.findFirst({
+    where: { uuid: researchQuestionUuid, companyUuid },
   });
-  if (!idea) throw new Error("Idea not found");
+  if (!idea) throw new Error("ResearchQuestion not found");
   if (idea.assigneeUuid !== actorUuid) {
-    throw new Error("Only the assigned agent can skip elaboration");
+    throw new Error("Only the assigned agent can skip hypothesis formulation");
   }
   if (idea.status !== "elaborating") {
     throw new Error(
-      `Cannot skip elaboration from status '${idea.status}'`
+      `Cannot skip hypothesis formulation from status '${idea.status}'`
     );
   }
 
-  await prisma.idea.update({
-    where: { uuid: ideaUuid },
+  await prisma.researchQuestion.update({
+    where: { uuid: researchQuestionUuid },
     data: {
       elaborationDepth: "minimal",
       elaborationStatus: "resolved",
@@ -413,34 +413,34 @@ export async function skipElaboration({
 
   await activityService.createActivity({
     companyUuid,
-    projectUuid: idea.projectUuid,
-    targetType: "idea",
-    targetUuid: ideaUuid,
+    projectUuid: idea.researchProjectUuid,
+    targetType: "research_question",
+    targetUuid: researchQuestionUuid,
     actorType,
     actorUuid,
     action: "elaboration_skipped",
     value: { reason },
   });
 
-  eventBus.emitChange({ companyUuid, projectUuid: idea.projectUuid, entityType: "idea", entityUuid: ideaUuid, action: "updated" });
+  eventBus.emitChange({ companyUuid, projectUuid: idea.researchProjectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
 }
 
-// ===== Get Elaboration =====
+// ===== Get HypothesisFormulation =====
 
-export async function getElaboration({
+export async function getHypothesisFormulation({
   companyUuid,
-  ideaUuid,
+  researchQuestionUuid,
 }: {
   companyUuid: string;
-  ideaUuid: string;
-}): Promise<ElaborationResponse> {
-  const idea = await prisma.idea.findFirst({
-    where: { uuid: ideaUuid, companyUuid },
+  researchQuestionUuid: string;
+}): Promise<HypothesisFormulationResponse> {
+  const idea = await prisma.researchQuestion.findFirst({
+    where: { uuid: researchQuestionUuid, companyUuid },
   });
-  if (!idea) throw new Error("Idea not found");
+  if (!idea) throw new Error("ResearchQuestion not found");
 
-  const rounds = await prisma.elaborationRound.findMany({
-    where: { ideaUuid, companyUuid },
+  const rounds = await prisma.hypothesisFormulation.findMany({
+    where: { researchQuestionUuid, companyUuid },
     include: { questions: true },
     orderBy: { roundNumber: "asc" },
   });
@@ -451,7 +451,7 @@ export async function getElaboration({
   const pendingRound = rounds.find((r) => r.status === "pending_answers");
 
   return {
-    ideaUuid,
+    researchQuestionUuid,
     depth: idea.elaborationDepth,
     status: idea.elaborationStatus,
     rounds: rounds.map(formatRoundResponse),
@@ -517,7 +517,7 @@ export function formatRoundResponse(
       issueDescription: string | null;
     }>;
   },
-): ElaborationRoundResponse {
+): HypothesisFormulationRoundResponse {
   return {
     uuid: round.uuid,
     roundNumber: round.roundNumber,
@@ -548,7 +548,7 @@ export function formatQuestionResponse(
     issueType: string | null;
     issueDescription: string | null;
   },
-): ElaborationQuestionResponse {
+): HypothesisFormulationQuestionResponse {
   return {
     uuid: q.uuid,
     questionId: q.questionId,

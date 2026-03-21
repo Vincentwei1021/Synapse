@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const { mockPrisma, mockEventBus, mockFormatAssigneeComplete, mockFormatCreatedBy, mockCreateActivity, mockParseMentions, mockCreateMentions } = vi.hoisted(() => ({
   mockPrisma: {
-    idea: {
+    researchQuestion: {
       create: vi.fn(),
       findFirst: vi.fn(),
       findUnique: vi.fn(),
@@ -41,22 +41,22 @@ vi.mock("@/services/activity.service", () => ({
   createActivity: mockCreateActivity,
 }));
 
-import { createIdea, claimIdea, assignIdea, releaseIdea, moveIdea, deleteIdea, updateIdea } from "@/services/idea.service";
+import { createResearchQuestion, claimResearchQuestion, assignResearchQuestion, releaseResearchQuestion, moveResearchQuestion, deleteResearchQuestion, updateResearchQuestion } from "@/services/research-question.service";
 import { AlreadyClaimedError } from "@/lib/errors";
 
 // ===== Test Data =====
 
 const COMPANY_UUID = "company-1111-1111-1111-111111111111";
 const PROJECT_UUID = "project-2222-2222-2222-222222222222";
-const IDEA_UUID = "idea-3333-3333-3333-333333333333";
+const RESEARCH_QUESTION_UUID = "idea-3333-3333-3333-333333333333";
 const ACTOR_UUID = "actor-4444-4444-4444-444444444444";
 
 const now = new Date("2026-01-15T10:00:00Z");
 
-function makeIdeaRecord(overrides: Record<string, unknown> = {}) {
+function makeResearchQuestionRecord(overrides: Record<string, unknown> = {}) {
   return {
-    uuid: IDEA_UUID,
-    title: "Test Idea",
+    uuid: RESEARCH_QUESTION_UUID,
+    title: "Test ResearchQuestion",
     content: "Some content",
     attachments: null,
     status: "open",
@@ -68,7 +68,7 @@ function makeIdeaRecord(overrides: Record<string, unknown> = {}) {
     assignedByUuid: null,
     createdByUuid: ACTOR_UUID,
     companyUuid: COMPANY_UUID,
-    projectUuid: PROJECT_UUID,
+    researchProjectUuid: PROJECT_UUID,
     createdAt: now,
     updatedAt: now,
     project: { uuid: PROJECT_UUID, name: "Test Project" },
@@ -82,25 +82,25 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("createIdea", () => {
-  it("should create an idea with correct defaults and emit event", async () => {
-    const created = makeIdeaRecord({ status: "open" });
-    mockPrisma.idea.create.mockResolvedValue(created);
+describe("createResearchQuestion", () => {
+  it("should create a research question with correct defaults and emit event", async () => {
+    const created = makeResearchQuestionRecord({ status: "open" });
+    mockPrisma.researchQuestion.create.mockResolvedValue(created);
 
-    const result = await createIdea({
+    const result = await createResearchQuestion({
       companyUuid: COMPANY_UUID,
-      projectUuid: PROJECT_UUID,
-      title: "Test Idea",
+      researchProjectUuid: PROJECT_UUID,
+      title: "Test ResearchQuestion",
       content: "Some content",
       createdByUuid: ACTOR_UUID,
     });
 
-    expect(mockPrisma.idea.create).toHaveBeenCalledWith(
+    expect(mockPrisma.researchQuestion.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           companyUuid: COMPANY_UUID,
-          projectUuid: PROJECT_UUID,
-          title: "Test Idea",
+          researchProjectUuid: PROJECT_UUID,
+          title: "Test ResearchQuestion",
           content: "Some content",
           status: "open",
           createdByUuid: ACTOR_UUID,
@@ -111,25 +111,25 @@ describe("createIdea", () => {
     expect(mockEventBus.emitChange).toHaveBeenCalledWith(
       expect.objectContaining({
         companyUuid: COMPANY_UUID,
-        projectUuid: PROJECT_UUID,
-        entityType: "idea",
+        researchProjectUuid: PROJECT_UUID,
+        entityType: "research_question",
         action: "created",
       })
     );
 
-    expect(result.uuid).toBe(IDEA_UUID);
-    expect(result.title).toBe("Test Idea");
+    expect(result.uuid).toBe(RESEARCH_QUESTION_UUID);
+    expect(result.title).toBe("Test ResearchQuestion");
     expect(result.status).toBe("open");
   });
 
   it("should handle null content", async () => {
-    const created = makeIdeaRecord({ content: null });
-    mockPrisma.idea.create.mockResolvedValue(created);
+    const created = makeResearchQuestionRecord({ content: null });
+    mockPrisma.researchQuestion.create.mockResolvedValue(created);
 
-    const result = await createIdea({
+    const result = await createResearchQuestion({
       companyUuid: COMPANY_UUID,
-      projectUuid: PROJECT_UUID,
-      title: "No Content Idea",
+      researchProjectUuid: PROJECT_UUID,
+      title: "No Content ResearchQuestion",
       content: null,
       createdByUuid: ACTOR_UUID,
     });
@@ -138,10 +138,10 @@ describe("createIdea", () => {
   });
 });
 
-describe("claimIdea", () => {
-  it("should transition open idea to elaborating and set assignee", async () => {
-    const existing = makeIdeaRecord({ status: "open", assigneeUuid: null });
-    const claimed = makeIdeaRecord({
+describe("claimResearchQuestion", () => {
+  it("should transition open research question to elaborating and set assignee", async () => {
+    const existing = makeResearchQuestionRecord({ status: "open", assigneeUuid: null });
+    const claimed = makeResearchQuestionRecord({
       status: "elaborating",
       assigneeType: "agent",
       assigneeUuid: ACTOR_UUID,
@@ -149,19 +149,19 @@ describe("claimIdea", () => {
       assignedByUuid: null,
     });
 
-    mockPrisma.idea.findFirst.mockResolvedValue(existing);
-    mockPrisma.idea.update.mockResolvedValue(claimed);
+    mockPrisma.researchQuestion.findFirst.mockResolvedValue(existing);
+    mockPrisma.researchQuestion.update.mockResolvedValue(claimed);
 
-    const result = await claimIdea({
-      ideaUuid: IDEA_UUID,
+    const result = await claimResearchQuestion({
+      researchQuestionUuid: RESEARCH_QUESTION_UUID,
       companyUuid: COMPANY_UUID,
       assigneeType: "agent",
       assigneeUuid: ACTOR_UUID,
     });
 
-    expect(mockPrisma.idea.update).toHaveBeenCalledWith(
+    expect(mockPrisma.researchQuestion.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { uuid: IDEA_UUID },
+        where: { uuid: RESEARCH_QUESTION_UUID },
         data: expect.objectContaining({
           status: "elaborating",
           assigneeType: "agent",
@@ -174,16 +174,16 @@ describe("claimIdea", () => {
     expect(mockEventBus.emitChange).toHaveBeenCalled();
   });
 
-  it("should throw AlreadyClaimedError if idea is already claimed", async () => {
-    const existing = makeIdeaRecord({
+  it("should throw AlreadyClaimedError if research question is already claimed", async () => {
+    const existing = makeResearchQuestionRecord({
       status: "elaborating",
       assigneeUuid: "other-agent-uuid",
     });
-    mockPrisma.idea.findFirst.mockResolvedValue(existing);
+    mockPrisma.researchQuestion.findFirst.mockResolvedValue(existing);
 
     await expect(
-      claimIdea({
-        ideaUuid: IDEA_UUID,
+      claimResearchQuestion({
+        researchQuestionUuid: RESEARCH_QUESTION_UUID,
         companyUuid: COMPANY_UUID,
         assigneeType: "agent",
         assigneeUuid: ACTOR_UUID,
@@ -191,12 +191,12 @@ describe("claimIdea", () => {
     ).rejects.toThrow(AlreadyClaimedError);
   });
 
-  it("should throw AlreadyClaimedError if idea not found", async () => {
-    mockPrisma.idea.findFirst.mockResolvedValue(null);
+  it("should throw AlreadyClaimedError if research question not found", async () => {
+    mockPrisma.researchQuestion.findFirst.mockResolvedValue(null);
 
     await expect(
-      claimIdea({
-        ideaUuid: IDEA_UUID,
+      claimResearchQuestion({
+        researchQuestionUuid: RESEARCH_QUESTION_UUID,
         companyUuid: COMPANY_UUID,
         assigneeType: "agent",
         assigneeUuid: ACTOR_UUID,
@@ -204,25 +204,25 @@ describe("claimIdea", () => {
     ).rejects.toThrow(AlreadyClaimedError);
   });
 
-  it("should throw if idea is completed or closed", async () => {
-    const existing = makeIdeaRecord({ status: "completed", assigneeUuid: null });
-    mockPrisma.idea.findFirst.mockResolvedValue(existing);
+  it("should throw if research question is completed or closed", async () => {
+    const existing = makeResearchQuestionRecord({ status: "completed", assigneeUuid: null });
+    mockPrisma.researchQuestion.findFirst.mockResolvedValue(existing);
 
     await expect(
-      claimIdea({
-        ideaUuid: IDEA_UUID,
+      claimResearchQuestion({
+        researchQuestionUuid: RESEARCH_QUESTION_UUID,
         companyUuid: COMPANY_UUID,
         assigneeType: "agent",
         assigneeUuid: ACTOR_UUID,
       })
-    ).rejects.toThrow("Cannot claim a completed or closed Idea");
+    ).rejects.toThrow("Cannot claim a completed or closed ResearchQuestion");
   });
 });
 
-describe("assignIdea", () => {
-  it("should transition open idea to elaborating and set assignee", async () => {
-    const existing = makeIdeaRecord({ status: "open", assigneeUuid: null });
-    const assigned = makeIdeaRecord({
+describe("assignResearchQuestion", () => {
+  it("should transition open research question to elaborating and set assignee", async () => {
+    const existing = makeResearchQuestionRecord({ status: "open", assigneeUuid: null });
+    const assigned = makeResearchQuestionRecord({
       status: "elaborating",
       assigneeType: "user",
       assigneeUuid: ACTOR_UUID,
@@ -230,20 +230,20 @@ describe("assignIdea", () => {
       assignedByUuid: "admin-uuid",
     });
 
-    mockPrisma.idea.findFirst.mockResolvedValue(existing);
-    mockPrisma.idea.update.mockResolvedValue(assigned);
+    mockPrisma.researchQuestion.findFirst.mockResolvedValue(existing);
+    mockPrisma.researchQuestion.update.mockResolvedValue(assigned);
 
-    const result = await assignIdea({
-      ideaUuid: IDEA_UUID,
+    const result = await assignResearchQuestion({
+      researchQuestionUuid: RESEARCH_QUESTION_UUID,
       companyUuid: COMPANY_UUID,
       assigneeType: "user",
       assigneeUuid: ACTOR_UUID,
       assignedByUuid: "admin-uuid",
     });
 
-    expect(mockPrisma.idea.update).toHaveBeenCalledWith(
+    expect(mockPrisma.researchQuestion.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { uuid: IDEA_UUID },
+        where: { uuid: RESEARCH_QUESTION_UUID },
         data: expect.objectContaining({
           status: "elaborating",
           assigneeType: "user",
@@ -256,13 +256,13 @@ describe("assignIdea", () => {
     expect(mockEventBus.emitChange).toHaveBeenCalled();
   });
 
-  it("should keep current status when reassigning non-open idea", async () => {
-    const existing = makeIdeaRecord({
+  it("should keep current status when reassigning non-open research question", async () => {
+    const existing = makeResearchQuestionRecord({
       status: "proposal_created",
       assigneeType: "agent",
       assigneeUuid: "old-agent-uuid",
     });
-    const assigned = makeIdeaRecord({
+    const assigned = makeResearchQuestionRecord({
       status: "proposal_created",
       assigneeType: "user",
       assigneeUuid: ACTOR_UUID,
@@ -270,18 +270,18 @@ describe("assignIdea", () => {
       assignedByUuid: "admin-uuid",
     });
 
-    mockPrisma.idea.findFirst.mockResolvedValue(existing);
-    mockPrisma.idea.update.mockResolvedValue(assigned);
+    mockPrisma.researchQuestion.findFirst.mockResolvedValue(existing);
+    mockPrisma.researchQuestion.update.mockResolvedValue(assigned);
 
-    const result = await assignIdea({
-      ideaUuid: IDEA_UUID,
+    const result = await assignResearchQuestion({
+      researchQuestionUuid: RESEARCH_QUESTION_UUID,
       companyUuid: COMPANY_UUID,
       assigneeType: "user",
       assigneeUuid: ACTOR_UUID,
       assignedByUuid: "admin-uuid",
     });
 
-    expect(mockPrisma.idea.update).toHaveBeenCalledWith(
+    expect(mockPrisma.researchQuestion.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           status: "proposal_created", // Should keep existing status
@@ -292,56 +292,56 @@ describe("assignIdea", () => {
     expect(result.status).toBe("proposal_created");
   });
 
-  it("should throw if idea not found", async () => {
-    mockPrisma.idea.findFirst.mockResolvedValue(null);
+  it("should throw if research question not found", async () => {
+    mockPrisma.researchQuestion.findFirst.mockResolvedValue(null);
 
     await expect(
-      assignIdea({
-        ideaUuid: IDEA_UUID,
+      assignResearchQuestion({
+        researchQuestionUuid: RESEARCH_QUESTION_UUID,
         companyUuid: COMPANY_UUID,
         assigneeType: "user",
         assigneeUuid: ACTOR_UUID,
       })
-    ).rejects.toThrow("Idea not found");
+    ).rejects.toThrow("ResearchQuestion not found");
   });
 
-  it("should throw if idea is completed", async () => {
-    const existing = makeIdeaRecord({ status: "completed" });
-    mockPrisma.idea.findFirst.mockResolvedValue(existing);
+  it("should throw if research question is completed", async () => {
+    const existing = makeResearchQuestionRecord({ status: "completed" });
+    mockPrisma.researchQuestion.findFirst.mockResolvedValue(existing);
 
     await expect(
-      assignIdea({
-        ideaUuid: IDEA_UUID,
+      assignResearchQuestion({
+        researchQuestionUuid: RESEARCH_QUESTION_UUID,
         companyUuid: COMPANY_UUID,
         assigneeType: "user",
         assigneeUuid: ACTOR_UUID,
       })
-    ).rejects.toThrow("Cannot assign a completed or closed Idea");
+    ).rejects.toThrow("Cannot assign a completed or closed ResearchQuestion");
   });
 
-  it("should throw if idea is closed", async () => {
-    const existing = makeIdeaRecord({ status: "closed" });
-    mockPrisma.idea.findFirst.mockResolvedValue(existing);
+  it("should throw if research question is closed", async () => {
+    const existing = makeResearchQuestionRecord({ status: "closed" });
+    mockPrisma.researchQuestion.findFirst.mockResolvedValue(existing);
 
     await expect(
-      assignIdea({
-        ideaUuid: IDEA_UUID,
+      assignResearchQuestion({
+        researchQuestionUuid: RESEARCH_QUESTION_UUID,
         companyUuid: COMPANY_UUID,
         assigneeType: "user",
         assigneeUuid: ACTOR_UUID,
       })
-    ).rejects.toThrow("Cannot assign a completed or closed Idea");
+    ).rejects.toThrow("Cannot assign a completed or closed ResearchQuestion");
   });
 });
 
-describe("releaseIdea", () => {
+describe("releaseResearchQuestion", () => {
   it("should clear assignee and reset to open", async () => {
-    const existing = makeIdeaRecord({
+    const existing = makeResearchQuestionRecord({
       status: "elaborating",
       assigneeType: "agent",
       assigneeUuid: ACTOR_UUID,
     });
-    const released = makeIdeaRecord({
+    const released = makeResearchQuestionRecord({
       status: "open",
       assigneeType: null,
       assigneeUuid: null,
@@ -351,14 +351,14 @@ describe("releaseIdea", () => {
       elaborationStatus: null,
     });
 
-    mockPrisma.idea.findUnique.mockResolvedValue(existing);
-    mockPrisma.idea.update.mockResolvedValue(released);
+    mockPrisma.researchQuestion.findUnique.mockResolvedValue(existing);
+    mockPrisma.researchQuestion.update.mockResolvedValue(released);
 
-    const result = await releaseIdea(IDEA_UUID);
+    const result = await releaseResearchQuestion(RESEARCH_QUESTION_UUID);
 
-    expect(mockPrisma.idea.update).toHaveBeenCalledWith(
+    expect(mockPrisma.researchQuestion.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { uuid: IDEA_UUID },
+        where: { uuid: RESEARCH_QUESTION_UUID },
         data: expect.objectContaining({
           status: "open",
           assigneeType: null,
@@ -375,57 +375,57 @@ describe("releaseIdea", () => {
     expect(mockEventBus.emitChange).toHaveBeenCalled();
   });
 
-  it("should throw if idea not found", async () => {
-    mockPrisma.idea.findUnique.mockResolvedValue(null);
+  it("should throw if research question not found", async () => {
+    mockPrisma.researchQuestion.findUnique.mockResolvedValue(null);
 
-    await expect(releaseIdea(IDEA_UUID)).rejects.toThrow("Idea not found");
+    await expect(releaseResearchQuestion(RESEARCH_QUESTION_UUID)).rejects.toThrow("ResearchQuestion not found");
   });
 
-  it("should throw if idea is closed", async () => {
-    mockPrisma.idea.findUnique.mockResolvedValue(makeIdeaRecord({ status: "closed" }));
+  it("should throw if research question is closed", async () => {
+    mockPrisma.researchQuestion.findUnique.mockResolvedValue(makeResearchQuestionRecord({ status: "closed" }));
 
-    await expect(releaseIdea(IDEA_UUID)).rejects.toThrow(
-      "Cannot release a completed or closed Idea"
+    await expect(releaseResearchQuestion(RESEARCH_QUESTION_UUID)).rejects.toThrow(
+      "Cannot release a completed or closed ResearchQuestion"
     );
   });
 });
 
-describe("moveIdea", () => {
+describe("moveResearchQuestion", () => {
   const TARGET_PROJECT_UUID = "target-5555-5555-5555-555555555555";
 
-  it("should move idea to target project and log activity", async () => {
-    const idea = makeIdeaRecord();
+  it("should move research question to target project and log activity", async () => {
+    const idea = makeResearchQuestionRecord();
     const targetProject = { uuid: TARGET_PROJECT_UUID, name: "Target Project" };
-    const movedIdea = makeIdeaRecord({
-      projectUuid: TARGET_PROJECT_UUID,
+    const movedIdea = makeResearchQuestionRecord({
+      researchProjectUuid: TARGET_PROJECT_UUID,
       project: targetProject,
     });
 
-    mockPrisma.idea.findFirst
+    mockPrisma.researchQuestion.findFirst
       .mockResolvedValueOnce(idea)
       .mockResolvedValueOnce(movedIdea);
-    mockPrisma.project.findFirst.mockResolvedValue(targetProject);
+    mockPrisma.researchProject.findFirst.mockResolvedValue(targetProject);
     mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<void>) => {
       await fn(mockPrisma);
     });
 
-    const result = await moveIdea(
+    const result = await moveResearchQuestion(
       COMPANY_UUID,
-      IDEA_UUID,
+      RESEARCH_QUESTION_UUID,
       TARGET_PROJECT_UUID,
       ACTOR_UUID,
       "user"
     );
 
-    expect(mockPrisma.idea.update).toHaveBeenCalledWith(
+    expect(mockPrisma.researchQuestion.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { uuid: IDEA_UUID },
-        data: { projectUuid: TARGET_PROJECT_UUID },
+        where: { uuid: RESEARCH_QUESTION_UUID },
+        data: { researchProjectUuid: TARGET_PROJECT_UUID },
       })
     );
-    expect(mockPrisma.proposal.updateMany).toHaveBeenCalledWith(
+    expect(mockPrisma.experimentDesign.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: { projectUuid: TARGET_PROJECT_UUID },
+        data: { researchProjectUuid: TARGET_PROJECT_UUID },
       })
     );
 
@@ -440,49 +440,49 @@ describe("moveIdea", () => {
     );
 
     expect(mockEventBus.emitChange).toHaveBeenCalledTimes(2);
-    expect(result.uuid).toBe(IDEA_UUID);
+    expect(result.uuid).toBe(RESEARCH_QUESTION_UUID);
   });
 
-  it("should throw if idea not found", async () => {
-    mockPrisma.idea.findFirst.mockResolvedValue(null);
+  it("should throw if research question not found", async () => {
+    mockPrisma.researchQuestion.findFirst.mockResolvedValue(null);
 
     await expect(
-      moveIdea(COMPANY_UUID, IDEA_UUID, TARGET_PROJECT_UUID, ACTOR_UUID)
-    ).rejects.toThrow("Idea not found");
+      moveResearchQuestion(COMPANY_UUID, RESEARCH_QUESTION_UUID, TARGET_PROJECT_UUID, ACTOR_UUID)
+    ).rejects.toThrow("ResearchQuestion not found");
   });
 
   it("should throw if target project not found", async () => {
-    mockPrisma.idea.findFirst.mockResolvedValue(makeIdeaRecord());
-    mockPrisma.project.findFirst.mockResolvedValue(null);
+    mockPrisma.researchQuestion.findFirst.mockResolvedValue(makeResearchQuestionRecord());
+    mockPrisma.researchProject.findFirst.mockResolvedValue(null);
 
     await expect(
-      moveIdea(COMPANY_UUID, IDEA_UUID, TARGET_PROJECT_UUID, ACTOR_UUID)
+      moveResearchQuestion(COMPANY_UUID, RESEARCH_QUESTION_UUID, TARGET_PROJECT_UUID, ACTOR_UUID)
     ).rejects.toThrow("Target project not found");
   });
 
   it("should throw if idea is already in target project", async () => {
-    mockPrisma.idea.findFirst.mockResolvedValue(makeIdeaRecord());
-    mockPrisma.project.findFirst.mockResolvedValue({
+    mockPrisma.researchQuestion.findFirst.mockResolvedValue(makeResearchQuestionRecord());
+    mockPrisma.researchProject.findFirst.mockResolvedValue({
       uuid: PROJECT_UUID,
       name: "Same Project",
     });
 
     await expect(
-      moveIdea(COMPANY_UUID, IDEA_UUID, PROJECT_UUID, ACTOR_UUID)
-    ).rejects.toThrow("Idea is already in the target project");
+      moveResearchQuestion(COMPANY_UUID, RESEARCH_QUESTION_UUID, PROJECT_UUID, ACTOR_UUID)
+    ).rejects.toThrow("ResearchQuestion is already in the target project");
   });
 });
 
-describe("updateIdea", () => {
-  it("should update idea title and emit change event", async () => {
-    const updated = makeIdeaRecord({ title: "Updated Title" });
-    mockPrisma.idea.update.mockResolvedValue(updated);
+describe("updateResearchQuestion", () => {
+  it("should update research question title and emit change event", async () => {
+    const updated = makeResearchQuestionRecord({ title: "Updated Title" });
+    mockPrisma.researchQuestion.update.mockResolvedValue(updated);
 
-    const result = await updateIdea(IDEA_UUID, COMPANY_UUID, { title: "Updated Title" });
+    const result = await updateResearchQuestion(RESEARCH_QUESTION_UUID, COMPANY_UUID, { title: "Updated Title" });
 
-    expect(mockPrisma.idea.update).toHaveBeenCalledWith(
+    expect(mockPrisma.researchQuestion.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { uuid: IDEA_UUID },
+        where: { uuid: RESEARCH_QUESTION_UUID },
         data: { title: "Updated Title" },
       })
     );
@@ -490,11 +490,11 @@ describe("updateIdea", () => {
     expect(mockEventBus.emitChange).toHaveBeenCalled();
   });
 
-  it("should update idea status", async () => {
-    const updated = makeIdeaRecord({ status: "proposal_created" });
-    mockPrisma.idea.update.mockResolvedValue(updated);
+  it("should update research question status", async () => {
+    const updated = makeResearchQuestionRecord({ status: "proposal_created" });
+    mockPrisma.researchQuestion.update.mockResolvedValue(updated);
 
-    const result = await updateIdea(IDEA_UUID, COMPANY_UUID, { status: "proposal_created" });
+    const result = await updateResearchQuestion(RESEARCH_QUESTION_UUID, COMPANY_UUID, { status: "proposal_created" });
 
     expect(result.status).toBe("proposal_created");
   });
@@ -503,11 +503,11 @@ describe("updateIdea", () => {
     const oldContent = "Old content with @user[old-user-uuid]";
     const newContent = "New content with @user[new-user-uuid] and @agent[agent-uuid]";
 
-    const existing = makeIdeaRecord({ content: oldContent });
-    const updated = makeIdeaRecord({ content: newContent });
+    const existing = makeResearchQuestionRecord({ content: oldContent });
+    const updated = makeResearchQuestionRecord({ content: newContent });
 
-    mockPrisma.idea.findUnique.mockResolvedValue(existing);
-    mockPrisma.idea.update.mockResolvedValue(updated);
+    mockPrisma.researchQuestion.findUnique.mockResolvedValue(existing);
+    mockPrisma.researchQuestion.update.mockResolvedValue(updated);
 
     mockParseMentions
       .mockReturnValueOnce([{ type: "user", uuid: "old-user-uuid", displayName: "Old User" }])
@@ -516,8 +516,8 @@ describe("updateIdea", () => {
         { type: "agent", uuid: "agent-uuid", displayName: "Test Agent" },
       ]);
 
-    await updateIdea(
-      IDEA_UUID,
+    await updateResearchQuestion(
+      RESEARCH_QUESTION_UUID,
       COMPANY_UUID,
       { content: newContent },
       { actorType: "user", actorUuid: ACTOR_UUID }
@@ -531,8 +531,8 @@ describe("updateIdea", () => {
     expect(mockCreateMentions).toHaveBeenCalledWith(
       expect.objectContaining({
         companyUuid: COMPANY_UUID,
-        sourceType: "idea",
-        sourceUuid: IDEA_UUID,
+        sourceType: "research_question",
+        sourceUuid: RESEARCH_QUESTION_UUID,
         content: newContent,
         actorType: "user",
         actorUuid: ACTOR_UUID,
@@ -563,89 +563,89 @@ describe("updateIdea", () => {
   });
 
   it("should skip mention processing when no actor context provided", async () => {
-    const updated = makeIdeaRecord({ content: "Content with @user[user-uuid]" });
-    mockPrisma.idea.update.mockResolvedValue(updated);
+    const updated = makeResearchQuestionRecord({ content: "Content with @user[user-uuid]" });
+    mockPrisma.researchQuestion.update.mockResolvedValue(updated);
 
-    await updateIdea(IDEA_UUID, COMPANY_UUID, {
+    await updateResearchQuestion(RESEARCH_QUESTION_UUID, COMPANY_UUID, {
       content: "Content with @user[user-uuid]",
     });
 
-    expect(mockPrisma.idea.findUnique).not.toHaveBeenCalled();
+    expect(mockPrisma.researchQuestion.findUnique).not.toHaveBeenCalled();
     expect(mockParseMentions).not.toHaveBeenCalled();
     expect(mockCreateMentions).not.toHaveBeenCalled();
   });
 
   it("should skip mention processing when content is undefined", async () => {
-    const updated = makeIdeaRecord();
-    mockPrisma.idea.update.mockResolvedValue(updated);
+    const updated = makeResearchQuestionRecord();
+    mockPrisma.researchQuestion.update.mockResolvedValue(updated);
 
-    await updateIdea(
-      IDEA_UUID,
+    await updateResearchQuestion(
+      RESEARCH_QUESTION_UUID,
       COMPANY_UUID,
       { title: "Updated Title" },
       { actorType: "user", actorUuid: ACTOR_UUID }
     );
 
-    expect(mockPrisma.idea.findUnique).not.toHaveBeenCalled();
+    expect(mockPrisma.researchQuestion.findUnique).not.toHaveBeenCalled();
     expect(mockCreateMentions).not.toHaveBeenCalled();
   });
 
   it("should skip mention processing when content is null", async () => {
-    const existing = makeIdeaRecord({ content: "Old content" });
-    const updated = makeIdeaRecord({ content: null });
+    const existing = makeResearchQuestionRecord({ content: "Old content" });
+    const updated = makeResearchQuestionRecord({ content: null });
 
-    mockPrisma.idea.findUnique.mockResolvedValue(existing);
-    mockPrisma.idea.update.mockResolvedValue(updated);
+    mockPrisma.researchQuestion.findUnique.mockResolvedValue(existing);
+    mockPrisma.researchQuestion.update.mockResolvedValue(updated);
 
-    await updateIdea(
-      IDEA_UUID,
+    await updateResearchQuestion(
+      RESEARCH_QUESTION_UUID,
       COMPANY_UUID,
       { content: null },
       { actorType: "user", actorUuid: ACTOR_UUID }
     );
 
     // findUnique is called to fetch old content, but then processing is skipped because new content is null/falsy
-    expect(mockPrisma.idea.findUnique).toHaveBeenCalled();
+    expect(mockPrisma.researchQuestion.findUnique).toHaveBeenCalled();
     expect(mockCreateMentions).not.toHaveBeenCalled();
   });
 
   it("should skip mention processing when content is empty string", async () => {
-    const existing = makeIdeaRecord({ content: "Old content" });
-    const updated = makeIdeaRecord({ content: "" });
+    const existing = makeResearchQuestionRecord({ content: "Old content" });
+    const updated = makeResearchQuestionRecord({ content: "" });
 
-    mockPrisma.idea.findUnique.mockResolvedValue(existing);
-    mockPrisma.idea.update.mockResolvedValue(updated);
+    mockPrisma.researchQuestion.findUnique.mockResolvedValue(existing);
+    mockPrisma.researchQuestion.update.mockResolvedValue(updated);
 
-    await updateIdea(
-      IDEA_UUID,
+    await updateResearchQuestion(
+      RESEARCH_QUESTION_UUID,
       COMPANY_UUID,
       { content: "" },
       { actorType: "user", actorUuid: ACTOR_UUID }
     );
 
     // findUnique is called, but processing is skipped because content is empty
-    expect(mockPrisma.idea.findUnique).toHaveBeenCalled();
+    expect(mockPrisma.researchQuestion.findUnique).toHaveBeenCalled();
     expect(mockCreateMentions).not.toHaveBeenCalled();
   });
 });
 
-describe("deleteIdea", () => {
-  it("should delete idea and emit event", async () => {
-    const deleted = makeIdeaRecord();
-    mockPrisma.idea.delete.mockResolvedValue(deleted);
+describe("deleteResearchQuestion", () => {
+  it("should delete research question and emit event", async () => {
+    const deleted = makeResearchQuestionRecord();
+    mockPrisma.researchQuestion.delete.mockResolvedValue(deleted);
 
-    const result = await deleteIdea(IDEA_UUID);
+    const result = await deleteResearchQuestion(RESEARCH_QUESTION_UUID);
 
-    expect(mockPrisma.idea.delete).toHaveBeenCalledWith({
-      where: { uuid: IDEA_UUID },
+    expect(mockPrisma.researchQuestion.delete).toHaveBeenCalledWith({
+      where: { uuid: RESEARCH_QUESTION_UUID },
     });
     expect(mockEventBus.emitChange).toHaveBeenCalledWith(
       expect.objectContaining({
         companyUuid: COMPANY_UUID,
-        entityType: "idea",
+        entityType: "research_question",
         action: "deleted",
       })
     );
-    expect(result.uuid).toBe(IDEA_UUID);
+    expect(result.uuid).toBe(RESEARCH_QUESTION_UUID);
   });
 });

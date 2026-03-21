@@ -6,12 +6,12 @@ vi.mock("@/generated/prisma/client", () => ({ Prisma: { JsonNull: null } }));
 vi.mock("@/lib/event-bus", () => ({ eventBus: { emitChange: vi.fn() } }));
 vi.mock("@/lib/uuid-resolver", () => ({ formatCreatedBy: vi.fn(), formatReview: vi.fn() }));
 vi.mock("@/services/document.service", () => ({ createDocumentFromProposal: vi.fn() }));
-vi.mock("@/services/task.service", () => ({ createTasksFromProposal: vi.fn() }));
+vi.mock("@/services/experiment-run.service", () => ({ createExperimentRunsFromDesign: vi.fn() }));
 
 import {
   ensureDocumentDraftUuid,
-  ensureTaskDraftUuid,
-} from "@/services/proposal.service";
+  ensureRunDraftUuid,
+} from "@/services/experiment-design.service";
 
 // ===== ensureDocumentDraftUuid =====
 
@@ -53,18 +53,18 @@ describe("ensureDocumentDraftUuid", () => {
   });
 });
 
-// ===== ensureTaskDraftUuid =====
+// ===== ensureRunDraftUuid =====
 
-describe("ensureTaskDraftUuid", () => {
+describe("ensureRunDraftUuid", () => {
   it("should preserve existing uuid", () => {
     const draft = { uuid: "task-uuid-123", title: "My Task" };
-    const result = ensureTaskDraftUuid(draft);
+    const result = ensureRunDraftUuid(draft);
     expect(result.uuid).toBe("task-uuid-123");
   });
 
   it("should generate uuid when missing", () => {
     const draft = { title: "New Task" };
-    const result = ensureTaskDraftUuid(draft);
+    const result = ensureRunDraftUuid(draft);
     expect(result.uuid).toBeDefined();
     expect(result.uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
   });
@@ -74,22 +74,22 @@ describe("ensureTaskDraftUuid", () => {
       title: "Task with details",
       description: "Full description",
       priority: "high",
-      storyPoints: 5,
+      computeBudgetHours: 5,
       acceptanceCriteria: "- [ ] Done",
       dependsOnDraftUuids: ["other-uuid"],
     };
-    const result = ensureTaskDraftUuid(draft);
+    const result = ensureRunDraftUuid(draft);
     expect(result.title).toBe("Task with details");
     expect(result.description).toBe("Full description");
     expect(result.priority).toBe("high");
-    expect(result.storyPoints).toBe(5);
+    expect(result.computeBudgetHours).toBe(5);
     expect(result.dependsOnDraftUuids).toEqual(["other-uuid"]);
   });
 
   it("should generate unique uuids each time", () => {
     const draft = { title: "Task" };
-    const result1 = ensureTaskDraftUuid(draft);
-    const result2 = ensureTaskDraftUuid(draft);
+    const result1 = ensureRunDraftUuid(draft);
+    const result2 = ensureRunDraftUuid(draft);
     expect(result1.uuid).not.toBe(result2.uuid);
   });
 });

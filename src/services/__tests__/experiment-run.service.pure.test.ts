@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock prisma for wouldCreateCycle tests (accessed via addTaskDependency)
+// Mock prisma for wouldCreateCycle tests (accessed via addRunDependency)
 // vi.hoisted ensures the variable is available when vi.mock factory runs (hoisted)
 const mockPrisma = vi.hoisted(() => ({
-  task: {
+  experimentRun: {
     findFirst: vi.fn(),
   },
-  taskDependency: {
+  runDependency: {
     findMany: vi.fn(),
     create: vi.fn(),
   },
@@ -15,14 +15,14 @@ vi.mock("@/lib/prisma", () => ({
   prisma: mockPrisma,
 }));
 
-// Mock event-bus (imported by task.service)
+// Mock event-bus (imported by experiment-run.service)
 vi.mock("@/lib/event-bus", () => ({
   eventBus: {
     emitChange: vi.fn(),
   },
 }));
 
-// Mock uuid-resolver (imported by task.service)
+// Mock uuid-resolver (imported by experiment-run.service)
 vi.mock("@/lib/uuid-resolver", () => ({
   formatAssigneeComplete: vi.fn(),
   formatCreatedBy: vi.fn(),
@@ -30,32 +30,32 @@ vi.mock("@/lib/uuid-resolver", () => ({
   batchFormatCreatedBy: vi.fn(),
 }));
 
-// Mock comment.service (imported by task.service)
+// Mock comment.service (imported by experiment-run.service)
 vi.mock("@/services/comment.service", () => ({
   batchCommentCounts: vi.fn(),
 }));
 
-// Mock mention.service (imported by task.service)
+// Mock mention.service (imported by experiment-run.service)
 vi.mock("@/services/mention.service", () => ({
   parseMentions: vi.fn().mockReturnValue([]),
   createMentions: vi.fn(),
 }));
 
-// Mock activity.service (imported by task.service)
+// Mock activity.service (imported by experiment-run.service)
 vi.mock("@/services/activity.service", () => ({
   createActivity: vi.fn(),
 }));
 
 import {
-  isValidTaskStatusTransition,
+  isValidExperimentRunStatusTransition,
   computeAcceptanceStatus,
-  addTaskDependency,
-  TASK_STATUS_TRANSITIONS,
-} from "@/services/task.service";
+  addRunDependency,
+  EXPERIMENT_RUN_STATUS_TRANSITIONS,
+} from "@/services/experiment-run.service";
 
-// ===== isValidTaskStatusTransition =====
+// ===== isValidExperimentRunStatusTransition =====
 
-describe("isValidTaskStatusTransition", () => {
+describe("isValidExperimentRunStatusTransition", () => {
   describe("valid transitions", () => {
     const validCases: [string, string][] = [
       ["open", "assigned"],
@@ -72,7 +72,7 @@ describe("isValidTaskStatusTransition", () => {
     ];
 
     it.each(validCases)("%s -> %s should be valid", (from, to) => {
-      expect(isValidTaskStatusTransition(from, to)).toBe(true);
+      expect(isValidExperimentRunStatusTransition(from, to)).toBe(true);
     });
   });
 
@@ -100,21 +100,21 @@ describe("isValidTaskStatusTransition", () => {
     ];
 
     it.each(invalidCases)("%s -> %s should be invalid", (from, to) => {
-      expect(isValidTaskStatusTransition(from, to)).toBe(false);
+      expect(isValidExperimentRunStatusTransition(from, to)).toBe(false);
     });
   });
 
   it("should return false for unknown source status", () => {
-    expect(isValidTaskStatusTransition("nonexistent", "open")).toBe(false);
+    expect(isValidExperimentRunStatusTransition("nonexistent", "open")).toBe(false);
   });
 
   it("should return false for same-status transition (not in allowed list)", () => {
-    expect(isValidTaskStatusTransition("open", "open")).toBe(false);
+    expect(isValidExperimentRunStatusTransition("open", "open")).toBe(false);
   });
 
-  it("should have all expected statuses in TASK_STATUS_TRANSITIONS", () => {
+  it("should have all expected statuses in EXPERIMENT_RUN_STATUS_TRANSITIONS", () => {
     const expectedStatuses = ["open", "assigned", "in_progress", "to_verify", "done", "closed"];
-    expect(Object.keys(TASK_STATUS_TRANSITIONS).sort()).toEqual(expectedStatuses.sort());
+    expect(Object.keys(EXPERIMENT_RUN_STATUS_TRANSITIONS).sort()).toEqual(expectedStatuses.sort());
   });
 });
 
@@ -259,15 +259,15 @@ describe("computeAcceptanceStatus", () => {
   });
 });
 
-// ===== wouldCreateCycle (tested indirectly via addTaskDependency) =====
+// ===== wouldCreateCycle (tested indirectly via addRunDependency) =====
 
-describe("wouldCreateCycle (via addTaskDependency)", () => {
+describe("wouldCreateCycle (via addRunDependency)", () => {
   const prisma = mockPrisma;
   const companyUuid = "company-0000-0000-0000-000000000001";
-  const projectUuid = "project-0000-0000-0000-000000000001";
+  const researchProjectUuid = "project-0000-0000-0000-000000000001";
 
   function makeTaskMock(uuid: string) {
-    return { uuid, companyUuid, projectUuid, status: "open" };
+    return { uuid, companyUuid, researchProjectUuid, status: "open" };
   }
 
   beforeEach(() => {
@@ -281,46 +281,46 @@ describe("wouldCreateCycle (via addTaskDependency)", () => {
     const B = "bbbb0000-0000-0000-0000-000000000002";
     const C = "cccc0000-0000-0000-0000-000000000003";
 
-    prisma.task.findFirst
+    prisma.experimentRun.findFirst
       .mockResolvedValueOnce(makeTaskMock(A))  // task lookup
       .mockResolvedValueOnce(makeTaskMock(C)); // dependsOn lookup
 
     // Existing dependency edges
-    prisma.taskDependency.findMany.mockResolvedValue([
-      { taskUuid: A, dependsOnUuid: B },
-      { taskUuid: B, dependsOnUuid: C },
+    prisma.runDependency.findMany.mockResolvedValue([
+      { runUuid: A, dependsOnRunUuid: B },
+      { runUuid: B, dependsOnRunUuid: C },
     ]);
 
-    prisma.taskDependency.create.mockResolvedValue({
-      taskUuid: A,
-      dependsOnUuid: C,
+    prisma.runDependency.create.mockResolvedValue({
+      runUuid: A,
+      dependsOnRunUuid: C,
       createdAt: new Date(),
     });
 
-    // addTaskDependency(companyUuid, taskUuid=A, dependsOnUuid=C)
+    // addRunDependency(companyUuid, runUuid=A, dependsOnRunUuid=C)
     // wouldCreateCycle checks: from C, can we reach A via existing edges?
     // C has no outgoing edges, so no cycle
-    const result = await addTaskDependency(companyUuid, A, C);
-    expect(result.taskUuid).toBe(A);
-    expect(result.dependsOnUuid).toBe(C);
+    const result = await addRunDependency(companyUuid, A, C);
+    expect(result.runUuid).toBe(A);
+    expect(result.dependsOnRunUuid).toBe(C);
   });
 
   it("should detect a simple cycle (A -> B, adding B -> A)", async () => {
     const A = "aaaa0000-0000-0000-0000-000000000001";
     const B = "bbbb0000-0000-0000-0000-000000000002";
 
-    prisma.task.findFirst
-      .mockResolvedValueOnce(makeTaskMock(B))  // task lookup (taskUuid=B)
-      .mockResolvedValueOnce(makeTaskMock(A)); // dependsOn lookup (dependsOnUuid=A)
+    prisma.experimentRun.findFirst
+      .mockResolvedValueOnce(makeTaskMock(B))  // task lookup (runUuid=B)
+      .mockResolvedValueOnce(makeTaskMock(A)); // dependsOn lookup (dependsOnRunUuid=A)
 
     // Existing: A depends on B
-    prisma.taskDependency.findMany.mockResolvedValue([
-      { taskUuid: A, dependsOnUuid: B },
+    prisma.runDependency.findMany.mockResolvedValue([
+      { runUuid: A, dependsOnRunUuid: B },
     ]);
 
-    // addTaskDependency(companyUuid, taskUuid=B, dependsOnUuid=A)
+    // addRunDependency(companyUuid, runUuid=B, dependsOnRunUuid=A)
     // wouldCreateCycle checks: from A, can we reach B? A -> B via existing edge, yes!
-    await expect(addTaskDependency(companyUuid, B, A)).rejects.toThrow(
+    await expect(addRunDependency(companyUuid, B, A)).rejects.toThrow(
       "Adding this dependency would create a cycle"
     );
   });
@@ -333,21 +333,21 @@ describe("wouldCreateCycle (via addTaskDependency)", () => {
     const C = "cccc0000-0000-0000-0000-000000000003";
     const D = "dddd0000-0000-0000-0000-000000000004";
 
-    prisma.task.findFirst
+    prisma.experimentRun.findFirst
       .mockResolvedValueOnce(makeTaskMock(D))
       .mockResolvedValueOnce(makeTaskMock(A));
 
-    prisma.taskDependency.findMany.mockResolvedValue([
-      { taskUuid: A, dependsOnUuid: B },
-      { taskUuid: A, dependsOnUuid: C },
-      { taskUuid: B, dependsOnUuid: D },
-      { taskUuid: C, dependsOnUuid: D },
+    prisma.runDependency.findMany.mockResolvedValue([
+      { runUuid: A, dependsOnRunUuid: B },
+      { runUuid: A, dependsOnRunUuid: C },
+      { runUuid: B, dependsOnRunUuid: D },
+      { runUuid: C, dependsOnRunUuid: D },
     ]);
 
-    // addTaskDependency(companyUuid, taskUuid=D, dependsOnUuid=A)
+    // addRunDependency(companyUuid, runUuid=D, dependsOnRunUuid=A)
     // wouldCreateCycle(startUuid=A, targetUuid=D): from A, follow edges:
     // A -> B -> D (found!), cycle detected
-    await expect(addTaskDependency(companyUuid, D, A)).rejects.toThrow(
+    await expect(addRunDependency(companyUuid, D, A)).rejects.toThrow(
       "Adding this dependency would create a cycle"
     );
   });
@@ -355,9 +355,9 @@ describe("wouldCreateCycle (via addTaskDependency)", () => {
   it("should reject self-loop (A -> A)", async () => {
     const A = "aaaa0000-0000-0000-0000-000000000001";
 
-    // addTaskDependency checks self-dependency before prisma calls
-    await expect(addTaskDependency(companyUuid, A, A)).rejects.toThrow(
-      "A task cannot depend on itself"
+    // addRunDependency checks self-dependency before prisma calls
+    await expect(addRunDependency(companyUuid, A, A)).rejects.toThrow(
+      "An experiment run cannot depend on itself"
     );
   });
 
@@ -369,27 +369,27 @@ describe("wouldCreateCycle (via addTaskDependency)", () => {
     const C = "cccc0000-0000-0000-0000-000000000003";
     const D = "dddd0000-0000-0000-0000-000000000004";
 
-    prisma.task.findFirst
+    prisma.experimentRun.findFirst
       .mockResolvedValueOnce(makeTaskMock(A))
       .mockResolvedValueOnce(makeTaskMock(D));
 
-    prisma.taskDependency.findMany.mockResolvedValue([
-      { taskUuid: A, dependsOnUuid: B },
-      { taskUuid: A, dependsOnUuid: C },
-      { taskUuid: B, dependsOnUuid: D },
-      { taskUuid: C, dependsOnUuid: D },
+    prisma.runDependency.findMany.mockResolvedValue([
+      { runUuid: A, dependsOnRunUuid: B },
+      { runUuid: A, dependsOnRunUuid: C },
+      { runUuid: B, dependsOnRunUuid: D },
+      { runUuid: C, dependsOnRunUuid: D },
     ]);
 
-    prisma.taskDependency.create.mockResolvedValue({
-      taskUuid: A,
-      dependsOnUuid: D,
+    prisma.runDependency.create.mockResolvedValue({
+      runUuid: A,
+      dependsOnRunUuid: D,
       createdAt: new Date(),
     });
 
     // wouldCreateCycle(startUuid=D, targetUuid=A): from D, can we reach A?
     // D has no outgoing edges, so no cycle
-    const result = await addTaskDependency(companyUuid, A, D);
-    expect(result.taskUuid).toBe(A);
+    const result = await addRunDependency(companyUuid, A, D);
+    expect(result.runUuid).toBe(A);
   });
 
   it("should detect a longer cycle (A -> B -> C -> D, adding D -> A)", async () => {
@@ -398,19 +398,19 @@ describe("wouldCreateCycle (via addTaskDependency)", () => {
     const C = "cccc0000-0000-0000-0000-000000000003";
     const D = "dddd0000-0000-0000-0000-000000000004";
 
-    prisma.task.findFirst
+    prisma.experimentRun.findFirst
       .mockResolvedValueOnce(makeTaskMock(D))
       .mockResolvedValueOnce(makeTaskMock(A));
 
-    prisma.taskDependency.findMany.mockResolvedValue([
-      { taskUuid: A, dependsOnUuid: B },
-      { taskUuid: B, dependsOnUuid: C },
-      { taskUuid: C, dependsOnUuid: D },
+    prisma.runDependency.findMany.mockResolvedValue([
+      { runUuid: A, dependsOnRunUuid: B },
+      { runUuid: B, dependsOnRunUuid: C },
+      { runUuid: C, dependsOnRunUuid: D },
     ]);
 
-    // addTaskDependency(companyUuid, D, A): wouldCreateCycle(A, D)
+    // addRunDependency(companyUuid, D, A): wouldCreateCycle(A, D)
     // A -> B -> C -> D (found!), cycle
-    await expect(addTaskDependency(companyUuid, D, A)).rejects.toThrow(
+    await expect(addRunDependency(companyUuid, D, A)).rejects.toThrow(
       "Adding this dependency would create a cycle"
     );
   });

@@ -10,7 +10,7 @@ import {
   validateQuestionsFormat,
   formatRoundResponse,
   formatQuestionResponse,
-} from "@/services/elaboration.service";
+} from "@/services/hypothesis-formulation.service";
 
 // ===== validateQuestionsFormat =====
 
