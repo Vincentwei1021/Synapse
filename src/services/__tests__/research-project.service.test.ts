@@ -241,9 +241,9 @@ describe("getCompanyOverviewStats", () => {
     const result = await getCompanyOverviewStats(companyUuid);
 
     expect(result).toEqual({
-      projects: 3,
+      researchProjects: 3,
       experimentRuns: 25,
-      openProposals: 2,
+      openExperimentDesigns: 2,
       researchQuestions: 10,
     });
   });

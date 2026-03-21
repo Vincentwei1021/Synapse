@@ -311,7 +311,7 @@ export async function claimResearchQuestion({
     throw new AlreadyClaimedError("Idea");
   }
   if (existing.status === "completed" || existing.status === "closed") {
-    throw new Error("Cannot claim a completed or closed Idea");
+    throw new Error("Cannot claim a completed or closed ResearchQuestion");
   }
 
   const idea = await prisma.researchQuestion.update({
@@ -344,9 +344,9 @@ export async function assignResearchQuestion({
   const existing = await prisma.researchQuestion.findFirst({
     where: { uuid: researchQuestionUuid, companyUuid },
   });
-  if (!existing) throw new Error("Idea not found");
+  if (!existing) throw new Error("ResearchQuestion not found");
   if (existing.status === "completed" || existing.status === "closed") {
-    throw new Error("Cannot assign a completed or closed Idea");
+    throw new Error("Cannot assign a completed or closed ResearchQuestion");
   }
 
   // If currently open, move to elaborating; otherwise keep current status
@@ -374,9 +374,9 @@ export async function assignResearchQuestion({
 // Release Idea (clears assignee, resets to open; any non-terminal status)
 export async function releaseResearchQuestion(uuid: string): Promise<ResearchQuestionResponse> {
   const existing = await prisma.researchQuestion.findUnique({ where: { uuid } });
-  if (!existing) throw new Error("Idea not found");
+  if (!existing) throw new Error("ResearchQuestion not found");
   if (existing.status === "completed" || existing.status === "closed") {
-    throw new Error("Cannot release a completed or closed Idea");
+    throw new Error("Cannot release a completed or closed ResearchQuestion");
   }
 
   const idea = await prisma.researchQuestion.update({
@@ -471,7 +471,7 @@ export async function moveResearchQuestion(
     where: { uuid: researchQuestionUuid, companyUuid },
     include: { researchProject: { select: { uuid: true, name: true } } },
   });
-  if (!idea) throw new ApiError("NOT_FOUND", "Idea not found", 404);
+  if (!idea) throw new ApiError("NOT_FOUND", "ResearchQuestion not found", 404);
 
   // Validate target project exists and belongs to same company
   const targetProject = await prisma.researchProject.findFirst({
@@ -481,7 +481,7 @@ export async function moveResearchQuestion(
   if (!targetProject) throw new ApiError("NOT_FOUND", "Target project not found", 404);
 
   if (idea.researchProjectUuid === targetProjectUuid) {
-    throw new ApiError("BAD_REQUEST", "Idea is already in the target project", 400);
+    throw new ApiError("BAD_REQUEST", "ResearchQuestion is already in the target project", 400);
   }
 
   const fromProjectUuid = idea.researchProjectUuid;

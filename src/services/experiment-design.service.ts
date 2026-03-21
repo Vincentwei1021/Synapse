@@ -811,7 +811,7 @@ export async function submitExperimentDesign(
     const lines = validation.issues.map(
       (i) => `[${i.level}] ${i.message}`
     );
-    throw new Error(`Proposal validation failed:\n${lines.join("\n")}`);
+    throw new Error(`ExperimentDesign validation failed:\n${lines.join("\n")}`);
   }
 
   const updated = await prisma.experimentDesign.update({
@@ -958,7 +958,7 @@ export async function updateRunDraft(
   const draftIndex = existingDrafts.findIndex(d => d.uuid === draftUuid);
 
   if (draftIndex === -1) {
-    throw new Error("Task draft not found");
+    throw new Error("Run draft not found");
   }
 
   existingDrafts[draftIndex] = { ...existingDrafts[draftIndex], ...updates };

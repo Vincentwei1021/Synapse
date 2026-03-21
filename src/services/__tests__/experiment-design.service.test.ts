@@ -59,7 +59,7 @@ vi.mock("@/lib/uuid-resolver", () => ({
   formatReview: mockFormatReview,
 }));
 vi.mock("@/services/document.service", () => ({
-  createDocumentFromProposal: mockCreateDoc,
+  createDocumentFromExperimentDesign: mockCreateDoc,
 }));
 vi.mock("@/services/experiment-run.service", () => ({
   createExperimentRunsFromDesign: mockCreateExperimentRuns,
@@ -1211,7 +1211,7 @@ describe("rejectExperimentDesign", () => {
         reviewedByUuid: "reviewer-uuid",
         reviewNote: "Needs work",
       }),
-      include: { project: { select: { uuid: true, name: true } } },
+      include: { researchProject: { select: { uuid: true, name: true } } },
     });
     expect(result.status).toBe("draft");
     expect(mockEventBus.emitChange).toHaveBeenCalledWith(
@@ -1243,7 +1243,7 @@ describe("closeExperimentDesign", () => {
         reviewedByUuid: "admin-uuid",
         reviewNote: "No longer needed",
       }),
-      include: { project: { select: { uuid: true, name: true } } },
+      include: { researchProject: { select: { uuid: true, name: true } } },
     });
     expect(result.status).toBe("closed");
     expect(mockEventBus.emitChange).toHaveBeenCalledWith(
@@ -1355,7 +1355,7 @@ describe("listExperimentDesigns", () => {
 describe("getExperimentDesign", () => {
   it("should return proposal with project info", async () => {
     const proposal = dbExperimentDesign({
-      project: { uuid: PROJECT_UUID, name: "Test Project" },
+      researchProject: { uuid: PROJECT_UUID, name: "Test Project" },
     });
     mockPrisma.experimentDesign.findFirst.mockResolvedValue(proposal);
 
@@ -1366,7 +1366,7 @@ describe("getExperimentDesign", () => {
     expect(result!.project).toEqual({ uuid: PROJECT_UUID, name: "Test Project" });
     expect(mockPrisma.experimentDesign.findFirst).toHaveBeenCalledWith({
       where: { uuid: "proposal-uuid", companyUuid: COMPANY_UUID },
-      include: { project: { select: { uuid: true, name: true } } },
+      include: { researchProject: { select: { uuid: true, name: true } } },
     });
   });
 
@@ -1412,7 +1412,7 @@ describe("updateExperimentDesignContent", () => {
     const updated = dbExperimentDesign({
       title: "Updated Title",
       description: "Updated Description",
-      project: { uuid: PROJECT_UUID, name: "Test Project" },
+      researchProject: { uuid: PROJECT_UUID, name: "Test Project" },
     });
     mockPrisma.experimentDesign.update.mockResolvedValue(updated);
 
@@ -1429,7 +1429,7 @@ describe("updateExperimentDesignContent", () => {
         title: "Updated Title",
         description: "Updated Description",
       }),
-      include: { project: { select: { uuid: true, name: true } } },
+      include: { researchProject: { select: { uuid: true, name: true } } },
     });
   });
 
@@ -1437,7 +1437,7 @@ describe("updateExperimentDesignContent", () => {
     const newDrafts = [validDocDraft({ uuid: "draft-1", title: "New Doc" })];
     const updated = dbExperimentDesign({
       documentDrafts: newDrafts,
-      project: { uuid: PROJECT_UUID, name: "Test Project" },
+      researchProject: { uuid: PROJECT_UUID, name: "Test Project" },
     });
     mockPrisma.experimentDesign.update.mockResolvedValue(updated);
 
@@ -1459,7 +1459,7 @@ describe("updateExperimentDesignContent", () => {
     const newTasks = [validTaskDraft({ uuid: "task-1", title: "New Task" })];
     const updated = dbExperimentDesign({
       taskDrafts: newTasks,
-      project: { uuid: PROJECT_UUID, name: "Test Project" },
+      researchProject: { uuid: PROJECT_UUID, name: "Test Project" },
     });
     mockPrisma.experimentDesign.update.mockResolvedValue(updated);
 
@@ -1474,7 +1474,7 @@ describe("updateExperimentDesignContent", () => {
     const updated = dbExperimentDesign({
       documentDrafts: null,
       taskDrafts: null,
-      project: { uuid: PROJECT_UUID, name: "Test Project" },
+      researchProject: { uuid: PROJECT_UUID, name: "Test Project" },
     });
     mockPrisma.experimentDesign.update.mockResolvedValue(updated);
 
@@ -1498,7 +1498,7 @@ describe("updateExperimentDesignContent", () => {
   it("should allow partial updates", async () => {
     const updated = dbExperimentDesign({
       title: "New Title",
-      project: { uuid: PROJECT_UUID, name: "Test Project" },
+      researchProject: { uuid: PROJECT_UUID, name: "Test Project" },
     });
     mockPrisma.experimentDesign.update.mockResolvedValue(updated);
 
@@ -1509,7 +1509,7 @@ describe("updateExperimentDesignContent", () => {
     expect(mockPrisma.experimentDesign.update).toHaveBeenCalledWith({
       where: { uuid: "proposal-uuid", companyUuid: COMPANY_UUID },
       data: { title: "New Title" },
-      include: { project: { select: { uuid: true, name: true } } },
+      include: { researchProject: { select: { uuid: true, name: true } } },
     });
   });
 });
@@ -1793,7 +1793,7 @@ describe("ResearchQuestion reuse - submitExperimentDesign with proposal_created 
         uuid: "task-1", title: "Task", description: "desc", computeBudgetHours: 1, priority: "medium",
         acceptanceCriteria: null, acceptanceCriteriaItems: [{ description: "AC1" }], dependsOnDraftUuids: [],
       }],
-      project: { uuid: PROJECT_UUID, name: "Test" },
+      researchProject: { uuid: PROJECT_UUID, name: "Test" },
       description: "Test proposal for Idea reuse scenario",
       createdByUuid: ACTOR_UUID,
       createdByType: "agent",
@@ -1839,7 +1839,7 @@ describe("ResearchQuestion reuse - approveExperimentDesign with completed Idea",
       inputUuids: ["idea-completed"],
       documentDrafts: [{ uuid: "doc-1", type: "prd", title: "PRD", content: "content" }],
       taskDrafts: [],
-      project: { uuid: PROJECT_UUID, name: "Test" },
+      researchProject: { uuid: PROJECT_UUID, name: "Test" },
       createdByUuid: ACTOR_UUID,
       createdByType: "agent",
       reviewedByUuid: null,
@@ -1856,7 +1856,7 @@ describe("ResearchQuestion reuse - approveExperimentDesign with completed Idea",
         experimentDesign: { update: vi.fn().mockResolvedValue({
           ...proposal, status: "approved",
           reviewedByUuid: "reviewer-uuid", reviewNote: "Approved", reviewedAt: now,
-          project: { uuid: PROJECT_UUID, name: "Test" },
+          researchProject: { uuid: PROJECT_UUID, name: "Test" },
         }) },
         runDependency: { create: vi.fn() },
         acceptanceCriterion: { createMany: vi.fn() },

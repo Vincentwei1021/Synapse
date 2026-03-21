@@ -406,11 +406,11 @@ describe("notification-listener", () => {
 
     it("should map elaboration actions", async () => {
       const mappings = [
-        { action: "elaboration_started", expected: "hypothesis_formulation_requested" },
+        { action: "hypothesis_formulation_started", expected: "hypothesis_formulation_requested" },
         { action: "hypothesis_formulation_answered", expected: "hypothesis_formulation_answered" },
-        { action: "elaboration_followup", expected: "hypothesis_formulation_requested" },
-        { action: "elaboration_resolved", expected: "hypothesis_formulation_answered" },
-        { action: "elaboration_skipped", expected: "hypothesis_formulation_answered" },
+        { action: "hypothesis_formulation_followup", expected: "hypothesis_formulation_requested" },
+        { action: "hypothesis_formulation_resolved", expected: "hypothesis_formulation_answered" },
+        { action: "hypothesis_formulation_skipped", expected: "hypothesis_formulation_answered" },
       ];
 
       for (const { action, expected } of mappings) {
@@ -589,7 +589,7 @@ describe("notification-listener", () => {
       });
       await handleActivity(event);
       const call = mockNotificationService.createBatch.mock.calls[0][0];
-      expect(call[0].message).toBe('Proposal "New Feature" has been approved. Note: Looks good!');
+      expect(call[0].message).toBe('Experiment design "New Feature" has been approved. Note: Looks good!');
     });
 
     it("should build design_rejected with reviewNote", async () => {
@@ -605,7 +605,7 @@ describe("notification-listener", () => {
       });
       await handleActivity(event);
       const call = mockNotificationService.createBatch.mock.calls[0][0];
-      expect(call[0].message).toBe('Proposal "New Feature" has been rejected. Reason: Needs work');
+      expect(call[0].message).toBe('Experiment design "New Feature" has been rejected. Reason: Needs work');
     });
 
     it("should build run_status_changed message", async () => {

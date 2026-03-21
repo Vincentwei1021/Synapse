@@ -104,7 +104,7 @@ describe("createDocument", () => {
 describe("getDocument", () => {
   it("should return document with project info and content", async () => {
     const record = makeDocRecord({
-      project: { uuid: researchProjectUuid, name: "Test Project" },
+      researchProject: { uuid: researchProjectUuid, name: "Test Project" },
     });
     mockPrisma.document.findFirst.mockResolvedValue(record);
 

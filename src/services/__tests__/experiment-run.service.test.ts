@@ -118,7 +118,7 @@ function rawTask(overrides: Record<string, unknown> = {}) {
 function rawTaskWithRelations(overrides: Record<string, unknown> = {}) {
   return {
     ...rawTask(overrides),
-    project: { uuid: PROJECT_UUID, name: "Test Project" },
+    researchProject: { uuid: PROJECT_UUID, name: "Test Project" },
     dependsOn: [],
     dependedBy: [],
     acceptanceCriteriaItems: [],
@@ -321,10 +321,10 @@ describe("getExperimentRun", () => {
   it("formats dependency info from nested relations", async () => {
     const task = rawTaskWithRelations({
       dependsOn: [
-        { dependsOn: { uuid: "dep1", title: "Dep Task", status: "done" } },
+        { dependsOnRun: { uuid: "dep1", title: "Dep Task", status: "done" } },
       ],
       dependedBy: [
-        { experimentRun: { uuid: "rev1", title: "Reverse Dep", status: "open" } },
+        { run: { uuid: "rev1", title: "Reverse Dep", status: "open" } },
       ],
     });
     // Remove the overrides from the top-level so they only appear in the relation fields
@@ -332,12 +332,12 @@ describe("getExperimentRun", () => {
     delete (task as Record<string, unknown>)["dependedBy"];
     const taskWithDeps = {
       ...rawTask(),
-      project: { uuid: PROJECT_UUID, name: "Test Project" },
+      researchProject: { uuid: PROJECT_UUID, name: "Test Project" },
       dependsOn: [
-        { dependsOn: { uuid: "dep1", title: "Dep Task", status: "done" } },
+        { dependsOnRun: { uuid: "dep1", title: "Dep Task", status: "done" } },
       ],
       dependedBy: [
-        { experimentRun: { uuid: "rev1", title: "Reverse Dep", status: "open" } },
+        { run: { uuid: "rev1", title: "Reverse Dep", status: "open" } },
       ],
       acceptanceCriteriaItems: [],
     };
@@ -363,7 +363,7 @@ describe("getExperimentRun", () => {
     });
     const task = {
       ...rawTask(),
-      project: { uuid: PROJECT_UUID, name: "Test Project" },
+      researchProject: { uuid: PROJECT_UUID, name: "Test Project" },
       dependsOn: [],
       dependedBy: [],
       acceptanceCriteriaItems: [criterion],
@@ -468,7 +468,7 @@ describe("claimExperimentRun", () => {
   it("claims an open task (sets status to assigned)", async () => {
     const claimed = {
       ...rawTask({ status: "assigned", assigneeType: "agent", assigneeUuid: "a1" }),
-      project: { uuid: PROJECT_UUID, name: "Test Project" },
+      researchProject: { uuid: PROJECT_UUID, name: "Test Project" },
     };
     mockPrisma.experimentRun.update.mockResolvedValue(claimed);
 
@@ -522,7 +522,7 @@ describe("claimExperimentRun", () => {
   it("emits change event on successful claim", async () => {
     const claimed = {
       ...rawTask({ status: "assigned" }),
-      project: { uuid: PROJECT_UUID, name: "Test Project" },
+      researchProject: { uuid: PROJECT_UUID, name: "Test Project" },
     };
     mockPrisma.experimentRun.update.mockResolvedValue(claimed);
 
@@ -544,7 +544,7 @@ describe("claimExperimentRun", () => {
   it("passes assignedByUuid when provided", async () => {
     const claimed = {
       ...rawTask({ status: "assigned" }),
-      project: { uuid: PROJECT_UUID, name: "Test Project" },
+      researchProject: { uuid: PROJECT_UUID, name: "Test Project" },
     };
     mockPrisma.experimentRun.update.mockResolvedValue(claimed);
 
@@ -567,7 +567,7 @@ describe("releaseExperimentRun", () => {
   it("releases an assigned task (reverts to open, clears assignee)", async () => {
     const released = {
       ...rawTask({ status: "open", assigneeType: null, assigneeUuid: null }),
-      project: { uuid: PROJECT_UUID, name: "Test Project" },
+      researchProject: { uuid: PROJECT_UUID, name: "Test Project" },
     };
     mockPrisma.experimentRun.update.mockResolvedValue(released);
 
@@ -604,7 +604,7 @@ describe("releaseExperimentRun", () => {
   it("emits change event on successful release", async () => {
     const released = {
       ...rawTask({ status: "open" }),
-      project: { uuid: PROJECT_UUID, name: "Test Project" },
+      researchProject: { uuid: PROJECT_UUID, name: "Test Project" },
     };
     mockPrisma.experimentRun.update.mockResolvedValue(released);
 
@@ -1122,10 +1122,10 @@ describe("getRunDependencies", () => {
     const task = {
       ...rawTask({ uuid: "t1" }),
       dependsOn: [
-        { dependsOn: { uuid: "dep1", title: "Dep 1", status: "done" } },
+        { dependsOnRun: { uuid: "dep1", title: "Dep 1", status: "done" } },
       ],
       dependedBy: [
-        { experimentRun: { uuid: "rev1", title: "Rev 1", status: "open" } },
+        { run: { uuid: "rev1", title: "Rev 1", status: "open" } },
       ],
       acceptanceCriteriaItems: [],
     };
@@ -1233,8 +1233,8 @@ describe("checkDependenciesResolved", () => {
 
   it("should return resolved=true when all dependencies are done/closed", async () => {
     mockPrisma.runDependency.findMany.mockResolvedValue([
-      { dependsOn: { uuid: "d1", title: "Dep 1", status: "done", assigneeType: null, assigneeUuid: null } },
-      { dependsOn: { uuid: "d2", title: "Dep 2", status: "closed", assigneeType: null, assigneeUuid: null } },
+      { dependsOnRun: { uuid: "d1", title: "Dep 1", status: "done", assigneeType: null, assigneeUuid: null } },
+      { dependsOnRun: { uuid: "d2", title: "Dep 2", status: "closed", assigneeType: null, assigneeUuid: null } },
     ]);
 
     const result = await (await import("@/services/experiment-run.service")).checkDependenciesResolved(
@@ -1247,7 +1247,7 @@ describe("checkDependenciesResolved", () => {
 
   it("should return resolved=false with blockers when dependencies unresolved", async () => {
     mockPrisma.runDependency.findMany.mockResolvedValue([
-      { dependsOn: { uuid: "d1", title: "Blocker Task", status: "in_progress", assigneeType: "agent", assigneeUuid: "a1" } },
+      { dependsOnRun: { uuid: "d1", title: "Blocker Task", status: "in_progress", assigneeType: "agent", assigneeUuid: "a1" } },
     ]);
     mockPrisma.sessionRunCheckin.findMany.mockResolvedValue([]);
     mockUuidResolver.batchGetActorNames.mockResolvedValue(new Map([["a1", "Agent 1"]]));
@@ -1268,7 +1268,7 @@ describe("checkDependenciesResolved", () => {
 
   it("should include session checkin info in blockers", async () => {
     mockPrisma.runDependency.findMany.mockResolvedValue([
-      { dependsOn: { uuid: "d1", title: "Blocker", status: "in_progress", assigneeType: null, assigneeUuid: null } },
+      { dependsOnRun: { uuid: "d1", title: "Blocker", status: "in_progress", assigneeType: null, assigneeUuid: null } },
     ]);
     mockPrisma.sessionRunCheckin.findMany.mockResolvedValue([
       { runUuid: "d1", sessionUuid: "s1", session: { name: "worker-1" } },
@@ -1468,7 +1468,7 @@ describe("updateExperimentRun", () => {
     mockPrisma.experimentRun.findUnique.mockResolvedValue(null);
     const updated = {
       ...rawTask({ title: "Updated Title", status: "in_progress" }),
-      project: { uuid: PROJECT_UUID, name: "Test Project" },
+      researchProject: { uuid: PROJECT_UUID, name: "Test Project" },
     };
     mockPrisma.experimentRun.update.mockResolvedValue(updated);
 
@@ -1486,7 +1486,7 @@ describe("updateExperimentRun", () => {
     mockPrisma.experimentRun.findUnique.mockResolvedValue(null);
     const updated = {
       ...rawTask({ status: "in_progress" }),
-      project: { uuid: PROJECT_UUID, name: "Test Project" },
+      researchProject: { uuid: PROJECT_UUID, name: "Test Project" },
     };
     mockPrisma.experimentRun.findUnique.mockResolvedValue({ status: "to_verify" });
     mockPrisma.experimentRun.update.mockResolvedValue(updated);
@@ -1507,7 +1507,7 @@ describe("updateExperimentRun", () => {
     mockPrisma.experimentRun.findUnique.mockResolvedValue(null);
     const updated = {
       ...rawTask({ status: "done" }),
-      project: { uuid: PROJECT_UUID, name: "Test Project" },
+      researchProject: { uuid: PROJECT_UUID, name: "Test Project" },
     };
     mockPrisma.experimentRun.findUnique.mockResolvedValue({ status: "to_verify" });
     mockPrisma.experimentRun.update.mockResolvedValue(updated);
@@ -1524,7 +1524,7 @@ describe("updateExperimentRun", () => {
     mockPrisma.experimentRun.findUnique.mockResolvedValue({ description: oldDesc });
     const updated = {
       ...rawTask({ description: newDesc }),
-      project: { uuid: PROJECT_UUID, name: "Test Project" },
+      researchProject: { uuid: PROJECT_UUID, name: "Test Project" },
     };
     mockPrisma.experimentRun.update.mockResolvedValue(updated);
 

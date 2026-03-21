@@ -3,12 +3,12 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 // ===== Module mocks (hoisted) =====
 
 const mockResearchProjectService = vi.hoisted(() => ({
-  getProjectByUuid: vi.fn(),
+  getResearchProjectByUuid: vi.fn(),
 }));
 
 const mockExperimentRunService = vi.hoisted(() => ({
-  listTasks: vi.fn(),
-  getUnblockedTasks: vi.fn(),
+  listExperimentRuns: vi.fn(),
+  getUnblockedExperimentRuns: vi.fn(),
 }));
 
 const mockAssignmentService = vi.hoisted(() => ({
@@ -68,8 +68,8 @@ beforeEach(() => {
 
 describe("synapse_list_experiment_runs — experimentDesignUuids", () => {
   it("passes experimentDesignUuids to experimentRunService.listTasks when provided", async () => {
-    mockResearchProjectService.getProjectByUuid.mockResolvedValue(PROJECT);
-    mockExperimentRunService.listTasks.mockResolvedValue({ tasks: [], total: 0 });
+    mockResearchProjectService.getResearchProjectByUuid.mockResolvedValue(PROJECT);
+    mockExperimentRunService.listExperimentRuns.mockResolvedValue({ tasks: [], total: 0 });
 
     await toolHandlers["synapse_list_experiment_runs"]({
       researchProjectUuid: "project-1",
@@ -78,16 +78,16 @@ describe("synapse_list_experiment_runs — experimentDesignUuids", () => {
       pageSize: 20,
     });
 
-    expect(mockExperimentRunService.listTasks).toHaveBeenCalledWith(
+    expect(mockExperimentRunService.listExperimentRuns).toHaveBeenCalledWith(
       expect.objectContaining({
-        proposalUuids: ["design-a", "design-b"],
+        experimentDesignUuids: ["design-a", "design-b"],
       }),
     );
   });
 
   it("works without experimentDesignUuids (backward compat)", async () => {
-    mockResearchProjectService.getProjectByUuid.mockResolvedValue(PROJECT);
-    mockExperimentRunService.listTasks.mockResolvedValue({ tasks: [], total: 0 });
+    mockResearchProjectService.getResearchProjectByUuid.mockResolvedValue(PROJECT);
+    mockExperimentRunService.listExperimentRuns.mockResolvedValue({ tasks: [], total: 0 });
 
     await toolHandlers["synapse_list_experiment_runs"]({
       researchProjectUuid: "project-1",
@@ -95,19 +95,19 @@ describe("synapse_list_experiment_runs — experimentDesignUuids", () => {
       pageSize: 20,
     });
 
-    expect(mockExperimentRunService.listTasks).toHaveBeenCalledWith(
+    expect(mockExperimentRunService.listExperimentRuns).toHaveBeenCalledWith(
       expect.objectContaining({
         companyUuid: "company-1",
-        projectUuid: "project-1",
+        researchProjectUuid: "project-1",
       }),
     );
-    // proposalUuids should be undefined (not present or undefined)
-    const callArg = mockExperimentRunService.listTasks.mock.calls[0][0];
-    expect(callArg.proposalUuids).toBeUndefined();
+    // experimentDesignUuids should be undefined (not present or undefined)
+    const callArg = mockExperimentRunService.listExperimentRuns.mock.calls[0][0];
+    expect(callArg.experimentDesignUuids).toBeUndefined();
   });
 
   it("still checks project existence", async () => {
-    mockResearchProjectService.getProjectByUuid.mockResolvedValue(null);
+    mockResearchProjectService.getResearchProjectByUuid.mockResolvedValue(null);
 
     const result = await toolHandlers["synapse_list_experiment_runs"]({
       researchProjectUuid: "nonexistent",
@@ -119,7 +119,7 @@ describe("synapse_list_experiment_runs — experimentDesignUuids", () => {
     expect(result).toEqual(
       expect.objectContaining({ isError: true }),
     );
-    expect(mockExperimentRunService.listTasks).not.toHaveBeenCalled();
+    expect(mockExperimentRunService.listExperimentRuns).not.toHaveBeenCalled();
   });
 });
 
@@ -127,7 +127,7 @@ describe("synapse_list_experiment_runs — experimentDesignUuids", () => {
 
 describe("synapse_get_available_experiment_runs — experimentDesignUuids", () => {
   it("passes experimentDesignUuids to assignmentService.getAvailableItems when provided", async () => {
-    mockResearchProjectService.getProjectByUuid.mockResolvedValue(PROJECT);
+    mockResearchProjectService.getResearchProjectByUuid.mockResolvedValue(PROJECT);
     mockAssignmentService.getAvailableItems.mockResolvedValue({ ideas: [], tasks: [] });
 
     await toolHandlers["synapse_get_available_experiment_runs"]({
@@ -145,7 +145,7 @@ describe("synapse_get_available_experiment_runs — experimentDesignUuids", () =
   });
 
   it("works without experimentDesignUuids (backward compat)", async () => {
-    mockResearchProjectService.getProjectByUuid.mockResolvedValue(PROJECT);
+    mockResearchProjectService.getResearchProjectByUuid.mockResolvedValue(PROJECT);
     mockAssignmentService.getAvailableItems.mockResolvedValue({ ideas: [], tasks: [] });
 
     await toolHandlers["synapse_get_available_experiment_runs"]({
@@ -162,7 +162,7 @@ describe("synapse_get_available_experiment_runs — experimentDesignUuids", () =
   });
 
   it("still checks project existence", async () => {
-    mockResearchProjectService.getProjectByUuid.mockResolvedValue(null);
+    mockResearchProjectService.getResearchProjectByUuid.mockResolvedValue(null);
 
     const result = await toolHandlers["synapse_get_available_experiment_runs"]({
       researchProjectUuid: "nonexistent",
@@ -180,41 +180,41 @@ describe("synapse_get_available_experiment_runs — experimentDesignUuids", () =
 
 describe("synapse_get_unblocked_experiment_runs — experimentDesignUuids", () => {
   it("passes experimentDesignUuids to experimentRunService.getUnblockedTasks when provided", async () => {
-    mockResearchProjectService.getProjectByUuid.mockResolvedValue(PROJECT);
-    mockExperimentRunService.getUnblockedTasks.mockResolvedValue({ tasks: [], total: 0 });
+    mockResearchProjectService.getResearchProjectByUuid.mockResolvedValue(PROJECT);
+    mockExperimentRunService.getUnblockedExperimentRuns.mockResolvedValue({ tasks: [], total: 0 });
 
     await toolHandlers["synapse_get_unblocked_experiment_runs"]({
       researchProjectUuid: "project-1",
       experimentDesignUuids: ["design-1", "design-2"],
     });
 
-    expect(mockExperimentRunService.getUnblockedTasks).toHaveBeenCalledWith(
+    expect(mockExperimentRunService.getUnblockedExperimentRuns).toHaveBeenCalledWith(
       expect.objectContaining({
-        proposalUuids: ["design-1", "design-2"],
+        experimentDesignUuids: ["design-1", "design-2"],
       }),
     );
   });
 
   it("works without experimentDesignUuids (backward compat)", async () => {
-    mockResearchProjectService.getProjectByUuid.mockResolvedValue(PROJECT);
-    mockExperimentRunService.getUnblockedTasks.mockResolvedValue({ tasks: [], total: 0 });
+    mockResearchProjectService.getResearchProjectByUuid.mockResolvedValue(PROJECT);
+    mockExperimentRunService.getUnblockedExperimentRuns.mockResolvedValue({ tasks: [], total: 0 });
 
     await toolHandlers["synapse_get_unblocked_experiment_runs"]({
       researchProjectUuid: "project-1",
     });
 
-    expect(mockExperimentRunService.getUnblockedTasks).toHaveBeenCalledWith(
+    expect(mockExperimentRunService.getUnblockedExperimentRuns).toHaveBeenCalledWith(
       expect.objectContaining({
         companyUuid: "company-1",
-        projectUuid: "project-1",
+        researchProjectUuid: "project-1",
       }),
     );
-    const callArg = mockExperimentRunService.getUnblockedTasks.mock.calls[0][0];
-    expect(callArg.proposalUuids).toBeUndefined();
+    const callArg = mockExperimentRunService.getUnblockedExperimentRuns.mock.calls[0][0];
+    expect(callArg.experimentDesignUuids).toBeUndefined();
   });
 
   it("still checks project existence", async () => {
-    mockResearchProjectService.getProjectByUuid.mockResolvedValue(null);
+    mockResearchProjectService.getResearchProjectByUuid.mockResolvedValue(null);
 
     const result = await toolHandlers["synapse_get_unblocked_experiment_runs"]({
       researchProjectUuid: "nonexistent",
@@ -224,6 +224,6 @@ describe("synapse_get_unblocked_experiment_runs — experimentDesignUuids", () =
     expect(result).toEqual(
       expect.objectContaining({ isError: true }),
     );
-    expect(mockExperimentRunService.getUnblockedTasks).not.toHaveBeenCalled();
+    expect(mockExperimentRunService.getUnblockedExperimentRuns).not.toHaveBeenCalled();
   });
 });

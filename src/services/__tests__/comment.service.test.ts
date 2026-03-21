@@ -115,7 +115,7 @@ describe("createComment", () => {
         authorType: "user",
         authorUuid,
       })
-    ).rejects.toThrow("Target task with UUID nonexistent not found");
+    ).rejects.toThrow("Target experiment_run with UUID nonexistent not found");
   });
 
   it("should use 'Unknown' when author name is null", async () => {
@@ -442,8 +442,8 @@ describe("createComment", () => {
 
     // Mock findUnique to return different values based on the select clause
     mockPrisma.experimentRun.findUnique.mockImplementation((args: any) => {
-      if (args.select?.projectUuid) {
-        // resolveProjectUuid call - return projectUuid
+      if (args.select?.researchProjectUuid) {
+        // resolveProjectUuid call - return researchProjectUuid
         return Promise.resolve({ researchProjectUuid });
       } else if (args.select?.title) {
         // resolveEntityTitle call - return null to trigger fallback

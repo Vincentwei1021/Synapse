@@ -71,7 +71,7 @@ function makeResearchQuestionRecord(overrides: Record<string, unknown> = {}) {
     researchProjectUuid: PROJECT_UUID,
     createdAt: now,
     updatedAt: now,
-    project: { uuid: PROJECT_UUID, name: "Test Project" },
+    researchProject: { uuid: PROJECT_UUID, name: "Test Project" },
     ...overrides,
   };
 }
@@ -398,7 +398,7 @@ describe("moveResearchQuestion", () => {
     const targetProject = { uuid: TARGET_PROJECT_UUID, name: "Target Project" };
     const movedIdea = makeResearchQuestionRecord({
       researchProjectUuid: TARGET_PROJECT_UUID,
-      project: targetProject,
+      researchProject: targetProject,
     });
 
     mockPrisma.researchQuestion.findFirst
