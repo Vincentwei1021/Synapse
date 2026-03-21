@@ -17,7 +17,7 @@ Transform Chorus (AI-driven software development platform) into Synapse (AI-driv
 - **Model rename strategy**: Full model rename (Approach B). Prisma models, services, routes all use research terminology.
 - **Implementation strategy**: Layered (Approach B). Three sub-phases executed sequentially.
 - **Migration strategy**: Fresh fork, no production data. Single migration per sub-phase.
-- **`projectUuid` field name**: Keep as `projectUuid` everywhere. The model name `ResearchProject` already communicates the meaning. Renaming the FK to `researchProjectUuid` across 121 files adds verbosity for no benefit. Exception: new models (`ExperimentRegistry`, `Baseline`) use `projectUuid` for consistency.
+- **`projectUuid` field name**: Rename to `researchProjectUuid` in all models that reference ResearchProject. This is consistent with the full deep rename strategy.
 - **Status values**: Keep internal status strings as-is (`open`, `in_progress`, `to_verify`, `done`, `closed`). Only display labels change in i18n. Renaming status strings is extremely invasive and offers minimal benefit.
 - **`targetType`/`entityType` string literals**: Rename to match new model names: `"task"` → `"experiment_run"`, `"idea"` → `"research_question"`, `"proposal"` → `"experiment_design"`. `"document"` stays as-is.
 - **`storyPoints` field**: Remove from `ExperimentRun`. Replaced by `computeBudgetHours`.
@@ -52,12 +52,14 @@ Cross-references that used old model names:
 | `RunDependency` | `dependsOnUuid` | `dependsOnRunUuid` |
 | `SessionRunCheckin` | `taskUuid` | `runUuid` |
 | `AcceptanceCriterion` | `taskUuid` | `runUuid` |
+| All models referencing ResearchProject | `projectUuid` | `researchProjectUuid` |
 | `ExperimentRun`, `Document` | `proposalUuid` | `experimentDesignUuid` |
 | `HypothesisFormulation` | `ideaUuid` | `researchQuestionUuid` |
 | `AgentSession` relation | `taskCheckins` | `runCheckins` |
 
+Models affected by `projectUuid → researchProjectUuid`: `ResearchProject` (self), `ResearchQuestion`, `ExperimentRun`, `ExperimentDesign`, `Document`, `Activity`, `Notification`, `ExperimentRegistry`, `Baseline`, `ProjectGroup`.
+
 Fields explicitly kept as-is:
-- `projectUuid` — kept everywhere (see Decisions above)
 - `ExperimentRun.acceptanceCriteria` (free-text String? field) — kept as generic term
 - `ExperimentRun.acceptanceCriteriaItems` (relation) — kept
 - `ExperimentRun.dependsOn` / `dependedBy` (relations) — kept, generic
@@ -148,21 +150,21 @@ actualValue      Float?    // Filled by agent after experiment
 model ExperimentRegistry {
   id              Int       @id @default(autoincrement())
   uuid            String    @unique @default(uuid())
-  companyUuid     String
-  projectUuid     String
-  runUuid         String    // Links to ExperimentRun
-  config          Json      // Full experiment configuration
-  environment     Json      // Software versions, hardware specs
-  seed            Int?      // Random seed for reproducibility
-  startedAt       DateTime
-  completedAt     DateTime?
-  metrics         Json?     // Final metrics
-  artifacts       Json?     // Model checkpoints, output files
-  reproducible    Boolean   @default(false)
-  createdAt       DateTime  @default(now())
+  companyUuid           String
+  researchProjectUuid   String
+  runUuid               String    // Links to ExperimentRun
+  config                Json      // Full experiment configuration
+  environment           Json      // Software versions, hardware specs
+  seed                  Int?      // Random seed for reproducibility
+  startedAt             DateTime
+  completedAt           DateTime?
+  metrics               Json?     // Final metrics
+  artifacts             Json?     // Model checkpoints, output files
+  reproducible          Boolean   @default(false)
+  createdAt             DateTime  @default(now())
 
   @@index([companyUuid])
-  @@index([projectUuid])
+  @@index([researchProjectUuid])
   @@index([runUuid])
 }
 ```
@@ -172,17 +174,17 @@ model ExperimentRegistry {
 model Baseline {
   id              Int       @id @default(autoincrement())
   uuid            String    @unique @default(uuid())
-  companyUuid     String
-  projectUuid     String
-  name            String    // e.g., "GPT-4 zero-shot baseline"
-  metrics         Json      // { "accuracy": 0.72, "f1": 0.68, ... }
-  experimentUuid  String?   // Source experiment run
-  isActive        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  companyUuid           String
+  researchProjectUuid   String
+  name                  String    // e.g., "GPT-4 zero-shot baseline"
+  metrics               Json      // { "accuracy": 0.72, "f1": 0.68, ... }
+  experimentUuid        String?   // Source experiment run
+  isActive              Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   @@index([companyUuid])
-  @@index([projectUuid])
+  @@index([researchProjectUuid])
 }
 ```
 
@@ -207,6 +209,23 @@ Default role on Agent model: `@default(["researcher"])` (was `["developer"]`).
 ### 1.9 API Key Prefix
 
 `cho_` → `syn_`
+
+### 1.10 Environment Variables and Config Values
+
+Env vars and config strings with `chorus` references:
+
+| Location | Old Value | New Value |
+|---|---|---|
+| `.env.example` DATABASE_URL | `chorus:chorus@.../chorus` | `synapse:synapse@.../synapse` |
+| `.env.example` REDIS_URL | `chorus-redis` | `synapse-redis` |
+| `.env.example` DEFAULT_USER | `dev@chorus.local` | `dev@synapse.local` |
+| `.env.example` DEFAULT_PASSWORD | `chorus123` | `synapse123` |
+| Plugin env vars | `CHORUS_URL`, `CHORUS_API_KEY` | `SYNAPSE_URL`, `SYNAPSE_API_KEY` |
+| `docker-compose.yml` | service/db names with `chorus` | `synapse` |
+| `docker-entrypoint.sh` | any `chorus` references | `synapse` |
+| `install.sh` | Stack name default `Chorus` | `Synapse` |
+| `packages/synapse-cdk/` | all `chorus` references | `synapse` |
+| Plugin skill docs | `CHORUS_URL`, `CHORUS_API_KEY` | `SYNAPSE_URL`, `SYNAPSE_API_KEY` |
 
 ---
 
