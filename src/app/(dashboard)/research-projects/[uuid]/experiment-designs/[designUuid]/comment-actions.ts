@@ -60,7 +60,7 @@ export async function createDesignCommentAction(
     if (proposal.project?.uuid) {
       await createActivity({
         companyUuid: auth.companyUuid,
-        projectUuid: proposal.project.uuid,
+        researchProjectUuid: proposal.project.uuid,
         targetType: "experiment_design",
         targetUuid: designUuid,
         actorType: auth.type,

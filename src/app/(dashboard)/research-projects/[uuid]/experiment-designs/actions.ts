@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 import { getServerAuthContext } from "@/lib/auth-server";
 import {
   createExperimentDesign,
-  checkIdeasAssignee,
+  checkResearchQuestionsAssignee,
   type DocumentDraftInput,
-  type TaskDraftInput,
+  type RunDraftInput,
 } from "@/services/experiment-design.service";
 import { researchProjectExists } from "@/services/research-project.service";
 
@@ -19,7 +19,7 @@ export async function createExperimentDesignAction(
     inputType: "research_question" | "document";
     inputUuids: string[];
     documentDrafts?: DocumentDraftInput[];
-    taskDrafts?: TaskDraftInput[];
+    taskDrafts?: RunDraftInput[];
   }
 ) {
   const auth = await getServerAuthContext();
@@ -44,7 +44,7 @@ export async function createExperimentDesignAction(
     // If input type is idea, additional validation is needed
     if (data.inputType === "research_question") {
       // Validate if user is the assignee of these Ideas
-      const assigneeCheck = await checkIdeasAssignee(
+      const assigneeCheck = await checkResearchQuestionsAssignee(
         auth.companyUuid,
         data.inputUuids,
         auth.actorUuid,
@@ -62,7 +62,7 @@ export async function createExperimentDesignAction(
 
     const proposal = await createExperimentDesign({
       companyUuid: auth.companyUuid,
-      projectUuid,
+      researchProjectUuid: projectUuid,
       title: data.title.trim(),
       description: data.description?.trim() || null,
       inputType: data.inputType,

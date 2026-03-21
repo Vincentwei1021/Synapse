@@ -94,7 +94,7 @@ describe("TaskViewToggle - ProposalFilter integration", () => {
     const filePath = path.resolve(
       __dirname,
       "..",
-      "task-view-toggle.tsx"
+      "run-view-toggle.tsx"
     );
     const content = fs.readFileSync(filePath, "utf-8");
 
@@ -120,7 +120,7 @@ describe("TaskViewToggle - ProposalFilter integration", () => {
     const filePath = path.resolve(
       __dirname,
       "..",
-      "task-view-toggle.tsx"
+      "run-view-toggle.tsx"
     );
     const content = fs.readFileSync(filePath, "utf-8");
 
@@ -243,7 +243,7 @@ describe("TaskViewToggle - mobile overflow safety", () => {
       "..",
       "..",
       "components",
-      "proposal-filter.tsx"
+      "design-filter.tsx"
     );
     const content = fs.readFileSync(filePath, "utf-8");
 

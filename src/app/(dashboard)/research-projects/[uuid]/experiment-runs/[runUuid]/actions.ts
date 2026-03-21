@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { claimTask, getExperimentRunByUuid, updateExperimentRun, releaseTask, createExperimentRun, deleteExperimentRun, checkAcceptanceCriteriaGate } from "@/services/experiment-run.service";
+import { claimExperimentRun, getExperimentRunByUuid, updateExperimentRun, releaseExperimentRun, createExperimentRun, deleteExperimentRun, checkAcceptanceCriteriaGate } from "@/services/experiment-run.service";
 import { getAgentsByRole, getCompanyUsers } from "@/services/agent.service";
 import { createActivity } from "@/services/activity.service";
 
@@ -24,7 +24,7 @@ export async function claimRunAction(runUuid: string) {
       return { success: false, error: "Task is not available for claiming" };
     }
 
-    await claimTask({
+    await claimExperimentRun({
       runUuid,
       companyUuid: auth.companyUuid,
       assigneeType: auth.type,
@@ -71,7 +71,7 @@ export async function claimRunToAgentAction(runUuid: string, agentUuid: string) 
       return { success: false, error: "Task is not available for claiming" };
     }
 
-    await claimTask({
+    await claimExperimentRun({
       runUuid,
       companyUuid: auth.companyUuid,
       assigneeType: "agent",
@@ -120,7 +120,7 @@ export async function releaseRunAction(runUuid: string) {
     }
 
     // Release task
-    await releaseTask(runUuid);
+    await releaseExperimentRun(runUuid);
 
     // Record activity
     await createActivity({
@@ -232,7 +232,7 @@ export async function claimTaskToUserAction(runUuid: string, userUuid: string) {
       return { success: false, error: "Task is not available for assigning" };
     }
 
-    await claimTask({
+    await claimExperimentRun({
       runUuid,
       companyUuid: auth.companyUuid,
       assigneeType: "user",

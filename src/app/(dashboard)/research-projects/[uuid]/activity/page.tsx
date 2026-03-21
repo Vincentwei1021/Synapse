@@ -103,7 +103,7 @@ export default async function ActivityPage({ params }: PageProps) {
   // Get Activities
   const { activities: rawActivities } = await listActivities({
     companyUuid: auth.companyUuid,
-    projectUuid,
+    researchProjectUuid: projectUuid,
     skip: 0,
     take: 100,
   });

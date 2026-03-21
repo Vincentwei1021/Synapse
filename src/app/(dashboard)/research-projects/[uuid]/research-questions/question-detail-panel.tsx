@@ -53,9 +53,9 @@ import { ContentWithMentions } from "@/components/mention-renderer";
 import { MentionEditor, type MentionEditorRef } from "@/components/mention-editor";
 import { AssignIdeaModal } from "./assign-question-modal";
 import { ElaborationPanel } from "@/components/hypothesis-formulation-panel";
-import { getHypothesisFormulationAction, skipHypothesisFormulationAction } from "./[questionUuid]/elaboration-actions";
+import { getHypothesisFormulationAction, skipHypothesisFormulationAction } from "./[questionUuid]/hypothesis-formulation-actions";
 import { useRealtimeEvent, useRealtimeEntityEvent } from "@/contexts/realtime-context";
-import type { ElaborationResponse } from "@/types/hypothesis-formulation";
+import type { HypothesisFormulationResponse } from "@/types/hypothesis-formulation";
 
 interface Idea {
   uuid: string;
@@ -173,7 +173,7 @@ export function IdeaDetailPanel({
   const [showAssignModal, setShowAssignModal] = useState(false);
 
   // Elaboration state
-  const [elaboration, setElaboration] = useState<ElaborationResponse | null>(null);
+  const [elaboration, setElaboration] = useState<HypothesisFormulationResponse | null>(null);
   const isLoadingElaboration = false; // Loaded via useRealtimeEvent
 
   // Reload elaboration data (called on mount + SSE events)

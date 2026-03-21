@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { updateExperimentRun, getExperimentRunByUuid, getProjectTaskDependencies, checkDependenciesResolved, checkAcceptanceCriteriaGate } from "@/services/experiment-run.service";
+import { updateExperimentRun, getExperimentRunByUuid, getProjectRunDependencies, checkDependenciesResolved, checkAcceptanceCriteriaGate } from "@/services/experiment-run.service";
 import { createActivity } from "@/services/activity.service";
 
 // Map column IDs to task statuses
@@ -113,7 +113,7 @@ export async function getProjectDependenciesAction(projectUuid: string) {
   }
 
   try {
-    return await getProjectTaskDependencies(auth.companyUuid, projectUuid);
+    return await getProjectRunDependencies(auth.companyUuid, projectUuid);
   } catch (error) {
     console.error("Failed to get project dependencies:", error);
     return { nodes: [], edges: [] };

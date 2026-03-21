@@ -10,7 +10,7 @@ import { Lightbulb } from "lucide-react";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { listResearchQuestions } from "@/services/research-question.service";
 import { researchProjectExists } from "@/services/research-project.service";
-import { checkIdeasAvailability } from "@/services/experiment-design.service";
+import { checkResearchQuestionsAvailability } from "@/services/experiment-design.service";
 import { batchCommentCounts } from "@/services/comment.service";
 import { IdeaCreateForm } from "./question-create-form";
 import { IdeasList } from "./questions-list";
@@ -54,17 +54,17 @@ export async function IdeasPageContent({
   }
 
   // Get all Ideas (for counting)
-  const { ideas: allIdeas } = await listResearchQuestions({
+  const { researchQuestions: allIdeas } = await listResearchQuestions({
     companyUuid: auth.companyUuid,
-    projectUuid,
+    researchProjectUuid: projectUuid,
     skip: 0,
     take: 1000,
   });
 
   // Get Ideas assigned to me (for counting)
-  const { ideas: myIdeas } = await listResearchQuestions({
+  const { researchQuestions: myIdeas } = await listResearchQuestions({
     companyUuid: auth.companyUuid,
-    projectUuid,
+    researchProjectUuid: projectUuid,
     skip: 0,
     take: 1000,
     assignedToMe: true,
@@ -73,20 +73,20 @@ export async function IdeasPageContent({
   });
 
   // Calculate count per status
-  const statusCounts = allIdeas.reduce((acc, idea) => {
+  const statusCounts = allIdeas.reduce((acc: Record<string, number>, idea: { status: string }) => {
     acc[idea.status] = (acc[idea.status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
   // Get availability of all Ideas (whether already used by a Proposal)
-  const allIdeaUuids = allIdeas.map(idea => idea.uuid);
+  const allIdeaUuids = allIdeas.map((idea: { uuid: string }) => idea.uuid);
   const availabilityCheck = allIdeaUuids.length > 0
-    ? await checkIdeasAvailability(auth.companyUuid, allIdeaUuids)
-    : { usedIdeas: [] };
-  const usedIdeaUuids = availabilityCheck.usedIdeas.map(u => u.uuid);
+    ? await checkResearchQuestionsAvailability(auth.companyUuid, allIdeaUuids)
+    : { usedResearchQuestions: [] };
+  const usedIdeaUuids = availabilityCheck.usedResearchQuestions.map((u: { uuid: string }) => u.uuid);
   // idea UUID -> proposal UUID mapping
   const ideaProposalMap: Record<string, string> = {};
-  for (const u of availabilityCheck.usedIdeas) {
+  for (const u of availabilityCheck.usedResearchQuestions) {
     ideaProposalMap[u.uuid] = u.experimentDesignUuid;
   }
 

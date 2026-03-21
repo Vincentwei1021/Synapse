@@ -536,7 +536,7 @@ export default function ProjectsPage() {
     const sourceGroupUuid = project.groupUuid;
 
     setPendingMove({
-      researchProjectUuid: project.uuid,
+      projectUuid: project.uuid,
       projectName: project.name,
       sourceGroupName: getGroupName(sourceGroupUuid),
       targetGroupUuid,

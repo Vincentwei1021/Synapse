@@ -30,9 +30,9 @@ export default async function NewProposalPage({ params, searchParams }: PageProp
   }
 
   // Get user's claimed Ideas (only assignees can create Proposals)
-  const { ideas } = await listResearchQuestions({
+  const { researchQuestions: ideas } = await listResearchQuestions({
     companyUuid: auth.companyUuid,
-    projectUuid,
+    researchProjectUuid: projectUuid,
     skip: 0,
     take: 100,
     assignedToMe: true,

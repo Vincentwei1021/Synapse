@@ -50,7 +50,7 @@ describe("Kanban view - ProposalFilter integration", () => {
     const filePath = path.resolve(
       __dirname,
       "..",
-      "task-view-toggle.tsx"
+      "run-view-toggle.tsx"
     );
     const content = fs.readFileSync(filePath, "utf-8");
 
@@ -64,15 +64,15 @@ describe("Kanban view - ProposalFilter integration", () => {
     const filePath = path.resolve(
       __dirname,
       "..",
-      "task-view-toggle.tsx"
+      "run-view-toggle.tsx"
     );
     const content = fs.readFileSync(filePath, "utf-8");
 
-    const proposalFilterIdx = content.indexOf("{/* Proposal Filter */}");
+    const experimentDesignFilterIdx = content.indexOf("{/* Proposal Filter */}");
     const toolbarIdx = content.indexOf("{/* Toolbar: View Toggle");
-    expect(proposalFilterIdx).toBeGreaterThan(-1);
+    expect(experimentDesignFilterIdx).toBeGreaterThan(-1);
     expect(toolbarIdx).toBeGreaterThan(-1);
-    expect(proposalFilterIdx).toBeLessThan(toolbarIdx);
+    expect(experimentDesignFilterIdx).toBeLessThan(toolbarIdx);
   });
 
   it("KanbanBoard receives proposalFilteredTasks instead of initialTasks", async () => {
@@ -81,7 +81,7 @@ describe("Kanban view - ProposalFilter integration", () => {
     const filePath = path.resolve(
       __dirname,
       "..",
-      "task-view-toggle.tsx"
+      "run-view-toggle.tsx"
     );
     const content = fs.readFileSync(filePath, "utf-8");
 
@@ -173,23 +173,23 @@ describe("Kanban view - filteredSubtitle i18n keys", () => {
   const zh = require("../../../../../../../messages/zh.json");
 
   it("has filteredSubtitle key in English", () => {
-    expect(en.tasks.proposalFilter).toHaveProperty("filteredSubtitle");
-    expect(typeof en.tasks.proposalFilter.filteredSubtitle).toBe("string");
+    expect(en.experimentRuns.experimentDesignFilter).toHaveProperty("filteredSubtitle");
+    expect(typeof en.experimentRuns.experimentDesignFilter.filteredSubtitle).toBe("string");
     // Should contain interpolation placeholders
-    expect(en.tasks.proposalFilter.filteredSubtitle).toContain("{filtered}");
-    expect(en.tasks.proposalFilter.filteredSubtitle).toContain("{total}");
+    expect(en.experimentRuns.experimentDesignFilter.filteredSubtitle).toContain("{filtered}");
+    expect(en.experimentRuns.experimentDesignFilter.filteredSubtitle).toContain("{total}");
   });
 
   it("has filteredSubtitle key in Chinese", () => {
-    expect(zh.tasks.proposalFilter).toHaveProperty("filteredSubtitle");
-    expect(typeof zh.tasks.proposalFilter.filteredSubtitle).toBe("string");
-    expect(zh.tasks.proposalFilter.filteredSubtitle).toContain("{filtered}");
-    expect(zh.tasks.proposalFilter.filteredSubtitle).toContain("{total}");
+    expect(zh.experimentRuns.experimentDesignFilter).toHaveProperty("filteredSubtitle");
+    expect(typeof zh.experimentRuns.experimentDesignFilter.filteredSubtitle).toBe("string");
+    expect(zh.experimentRuns.experimentDesignFilter.filteredSubtitle).toContain("{filtered}");
+    expect(zh.experimentRuns.experimentDesignFilter.filteredSubtitle).toContain("{total}");
   });
 
-  it("en and zh proposalFilter keys match", () => {
-    const enKeys = Object.keys(en.tasks.proposalFilter).sort();
-    const zhKeys = Object.keys(zh.tasks.proposalFilter).sort();
+  it("en and zh experimentDesignFilter keys match", () => {
+    const enKeys = Object.keys(en.experimentRuns.experimentDesignFilter).sort();
+    const zhKeys = Object.keys(zh.experimentRuns.experimentDesignFilter).sort();
     expect(enKeys).toEqual(zhKeys);
   });
 });

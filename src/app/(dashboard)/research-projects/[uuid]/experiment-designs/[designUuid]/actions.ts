@@ -3,18 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { getServerAuthContext } from "@/lib/auth-server";
 import {
-  approveProposal,
-  rejectProposal,
-  closeProposal,
-  submitProposal,
+  approveExperimentDesign,
+  rejectExperimentDesign,
+  closeExperimentDesign,
+  submitExperimentDesign,
   deleteExperimentDesign,
   getExperimentDesignByUuid,
   addDocumentDraft,
-  addTaskDraft,
+  addRunDraft,
   updateDocumentDraft,
-  updateExperimentRunDraft,
+  updateRunDraft,
   removeDocumentDraft,
-  removeTaskDraft,
+  removeRunDraft,
 } from "@/services/experiment-design.service";
 import { createActivity } from "@/services/activity.service";
 
@@ -36,7 +36,7 @@ export async function approveDesignAction(designUuid: string, reviewNote?: strin
       return { success: false, error: "Proposal is not pending review" };
     }
 
-    await approveProposal(designUuid, auth.companyUuid, auth.actorUuid, reviewNote || null);
+    await approveExperimentDesign(designUuid, auth.companyUuid, auth.actorUuid, reviewNote || null);
 
     await createActivity({
       companyUuid: auth.companyUuid,
@@ -77,7 +77,7 @@ export async function submitDesignAction(designUuid: string) {
       return { success: false, error: "Proposal is not in draft status" };
     }
 
-    await submitProposal(designUuid, auth.companyUuid);
+    await submitExperimentDesign(designUuid, auth.companyUuid);
 
     revalidatePath(`/research-projects/${proposal.researchProjectUuid}/experiment-designs/${designUuid}`);
     revalidatePath(`/research-projects/${proposal.researchProjectUuid}/experiment-designs`);
@@ -107,7 +107,7 @@ export async function rejectDesignAction(designUuid: string, reviewNote?: string
       return { success: false, error: "Proposal is not pending review" };
     }
 
-    await rejectProposal(designUuid, auth.actorUuid, reviewNote || "");
+    await rejectExperimentDesign(designUuid, auth.actorUuid, reviewNote || "");
 
     await createActivity({
       companyUuid: auth.companyUuid,
@@ -146,7 +146,7 @@ export async function closeDesignAction(designUuid: string, reviewNote: string) 
       return { success: false, error: "Proposal is not pending review" };
     }
 
-    await closeProposal(designUuid, auth.actorUuid, reviewNote);
+    await closeExperimentDesign(designUuid, auth.actorUuid, reviewNote);
 
     revalidatePath(`/research-projects/${proposal.researchProjectUuid}/experiment-designs/${designUuid}`);
     revalidatePath(`/research-projects/${proposal.researchProjectUuid}/experiment-designs`);
@@ -233,7 +233,7 @@ export async function addRunDraftAction(
       return { success: false, error: "Proposal not found" };
     }
 
-    const updated = await addTaskDraft(designUuid, auth.companyUuid, draft);
+    const updated = await addRunDraft(designUuid, auth.companyUuid, draft);
 
     revalidatePath(`/research-projects/${proposal.researchProjectUuid}/experiment-designs/${designUuid}`);
 
@@ -296,7 +296,7 @@ export async function updateRunDraftAction(
       return { success: false, error: "Proposal not found" };
     }
 
-    const updated = await updateExperimentRunDraft(designUuid, auth.companyUuid, draftUuid, updates);
+    const updated = await updateRunDraft(designUuid, auth.companyUuid, draftUuid, updates);
 
     revalidatePath(`/research-projects/${proposal.researchProjectUuid}/experiment-designs/${designUuid}`);
 
@@ -344,7 +344,7 @@ export async function removeRunDraftAction(designUuid: string, draftUuid: string
       return { success: false, error: "Proposal not found" };
     }
 
-    const updated = await removeTaskDraft(designUuid, auth.companyUuid, draftUuid);
+    const updated = await removeRunDraft(designUuid, auth.companyUuid, draftUuid);
 
     revalidatePath(`/research-projects/${proposal.researchProjectUuid}/experiment-designs/${designUuid}`);
 

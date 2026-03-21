@@ -30,14 +30,14 @@ export default async function ProposalsPage({ params }: PageProps) {
     redirect("/research-projects");
   }
 
-  const { proposals } = await listExperimentDesigns({
+  const { experimentDesigns } = await listExperimentDesigns({
     companyUuid: auth.companyUuid,
-    projectUuid,
+    researchProjectUuid: projectUuid,
     skip: 0,
     take: 1000,
   });
 
-  const pendingCount = proposals.filter((p) => p.status === "pending").length;
+  const pendingCount = experimentDesigns.filter((p) => p.status === "pending").length;
 
   return (
     <div className="flex h-full flex-col p-8">
@@ -65,7 +65,7 @@ export default async function ProposalsPage({ params }: PageProps) {
       </div>
 
       {/* Kanban Board */}
-      <ProposalKanban projectUuid={projectUuid} proposals={proposals} />
+      <ProposalKanban projectUuid={projectUuid} proposals={experimentDesigns} />
     </div>
   );
 }

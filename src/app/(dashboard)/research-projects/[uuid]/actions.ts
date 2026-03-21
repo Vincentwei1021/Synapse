@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { getResearchProject, deleteResearchProject, updateResearchProject } from "@/services/research-project.service";
 import { revalidatePath } from "next/cache";
-import { getActiveSessionsForProject, type TaskSessionInfo } from "@/services/session.service";
+import { getActiveSessionsForProject, type RunSessionInfo } from "@/services/session.service";
 
 export async function deleteResearchProjectAction(projectUuid: string) {
   const auth = await getServerAuthContext();
@@ -53,7 +53,7 @@ export async function updateResearchProjectAction(
 
 export async function getProjectActiveSessionsAction(projectUuid: string): Promise<{
   success: boolean;
-  data?: TaskSessionInfo[];
+  data?: RunSessionInfo[];
   error?: string;
 }> {
   const auth = await getServerAuthContext();

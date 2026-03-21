@@ -34,7 +34,7 @@ export async function TasksPageContent({
   // Get all Tasks
   const { tasks } = await listExperimentRuns({
     companyUuid: auth.companyUuid,
-    projectUuid,
+    researchProjectUuid: projectUuid,
     skip: 0,
     take: 1000,
   });

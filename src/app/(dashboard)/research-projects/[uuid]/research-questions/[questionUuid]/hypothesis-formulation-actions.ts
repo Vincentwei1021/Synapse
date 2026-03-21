@@ -3,29 +3,29 @@
 import { revalidatePath } from "next/cache";
 import { getServerAuthContext } from "@/lib/auth-server";
 import {
-  getElaboration,
-  answerElaboration,
-  skipElaboration,
+  getHypothesisFormulation,
+  answerHypothesisFormulation,
+  skipHypothesisFormulation,
 } from "@/services/hypothesis-formulation.service";
 import { prisma } from "@/lib/prisma";
 import type {
-  ElaborationResponse,
+  HypothesisFormulationResponse,
   AnswerInput,
-  ElaborationRoundResponse,
+  HypothesisFormulationRoundResponse,
 } from "@/types/hypothesis-formulation";
 
 export async function getHypothesisFormulationAction(
   questionUuid: string
-): Promise<{ success: boolean; data?: ElaborationResponse; error?: string }> {
+): Promise<{ success: boolean; data?: HypothesisFormulationResponse; error?: string }> {
   const auth = await getServerAuthContext();
   if (!auth) {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
-    const data = await getElaboration({
+    const data = await getHypothesisFormulation({
       companyUuid: auth.companyUuid,
-      questionUuid,
+      researchQuestionUuid: questionUuid,
     });
     return { success: true, data };
   } catch (error) {
@@ -41,16 +41,16 @@ export async function submitHypothesisFormulationAnswersAction(
   questionUuid: string,
   roundUuid: string,
   answers: AnswerInput[]
-): Promise<{ success: boolean; data?: ElaborationRoundResponse; error?: string }> {
+): Promise<{ success: boolean; data?: HypothesisFormulationRoundResponse; error?: string }> {
   const auth = await getServerAuthContext();
   if (!auth) {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
-    const data = await answerElaboration({
+    const data = await answerHypothesisFormulation({
       companyUuid: auth.companyUuid,
-      questionUuid,
+      researchQuestionUuid: questionUuid,
       roundUuid,
       actorUuid: auth.actorUuid,
       actorType: auth.type,
@@ -84,9 +84,9 @@ export async function skipHypothesisFormulationAction(
   }
 
   try {
-    await skipElaboration({
+    await skipHypothesisFormulation({
       companyUuid: auth.companyUuid,
-      questionUuid,
+      researchQuestionUuid: questionUuid,
       actorUuid: auth.actorUuid,
       actorType: auth.type,
       reason,

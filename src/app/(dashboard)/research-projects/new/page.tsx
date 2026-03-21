@@ -136,9 +136,9 @@ export default function NewProjectPage() {
         documents,
       });
 
-      if (result.success && result.projectUuid) {
-        localStorage.setItem("currentProjectUuid", result.projectUuid);
-        router.push(`/research-projects/${result.projectUuid}/dashboard`);
+      if (result.success && result.researchProjectUuid) {
+        localStorage.setItem("currentProjectUuid", result.researchProjectUuid);
+        router.push(`/research-projects/${result.researchProjectUuid}/dashboard`);
       } else {
         setError(result.error || t("projects.createFailed"));
       }

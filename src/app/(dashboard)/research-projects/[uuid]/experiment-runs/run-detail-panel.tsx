@@ -56,7 +56,7 @@ import {
   getProjectTasksForDependencyAction,
 } from "./[runUuid]/dependency-actions";
 import { getExperimentRunSessionsAction } from "./session-actions";
-import type { TaskSessionInfo } from "@/services/session.service";
+import type { RunSessionInfo } from "@/services/session.service";
 import { useRealtimeEntityEvent } from "@/contexts/realtime-context";
 
 interface DependencyTask {
@@ -263,7 +263,7 @@ export function TaskDetailPanel({
   const [depError, setDepError] = useState<string | null>(null);
 
   // Active workers (sessions)
-  const [activeWorkers, setActiveWorkers] = useState<TaskSessionInfo[]>([]);
+  const [activeWorkers, setActiveWorkers] = useState<RunSessionInfo[]>([]);
 
   // Auto-refresh comments when another user adds a comment
   useRealtimeEntityEvent("experiment_run", task?.uuid ?? "", (event) => {

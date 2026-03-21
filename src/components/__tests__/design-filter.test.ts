@@ -125,31 +125,31 @@ describe("ProposalFilter - i18n keys", () => {
 
   const requiredKeys = [
     "label",
-    "allProposals",
+    "allExperimentDesigns",
     "clear",
     "search",
-    "taskCount",
+    "experimentRunCount",
     "filtered",
     "noResults",
   ];
 
-  it("has all required proposalFilter keys in English", () => {
+  it("has all required experimentDesignFilter keys in English", () => {
     for (const key of requiredKeys) {
-      expect(en.tasks.proposalFilter).toHaveProperty(key);
-      expect(typeof en.tasks.proposalFilter[key]).toBe("string");
+      expect(en.experimentRuns.experimentDesignFilter).toHaveProperty(key);
+      expect(typeof en.experimentRuns.experimentDesignFilter[key]).toBe("string");
     }
   });
 
-  it("has all required proposalFilter keys in Chinese", () => {
+  it("has all required experimentDesignFilter keys in Chinese", () => {
     for (const key of requiredKeys) {
-      expect(zh.tasks.proposalFilter).toHaveProperty(key);
-      expect(typeof zh.tasks.proposalFilter[key]).toBe("string");
+      expect(zh.experimentRuns.experimentDesignFilter).toHaveProperty(key);
+      expect(typeof zh.experimentRuns.experimentDesignFilter[key]).toBe("string");
     }
   });
 
-  it("en and zh have the same proposalFilter keys", () => {
-    const enKeys = Object.keys(en.tasks.proposalFilter).sort();
-    const zhKeys = Object.keys(zh.tasks.proposalFilter).sort();
+  it("en and zh have the same experimentDesignFilter keys", () => {
+    const enKeys = Object.keys(en.experimentRuns.experimentDesignFilter).sort();
+    const zhKeys = Object.keys(zh.experimentRuns.experimentDesignFilter).sort();
     expect(enKeys).toEqual(zhKeys);
   });
 });

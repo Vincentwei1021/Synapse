@@ -61,7 +61,7 @@ export default async function DashboardPage({ params }: PageProps) {
     getResearchProjectStats(auth.companyUuid, projectUuid),
     listActivitiesWithActorNames({
       companyUuid: auth.companyUuid,
-      projectUuid,
+      researchProjectUuid: projectUuid,
       skip: 0,
       take: 5,
     }),
@@ -70,7 +70,7 @@ export default async function DashboardPage({ params }: PageProps) {
   // Recent tasks (last 4 with status)
   const prisma = (await import("@/lib/prisma")).prisma;
   const recentTasks = await prisma.experimentRun.findMany({
-    where: { projectUuid, companyUuid: auth.companyUuid },
+    where: { researchProjectUuid: projectUuid, companyUuid: auth.companyUuid },
     orderBy: { updatedAt: "desc" },
     take: 4,
     select: { uuid: true, title: true, status: true },
@@ -104,8 +104,8 @@ export default async function DashboardPage({ params }: PageProps) {
   const statCards = [
     {
       label: t("nav.ideas"),
-      value: stats.ideas.total,
-      badge: stats.ideas.open > 0 ? `${stats.ideas.open} ${t("status.open")}` : null,
+      value: stats.researchQuestions.total,
+      badge: stats.researchQuestions.open > 0 ? `${stats.researchQuestions.open} ${t("status.open")}` : null,
       badgeStyle: "bg-[#C67A5220] text-[#C67A52]",
       href: `/research-projects/${projectUuid}/research-questions`,
       iconBg: "bg-[#FFF3E0]",
@@ -113,8 +113,8 @@ export default async function DashboardPage({ params }: PageProps) {
     },
     {
       label: t("nav.tasks"),
-      value: stats.tasks.total,
-      badge: stats.tasks.inProgress > 0 ? `${stats.tasks.inProgress} ${t("status.active")}` : null,
+      value: stats.experimentRuns.total,
+      badge: stats.experimentRuns.inProgress > 0 ? `${stats.experimentRuns.inProgress} ${t("status.active")}` : null,
       badgeStyle: "bg-[#5A9E6F20] text-[#5A9E6F]",
       href: `/research-projects/${projectUuid}/experiment-runs`,
       iconBg: "bg-[#E3F2FD]",
@@ -122,8 +122,8 @@ export default async function DashboardPage({ params }: PageProps) {
     },
     {
       label: t("nav.proposals"),
-      value: stats.proposals.total,
-      badge: stats.proposals.pending > 0 ? `${stats.proposals.pending} ${t("status.pending")}` : null,
+      value: stats.experimentDesigns.total,
+      badge: stats.experimentDesigns.pending > 0 ? `${stats.experimentDesigns.pending} ${t("status.pending")}` : null,
       badgeStyle: "bg-[#C67A5220] text-[#C67A52]",
       href: `/research-projects/${projectUuid}/experiment-designs`,
       iconBg: "bg-[#F3E5F5]",
@@ -140,8 +140,8 @@ export default async function DashboardPage({ params }: PageProps) {
     },
   ];
 
-  const pipelineCounts = [stats.tasks.todo, stats.tasks.inProgress, stats.tasks.toVerify, stats.tasks.done];
-  const pipelineTotal = stats.tasks.total;
+  const pipelineCounts = [stats.experimentRuns.todo, stats.experimentRuns.inProgress, stats.experimentRuns.toVerify, stats.experimentRuns.done];
+  const pipelineTotal = stats.experimentRuns.total;
 
   return (
     <div className="flex h-full flex-col gap-7 p-5 md:p-7 lg:p-9">
@@ -238,10 +238,10 @@ export default async function DashboardPage({ params }: PageProps) {
               {/* Legend */}
               <div className="mb-5 flex flex-wrap gap-5">
                 {[
-                  { label: t("dashboard.todoCount", { count: stats.tasks.todo }), color: "#E65100" },
-                  { label: t("dashboard.inProgressCount", { count: stats.tasks.inProgress }), color: "#5A9E6F" },
-                  { label: t("dashboard.toVerifyCount", { count: stats.tasks.toVerify }), color: "#7B1FA2" },
-                  { label: t("dashboard.doneCount", { count: stats.tasks.done }), color: "#00796B" },
+                  { label: t("dashboard.todoCount", { count: stats.experimentRuns.todo }), color: "#E65100" },
+                  { label: t("dashboard.inProgressCount", { count: stats.experimentRuns.inProgress }), color: "#5A9E6F" },
+                  { label: t("dashboard.toVerifyCount", { count: stats.experimentRuns.toVerify }), color: "#7B1FA2" },
+                  { label: t("dashboard.doneCount", { count: stats.experimentRuns.done }), color: "#00796B" },
                 ].map((item) => (
                   <div key={item.color} className="flex items-center gap-1.5">
                     <div className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: item.color }} />

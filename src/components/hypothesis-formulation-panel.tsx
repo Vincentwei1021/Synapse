@@ -16,9 +16,9 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import type {
-  ElaborationResponse,
-  ElaborationRoundResponse,
-  ElaborationQuestionResponse,
+  HypothesisFormulationResponse,
+  HypothesisFormulationRoundResponse,
+  HypothesisFormulationQuestionResponse,
   AnswerInput,
 } from "@/types/hypothesis-formulation";
 import { submitHypothesisFormulationAnswersAction } from "@/app/(dashboard)/research-projects/[uuid]/research-questions/[questionUuid]/hypothesis-formulation-actions";
@@ -48,7 +48,7 @@ const categoryBgColors: Record<string, string> = {
 
 interface ElaborationPanelProps {
   questionUuid: string;
-  elaboration: ElaborationResponse | null;
+  elaboration: HypothesisFormulationResponse | null;
   onRefresh?: () => void;
 }
 
@@ -99,7 +99,7 @@ export function ElaborationPanel({
 // ===== Round Card =====
 
 interface RoundCardProps {
-  round: ElaborationRoundResponse;
+  round: HypothesisFormulationRoundResponse;
   questionUuid: string;
   onAnswered: () => void;
 }
@@ -181,7 +181,7 @@ function RoundCard({ round, questionUuid, onAnswered }: RoundCardProps) {
 // ===== Answered Round Content =====
 
 interface AnsweredRoundContentProps {
-  round: ElaborationRoundResponse;
+  round: HypothesisFormulationRoundResponse;
 }
 
 function AnsweredRoundContent({ round }: AnsweredRoundContentProps) {
@@ -200,7 +200,7 @@ function AnsweredQuestion({
   question,
   t,
 }: {
-  question: ElaborationQuestionResponse;
+  question: HypothesisFormulationQuestionResponse;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   t: any;
 }) {
@@ -244,7 +244,7 @@ function AnsweredQuestion({
 // ===== Pending Round Content (interactive) =====
 
 interface PendingRoundContentProps {
-  round: ElaborationRoundResponse;
+  round: HypothesisFormulationRoundResponse;
   questionUuid: string;
   onAnswered: () => void;
 }

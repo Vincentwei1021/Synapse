@@ -45,7 +45,7 @@ export default async function DocumentsPage({ params, searchParams }: PageProps)
   // Get all Documents
   const { documents: allDocuments } = await listDocuments({
     companyUuid: auth.companyUuid,
-    projectUuid,
+    researchProjectUuid: projectUuid,
     skip: 0,
     take: 1000,
   });

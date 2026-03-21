@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { assignIdea, releaseIdea, getResearchQuestionByUuid } from "@/services/research-question.service";
+import { assignResearchQuestion, releaseResearchQuestion, getResearchQuestionByUuid } from "@/services/research-question.service";
 import { getAgentsByRole, getCompanyUsers } from "@/services/agent.service";
 import { createActivity } from "@/services/activity.service";
 
@@ -24,8 +24,8 @@ export async function claimIdeaAction(questionUuid: string) {
       return { success: false, error: "Idea is not available for assignment" };
     }
 
-    await assignIdea({
-      questionUuid,
+    await assignResearchQuestion({
+      researchQuestionUuid: questionUuid,
       companyUuid: auth.companyUuid,
       assigneeType: auth.type,
       assigneeUuid: auth.actorUuid,
@@ -71,8 +71,8 @@ export async function claimIdeaToAgentAction(questionUuid: string, agentUuid: st
       return { success: false, error: "Idea is not available for assignment" };
     }
 
-    await assignIdea({
-      questionUuid,
+    await assignResearchQuestion({
+      researchQuestionUuid: questionUuid,
       companyUuid: auth.companyUuid,
       assigneeType: "agent",
       assigneeUuid: agentUuid,
@@ -118,8 +118,8 @@ export async function claimIdeaToUserAction(questionUuid: string, userUuid: stri
       return { success: false, error: "Idea is not available for assignment" };
     }
 
-    await assignIdea({
-      questionUuid,
+    await assignResearchQuestion({
+      researchQuestionUuid: questionUuid,
       companyUuid: auth.companyUuid,
       assigneeType: "user",
       assigneeUuid: userUuid,
@@ -154,7 +154,7 @@ export async function releaseIdeaAction(questionUuid: string) {
       return { success: false, error: "Idea cannot be released from current status" };
     }
 
-    await releaseIdea(idea.uuid);
+    await releaseResearchQuestion(idea.uuid);
 
     revalidatePath(`/research-projects/${idea.researchProjectUuid}/research-questions/${questionUuid}`);
     revalidatePath(`/research-projects/${idea.researchProjectUuid}/research-questions`);

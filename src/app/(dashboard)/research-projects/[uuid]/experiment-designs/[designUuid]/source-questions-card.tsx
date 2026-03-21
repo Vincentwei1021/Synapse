@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Lightbulb, ArrowUpRight } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { IdeaDetailPanel } from "../../research-questions/idea-detail-panel";
+import { IdeaDetailPanel } from "../../research-questions/question-detail-panel";
 
 interface SourceIdea {
   uuid: string;
