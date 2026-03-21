@@ -134,7 +134,7 @@ export function makeProposal(overrides: Record<string, unknown> = {}) {
     inputUuids: [],
     documentDrafts: [],
     taskDrafts: [],
-    projectUuid: '00000000-0000-0000-0000-000000000010',
+    researchProjectUuid: '00000000-0000-0000-0000-000000000010',
     companyUuid: '00000000-0000-0000-0000-000000000001',
     companyId: 1,
     createdByUuid: '00000000-0000-0000-0000-000000000002',
@@ -147,6 +147,8 @@ export function makeProposal(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
+
+export const makeExperimentDesign = makeProposal;
 
 export function makeAcceptanceCriterion(overrides: Record<string, unknown> = {}) {
   return {

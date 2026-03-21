@@ -59,7 +59,7 @@ async function formatDocumentResponse(
     createdByUuid: string;
     createdAt: Date;
     updatedAt: Date;
-    project?: { uuid: string; name: string };
+    researchProject?: { uuid: string; name: string };
   },
   includeContent = false
 ): Promise<DocumentResponse> {
@@ -80,8 +80,8 @@ async function formatDocumentResponse(
     response.content = doc.content;
   }
 
-  if (doc.project) {
-    response.project = doc.project;
+  if (doc.researchProject) {
+    response.project = doc.researchProject;
   }
 
   return response;
@@ -137,7 +137,7 @@ export async function getDocument(
   const doc = await prisma.document.findFirst({
     where: { uuid, companyUuid },
     include: {
-      project: { select: { uuid: true, name: true } },
+      researchProject: { select: { uuid: true, name: true } },
     },
   });
 
@@ -204,7 +204,7 @@ export async function updateDocument(
     where: { uuid },
     data,
     include: {
-      project: { select: { uuid: true, name: true } },
+      researchProject: { select: { uuid: true, name: true } },
     },
   });
 

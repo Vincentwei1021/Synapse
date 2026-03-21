@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { formatCreatedBy, formatReview } from "@/lib/uuid-resolver";
 import { eventBus } from "@/lib/event-bus";
-import { createDocumentFromProposal } from "./document.service";
+import { createDocumentFromExperimentDesign } from "./document.service";
 import { createExperimentRunsFromDesign } from "./experiment-run.service";
 
 // ===== UUID Helper Functions =====
@@ -124,7 +124,7 @@ async function formatExperimentDesignResponse(
     reviewedAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
-    project?: { uuid: string; name: string };
+    researchProject?: { uuid: string; name: string };
   }
 ): Promise<ExperimentDesignResponse> {
   const creatorType = proposal.createdByType === "user" ? "user" : "agent";
@@ -149,8 +149,8 @@ async function formatExperimentDesignResponse(
     updatedAt: proposal.updatedAt.toISOString(),
   };
 
-  if (proposal.project) {
-    response.project = proposal.project;
+  if (proposal.researchProject) {
+    response.project = proposal.researchProject;
   }
 
   return response;
@@ -423,7 +423,7 @@ export async function listExperimentDesigns({
   skip,
   take,
   status,
-}: ExperimentDesignListParams): Promise<{ proposals: ExperimentDesignResponse[]; total: number }> {
+}: ExperimentDesignListParams): Promise<{ experimentDesigns: ExperimentDesignResponse[]; total: number }> {
   const where = {
     researchProjectUuid,
     companyUuid,
@@ -457,10 +457,10 @@ export async function listExperimentDesigns({
     prisma.experimentDesign.count({ where }),
   ]);
 
-  const proposals = await Promise.all(
+  const experimentDesigns = await Promise.all(
     rawProposals.map((p) => formatExperimentDesignResponse(p))
   );
-  return { proposals, total };
+  return { experimentDesigns, total };
 }
 
 // Get Proposal details
@@ -471,7 +471,7 @@ export async function getExperimentDesign(
   const proposal = await prisma.experimentDesign.findFirst({
     where: { uuid, companyUuid },
     include: {
-      project: { select: { uuid: true, name: true } },
+      researchProject: { select: { uuid: true, name: true } },
     },
   });
 
@@ -567,7 +567,7 @@ export async function updateExperimentDesignContent(
     where: { uuid: experimentDesignUuid, companyUuid },
     data: updateData,
     include: {
-      project: { select: { uuid: true, name: true } },
+      researchProject: { select: { uuid: true, name: true } },
     },
   });
 
@@ -597,7 +597,7 @@ export async function approveExperimentDesign(
   // Start transaction
   const { updatedProposal, materializedTasks, materializedDocuments } = await prisma.$transaction(async (tx) => {
     // Update Proposal status
-    const updated = await tx.proposal.update({
+    const updated = await tx.experimentDesign.update({
       where: { uuid: experimentDesignUuid },
       data: {
         status: "approved",
@@ -606,7 +606,7 @@ export async function approveExperimentDesign(
         reviewedAt: new Date(),
       },
       include: {
-        project: { select: { uuid: true, name: true } },
+        researchProject: { select: { uuid: true, name: true } },
       },
     });
 
@@ -621,7 +621,7 @@ export async function approveExperimentDesign(
     // Create documents (if document drafts exist)
     if (documentDrafts && documentDrafts.length > 0) {
       for (const draft of documentDrafts) {
-        const doc = await createDocumentFromProposal(
+        const doc = await createDocumentFromExperimentDesign(
           proposal.companyUuid,
           proposal.researchProjectUuid,
           proposal.uuid,
@@ -735,7 +735,7 @@ export async function rejectExperimentDesign(
       reviewedAt: new Date(),
     },
     include: {
-      project: { select: { uuid: true, name: true } },
+      researchProject: { select: { uuid: true, name: true } },
     },
   });
 
@@ -759,7 +759,7 @@ export async function closeExperimentDesign(
       reviewedAt: new Date(),
     },
     include: {
-      project: { select: { uuid: true, name: true } },
+      researchProject: { select: { uuid: true, name: true } },
     },
   });
 
@@ -820,7 +820,7 @@ export async function submitExperimentDesign(
       status: "pending",
     },
     include: {
-      project: { select: { uuid: true, name: true } },
+      researchProject: { select: { uuid: true, name: true } },
     },
   });
 
@@ -864,7 +864,7 @@ export async function addDocumentDraft(
       documentDrafts: updatedDrafts as unknown as Prisma.InputJsonValue,
     },
     include: {
-      project: { select: { uuid: true, name: true } },
+      researchProject: { select: { uuid: true, name: true } },
     },
   });
 
@@ -895,7 +895,7 @@ export async function addRunDraft(
       taskDrafts: updatedDrafts as unknown as Prisma.InputJsonValue,
     },
     include: {
-      project: { select: { uuid: true, name: true } },
+      researchProject: { select: { uuid: true, name: true } },
     },
   });
 
@@ -932,7 +932,7 @@ export async function updateDocumentDraft(
       documentDrafts: existingDrafts as unknown as Prisma.InputJsonValue,
     },
     include: {
-      project: { select: { uuid: true, name: true } },
+      researchProject: { select: { uuid: true, name: true } },
     },
   });
 
@@ -969,7 +969,7 @@ export async function updateRunDraft(
       taskDrafts: existingDrafts as unknown as Prisma.InputJsonValue,
     },
     include: {
-      project: { select: { uuid: true, name: true } },
+      researchProject: { select: { uuid: true, name: true } },
     },
   });
 
@@ -1001,7 +1001,7 @@ export async function removeDocumentDraft(
         : Prisma.JsonNull,
     },
     include: {
-      project: { select: { uuid: true, name: true } },
+      researchProject: { select: { uuid: true, name: true } },
     },
   });
 
@@ -1038,7 +1038,7 @@ export async function removeRunDraft(
         : Prisma.JsonNull,
     },
     include: {
-      project: { select: { uuid: true, name: true } },
+      researchProject: { select: { uuid: true, name: true } },
     },
   });
 

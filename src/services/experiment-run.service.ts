@@ -207,9 +207,9 @@ async function formatExperimentRunResponse(
     createdByUuid: string;
     createdAt: Date;
     updatedAt: Date;
-    project?: { uuid: string; name: string };
-    dependsOn?: Array<{ dependsOn: { uuid: string; title: string; status: string } }>;
-    dependedBy?: Array<{ task: { uuid: string; title: string; status: string } }>;
+    researchProject?: { uuid: string; name: string };
+    dependsOn?: Array<{ dependsOnRun: { uuid: string; title: string; status: string } }>;
+    dependedBy?: Array<{ run: { uuid: string; title: string; status: string } }>;
     acceptanceCriteriaItems?: Array<{ uuid: string; description: string; required: boolean; devStatus: string; devEvidence: string | null; devMarkedByType: string | null; devMarkedBy: string | null; devMarkedAt: Date | null; status: string; evidence: string | null; markedByType: string | null; markedBy: string | null; markedAt: Date | null; sortOrder: number }>;
   },
   commentCount: number = 0,
@@ -220,15 +220,15 @@ async function formatExperimentRunResponse(
   ]);
 
   const dependsOn: RunDependencyInfo[] = (task.dependsOn || []).map((d) => ({
-    uuid: d.dependsOn.uuid,
-    title: d.dependsOn.title,
-    status: d.dependsOn.status,
+    uuid: d.dependsOnRun.uuid,
+    title: d.dependsOnRun.title,
+    status: d.dependsOnRun.status,
   }));
 
   const dependedBy: RunDependencyInfo[] = (task.dependedBy || []).map((d) => ({
-    uuid: d.experimentRun.uuid,
-    title: d.experimentRun.title,
-    status: d.experimentRun.status,
+    uuid: d.run.uuid,
+    title: d.run.title,
+    status: d.run.status,
   }));
 
   const criteriaItems = (task.acceptanceCriteriaItems || []).map(formatCriterionResponse);
@@ -249,7 +249,7 @@ async function formatExperimentRunResponse(
     acceptanceSummary,
     assignee,
     experimentDesignUuid: task.experimentDesignUuid,
-    ...(task.project && { project: task.project }),
+    ...(task.researchProject && { project: task.researchProject }),
     createdBy,
     dependsOn,
     dependedBy,
@@ -276,9 +276,9 @@ type RawExperimentRunForBatch = {
   createdByUuid: string;
   createdAt: Date;
   updatedAt: Date;
-  project?: { uuid: string; name: string };
-  dependsOn?: Array<{ dependsOn: { uuid: string; title: string; status: string } }>;
-  dependedBy?: Array<{ task: { uuid: string; title: string; status: string } }>;
+  researchProject?: { uuid: string; name: string };
+  dependsOn?: Array<{ dependsOnRun: { uuid: string; title: string; status: string } }>;
+  dependedBy?: Array<{ run: { uuid: string; title: string; status: string } }>;
   acceptanceCriteriaItems?: Array<{ uuid: string; description: string; required: boolean; devStatus: string; devEvidence: string | null; devMarkedByType: string | null; devMarkedBy: string | null; devMarkedAt: Date | null; status: string; evidence: string | null; markedByType: string | null; markedBy: string | null; markedAt: Date | null; sortOrder: number }>;
 };
 
@@ -333,16 +333,16 @@ async function formatExperimentRunResponsesBatch(
 
     const createdBy = createdByMap.get(task.createdByUuid) ?? null;
 
-    const dependsOn: RunDependencyInfo[] = (task.dependsOn || []).map((d) => ({
-      uuid: d.dependsOn.uuid,
-      title: d.dependsOn.title,
-      status: d.dependsOn.status,
+    const dependsOn: RunDependencyInfo[] = (task.dependsOn || []).map((d: { dependsOnRun: { uuid: string; title: string; status: string } }) => ({
+      uuid: d.dependsOnRun.uuid,
+      title: d.dependsOnRun.title,
+      status: d.dependsOnRun.status,
     }));
 
-    const dependedBy: RunDependencyInfo[] = (task.dependedBy || []).map((d) => ({
-      uuid: d.experimentRun.uuid,
-      title: d.experimentRun.title,
-      status: d.experimentRun.status,
+    const dependedBy: RunDependencyInfo[] = (task.dependedBy || []).map((d: { run: { uuid: string; title: string; status: string } }) => ({
+      uuid: d.run.uuid,
+      title: d.run.title,
+      status: d.run.status,
     }));
 
     const criteriaItems = (task.acceptanceCriteriaItems || []).map(formatCriterionResponse);
@@ -363,7 +363,7 @@ async function formatExperimentRunResponsesBatch(
       acceptanceSummary,
       assignee,
       experimentDesignUuid: task.experimentDesignUuid,
-      ...(task.project && { project: task.project }),
+      ...(task.researchProject && { project: task.researchProject }),
       createdBy,
       dependsOn,
       dependedBy,
@@ -379,12 +379,12 @@ async function formatExperimentRunResponsesBatch(
 const dependencyInclude = {
   dependsOn: {
     select: {
-      dependsOn: { select: { uuid: true, title: true, status: true } },
+      dependsOnRun: { select: { uuid: true, title: true, status: true } },
     },
   },
   dependedBy: {
     select: {
-      experimentRun: { select: { uuid: true, title: true, status: true } },
+      run: { select: { uuid: true, title: true, status: true } },
     },
   },
   acceptanceCriteriaItems: {
@@ -460,7 +460,7 @@ export async function getExperimentRun(
   const task = await prisma.experimentRun.findFirst({
     where: { uuid, companyUuid },
     include: {
-      project: { select: { uuid: true, name: true } },
+      researchProject: { select: { uuid: true, name: true } },
       ...dependencyInclude,
     },
   });
@@ -537,7 +537,7 @@ export async function updateExperimentRun(
   // Wrapped in transaction to prevent TOCTOU race condition
   const task = await prisma.$transaction(async (tx) => {
     if (data.status && data.status !== "done") {
-      const current = await tx.task.findUnique({ where: { uuid }, select: { status: true } });
+      const current = await tx.experimentRun.findUnique({ where: { uuid }, select: { status: true } });
       if (current?.status === "to_verify") {
         await tx.acceptanceCriterion.updateMany({
           where: { runUuid: uuid },
@@ -557,22 +557,22 @@ export async function updateExperimentRun(
       }
     }
 
-    return tx.task.update({
+    return tx.experimentRun.update({
       where: { uuid },
       data,
       include: {
-        project: { select: { uuid: true, name: true } },
+        researchProject: { select: { uuid: true, name: true } },
       },
     });
   });
 
-  eventBus.emitChange({ companyUuid: task.companyUuid, researchProjectUuid: task.project.uuid, entityType: "experiment_run", entityUuid: task.uuid, action: "updated" });
+  eventBus.emitChange({ companyUuid: task.companyUuid, researchProjectUuid: task.researchProject.uuid, entityType: "experiment_run", entityUuid: task.uuid, action: "updated" });
 
   // Process new @mentions in description (append-only: only new mentions)
   if (data.description !== undefined && actorContext && data.description) {
     processNewMentions(
       task.companyUuid,
-      task.project.uuid,
+      task.researchProject.uuid,
       "experiment_run",
       task.uuid,
       task.title,
@@ -605,11 +605,11 @@ export async function claimExperimentRun({
         assignedByUuid,
       },
       include: {
-        project: { select: { uuid: true, name: true } },
+        researchProject: { select: { uuid: true, name: true } },
       },
     });
 
-    eventBus.emitChange({ companyUuid: task.companyUuid, researchProjectUuid: task.project.uuid, entityType: "experiment_run", entityUuid: task.uuid, action: "updated" });
+    eventBus.emitChange({ companyUuid: task.companyUuid, researchProjectUuid: task.researchProject.uuid, entityType: "experiment_run", entityUuid: task.uuid, action: "updated" });
 
     return formatExperimentRunResponse(task);
   } catch (e: unknown) {
@@ -633,11 +633,11 @@ export async function releaseExperimentRun(uuid: string): Promise<ExperimentRunR
         assignedByUuid: null,
       },
       include: {
-        project: { select: { uuid: true, name: true } },
+        researchProject: { select: { uuid: true, name: true } },
       },
     });
 
-    eventBus.emitChange({ companyUuid: task.companyUuid, researchProjectUuid: task.project.uuid, entityType: "experiment_run", entityUuid: task.uuid, action: "updated" });
+    eventBus.emitChange({ companyUuid: task.companyUuid, researchProjectUuid: task.researchProject.uuid, entityType: "experiment_run", entityUuid: task.uuid, action: "updated" });
 
     return formatExperimentRunResponse(task);
   } catch (e: unknown) {
@@ -906,7 +906,7 @@ export async function checkAcceptanceCriteriaGate(
 async function processNewMentions(
   companyUuid: string,
   researchProjectUuid: string,
-  sourceType: "experiment_run" | "idea",
+  sourceType: "experiment_run" | "research_question",
   sourceUuid: string,
   entityTitle: string,
   oldContent: string | null,
@@ -1072,15 +1072,15 @@ export async function getRunDependencies(
   if (!task) throw new Error("ExperimentRun not found");
 
   return {
-    dependsOn: task.dependsOn.map((d) => ({
-      uuid: d.dependsOn.uuid,
-      title: d.dependsOn.title,
-      status: d.dependsOn.status,
+    dependsOn: task.dependsOn.map((d: { dependsOnRun: { uuid: string; title: string; status: string } }) => ({
+      uuid: d.dependsOnRun.uuid,
+      title: d.dependsOnRun.title,
+      status: d.dependsOnRun.status,
     })),
-    dependedBy: task.dependedBy.map((d) => ({
-      uuid: d.experimentRun.uuid,
-      title: d.experimentRun.title,
-      status: d.experimentRun.status,
+    dependedBy: task.dependedBy.map((d: { run: { uuid: string; title: string; status: string } }) => ({
+      uuid: d.run.uuid,
+      title: d.run.title,
+      status: d.run.status,
     })),
   };
 }
@@ -1104,7 +1104,7 @@ export async function getUnblockedExperimentRuns({
     NOT: {
       dependsOn: {
         some: {
-          dependsOn: {
+          dependsOnRun: {
             status: { notIn: ["done", "closed"] },
           },
         },
@@ -1165,7 +1165,7 @@ export async function checkDependenciesResolved(
   const deps = await prisma.runDependency.findMany({
     where: { runUuid },
     select: {
-      dependsOn: {
+      dependsOnRun: {
         select: {
           uuid: true,
           title: true,
@@ -1182,7 +1182,7 @@ export async function checkDependenciesResolved(
   }
 
   const unresolvedDeps = deps.filter(
-    (d) => d.dependsOn.status !== "done" && d.dependsOn.status !== "closed"
+    (d) => d.dependsOnRun.status !== "done" && d.dependsOnRun.status !== "closed"
   );
 
   if (unresolvedDeps.length === 0) {
@@ -1190,7 +1190,7 @@ export async function checkDependenciesResolved(
   }
 
   // Get assignee names and session checkins for unresolved deps
-  const unresolvedUuids = unresolvedDeps.map((d) => d.dependsOn.uuid);
+  const unresolvedUuids = unresolvedDeps.map((d) => d.dependsOnRun.uuid);
 
   const [checkins, actorNames] = await Promise.all([
     prisma.sessionRunCheckin.findMany({
@@ -1206,8 +1206,8 @@ export async function checkDependenciesResolved(
     }),
     batchGetActorNames(
       unresolvedDeps
-        .filter((d) => d.dependsOn.assigneeType && d.dependsOn.assigneeUuid)
-        .map((d) => ({ type: d.dependsOn.assigneeType!, uuid: d.dependsOn.assigneeUuid! }))
+        .filter((d) => d.dependsOnRun.assigneeType && d.dependsOnRun.assigneeUuid)
+        .map((d) => ({ type: d.dependsOnRun.assigneeType!, uuid: d.dependsOnRun.assigneeUuid! }))
     ),
   ]);
 
@@ -1218,7 +1218,7 @@ export async function checkDependenciesResolved(
   }
 
   const blockers: BlockerInfo[] = unresolvedDeps.map((d) => {
-    const task = d.dependsOn;
+    const task = d.dependsOnRun;
     let assignee: BlockerInfo["assignee"] = null;
     if (task.assigneeType && task.assigneeUuid) {
       const name = actorNames.get(task.assigneeUuid);
@@ -1254,7 +1254,7 @@ export async function getProjectRunDependencies(
     }),
     prisma.runDependency.findMany({
       where: {
-        experimentRun: { companyUuid, researchProjectUuid },
+        run: { companyUuid, researchProjectUuid },
       },
       select: { runUuid: true, dependsOnRunUuid: true },
     }),

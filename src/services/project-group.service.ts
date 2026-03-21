@@ -76,7 +76,7 @@ export interface GroupDashboardResponse {
 export async function createProjectGroup(
   params: ProjectGroupCreateParams
 ): Promise<ProjectGroupResponse> {
-  const group = await prisma.researchProjectGroup.create({
+  const group = await prisma.projectGroup.create({
     data: {
       companyUuid: params.companyUuid,
       name: params.name,
@@ -97,12 +97,12 @@ export async function createProjectGroup(
 export async function updateProjectGroup(
   params: ProjectGroupUpdateParams
 ): Promise<ProjectGroupResponse | null> {
-  const existing = await prisma.researchProjectGroup.findFirst({
+  const existing = await prisma.projectGroup.findFirst({
     where: { uuid: params.groupUuid, companyUuid: params.companyUuid },
   });
   if (!existing) return null;
 
-  const updated = await prisma.researchProjectGroup.update({
+  const updated = await prisma.projectGroup.update({
     where: { uuid: params.groupUuid },
     data: {
       ...(params.name !== undefined && { name: params.name }),
@@ -128,7 +128,7 @@ export async function deleteProjectGroup(
   companyUuid: string,
   groupUuid: string
 ): Promise<boolean> {
-  const existing = await prisma.researchProjectGroup.findFirst({
+  const existing = await prisma.projectGroup.findFirst({
     where: { uuid: groupUuid, companyUuid },
   });
   if (!existing) return false;
@@ -139,7 +139,7 @@ export async function deleteProjectGroup(
     data: { groupUuid: null },
   });
 
-  await prisma.researchProjectGroup.delete({
+  await prisma.projectGroup.delete({
     where: { uuid: groupUuid },
   });
 
@@ -150,7 +150,7 @@ export async function getProjectGroup(
   companyUuid: string,
   groupUuid: string
 ): Promise<ProjectGroupDetailResponse | null> {
-  const group = await prisma.researchProjectGroup.findFirst({
+  const group = await prisma.projectGroup.findFirst({
     where: { uuid: groupUuid, companyUuid },
   });
   if (!group) return null;
@@ -175,7 +175,7 @@ export async function getProjectGroup(
 export async function listProjectGroups(
   companyUuid: string
 ): Promise<{ groups: ProjectGroupResponse[]; total: number; ungroupedCount: number }> {
-  const groups = await prisma.researchProjectGroup.findMany({
+  const groups = await prisma.projectGroup.findMany({
     where: { companyUuid },
     orderBy: { createdAt: "asc" },
   });
@@ -229,7 +229,7 @@ export async function moveProjectToGroup(
 
   // Verify target group belongs to company (if not null)
   if (targetGroupUuid) {
-    const group = await prisma.researchProjectGroup.findFirst({
+    const group = await prisma.projectGroup.findFirst({
       where: { uuid: targetGroupUuid, companyUuid },
     });
     if (!group) return null;
@@ -263,7 +263,7 @@ export async function getGroupDashboard(
   companyUuid: string,
   groupUuid: string
 ): Promise<GroupDashboardResponse | null> {
-  const group = await prisma.researchProjectGroup.findFirst({
+  const group = await prisma.projectGroup.findFirst({
     where: { uuid: groupUuid, companyUuid },
   });
   if (!group) return null;

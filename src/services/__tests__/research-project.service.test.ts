@@ -75,7 +75,7 @@ describe("listResearchProjects", () => {
     expect(result.projects).toHaveLength(1);
     expect(result.total).toBe(1);
     expect(result.projects[0].uuid).toBe(researchProjectUuid);
-    expect(result.projects[0]._count.tasks).toBe(10);
+    expect(result.projects[0]._count.experimentRuns).toBe(10);
   });
 
   it("should pass skip and take to prisma", async () => {
@@ -272,9 +272,9 @@ describe("getResearchProjectStats", () => {
 
     const result = await getResearchProjectStats(companyUuid, researchProjectUuid);
 
-    expect(result.ideas).toEqual({ total: 8, open: 5 });
-    expect(result.tasks).toEqual({ total: 16, inProgress: 4, todo: 3, toVerify: 2, done: 7 });
-    expect(result.proposals).toEqual({ total: 7, pending: 2 });
+    expect(result.researchQuestions).toEqual({ total: 8, open: 5 });
+    expect(result.experimentRuns).toEqual({ total: 16, inProgress: 4, todo: 3, toVerify: 2, done: 7 });
+    expect(result.experimentDesigns).toEqual({ total: 7, pending: 2 });
     expect(result.documents).toEqual({ total: 8 });
   });
 });

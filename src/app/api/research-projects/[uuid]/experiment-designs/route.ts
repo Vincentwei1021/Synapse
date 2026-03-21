@@ -32,7 +32,7 @@ export const GET = withErrorHandler<{ uuid: string }>(
       return errors.notFound("Research Project");
     }
 
-    const { proposals: experimentDesigns, total } = await listExperimentDesigns({
+    const { experimentDesigns, total } = await listExperimentDesigns({
       companyUuid: auth.companyUuid,
       researchProjectUuid,
       skip,

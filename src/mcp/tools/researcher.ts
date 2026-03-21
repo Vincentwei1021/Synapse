@@ -22,14 +22,14 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
       }),
     },
     async ({ runUuid }) => {
-      const run = await experimentRunService.getTaskByUuid(auth.companyUuid, runUuid);
+      const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, runUuid);
       if (!run) {
         return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }
 
       try {
-        const updated = await experimentRunService.claimTask({
-          taskUuid: run.uuid,
+        const updated = await experimentRunService.claimExperimentRun({
+          runUuid: run.uuid,
           companyUuid: auth.companyUuid,
           assigneeType: "agent",
           assigneeUuid: auth.actorUuid,
@@ -37,7 +37,7 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
 
         await activityService.createActivity({
           companyUuid: auth.companyUuid,
-          projectUuid: run.projectUuid,
+          researchProjectUuid: run.researchProjectUuid,
           targetType: "experiment_run",
           targetUuid: run.uuid,
           actorType: "agent",
@@ -68,7 +68,7 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
       }),
     },
     async ({ runUuid }) => {
-      const run = await experimentRunService.getTaskByUuid(auth.companyUuid, runUuid);
+      const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, runUuid);
       if (!run) {
         return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }
@@ -83,11 +83,11 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
       }
 
       try {
-        const updated = await experimentRunService.releaseTask(run.uuid);
+        const updated = await experimentRunService.releaseExperimentRun(run.uuid);
 
         await activityService.createActivity({
           companyUuid: auth.companyUuid,
-          projectUuid: run.projectUuid,
+          researchProjectUuid: run.researchProjectUuid,
           targetType: "experiment_run",
           targetUuid: run.uuid,
           actorType: "agent",
@@ -119,7 +119,7 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
       }),
     },
     async ({ runUuid, status, sessionUuid }) => {
-      const run = await experimentRunService.getTaskByUuid(auth.companyUuid, runUuid);
+      const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, runUuid);
       if (!run) {
         return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }
@@ -144,7 +144,7 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
       }
 
       // Validate status transition
-      if (!experimentRunService.isValidTaskStatusTransition(run.status, status)) {
+      if (!experimentRunService.isValidExperimentRunStatusTransition(run.status, status)) {
         return {
           content: [{ type: "text", text: `Invalid status transition: ${run.status} -> ${status}` }],
           isError: true,
@@ -176,11 +176,11 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
         }
       }
 
-      const updated = await experimentRunService.updateTask(run.uuid, { status });
+      const updated = await experimentRunService.updateExperimentRun(run.uuid, { status });
 
       await activityService.createActivity({
         companyUuid: auth.companyUuid,
-        projectUuid: run.projectUuid,
+        researchProjectUuid: run.researchProjectUuid,
         targetType: "experiment_run",
         targetUuid: run.uuid,
         actorType: "agent",
@@ -208,7 +208,7 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
       }),
     },
     async ({ runUuid, summary }) => {
-      const run = await experimentRunService.getTaskByUuid(auth.companyUuid, runUuid);
+      const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, runUuid);
       if (!run) {
         return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }
@@ -226,12 +226,12 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
         return { content: [{ type: "text", text: "Can only submit for verification from in_progress status" }], isError: true };
       }
 
-      const updated = await experimentRunService.updateTask(run.uuid, { status: "to_verify" });
+      const updated = await experimentRunService.updateExperimentRun(run.uuid, { status: "to_verify" });
 
       // Log activity
       await activityService.createActivity({
         companyUuid: auth.companyUuid,
-        projectUuid: run.projectUuid,
+        researchProjectUuid: run.researchProjectUuid,
         targetType: "experiment_run",
         targetUuid: run.uuid,
         actorType: "agent",
@@ -262,7 +262,7 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
     },
     async ({ runUuid, criteria }) => {
       // Verify caller is the assignee
-      const run = await experimentRunService.getTaskByUuid(auth.companyUuid, runUuid);
+      const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, runUuid);
       if (!run) return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       const isAssignee =
         (run.assigneeType === "agent" && run.assigneeUuid === auth.actorUuid) ||
@@ -292,7 +292,7 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
       }),
     },
     async ({ runUuid, report, status, sessionUuid }) => {
-      const run = await experimentRunService.getTaskByUuid(auth.companyUuid, runUuid);
+      const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, runUuid);
       if (!run) {
         return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }
@@ -317,8 +317,8 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
       }
 
       // Update status if requested
-      if (status && experimentRunService.isValidTaskStatusTransition(run.status, status)) {
-        await experimentRunService.updateTask(run.uuid, { status });
+      if (status && experimentRunService.isValidExperimentRunStatusTransition(run.status, status)) {
+        await experimentRunService.updateExperimentRun(run.uuid, { status });
       }
 
       // Write comment
@@ -334,7 +334,7 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
       // Log activity
       await activityService.createActivity({
         companyUuid: auth.companyUuid,
-        projectUuid: run.projectUuid,
+        researchProjectUuid: run.researchProjectUuid,
         targetType: "experiment_run",
         targetUuid: run.uuid,
         actorType: "agent",

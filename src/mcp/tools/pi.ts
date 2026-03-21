@@ -27,7 +27,7 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ name, description, groupUuid }) => {
-      const project = await researchProjectService.createProject({
+      const project = await researchProjectService.createResearchProject({
         companyUuid: auth.companyUuid,
         name,
         description: description || null,
@@ -53,7 +53,7 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ experimentDesignUuid, reviewNote }) => {
-      const experimentDesign = await experimentDesignService.getProposalByUuid(auth.companyUuid, experimentDesignUuid);
+      const experimentDesign = await experimentDesignService.getExperimentDesignByUuid(auth.companyUuid, experimentDesignUuid);
       if (!experimentDesign) {
         return { content: [{ type: "text", text: "Experiment Design not found" }], isError: true };
       }
@@ -62,7 +62,7 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
         return { content: [{ type: "text", text: `Can only approve pending Experiment Designs, current status: ${experimentDesign.status}` }], isError: true };
       }
 
-      const updated = await experimentDesignService.approveProposal(
+      const updated = await experimentDesignService.approveExperimentDesign(
         experimentDesignUuid,
         auth.companyUuid,
         auth.actorUuid,  // PI Agent as reviewer
@@ -71,7 +71,7 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
 
       await activityService.createActivity({
         companyUuid: auth.companyUuid,
-        projectUuid: experimentDesign.projectUuid,
+        researchProjectUuid: experimentDesign.researchProjectUuid,
         targetType: "experiment_design",
         targetUuid: experimentDesignUuid,
         actorType: "agent",
@@ -101,7 +101,7 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ experimentDesignUuid, reviewNote }) => {
-      const experimentDesign = await experimentDesignService.getProposalByUuid(auth.companyUuid, experimentDesignUuid);
+      const experimentDesign = await experimentDesignService.getExperimentDesignByUuid(auth.companyUuid, experimentDesignUuid);
       if (!experimentDesign) {
         return { content: [{ type: "text", text: "Experiment Design not found" }], isError: true };
       }
@@ -110,7 +110,7 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
         return { content: [{ type: "text", text: `Can only reject pending Experiment Designs, current status: ${experimentDesign.status}` }], isError: true };
       }
 
-      const updated = await experimentDesignService.rejectProposal(
+      const updated = await experimentDesignService.rejectExperimentDesign(
         experimentDesignUuid,
         auth.actorUuid,  // PI Agent as reviewer
         reviewNote
@@ -118,7 +118,7 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
 
       await activityService.createActivity({
         companyUuid: auth.companyUuid,
-        projectUuid: experimentDesign.projectUuid,
+        researchProjectUuid: experimentDesign.researchProjectUuid,
         targetType: "experiment_design",
         targetUuid: experimentDesignUuid,
         actorType: "agent",
@@ -144,7 +144,7 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ experimentDesignUuid, reviewNote }) => {
-      const experimentDesign = await experimentDesignService.getProposalByUuid(auth.companyUuid, experimentDesignUuid);
+      const experimentDesign = await experimentDesignService.getExperimentDesignByUuid(auth.companyUuid, experimentDesignUuid);
       if (!experimentDesign) {
         return { content: [{ type: "text", text: "Experiment Design not found" }], isError: true };
       }
@@ -153,7 +153,7 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
         return { content: [{ type: "text", text: `Can only close pending Experiment Designs, current status: ${experimentDesign.status}` }], isError: true };
       }
 
-      const updated = await experimentDesignService.closeProposal(
+      const updated = await experimentDesignService.closeExperimentDesign(
         experimentDesignUuid,
         auth.actorUuid,
         reviewNote
@@ -161,7 +161,7 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
 
       await activityService.createActivity({
         companyUuid: auth.companyUuid,
-        projectUuid: experimentDesign.projectUuid,
+        researchProjectUuid: experimentDesign.researchProjectUuid,
         targetType: "experiment_design",
         targetUuid: experimentDesignUuid,
         actorType: "agent",
@@ -186,7 +186,7 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ runUuid }) => {
-      const run = await experimentRunService.getTaskByUuid(auth.companyUuid, runUuid);
+      const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, runUuid);
       if (!run) {
         return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }
@@ -201,11 +201,11 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
         return { content: [{ type: "text", text: `Cannot verify experiment run: ${gate.reason}` }], isError: true };
       }
 
-      const updated = await experimentRunService.updateTask(run.uuid, { status: "done" });
+      const updated = await experimentRunService.updateExperimentRun(run.uuid, { status: "done" });
 
       await activityService.createActivity({
         companyUuid: auth.companyUuid,
-        projectUuid: run.projectUuid,
+        researchProjectUuid: run.researchProjectUuid,
         targetType: "experiment_run",
         targetUuid: run.uuid,
         actorType: "agent",
@@ -230,7 +230,7 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ runUuid, force }) => {
-      const run = await experimentRunService.getTaskByUuid(auth.companyUuid, runUuid);
+      const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, runUuid);
       if (!run) {
         return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }
@@ -257,13 +257,13 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
         }
       }
 
-      const updated = await experimentRunService.updateTask(run.uuid, { status: "in_progress" });
+      const updated = await experimentRunService.updateExperimentRun(run.uuid, { status: "in_progress" });
 
       // Log force_status_change activity when force is used
       if (force === true) {
         await activityService.createActivity({
           companyUuid: auth.companyUuid,
-          projectUuid: run.projectUuid,
+          researchProjectUuid: run.researchProjectUuid,
           targetType: "experiment_run",
           targetUuid: run.uuid,
           actorType: "agent",
@@ -275,7 +275,7 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
 
       await activityService.createActivity({
         companyUuid: auth.companyUuid,
-        projectUuid: run.projectUuid,
+        researchProjectUuid: run.researchProjectUuid,
         targetType: "experiment_run",
         targetUuid: run.uuid,
         actorType: "agent",
@@ -324,7 +324,7 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ runUuid }) => {
-      const run = await experimentRunService.getTaskByUuid(auth.companyUuid, runUuid);
+      const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, runUuid);
       if (!run) {
         return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }
@@ -333,11 +333,11 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
         return { content: [{ type: "text", text: "Experiment Run is already in closed status" }], isError: true };
       }
 
-      const updated = await experimentRunService.updateTask(run.uuid, { status: "closed" });
+      const updated = await experimentRunService.updateExperimentRun(run.uuid, { status: "closed" });
 
       await activityService.createActivity({
         companyUuid: auth.companyUuid,
-        projectUuid: run.projectUuid,
+        researchProjectUuid: run.researchProjectUuid,
         targetType: "experiment_run",
         targetUuid: run.uuid,
         actorType: "agent",
@@ -361,12 +361,12 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ researchQuestionUuid }) => {
-      const researchQuestion = await researchQuestionService.getIdeaByUuid(auth.companyUuid, researchQuestionUuid);
+      const researchQuestion = await researchQuestionService.getResearchQuestionByUuid(auth.companyUuid, researchQuestionUuid);
       if (!researchQuestion) {
         return { content: [{ type: "text", text: "Research Question not found" }], isError: true };
       }
 
-      await researchQuestionService.deleteIdea(researchQuestionUuid);
+      await researchQuestionService.deleteResearchQuestion(researchQuestionUuid);
 
       return {
         content: [{ type: "text", text: `Research Question ${researchQuestionUuid} deleted` }],
@@ -384,12 +384,12 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ runUuid }) => {
-      const run = await experimentRunService.getTaskByUuid(auth.companyUuid, runUuid);
+      const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, runUuid);
       if (!run) {
         return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }
 
-      await experimentRunService.deleteTask(runUuid);
+      await experimentRunService.deleteExperimentRun(runUuid);
 
       return {
         content: [{ type: "text", text: `Experiment Run ${runUuid} deleted` }],
@@ -430,7 +430,7 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ researchQuestionUuid }) => {
-      const researchQuestion = await researchQuestionService.getIdeaByUuid(auth.companyUuid, researchQuestionUuid);
+      const researchQuestion = await researchQuestionService.getResearchQuestionByUuid(auth.companyUuid, researchQuestionUuid);
       if (!researchQuestion) {
         return { content: [{ type: "text", text: "Research Question not found" }], isError: true };
       }
@@ -439,11 +439,11 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
         return { content: [{ type: "text", text: "Research Question is already in closed status" }], isError: true };
       }
 
-      const updated = await researchQuestionService.updateIdea(researchQuestionUuid, auth.companyUuid, { status: "closed" });
+      const updated = await researchQuestionService.updateResearchQuestion(researchQuestionUuid, auth.companyUuid, { status: "closed" });
 
       await activityService.createActivity({
         companyUuid: auth.companyUuid,
-        projectUuid: researchQuestion.projectUuid,
+        researchProjectUuid: researchQuestion.researchProjectUuid,
         targetType: "research_question",
         targetUuid: researchQuestionUuid,
         actorType: "agent",

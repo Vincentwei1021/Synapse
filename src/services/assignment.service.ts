@@ -99,7 +99,7 @@ async function formatAssignedResearchQuestion(idea: {
   assigneeType: string | null;
   assigneeUuid: string | null;
   assignedAt: Date | null;
-  project: { uuid: string; name: string };
+  researchProject: { uuid: string; name: string };
   createdAt: Date;
   updatedAt: Date;
 }): Promise<AssignedResearchQuestionResponse> {
@@ -112,7 +112,7 @@ async function formatAssignedResearchQuestion(idea: {
     status: idea.status,
     assignee,
     assignedAt: idea.assignedAt?.toISOString() ?? null,
-    project: idea.project,
+    project: idea.researchProject,
     createdAt: idea.createdAt.toISOString(),
     updatedAt: idea.updatedAt.toISOString(),
   };
@@ -128,7 +128,7 @@ async function formatAssignedExperimentRun(task: {
   assigneeType: string | null;
   assigneeUuid: string | null;
   assignedAt: Date | null;
-  project: { uuid: string; name: string };
+  researchProject: { uuid: string; name: string };
   createdAt: Date;
   updatedAt: Date;
 }): Promise<AssignedExperimentRunResponse> {
@@ -142,7 +142,7 @@ async function formatAssignedExperimentRun(task: {
     priority: task.priority,
     assignee,
     assignedAt: task.assignedAt?.toISOString() ?? null,
-    project: task.project,
+    project: task.researchProject,
     createdAt: task.createdAt.toISOString(),
     updatedAt: task.updatedAt.toISOString(),
   };
@@ -218,7 +218,7 @@ export async function getMyAssignments(
         assigneeType: true,
         assigneeUuid: true,
         assignedAt: true,
-        project: { select: { uuid: true, name: true } },
+        researchProject: { select: { uuid: true, name: true } },
         createdAt: true,
         updatedAt: true,
       },
@@ -241,7 +241,7 @@ export async function getMyAssignments(
         assigneeType: true,
         assigneeUuid: true,
         assignedAt: true,
-        project: { select: { uuid: true, name: true } },
+        researchProject: { select: { uuid: true, name: true } },
         createdAt: true,
         updatedAt: true,
       },

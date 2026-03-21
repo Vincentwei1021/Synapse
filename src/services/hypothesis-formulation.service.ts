@@ -102,7 +102,7 @@ export async function startHypothesisFormulation({
   const resolvedProjectUuid = projectUuid || idea.researchProjectUuid;
   await activityService.createActivity({
     companyUuid,
-    projectUuid: resolvedProjectUuid,
+    researchProjectUuid: resolvedProjectUuid,
     targetType: "research_question",
     targetUuid: researchQuestionUuid,
     actorType,
@@ -111,7 +111,7 @@ export async function startHypothesisFormulation({
     value: { depth, questionCount: questions.length, roundNumber },
   });
 
-  eventBus.emitChange({ companyUuid, projectUuid: resolvedProjectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
+  eventBus.emitChange({ companyUuid, researchProjectUuid: resolvedProjectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
 
   return formatRoundResponse(round);
 }
@@ -211,7 +211,7 @@ export async function answerHypothesisFormulation({
   // Log activity
   await activityService.createActivity({
     companyUuid,
-    projectUuid: idea!.projectUuid,
+    researchProjectUuid: idea!.researchProjectUuid,
     targetType: "research_question",
     targetUuid: researchQuestionUuid,
     actorType,
@@ -223,7 +223,7 @@ export async function answerHypothesisFormulation({
     },
   });
 
-  eventBus.emitChange({ companyUuid, projectUuid: idea!.projectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
+  eventBus.emitChange({ companyUuid, researchProjectUuid: idea!.researchProjectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
 
   // Return updated round
   const updatedRound = await prisma.hypothesisFormulation.findUnique({
@@ -289,7 +289,7 @@ export async function validateHypothesisFormulation({
 
     await activityService.createActivity({
       companyUuid,
-      projectUuid: idea.researchProjectUuid,
+      researchProjectUuid: idea.researchProjectUuid,
       targetType: "research_question",
       targetUuid: researchQuestionUuid,
       actorType,
@@ -301,7 +301,7 @@ export async function validateHypothesisFormulation({
       },
     });
 
-    eventBus.emitChange({ companyUuid, projectUuid: idea.researchProjectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
+    eventBus.emitChange({ companyUuid, researchProjectUuid: idea.researchProjectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
 
     const updated = await prisma.hypothesisFormulation.findUnique({
       where: { uuid: roundUuid },
@@ -353,7 +353,7 @@ export async function validateHypothesisFormulation({
 
   await activityService.createActivity({
     companyUuid,
-    projectUuid: idea.researchProjectUuid,
+    researchProjectUuid: idea.researchProjectUuid,
     targetType: "research_question",
     targetUuid: researchQuestionUuid,
     actorType,
@@ -366,7 +366,7 @@ export async function validateHypothesisFormulation({
     },
   });
 
-  eventBus.emitChange({ companyUuid, projectUuid: idea.researchProjectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
+  eventBus.emitChange({ companyUuid, researchProjectUuid: idea.researchProjectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
 
   const updatedRound = await prisma.hypothesisFormulation.findUnique({
     where: { uuid: roundUuid },
@@ -413,7 +413,7 @@ export async function skipHypothesisFormulation({
 
   await activityService.createActivity({
     companyUuid,
-    projectUuid: idea.researchProjectUuid,
+    researchProjectUuid: idea.researchProjectUuid,
     targetType: "research_question",
     targetUuid: researchQuestionUuid,
     actorType,
@@ -422,7 +422,7 @@ export async function skipHypothesisFormulation({
     value: { reason },
   });
 
-  eventBus.emitChange({ companyUuid, projectUuid: idea.researchProjectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
+  eventBus.emitChange({ companyUuid, researchProjectUuid: idea.researchProjectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
 }
 
 // ===== Get HypothesisFormulation =====

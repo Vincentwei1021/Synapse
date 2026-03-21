@@ -156,7 +156,7 @@ export async function closeSession(
   // Query active checkins before batch checkout for event emission
   const activeCheckins = await prisma.sessionRunCheckin.findMany({
     where: { sessionUuid, checkoutAt: null },
-    select: { task: { select: { uuid: true, researchProjectUuid: true } } },
+    select: { run: { select: { uuid: true, researchProjectUuid: true } } },
   });
 
   // Batch checkout all active checkins
@@ -176,7 +176,7 @@ export async function closeSession(
   });
 
   for (const checkin of activeCheckins) {
-    eventBus.emitChange({ companyUuid: session.companyUuid, researchProjectUuid: checkin.task.researchProjectUuid, entityType: "experiment_run", entityUuid: checkin.task.uuid, action: "updated" });
+    eventBus.emitChange({ companyUuid: session.companyUuid, researchProjectUuid: checkin.run.researchProjectUuid, entityType: "experiment_run", entityUuid: checkin.run.uuid, action: "updated" });
   }
 
   return formatSessionResponse(updated);
@@ -413,7 +413,7 @@ export async function getActiveSessionsForProject(
   const checkins = await prisma.sessionRunCheckin.findMany({
     where: {
       checkoutAt: null,
-      task: { researchProjectUuid },
+      run: { researchProjectUuid },
       session: { companyUuid, status: { in: ["active", "inactive"] } },
     },
     include: {

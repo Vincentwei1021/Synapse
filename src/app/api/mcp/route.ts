@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       roles: validation.agent.roles as AgentRole[],
       ownerUuid: validation.agent.ownerUuid ?? undefined,
       agentName: validation.agent.name,
-      projectUuids,
+      researchProjectUuids: projectUuids,
     };
 
     // Check session ID

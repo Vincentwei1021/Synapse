@@ -6,7 +6,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { AgentAuthContext } from "@/types/auth";
 import { prisma } from "@/lib/prisma";
-import { projectExists } from "@/services/research-project.service";
+import { researchProjectExists } from "@/services/research-project.service";
 import * as researchQuestionService from "@/services/research-question.service";
 import * as experimentDesignService from "@/services/experiment-design.service";
 import * as documentService from "@/services/document.service";
@@ -28,14 +28,14 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
       }),
     },
     async ({ researchQuestionUuid }) => {
-      const researchQuestion = await researchQuestionService.getIdeaByUuid(auth.companyUuid, researchQuestionUuid);
+      const researchQuestion = await researchQuestionService.getResearchQuestionByUuid(auth.companyUuid, researchQuestionUuid);
       if (!researchQuestion) {
         return { content: [{ type: "text", text: "Research Question not found" }], isError: true };
       }
 
       try {
-        const updated = await researchQuestionService.claimIdea({
-          ideaUuid: researchQuestion.uuid,
+        const updated = await researchQuestionService.claimResearchQuestion({
+          researchQuestionUuid: researchQuestion.uuid,
           companyUuid: auth.companyUuid,
           assigneeType: "agent",
           assigneeUuid: auth.actorUuid,
@@ -43,7 +43,7 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
 
         await activityService.createActivity({
           companyUuid: auth.companyUuid,
-          projectUuid: researchQuestion.projectUuid,
+          researchProjectUuid: researchQuestion.researchProjectUuid,
           targetType: "research_question",
           targetUuid: researchQuestion.uuid,
           actorType: "agent",
@@ -74,7 +74,7 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
       }),
     },
     async ({ researchQuestionUuid }) => {
-      const researchQuestion = await researchQuestionService.getIdeaByUuid(auth.companyUuid, researchQuestionUuid);
+      const researchQuestion = await researchQuestionService.getResearchQuestionByUuid(auth.companyUuid, researchQuestionUuid);
       if (!researchQuestion) {
         return { content: [{ type: "text", text: "Research Question not found" }], isError: true };
       }
@@ -89,11 +89,11 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
       }
 
       try {
-        const updated = await researchQuestionService.releaseIdea(researchQuestion.uuid);
+        const updated = await researchQuestionService.releaseResearchQuestion(researchQuestion.uuid);
 
         await activityService.createActivity({
           companyUuid: auth.companyUuid,
-          projectUuid: researchQuestion.projectUuid,
+          researchProjectUuid: researchQuestion.researchProjectUuid,
           targetType: "research_question",
           targetUuid: researchQuestion.uuid,
           actorType: "agent",
@@ -124,7 +124,7 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
       }),
     },
     async ({ researchQuestionUuid, status }) => {
-      const researchQuestion = await researchQuestionService.getIdeaByUuid(auth.companyUuid, researchQuestionUuid);
+      const researchQuestion = await researchQuestionService.getResearchQuestionByUuid(auth.companyUuid, researchQuestionUuid);
       if (!researchQuestion) {
         return { content: [{ type: "text", text: "Research Question not found" }], isError: true };
       }
@@ -139,18 +139,18 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
       }
 
       // Validate status transition
-      if (!researchQuestionService.isValidIdeaStatusTransition(researchQuestion.status, status)) {
+      if (!researchQuestionService.isValidResearchQuestionStatusTransition(researchQuestion.status, status)) {
         return {
           content: [{ type: "text", text: `Invalid status transition: ${researchQuestion.status} -> ${status}` }],
           isError: true,
         };
       }
 
-      const updated = await researchQuestionService.updateIdea(researchQuestion.uuid, auth.companyUuid, { status });
+      const updated = await researchQuestionService.updateResearchQuestion(researchQuestion.uuid, auth.companyUuid, { status });
 
       await activityService.createActivity({
         companyUuid: auth.companyUuid,
-        projectUuid: researchQuestion.projectUuid,
+        researchProjectUuid: researchQuestion.researchProjectUuid,
         targetType: "research_question",
         targetUuid: researchQuestion.uuid,
         actorType: "agent",
@@ -180,14 +180,14 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
     },
     async ({ researchProjectUuid, title, description, inputType, inputUuids }) => {
       // Validate project exists
-      if (!(await projectExists(auth.companyUuid, researchProjectUuid))) {
+      if (!(await researchProjectExists(auth.companyUuid, researchProjectUuid))) {
         return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
       }
 
       // If input type is research_question, validate assignee
       let reusedWarning = "";
       if (inputType === "research_question") {
-        const assigneeCheck = await experimentDesignService.checkIdeasAssignee(
+        const assigneeCheck = await experimentDesignService.checkResearchQuestionsAssignee(
           auth.companyUuid,
           inputUuids,
           auth.actorUuid,
@@ -201,18 +201,18 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
         }
 
         // Check if research questions are already used by other experiment designs (informational only, not blocking)
-        const availabilityCheck = await experimentDesignService.checkIdeasAvailability(
+        const availabilityCheck = await experimentDesignService.checkResearchQuestionsAvailability(
           auth.companyUuid,
           inputUuids
         );
         reusedWarning = !availabilityCheck.available
-          ? `\nNote: Research Question is also referenced by existing Experiment Design(s): ${availabilityCheck.usedIdeas.map(u => `"${u.proposalTitle}"`).join(", ")}`
+          ? `\nNote: Research Question is also referenced by existing Experiment Design(s): ${availabilityCheck.usedResearchQuestions.map((u: { proposalTitle: string }) => `"${u.proposalTitle}"`).join(", ")}`
           : "";
       }
 
-      const experimentDesign = await experimentDesignService.createProposal({
+      const experimentDesign = await experimentDesignService.createExperimentDesign({
         companyUuid: auth.companyUuid,
-        projectUuid: researchProjectUuid,
+        researchProjectUuid,
         title,
         description,
         inputType,
@@ -238,7 +238,7 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
     },
     async ({ experimentDesignUuid }) => {
       try {
-        const result = await experimentDesignService.validateProposal(
+        const result = await experimentDesignService.validateExperimentDesign(
           auth.companyUuid,
           experimentDesignUuid
         );
@@ -265,7 +265,7 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
     },
     async ({ experimentDesignUuid }) => {
       try {
-        const experimentDesign = await experimentDesignService.submitProposal(
+        const experimentDesign = await experimentDesignService.submitExperimentDesign(
           experimentDesignUuid,
           auth.companyUuid
         );
@@ -296,13 +296,13 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
     },
     async ({ researchProjectUuid, type, title, content, experimentDesignUuid }) => {
       // Validate project exists
-      if (!(await projectExists(auth.companyUuid, researchProjectUuid))) {
+      if (!(await researchProjectExists(auth.companyUuid, researchProjectUuid))) {
         return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
       }
 
       // Validate Experiment Design exists (if provided)
       if (experimentDesignUuid) {
-        const experimentDesign = await experimentDesignService.getProposalByUuid(auth.companyUuid, experimentDesignUuid);
+        const experimentDesign = await experimentDesignService.getExperimentDesignByUuid(auth.companyUuid, experimentDesignUuid);
         if (!experimentDesign) {
           return { content: [{ type: "text", text: "Experiment Design not found" }], isError: true };
         }
@@ -310,11 +310,11 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
 
       const document = await documentService.createDocument({
         companyUuid: auth.companyUuid,
-        projectUuid: researchProjectUuid,
+        researchProjectUuid,
         type,
         title,
         content: content || null,
-        proposalUuid: experimentDesignUuid || null,
+        experimentDesignUuid: experimentDesignUuid || null,
         createdByUuid: auth.actorUuid,
       });
 
@@ -349,13 +349,13 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
     },
     async ({ researchProjectUuid, experimentDesignUuid, experimentRuns }) => {
       // Validate project exists
-      if (!(await projectExists(auth.companyUuid, researchProjectUuid))) {
+      if (!(await researchProjectExists(auth.companyUuid, researchProjectUuid))) {
         return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
       }
 
       // Validate Experiment Design exists (if provided)
       if (experimentDesignUuid) {
-        const experimentDesign = await experimentDesignService.getProposalByUuid(auth.companyUuid, experimentDesignUuid);
+        const experimentDesign = await experimentDesignService.getExperimentDesignByUuid(auth.companyUuid, experimentDesignUuid);
         if (!experimentDesign) {
           return { content: [{ type: "text", text: "Experiment Design not found" }], isError: true };
         }
@@ -364,14 +364,14 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
       // 1. Batch create experiment runs
       const createdRuns = await Promise.all(
         experimentRuns.map(run =>
-          experimentRunService.createTask({
+          experimentRunService.createExperimentRun({
             companyUuid: auth.companyUuid,
-            projectUuid: researchProjectUuid,
+            researchProjectUuid,
             title: run.title,
             description: run.description || null,
             priority: run.priority,
-            storyPoints: run.computeBudgetHours ?? null,
-            proposalUuid: experimentDesignUuid || null,
+            computeBudgetHours: run.computeBudgetHours ?? null,
+            experimentDesignUuid: experimentDesignUuid || null,
             createdByUuid: auth.actorUuid,
           })
         )
@@ -400,7 +400,7 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
               continue;
             }
             try {
-              await experimentRunService.addTaskDependency(auth.companyUuid, realUuid, depRealUuid);
+              await experimentRunService.addRunDependency(auth.companyUuid, realUuid, depRealUuid);
             } catch (error) {
               warnings.push(`Experiment Run "${run.title}" -> draftUuid "${draftUuid}": ${error instanceof Error ? error.message : "unknown error"}`);
             }
@@ -411,7 +411,7 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
         if (run.dependsOnRunUuids) {
           for (const depUuid of run.dependsOnRunUuids) {
             try {
-              await experimentRunService.addTaskDependency(auth.companyUuid, realUuid, depUuid);
+              await experimentRunService.addRunDependency(auth.companyUuid, realUuid, depUuid);
             } catch (error) {
               warnings.push(`Experiment Run "${run.title}" -> runUuid "${depUuid}": ${error instanceof Error ? error.message : "unknown error"}`);
             }
@@ -427,7 +427,7 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
             try {
               await prisma.acceptanceCriterion.createMany({
                 data: validItems.map((item, index) => ({
-                  taskUuid: realUuid,
+                  runUuid: realUuid,
                   description: item.description.trim(),
                   required: item.required ?? true,
                   sortOrder: index,
@@ -539,10 +539,10 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
     },
     async ({ experimentDesignUuid, title, description, computeBudgetHours, priority, acceptanceCriteriaItems, dependsOnDraftUuids }) => {
       try {
-        const experimentDesign = await experimentDesignService.addTaskDraft(
+        const experimentDesign = await experimentDesignService.addRunDraft(
           experimentDesignUuid,
           auth.companyUuid,
-          { title, description, storyPoints: computeBudgetHours, priority, acceptanceCriteriaItems, dependsOnDraftUuids }
+          { title, description, computeBudgetHours: computeBudgetHours, priority, acceptanceCriteriaItems, dependsOnDraftUuids }
         );
         const taskDrafts = experimentDesign.taskDrafts as Array<{ uuid: string; title: string }> | null;
         const newDraft = taskDrafts?.[taskDrafts.length - 1];
@@ -625,7 +625,7 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
         if (acceptanceCriteriaItems !== undefined) updates.acceptanceCriteriaItems = acceptanceCriteriaItems;
         if (dependsOnDraftUuids !== undefined) updates.dependsOnDraftUuids = dependsOnDraftUuids;
 
-        const experimentDesign = await experimentDesignService.updateTaskDraft(
+        const experimentDesign = await experimentDesignService.updateRunDraft(
           experimentDesignUuid,
           auth.companyUuid,
           draftUuid,
@@ -684,7 +684,7 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
     },
     async ({ experimentDesignUuid, draftUuid }) => {
       try {
-        const experimentDesign = await experimentDesignService.removeTaskDraft(
+        const experimentDesign = await experimentDesignService.removeRunDraft(
           experimentDesignUuid,
           auth.companyUuid,
           draftUuid
@@ -713,7 +713,7 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
     },
     async ({ runUuid, dependsOnRunUuid }) => {
       try {
-        const dep = await experimentRunService.addTaskDependency(auth.companyUuid, runUuid, dependsOnRunUuid);
+        const dep = await experimentRunService.addRunDependency(auth.companyUuid, runUuid, dependsOnRunUuid);
         return {
           content: [{ type: "text", text: JSON.stringify(dep, null, 2) }],
         };
@@ -738,7 +738,7 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
     },
     async ({ runUuid, dependsOnRunUuid }) => {
       try {
-        await experimentRunService.removeTaskDependency(auth.companyUuid, runUuid, dependsOnRunUuid);
+        await experimentRunService.removeRunDependency(auth.companyUuid, runUuid, dependsOnRunUuid);
         return {
           content: [{ type: "text", text: JSON.stringify({ success: true, runUuid, dependsOnRunUuid }, null, 2) }],
         };
@@ -763,7 +763,7 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
     },
     async ({ runUuid, agentUuid }) => {
       // Validate experiment run exists
-      const run = await experimentRunService.getTaskByUuid(auth.companyUuid, runUuid);
+      const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, runUuid);
       if (!run) {
         return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }
@@ -795,8 +795,8 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
 
       // Execute assignment
       try {
-        const updated = await experimentRunService.claimTask({
-          taskUuid: run.uuid,
+        const updated = await experimentRunService.claimExperimentRun({
+          runUuid: run.uuid,
           companyUuid: auth.companyUuid,
           assigneeType: "agent",
           assigneeUuid: agentUuid,
@@ -806,7 +806,7 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
         // Log activity
         await activityService.createActivity({
           companyUuid: auth.companyUuid,
-          projectUuid: run.projectUuid,
+          researchProjectUuid: run.researchProjectUuid,
           targetType: "experiment_run",
           targetUuid: run.uuid,
           actorType: "agent",
@@ -855,9 +855,9 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
     },
     async ({ researchQuestionUuid, depth, questions }) => {
       try {
-        const round = await hypothesisFormulationService.startElaboration({
+        const round = await hypothesisFormulationService.startHypothesisFormulation({
           companyUuid: auth.companyUuid,
-          ideaUuid: researchQuestionUuid,
+          researchQuestionUuid: researchQuestionUuid,
           actorUuid: auth.actorUuid,
           actorType: "agent",
           depth,
@@ -904,9 +904,9 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
     },
     async ({ researchQuestionUuid, roundUuid, issues, followUpQuestions }) => {
       try {
-        const result = await hypothesisFormulationService.validateElaboration({
+        const result = await hypothesisFormulationService.validateHypothesisFormulation({
           companyUuid: auth.companyUuid,
-          ideaUuid: researchQuestionUuid,
+          researchQuestionUuid: researchQuestionUuid,
           roundUuid,
           actorUuid: auth.actorUuid,
           actorType: "agent",
@@ -938,9 +938,9 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
     },
     async ({ researchQuestionUuid, reason }) => {
       try {
-        await hypothesisFormulationService.skipElaboration({
+        await hypothesisFormulationService.skipHypothesisFormulation({
           companyUuid: auth.companyUuid,
-          ideaUuid: researchQuestionUuid,
+          researchQuestionUuid: researchQuestionUuid,
           actorUuid: auth.actorUuid,
           actorType: "agent",
           reason,
@@ -970,7 +970,7 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
     },
     async ({ researchQuestionUuid, targetResearchProjectUuid }) => {
       try {
-        const updated = await researchQuestionService.moveIdea(
+        const updated = await researchQuestionService.moveResearchQuestion(
           auth.companyUuid,
           researchQuestionUuid,
           targetResearchProjectUuid,
@@ -1002,14 +1002,14 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
       }),
     },
     async ({ researchProjectUuid, title, content }) => {
-      const exists = await projectExists(auth.companyUuid, researchProjectUuid);
+      const exists = await researchProjectExists(auth.companyUuid, researchProjectUuid);
       if (!exists) {
         return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
       }
 
-      const researchQuestion = await researchQuestionService.createIdea({
+      const researchQuestion = await researchQuestionService.createResearchQuestion({
         companyUuid: auth.companyUuid,
-        projectUuid: researchProjectUuid,
+        researchProjectUuid,
         title,
         content: content || null,
         createdByUuid: auth.actorUuid,

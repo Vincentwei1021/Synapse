@@ -11,10 +11,10 @@ const { mockPrisma, mockEventBus, mockFormatAssigneeComplete, mockFormatCreatedB
       update: vi.fn(),
       delete: vi.fn(),
     },
-    project: {
+    researchProject: {
       findFirst: vi.fn(),
     },
-    proposal: {
+    experimentDesign: {
       updateMany: vi.fn(),
     },
     $transaction: vi.fn(),

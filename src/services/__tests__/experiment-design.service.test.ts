@@ -1080,7 +1080,7 @@ describe("approveExperimentDesign", () => {
     await approveExperimentDesign(proposal.uuid, COMPANY_UUID, "reviewer-uuid");
 
     expect(mockCreateExperimentRuns).toHaveBeenCalledOnce();
-    expect(txMock.taskDependency.create).toHaveBeenCalledWith({
+    expect(txMock.runDependency.create).toHaveBeenCalledWith({
       data: { runUuid: "real-task-2", dependsOnRunUuid: "real-task-1" },
     });
   });
@@ -1315,10 +1315,10 @@ describe("listExperimentDesigns", () => {
       take: 20,
     });
 
-    expect(result.proposals).toHaveLength(2);
+    expect(result.experimentDesigns).toHaveLength(2);
     expect(result.total).toBe(2);
-    expect(result.proposals[0].uuid).toBe("proposal-1");
-    expect(result.proposals[1].uuid).toBe("proposal-2");
+    expect(result.experimentDesigns[0].uuid).toBe("proposal-1");
+    expect(result.experimentDesigns[1].uuid).toBe("proposal-2");
     expect(mockPrisma.experimentDesign.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { researchProjectUuid: PROJECT_UUID, companyUuid: COMPANY_UUID },

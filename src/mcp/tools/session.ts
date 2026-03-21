@@ -159,7 +159,7 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
         return { content: [{ type: "text", text: "No permission to operate this Session" }], isError: true };
       }
 
-      const checkin = await sessionService.sessionCheckinToTask(
+      const checkin = await sessionService.sessionCheckinToRun(
         auth.companyUuid,
         sessionUuid,
         runUuid
@@ -191,7 +191,7 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
         return { content: [{ type: "text", text: "No permission to operate this Session" }], isError: true };
       }
 
-      await sessionService.sessionCheckoutFromTask(auth.companyUuid, sessionUuid, runUuid);
+      await sessionService.sessionCheckoutFromRun(auth.companyUuid, sessionUuid, runUuid);
 
       return {
         content: [{ type: "text", text: `Successfully checked out from experiment run ${runUuid}` }],

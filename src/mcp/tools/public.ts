@@ -31,7 +31,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ researchProjectUuid }) => {
-      const project = await researchProjectService.getProjectByUuid(auth.companyUuid, researchProjectUuid);
+      const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, researchProjectUuid);
       if (!project) {
         return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
       }
@@ -53,7 +53,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     },
     async ({ page, pageSize }) => {
       const skip = (page - 1) * pageSize;
-      const result = await researchProjectService.listProjects({
+      const result = await researchProjectService.listResearchProjects({
         companyUuid: auth.companyUuid,
         skip,
         take: pageSize,
@@ -78,22 +78,22 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     },
     async ({ researchProjectUuid, status, page = 1, pageSize = 20 }) => {
       // Verify project exists
-      const project = await researchProjectService.getProjectByUuid(auth.companyUuid, researchProjectUuid);
+      const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, researchProjectUuid);
       if (!project) {
         return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
       }
 
       const skip = (page - 1) * pageSize;
-      const { ideas, total } = await researchQuestionService.listIdeas({
+      const { researchQuestions, total } = await researchQuestionService.listResearchQuestions({
         companyUuid: auth.companyUuid,
-        projectUuid: researchProjectUuid,
+        researchProjectUuid,
         skip,
         take: pageSize,
         status,
       });
 
       return {
-        content: [{ type: "text", text: JSON.stringify({ researchQuestions: ideas, total, page, pageSize }, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ researchQuestions, total, page, pageSize }, null, 2) }],
       };
     }
   );
@@ -112,7 +112,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     },
     async ({ researchProjectUuid, type, page = 1, pageSize = 20 }) => {
       // Verify project exists
-      const project = await researchProjectService.getProjectByUuid(auth.companyUuid, researchProjectUuid);
+      const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, researchProjectUuid);
       if (!project) {
         return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
       }
@@ -120,7 +120,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       const skip = (page - 1) * pageSize;
       const { documents, total } = await documentService.listDocuments({
         companyUuid: auth.companyUuid,
-        projectUuid: researchProjectUuid,
+        researchProjectUuid,
         skip,
         take: pageSize,
         type,
@@ -166,22 +166,22 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     },
     async ({ researchProjectUuid, status, page = 1, pageSize = 20 }) => {
       // Verify project exists
-      const project = await researchProjectService.getProjectByUuid(auth.companyUuid, researchProjectUuid);
+      const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, researchProjectUuid);
       if (!project) {
         return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
       }
 
       const skip = (page - 1) * pageSize;
-      const { proposals, total } = await experimentDesignService.listProposals({
+      const { experimentDesigns, total } = await experimentDesignService.listExperimentDesigns({
         companyUuid: auth.companyUuid,
-        projectUuid: researchProjectUuid,
+        researchProjectUuid,
         skip,
         take: pageSize,
         status,
       });
 
       return {
-        content: [{ type: "text", text: JSON.stringify({ experimentDesigns: proposals, total, page, pageSize }, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ experimentDesigns, total, page, pageSize }, null, 2) }],
       };
     }
   );
@@ -196,7 +196,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ runUuid }) => {
-      const run = await experimentRunService.getTask(auth.companyUuid, runUuid);
+      const run = await experimentRunService.getExperimentRun(auth.companyUuid, runUuid);
       if (!run) {
         return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }
@@ -222,20 +222,20 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     },
     async ({ researchProjectUuid, status, priority, experimentDesignUuids, page = 1, pageSize = 20 }) => {
       // Verify project exists
-      const project = await researchProjectService.getProjectByUuid(auth.companyUuid, researchProjectUuid);
+      const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, researchProjectUuid);
       if (!project) {
         return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
       }
 
       const skip = (page - 1) * pageSize;
-      const { tasks, total } = await experimentRunService.listTasks({
+      const { tasks, total } = await experimentRunService.listExperimentRuns({
         companyUuid: auth.companyUuid,
-        projectUuid: researchProjectUuid,
+        researchProjectUuid,
         skip,
         take: pageSize,
         status,
         priority,
-        proposalUuids: experimentDesignUuids,
+        experimentDesignUuids,
       });
 
       return {
@@ -257,7 +257,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
     },
     async ({ researchProjectUuid, page = 1, pageSize = 50 }) => {
       // Verify project exists
-      const project = await researchProjectService.getProjectByUuid(auth.companyUuid, researchProjectUuid);
+      const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, researchProjectUuid);
       if (!project) {
         return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
       }
@@ -265,7 +265,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       const skip = (page - 1) * pageSize;
       const { activities, total } = await activityService.listActivities({
         companyUuid: auth.companyUuid,
-        projectUuid: researchProjectUuid,
+        researchProjectUuid,
         skip,
         take: pageSize,
       });
@@ -303,7 +303,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
         if (projectUuid) {
           await activityService.createActivity({
             companyUuid: auth.companyUuid,
-            projectUuid,
+            researchProjectUuid: projectUuid,
             targetType: targetType as "research_question" | "experiment_design" | "experiment_run" | "document",
             targetUuid,
             actorType: "agent",
@@ -348,7 +348,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       });
 
       // Get pending Research Questions and Experiment Runs
-      const { ideas, tasks } = await assignmentService.getMyAssignments(auth, auth.projectUuids);
+      const { researchQuestions, experimentRuns } = await assignmentService.getMyAssignments(auth, auth.researchProjectUuids);
 
       // Get unread notification count
       const unreadNotificationCount = await notificationService.getUnreadCount(
@@ -393,12 +393,12 @@ Work style: rigorous, efficient, quality-focused`,
           owner: agent.owner ? { uuid: agent.owner.uuid, name: agent.owner.name, email: agent.owner.email } : null,
         },
         assignments: {
-          researchQuestions: ideas.filter(i => ["assigned", "in_progress"].includes(i.status)),
-          experimentRuns: tasks.filter(t => ["assigned", "in_progress"].includes(t.status)),
+          researchQuestions: researchQuestions.filter((i: { status: string }) => ["assigned", "in_progress"].includes(i.status)),
+          experimentRuns: experimentRuns.filter((t: { status: string }) => ["assigned", "in_progress"].includes(t.status)),
         },
         pending: {
-          researchQuestionsCount: ideas.length,
-          experimentRunsCount: tasks.length,
+          researchQuestionsCount: researchQuestions.length,
+          experimentRunsCount: experimentRuns.length,
         },
         notifications: {
           unreadCount: unreadNotificationCount,
@@ -419,10 +419,10 @@ Work style: rigorous, efficient, quality-focused`,
       inputSchema: z.object({}),
     },
     async () => {
-      const { ideas, tasks } = await assignmentService.getMyAssignments(auth, auth.projectUuids);
+      const { researchQuestions, experimentRuns } = await assignmentService.getMyAssignments(auth, auth.researchProjectUuids);
 
       return {
-        content: [{ type: "text", text: JSON.stringify({ researchQuestions: ideas, experimentRuns: tasks }, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ researchQuestions, experimentRuns }, null, 2) }],
       };
     }
   );
@@ -438,12 +438,12 @@ Work style: rigorous, efficient, quality-focused`,
     },
     async ({ researchProjectUuid }) => {
       // Verify project exists
-      const project = await researchProjectService.getProjectByUuid(auth.companyUuid, researchProjectUuid);
+      const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, researchProjectUuid);
       if (!project) {
         return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
       }
 
-      const { ideas } = await assignmentService.getAvailableItems(
+      const { researchQuestions } = await assignmentService.getAvailableItems(
         auth.companyUuid,
         researchProjectUuid,
         true,
@@ -451,7 +451,7 @@ Work style: rigorous, efficient, quality-focused`,
       );
 
       return {
-        content: [{ type: "text", text: JSON.stringify({ researchQuestions: ideas }, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ researchQuestions }, null, 2) }],
       };
     }
   );
@@ -468,12 +468,12 @@ Work style: rigorous, efficient, quality-focused`,
     },
     async ({ researchProjectUuid, experimentDesignUuids }) => {
       // Verify project exists
-      const project = await researchProjectService.getProjectByUuid(auth.companyUuid, researchProjectUuid);
+      const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, researchProjectUuid);
       if (!project) {
         return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
       }
 
-      const { tasks } = await assignmentService.getAvailableItems(
+      const { experimentRuns } = await assignmentService.getAvailableItems(
         auth.companyUuid,
         researchProjectUuid,
         false,
@@ -482,7 +482,7 @@ Work style: rigorous, efficient, quality-focused`,
       );
 
       return {
-        content: [{ type: "text", text: JSON.stringify({ experimentRuns: tasks }, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ experimentRuns }, null, 2) }],
       };
     }
   );
@@ -497,7 +497,7 @@ Work style: rigorous, efficient, quality-focused`,
       }),
     },
     async ({ researchQuestionUuid }) => {
-      const researchQuestion = await researchQuestionService.getIdea(auth.companyUuid, researchQuestionUuid);
+      const researchQuestion = await researchQuestionService.getResearchQuestion(auth.companyUuid, researchQuestionUuid);
       if (!researchQuestion) {
         return { content: [{ type: "text", text: "Research Question not found" }], isError: true };
       }
@@ -518,7 +518,7 @@ Work style: rigorous, efficient, quality-focused`,
     },
     async ({ experimentDesignUuid }) => {
       // Use getProposal to return the full formatted response, including drafts
-      const experimentDesign = await experimentDesignService.getProposal(auth.companyUuid, experimentDesignUuid);
+      const experimentDesign = await experimentDesignService.getExperimentDesign(auth.companyUuid, experimentDesignUuid);
       if (!experimentDesign) {
         return { content: [{ type: "text", text: "Experiment Design not found" }], isError: true };
       }
@@ -540,15 +540,15 @@ Work style: rigorous, efficient, quality-focused`,
     },
     async ({ researchProjectUuid, experimentDesignUuids }) => {
       // Verify project exists
-      const project = await researchProjectService.getProjectByUuid(auth.companyUuid, researchProjectUuid);
+      const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, researchProjectUuid);
       if (!project) {
         return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
       }
 
-      const { tasks, total } = await experimentRunService.getUnblockedTasks({
+      const { tasks, total } = await experimentRunService.getUnblockedExperimentRuns({
         companyUuid: auth.companyUuid,
-        projectUuid: researchProjectUuid,
-        proposalUuids: experimentDesignUuids,
+        researchProjectUuid,
+        experimentDesignUuids,
       });
 
       return {
@@ -668,9 +668,9 @@ Work style: rigorous, efficient, quality-focused`,
     },
     async ({ researchQuestionUuid, roundUuid, answers }) => {
       try {
-        const round = await hypothesisFormulationService.answerElaboration({
+        const round = await hypothesisFormulationService.answerHypothesisFormulation({
           companyUuid: auth.companyUuid,
-          ideaUuid: researchQuestionUuid,
+          researchQuestionUuid,
           roundUuid,
           actorUuid: auth.actorUuid,
           actorType: auth.type,
@@ -700,9 +700,9 @@ Work style: rigorous, efficient, quality-focused`,
     },
     async ({ researchQuestionUuid }) => {
       try {
-        const hypothesisFormulation = await hypothesisFormulationService.getElaboration({
+        const hypothesisFormulation = await hypothesisFormulationService.getHypothesisFormulation({
           companyUuid: auth.companyUuid,
-          ideaUuid: researchQuestionUuid,
+          researchQuestionUuid,
         });
 
         return {

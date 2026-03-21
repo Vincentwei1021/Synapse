@@ -293,7 +293,7 @@ describe("getProjectGroup", () => {
     expect(result!.uuid).toBe(groupUuid);
     expect(result!.projectCount).toBe(1);
     expect(result!.projects).toHaveLength(1);
-    expect(result!.projects[0].uuid).toBe(projectUuid);
+    expect(result!.projects[0].uuid).toBe(researchProjectUuid);
   });
 
   it("should return null when group not found", async () => {
@@ -396,7 +396,7 @@ describe("moveProjectToGroup", () => {
     expect(result!.groupUuid).toBe(groupUuid);
 
     expect(mockPrisma.researchProject.update).toHaveBeenCalledWith({
-      where: { uuid: projectUuid },
+      where: { uuid: researchProjectUuid },
       data: { groupUuid },
     });
 
@@ -422,7 +422,7 @@ describe("moveProjectToGroup", () => {
     expect(result!.groupUuid).toBeNull();
 
     expect(mockPrisma.researchProject.update).toHaveBeenCalledWith({
-      where: { uuid: projectUuid },
+      where: { uuid: researchProjectUuid },
       data: { groupUuid: null },
     });
   });

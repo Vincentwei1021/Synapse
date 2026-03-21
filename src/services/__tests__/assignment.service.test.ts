@@ -95,10 +95,10 @@ describe("getMyAssignments", () => {
 
     const result = await getMyAssignments(userAuth);
 
-    expect(result.ideas).toHaveLength(1);
-    expect(result.tasks).toHaveLength(1);
-    expect(result.ideas[0].uuid).toBe(idea.uuid);
-    expect(result.tasks[0].uuid).toBe(task.uuid);
+    expect(result.researchQuestions).toHaveLength(1);
+    expect(result.experimentRuns).toHaveLength(1);
+    expect(result.researchQuestions[0].uuid).toBe(idea.uuid);
+    expect(result.experimentRuns[0].uuid).toBe(task.uuid);
   });
 
   it("should query with user assignment condition", async () => {
@@ -221,7 +221,7 @@ describe("getMyAssignments", () => {
 
     const result = await getMyAssignments(userAuth);
 
-    expect(result.ideas[0].assignee).toEqual({
+    expect(result.researchQuestions[0].assignee).toEqual({
       type: "user",
       uuid: userUuid,
       name: "John Doe",
@@ -248,7 +248,7 @@ describe("getMyAssignments", () => {
 
     const result = await getMyAssignments(userAuth);
 
-    expect(result.tasks[0].assignee).toEqual({
+    expect(result.experimentRuns[0].assignee).toEqual({
       type: "agent",
       uuid: agentUuid,
       name: "Bot Agent",
@@ -269,10 +269,10 @@ describe("getMyAssignments", () => {
 
     const result = await getMyAssignments(userAuth);
 
-    expect(result.ideas[0].createdAt).toBe(now.toISOString());
-    expect(result.ideas[0].assignedAt).toBe(now.toISOString());
-    expect(result.tasks[0].createdAt).toBe(now.toISOString());
-    expect(result.tasks[0].assignedAt).toBe(now.toISOString());
+    expect(result.researchQuestions[0].createdAt).toBe(now.toISOString());
+    expect(result.researchQuestions[0].assignedAt).toBe(now.toISOString());
+    expect(result.experimentRuns[0].createdAt).toBe(now.toISOString());
+    expect(result.experimentRuns[0].assignedAt).toBe(now.toISOString());
   });
 
   it("should order ideas by assignedAt desc", async () => {
@@ -323,13 +323,13 @@ describe("getMyAssignments", () => {
     mockPrisma.researchQuestion.findMany.mockResolvedValue([]);
     mockPrisma.experimentRun.findMany.mockResolvedValue([]);
 
-    await getMyAssignments(userAuth, [projectUuid]);
+    await getMyAssignments(userAuth, [researchProjectUuid]);
 
     expect(mockPrisma.researchQuestion.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           companyUuid,
-          researchProjectUuid: { in: [projectUuid] },
+          researchProjectUuid: { in: [researchProjectUuid] },
           OR: [{ assigneeType: "user", assigneeUuid: userUuid }],
         }),
       })
@@ -339,7 +339,7 @@ describe("getMyAssignments", () => {
       expect.objectContaining({
         where: expect.objectContaining({
           companyUuid,
-          researchProjectUuid: { in: [projectUuid] },
+          researchProjectUuid: { in: [researchProjectUuid] },
           OR: [{ assigneeType: "user", assigneeUuid: userUuid }],
         }),
       })
@@ -412,8 +412,8 @@ describe("getAvailableItems", () => {
 
     const result = await getAvailableItems(companyUuid, researchProjectUuid, true, true);
 
-    expect(result.ideas).toHaveLength(1);
-    expect(result.tasks).toHaveLength(1);
+    expect(result.researchQuestions).toHaveLength(1);
+    expect(result.experimentRuns).toHaveLength(1);
   });
 
   it("should return empty ideas when canClaimIdeas is false", async () => {
@@ -422,8 +422,8 @@ describe("getAvailableItems", () => {
 
     const result = await getAvailableItems(companyUuid, researchProjectUuid, false, true);
 
-    expect(result.ideas).toEqual([]);
-    expect(result.tasks).toHaveLength(1);
+    expect(result.researchQuestions).toEqual([]);
+    expect(result.experimentRuns).toHaveLength(1);
   });
 
   it("should return empty tasks when canClaimTasks is false", async () => {
@@ -432,8 +432,8 @@ describe("getAvailableItems", () => {
 
     const result = await getAvailableItems(companyUuid, researchProjectUuid, true, false);
 
-    expect(result.ideas).toHaveLength(1);
-    expect(result.tasks).toEqual([]);
+    expect(result.researchQuestions).toHaveLength(1);
+    expect(result.experimentRuns).toEqual([]);
   });
 
   it("should filter by open status only", async () => {
@@ -491,7 +491,7 @@ describe("getAvailableItems", () => {
 
     const result = await getAvailableItems(companyUuid, researchProjectUuid, true, true);
 
-    expect(result.ideas[0].createdBy).toEqual({
+    expect(result.researchQuestions[0].createdBy).toEqual({
       type: "user",
       uuid: userUuid,
       name: "Alice",
@@ -512,7 +512,7 @@ describe("getAvailableItems", () => {
 
     const result = await getAvailableItems(companyUuid, researchProjectUuid, true, true);
 
-    expect(result.tasks[0].createdBy).toEqual({
+    expect(result.experimentRuns[0].createdBy).toEqual({
       type: "agent",
       uuid: agentUuid,
       name: "PM Agent",
@@ -527,8 +527,8 @@ describe("getAvailableItems", () => {
 
     const result = await getAvailableItems(companyUuid, researchProjectUuid, true, true);
 
-    expect(result.ideas[0].createdAt).toBe(now.toISOString());
-    expect(result.tasks[0].createdAt).toBe(now.toISOString());
+    expect(result.researchQuestions[0].createdAt).toBe(now.toISOString());
+    expect(result.experimentRuns[0].createdAt).toBe(now.toISOString());
   });
 
   it("should order ideas by createdAt desc", async () => {
@@ -560,8 +560,8 @@ describe("getAvailableItems", () => {
   it("should return both empty arrays when nothing allowed", async () => {
     const result = await getAvailableItems(companyUuid, researchProjectUuid, false, false);
 
-    expect(result.ideas).toEqual([]);
-    expect(result.tasks).toEqual([]);
+    expect(result.researchQuestions).toEqual([]);
+    expect(result.experimentRuns).toEqual([]);
     expect(mockPrisma.researchQuestion.findMany).not.toHaveBeenCalled();
     expect(mockPrisma.experimentRun.findMany).not.toHaveBeenCalled();
   });

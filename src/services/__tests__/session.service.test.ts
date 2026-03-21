@@ -135,7 +135,7 @@ describe("getSession", () => {
     const result = await getSession(companyUuid, sessionUuid);
     expect(result).not.toBeNull();
     expect(result!.checkins).toHaveLength(1);
-    expect(result!.checkins[0].runUuid).toBe(taskUuid);
+    expect(result!.checkins[0].runUuid).toBe(runUuid);
     expect(result!.checkins[0].checkoutAt).toBeNull();
   });
 
@@ -151,7 +151,7 @@ describe("closeSession", () => {
   it("should close session and batch checkout active checkins", async () => {
     mockPrisma.agentSession.findFirst.mockResolvedValue(makeSession());
     mockPrisma.sessionRunCheckin.findMany.mockResolvedValue([
-      { task: { uuid: runUuid, projectUuid } },
+      { run: { uuid: runUuid, researchProjectUuid } },
     ]);
     mockPrisma.sessionRunCheckin.updateMany.mockResolvedValue({ count: 1 });
     const closedSession = makeSession({
@@ -223,9 +223,9 @@ describe("sessionCheckinToRun", () => {
     });
     mockPrisma.agentSession.update.mockResolvedValue(makeSession());
 
-    const result = await sessionCheckinToRun(companyUuid, sessionUuid, taskUuid);
+    const result = await sessionCheckinToRun(companyUuid, sessionUuid, runUuid);
 
-    expect(result.runUuid).toBe(taskUuid);
+    expect(result.runUuid).toBe(runUuid);
     expect(result.checkoutAt).toBeNull();
     expect(eventBus.emitChange).toHaveBeenCalled();
   });
@@ -245,7 +245,7 @@ describe("sessionCheckinToRun", () => {
     });
     mockPrisma.agentSession.update.mockResolvedValue(makeSession());
 
-    await sessionCheckinToRun(companyUuid, sessionUuid, taskUuid);
+    await sessionCheckinToRun(companyUuid, sessionUuid, runUuid);
 
     expect(claimExperimentRun).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -259,7 +259,7 @@ describe("sessionCheckinToRun", () => {
   it("should throw when session not found or not active", async () => {
     mockPrisma.agentSession.findFirst.mockResolvedValue(null);
     await expect(
-      sessionCheckinToRun(companyUuid, sessionUuid, taskUuid)
+      sessionCheckinToRun(companyUuid, sessionUuid, runUuid)
     ).rejects.toThrow("Session not found or not active");
   });
 
@@ -267,7 +267,7 @@ describe("sessionCheckinToRun", () => {
     mockPrisma.agentSession.findFirst.mockResolvedValue(makeSession());
     mockPrisma.experimentRun.findFirst.mockResolvedValue(null);
     await expect(
-      sessionCheckinToRun(companyUuid, sessionUuid, taskUuid)
+      sessionCheckinToRun(companyUuid, sessionUuid, runUuid)
     ).rejects.toThrow("Experiment run not found");
   });
 });
@@ -279,7 +279,7 @@ describe("sessionCheckoutFromRun", () => {
     mockPrisma.experimentRun.findFirst.mockResolvedValue({ researchProjectUuid });
     mockPrisma.sessionRunCheckin.updateMany.mockResolvedValue({ count: 1 });
 
-    await sessionCheckoutFromRun(companyUuid, sessionUuid, taskUuid);
+    await sessionCheckoutFromRun(companyUuid, sessionUuid, runUuid);
 
     expect(mockPrisma.sessionRunCheckin.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -294,7 +294,7 @@ describe("sessionCheckoutFromRun", () => {
   it("should throw when session not found", async () => {
     mockPrisma.agentSession.findFirst.mockResolvedValue(null);
     await expect(
-      sessionCheckoutFromRun(companyUuid, sessionUuid, taskUuid)
+      sessionCheckoutFromRun(companyUuid, sessionUuid, runUuid)
     ).rejects.toThrow("Session not found");
   });
 
@@ -303,7 +303,7 @@ describe("sessionCheckoutFromRun", () => {
     mockPrisma.experimentRun.findFirst.mockResolvedValue(null);
     mockPrisma.sessionRunCheckin.updateMany.mockResolvedValue({ count: 0 });
 
-    await sessionCheckoutFromRun(companyUuid, sessionUuid, taskUuid);
+    await sessionCheckoutFromRun(companyUuid, sessionUuid, runUuid);
     expect(eventBus.emitChange).not.toHaveBeenCalled();
   });
 });
@@ -375,7 +375,7 @@ describe("batchGetWorkerCountsForRuns", () => {
     ]);
 
     const result = await batchGetWorkerCountsForRuns(companyUuid, [runUuid, task2]);
-    expect(result[taskUuid]).toBe(2);
+    expect(result[runUuid]).toBe(2);
     expect(result[task2]).toBe(1);
   });
 });
@@ -413,7 +413,7 @@ describe("getSessionsForRun", () => {
       },
     ]);
 
-    const result = await getSessionsForRun(companyUuid, taskUuid);
+    const result = await getSessionsForRun(companyUuid, runUuid);
 
     expect(result).toHaveLength(1);
     expect(result[0].sessionUuid).toBe(sessionUuid);
@@ -426,7 +426,7 @@ describe("getSessionsForRun", () => {
     const { getSessionsForRun } = await import("@/services/session.service");
     mockPrisma.sessionRunCheckin.findMany.mockResolvedValue([]);
 
-    const result = await getSessionsForRun(companyUuid, taskUuid);
+    const result = await getSessionsForRun(companyUuid, runUuid);
     expect(result).toEqual([]);
   });
 });
@@ -503,7 +503,7 @@ describe("getActiveSessionsForProject", () => {
     ]);
     mockPrisma.experimentRun.findMany.mockResolvedValue([]);
 
-    const result = await getActiveSessionsForProject(companyUuid, projectUuid);
+    const result = await getActiveSessionsForProject(companyUuid, researchProjectUuid);
 
     expect(result).toHaveLength(2); // deduplicated
     expect(result[0].sessionUuid).toBe("s1");
@@ -528,7 +528,7 @@ describe("getActiveSessionsForProject", () => {
     mockPrisma.sessionRunCheckin.findMany.mockResolvedValue(checkins);
     mockPrisma.experimentRun.findMany.mockResolvedValue([]);
 
-    const result = await getActiveSessionsForProject(companyUuid, projectUuid);
+    const result = await getActiveSessionsForProject(companyUuid, researchProjectUuid);
 
     expect(result).toHaveLength(7); // max 7 workers
   });
@@ -561,7 +561,7 @@ describe("getActiveSessionsForProject", () => {
       { uuid: "a3", name: "Agent 3" },
     ]);
 
-    const result = await getActiveSessionsForProject(companyUuid, projectUuid);
+    const result = await getActiveSessionsForProject(companyUuid, researchProjectUuid);
 
     expect(result).toHaveLength(3); // 1 session + 2 sessionless
     expect(result[0].sessionUuid).toBe("s1");
@@ -588,7 +588,7 @@ describe("getActiveSessionsForProject", () => {
       { uuid: "a2", name: "Agent 2" },
     ]);
 
-    const result = await getActiveSessionsForProject(companyUuid, projectUuid);
+    const result = await getActiveSessionsForProject(companyUuid, researchProjectUuid);
 
     expect(result).toHaveLength(2); // deduplicated by agent
     expect(result[0].agentUuid).toBe("a1");
@@ -615,7 +615,7 @@ describe("getActiveSessionsForProject", () => {
     // Agent is also assigned to t1, but should be excluded from sessionless query
     mockPrisma.experimentRun.findMany.mockResolvedValue([]);
 
-    const result = await getActiveSessionsForProject(companyUuid, projectUuid);
+    const result = await getActiveSessionsForProject(companyUuid, researchProjectUuid);
 
     expect(result).toHaveLength(1);
     expect(mockPrisma.experimentRun.findMany).toHaveBeenCalledWith(
@@ -636,7 +636,7 @@ describe("getActiveSessionsForProject", () => {
     ]);
     mockPrisma.agent.findMany.mockResolvedValue([]); // no matching agent
 
-    const result = await getActiveSessionsForProject(companyUuid, projectUuid);
+    const result = await getActiveSessionsForProject(companyUuid, researchProjectUuid);
 
     expect(result).toHaveLength(0); // skipped due to missing agent name
   });

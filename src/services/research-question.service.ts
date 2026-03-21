@@ -111,7 +111,7 @@ async function formatResearchQuestionResponse(
     createdByUuid: string;
     createdAt: Date;
     updatedAt: Date;
-    project?: { uuid: string; name: string };
+    researchProject?: { uuid: string; name: string };
   }
 ): Promise<ResearchQuestionResponse> {
   const [assignee, createdBy] = await Promise.all([
@@ -126,7 +126,7 @@ async function formatResearchQuestionResponse(
     attachments: idea.attachments,
     status: normalizeResearchQuestionStatus(idea.status),
     assignee,
-    ...(idea.project && { project: idea.project }),
+    ...(idea.researchProject && { project: idea.researchProject }),
     ...(idea.elaborationStatus != null && { elaborationStatus: idea.elaborationStatus }),
     ...(idea.elaborationDepth != null && { elaborationDepth: idea.elaborationDepth }),
     createdBy,
@@ -204,7 +204,7 @@ export async function getResearchQuestion(
   const idea = await prisma.researchQuestion.findFirst({
     where: { uuid, companyUuid },
     include: {
-      project: { select: { uuid: true, name: true } },
+      researchProject: { select: { uuid: true, name: true } },
     },
   });
 
@@ -249,7 +249,7 @@ export async function createResearchQuestion(params: ResearchQuestionCreateParam
     },
   });
 
-  eventBus.emitChange({ companyUuid: params.companyUuid, projectUuid: params.researchProjectUuid, entityType: "research_question", entityUuid: idea.uuid, action: "created" });
+  eventBus.emitChange({ companyUuid: params.companyUuid, researchProjectUuid: params.researchProjectUuid, entityType: "research_question", entityUuid: idea.uuid, action: "created" });
 
   return formatResearchQuestionResponse(idea);
 }
@@ -272,17 +272,17 @@ export async function updateResearchQuestion(
     where: { uuid },
     data,
     include: {
-      project: { select: { uuid: true, name: true } },
+      researchProject: { select: { uuid: true, name: true } },
     },
   });
 
-  eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.project!.uuid, entityType: "research_question", entityUuid: idea.uuid, action: "updated" });
+  eventBus.emitChange({ companyUuid: idea.companyUuid, researchProjectUuid: idea.researchProject!.uuid, entityType: "research_question", entityUuid: idea.uuid, action: "updated" });
 
   // Process new @mentions in content (append-only: only new mentions)
   if (data.content !== undefined && actorContext && data.content) {
     processNewResearchQuestionMentions(
       idea.companyUuid,
-      idea.project!.uuid,
+      idea.researchProject!.uuid,
       idea.uuid,
       idea.title,
       oldContent,
@@ -324,11 +324,11 @@ export async function claimResearchQuestion({
       assignedByUuid,
     },
     include: {
-      project: { select: { uuid: true, name: true } },
+      researchProject: { select: { uuid: true, name: true } },
     },
   });
 
-  eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.project!.uuid, entityType: "research_question", entityUuid: idea.uuid, action: "updated" });
+  eventBus.emitChange({ companyUuid: idea.companyUuid, researchProjectUuid: idea.researchProject!.uuid, entityType: "research_question", entityUuid: idea.uuid, action: "updated" });
 
   return formatResearchQuestionResponse(idea);
 }
@@ -362,11 +362,11 @@ export async function assignResearchQuestion({
       assignedByUuid,
     },
     include: {
-      project: { select: { uuid: true, name: true } },
+      researchProject: { select: { uuid: true, name: true } },
     },
   });
 
-  eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.project!.uuid, entityType: "research_question", entityUuid: idea.uuid, action: "updated" });
+  eventBus.emitChange({ companyUuid: idea.companyUuid, researchProjectUuid: idea.researchProject!.uuid, entityType: "research_question", entityUuid: idea.uuid, action: "updated" });
 
   return formatResearchQuestionResponse(idea);
 }
@@ -391,11 +391,11 @@ export async function releaseResearchQuestion(uuid: string): Promise<ResearchQue
       elaborationStatus: null,
     },
     include: {
-      project: { select: { uuid: true, name: true } },
+      researchProject: { select: { uuid: true, name: true } },
     },
   });
 
-  eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.project!.uuid, entityType: "research_question", entityUuid: idea.uuid, action: "updated" });
+  eventBus.emitChange({ companyUuid: idea.companyUuid, researchProjectUuid: idea.researchProject!.uuid, entityType: "research_question", entityUuid: idea.uuid, action: "updated" });
 
   return formatResearchQuestionResponse(idea);
 }
@@ -403,7 +403,7 @@ export async function releaseResearchQuestion(uuid: string): Promise<ResearchQue
 // Process new @mentions in idea content (append-only: only new mentions)
 async function processNewResearchQuestionMentions(
   companyUuid: string,
-  projectUuid: string,
+  researchProjectUuid: string,
   researchQuestionUuid: string,
   researchQuestionTitle: string,
   oldContent: string | null,
@@ -426,7 +426,7 @@ async function processNewResearchQuestionMentions(
     content: newContent,
     actorType,
     actorUuid,
-    projectUuid,
+    researchProjectUuid,
     entityTitle: researchQuestionTitle,
   });
 
@@ -434,7 +434,7 @@ async function processNewResearchQuestionMentions(
     if (mention.type === actorType && mention.uuid === actorUuid) continue;
     await activityService.createActivity({
       companyUuid,
-      projectUuid,
+      researchProjectUuid,
       targetType: "research_question",
       targetUuid: researchQuestionUuid,
       actorType,
@@ -454,7 +454,7 @@ async function processNewResearchQuestionMentions(
 // Delete Idea
 export async function deleteResearchQuestion(uuid: string) {
   const idea = await prisma.researchQuestion.delete({ where: { uuid } });
-  eventBus.emitChange({ companyUuid: idea.companyUuid, projectUuid: idea.researchProjectUuid, entityType: "research_question", entityUuid: idea.uuid, action: "deleted" });
+  eventBus.emitChange({ companyUuid: idea.companyUuid, researchProjectUuid: idea.researchProjectUuid, entityType: "research_question", entityUuid: idea.uuid, action: "deleted" });
   return idea;
 }
 
@@ -469,7 +469,7 @@ export async function moveResearchQuestion(
   // Validate idea exists and belongs to same company
   const idea = await prisma.researchQuestion.findFirst({
     where: { uuid: researchQuestionUuid, companyUuid },
-    include: { project: { select: { uuid: true, name: true } } },
+    include: { researchProject: { select: { uuid: true, name: true } } },
   });
   if (!idea) throw new ApiError("NOT_FOUND", "Idea not found", 404);
 
@@ -509,7 +509,7 @@ export async function moveResearchQuestion(
   // Log activity
   await activityService.createActivity({
     companyUuid,
-    projectUuid: targetProjectUuid,
+    researchProjectUuid: targetProjectUuid,
     targetType: "research_question",
     targetUuid: researchQuestionUuid,
     actorType,
@@ -517,20 +517,20 @@ export async function moveResearchQuestion(
     action: "moved",
     value: {
       fromProjectUuid,
-      fromProjectName: idea.project!.name,
+      fromProjectName: idea.researchProject!.name,
       toProjectUuid: targetProjectUuid,
       toProjectName: targetProject.name,
     },
   });
 
   // Emit changes for both projects
-  eventBus.emitChange({ companyUuid, projectUuid: fromProjectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
-  eventBus.emitChange({ companyUuid, projectUuid: targetProjectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
+  eventBus.emitChange({ companyUuid, researchProjectUuid: fromProjectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
+  eventBus.emitChange({ companyUuid, researchProjectUuid: targetProjectUuid, entityType: "research_question", entityUuid: researchQuestionUuid, action: "updated" });
 
   // Return updated idea
   const updated = await prisma.researchQuestion.findFirst({
     where: { uuid: researchQuestionUuid, companyUuid },
-    include: { project: { select: { uuid: true, name: true } } },
+    include: { researchProject: { select: { uuid: true, name: true } } },
   });
   return formatResearchQuestionResponse(updated!);
 }

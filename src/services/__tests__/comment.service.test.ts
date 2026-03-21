@@ -635,7 +635,7 @@ describe("resolveProjectUuid", () => {
 
     const result = await resolveProjectUuid("experiment_run", "task-123");
 
-    expect(result).toBe(projectUuid);
+    expect(result).toBe(researchProjectUuid);
     expect(mockPrisma.experimentRun.findUnique).toHaveBeenCalledWith({
       where: { uuid: "task-123" },
       select: { researchProjectUuid: true },
@@ -648,7 +648,7 @@ describe("resolveProjectUuid", () => {
 
     const result = await resolveProjectUuid("research_question", "idea-123");
 
-    expect(result).toBe(projectUuid);
+    expect(result).toBe(researchProjectUuid);
     expect(mockPrisma.researchQuestion.findUnique).toHaveBeenCalledWith({
       where: { uuid: "idea-123" },
       select: { researchProjectUuid: true },
@@ -661,7 +661,7 @@ describe("resolveProjectUuid", () => {
 
     const result = await resolveProjectUuid("experiment_design", "proposal-123");
 
-    expect(result).toBe(projectUuid);
+    expect(result).toBe(researchProjectUuid);
     expect(mockPrisma.experimentDesign.findUnique).toHaveBeenCalledWith({
       where: { uuid: "proposal-123" },
       select: { researchProjectUuid: true },
@@ -674,7 +674,7 @@ describe("resolveProjectUuid", () => {
 
     const result = await resolveProjectUuid("document", "doc-123");
 
-    expect(result).toBe(projectUuid);
+    expect(result).toBe(researchProjectUuid);
     expect(mockPrisma.document.findUnique).toHaveBeenCalledWith({
       where: { uuid: "doc-123" },
       select: { researchProjectUuid: true },
