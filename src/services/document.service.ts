@@ -9,7 +9,7 @@ import { formatCreatedBy } from "@/lib/uuid-resolver";
 
 export interface DocumentListParams {
   companyUuid: string;
-  projectUuid: string;
+  researchProjectUuid: string;
   skip: number;
   take: number;
   type?: string;
@@ -17,11 +17,11 @@ export interface DocumentListParams {
 
 export interface DocumentCreateParams {
   companyUuid: string;
-  projectUuid: string;
+  researchProjectUuid: string;
   type: string;
   title: string;
   content?: string | null;
-  proposalUuid?: string | null;
+  experimentDesignUuid?: string | null;
   createdByUuid: string;
 }
 
@@ -38,7 +38,7 @@ export interface DocumentResponse {
   title: string;
   content?: string | null;
   version: number;
-  proposalUuid: string | null;
+  experimentDesignUuid: string | null;
   project?: { uuid: string; name: string };
   createdBy: { type: string; uuid: string; name: string } | null;
   createdAt: string;
@@ -55,7 +55,7 @@ async function formatDocumentResponse(
     title: string;
     content?: string | null;
     version: number;
-    proposalUuid: string | null;
+    experimentDesignUuid: string | null;
     createdByUuid: string;
     createdAt: Date;
     updatedAt: Date;
@@ -70,7 +70,7 @@ async function formatDocumentResponse(
     type: doc.type,
     title: doc.title,
     version: doc.version,
-    proposalUuid: doc.proposalUuid,
+    experimentDesignUuid: doc.experimentDesignUuid,
     createdBy,
     createdAt: doc.createdAt.toISOString(),
     updatedAt: doc.updatedAt.toISOString(),
@@ -92,13 +92,13 @@ async function formatDocumentResponse(
 // List documents query
 export async function listDocuments({
   companyUuid,
-  projectUuid,
+  researchProjectUuid,
   skip,
   take,
   type,
 }: DocumentListParams): Promise<{ documents: DocumentResponse[]; total: number }> {
   const where = {
-    projectUuid,
+    researchProjectUuid,
     companyUuid,
     ...(type && { type }),
   };
@@ -114,7 +114,7 @@ export async function listDocuments({
         type: true,
         title: true,
         version: true,
-        proposalUuid: true,
+        experimentDesignUuid: true,
         createdByUuid: true,
         createdAt: true,
         updatedAt: true,
@@ -159,12 +159,12 @@ export async function createDocument(
   const doc = await prisma.document.create({
     data: {
       companyUuid: params.companyUuid,
-      projectUuid: params.projectUuid,
+      researchProjectUuid: params.researchProjectUuid,
       type: params.type,
       title: params.title,
       content: params.content,
       version: 1,
-      proposalUuid: params.proposalUuid,
+      experimentDesignUuid: params.experimentDesignUuid,
       createdByUuid: params.createdByUuid,
     },
     select: {
@@ -173,7 +173,7 @@ export async function createDocument(
       title: true,
       content: true,
       version: true,
-      proposalUuid: true,
+      experimentDesignUuid: true,
       createdByUuid: true,
       createdAt: true,
       updatedAt: true,
@@ -216,23 +216,23 @@ export async function deleteDocument(uuid: string) {
   return prisma.document.delete({ where: { uuid } });
 }
 
-// Create Document from Proposal
-export async function createDocumentFromProposal(
+// Create Document from Experiment Design
+export async function createDocumentFromExperimentDesign(
   companyUuid: string,
-  projectUuid: string,
-  proposalUuid: string,
+  researchProjectUuid: string,
+  experimentDesignUuid: string,
   createdByUuid: string,
   doc: { type: string; title: string; content?: string }
 ): Promise<DocumentResponse> {
   const created = await prisma.document.create({
     data: {
       companyUuid,
-      projectUuid,
+      researchProjectUuid,
       type: doc.type || "prd",
       title: doc.title,
       content: doc.content || null,
       version: 1,
-      proposalUuid,
+      experimentDesignUuid,
       createdByUuid,
     },
     select: {
@@ -241,7 +241,7 @@ export async function createDocumentFromProposal(
       title: true,
       content: true,
       version: true,
-      proposalUuid: true,
+      experimentDesignUuid: true,
       createdByUuid: true,
       createdAt: true,
       updatedAt: true,

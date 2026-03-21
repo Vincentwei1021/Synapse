@@ -58,7 +58,7 @@ function makeAgent(overrides: Record<string, unknown> = {}) {
   return {
     uuid: agentUuid,
     name: "Test Agent",
-    roles: ["developer_agent"],
+    roles: ["researcher_agent"],
     persona: null,
     systemPrompt: null,
     companyUuid,
@@ -187,7 +187,7 @@ describe("getAgentByUuid", () => {
     expect(result).not.toBeNull();
     expect(result!.uuid).toBe(agentUuid);
     expect(result!.name).toBe("Test Agent");
-    expect(result!.roles).toEqual(["developer_agent"]);
+    expect(result!.roles).toEqual(["researcher_agent"]);
   });
 
   it("should return null when agent not found", async () => {
@@ -207,7 +207,7 @@ describe("createAgent", () => {
     const result = await createAgent({
       companyUuid,
       name: "Test Agent",
-      roles: ["developer_agent"],
+      roles: ["researcher_agent"],
       ownerUuid,
     });
 
@@ -218,7 +218,7 @@ describe("createAgent", () => {
         data: {
           companyUuid,
           name: "Test Agent",
-          roles: ["developer_agent"],
+          roles: ["researcher_agent"],
           ownerUuid,
           persona: undefined,
           systemPrompt: undefined,
@@ -234,7 +234,7 @@ describe("createAgent", () => {
     await createAgent({
       companyUuid,
       name: "Test Agent",
-      roles: ["pm_agent"],
+      roles: ["research_lead_agent"],
       ownerUuid,
       persona: "Helpful",
       systemPrompt: "Be nice",
@@ -289,12 +289,12 @@ describe("updateAgent", () => {
   });
 
   it("should update roles", async () => {
-    const updated = makeAgent({ roles: ["pm_agent", "developer_agent"] });
+    const updated = makeAgent({ roles: ["research_lead_agent", "researcher_agent"] });
     mockPrisma.agent.update.mockResolvedValue(updated);
 
-    const result = await updateAgent(agentUuid, { roles: ["pm_agent", "developer_agent"] });
+    const result = await updateAgent(agentUuid, { roles: ["research_lead_agent", "researcher_agent"] });
 
-    expect(result.roles).toEqual(["pm_agent", "developer_agent"]);
+    expect(result.roles).toEqual(["research_lead_agent", "researcher_agent"]);
   });
 });
 
@@ -493,17 +493,17 @@ describe("getAgentsByOwner", () => {
 // ===== getAgentsByRole =====
 describe("getAgentsByRole", () => {
   it("should find agents with exact role match", async () => {
-    const agents = [makeAgent({ roles: ["developer_agent"] })];
+    const agents = [makeAgent({ roles: ["researcher_agent"] })];
     mockPrisma.agent.findMany.mockResolvedValue(agents);
 
-    await getAgentsByRole(companyUuid, "developer_agent");
+    await getAgentsByRole(companyUuid, "researcher_agent");
 
     expect(mockPrisma.agent.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           OR: [
-            { roles: { has: "developer_agent" } },
-            { roles: { has: "developer_agent_agent" } },
+            { roles: { has: "researcher_agent" } },
+            { roles: { has: "researcher_agent_agent" } },
           ],
         }),
       })
@@ -513,14 +513,14 @@ describe("getAgentsByRole", () => {
   it("should support both role formats (with and without _agent suffix)", async () => {
     mockPrisma.agent.findMany.mockResolvedValue([]);
 
-    await getAgentsByRole(companyUuid, "developer");
+    await getAgentsByRole(companyUuid, "researcher");
 
     expect(mockPrisma.agent.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           OR: [
-            { roles: { has: "developer" } },
-            { roles: { has: "developer_agent" } },
+            { roles: { has: "researcher" } },
+            { roles: { has: "researcher_agent" } },
           ],
         }),
       })
@@ -530,7 +530,7 @@ describe("getAgentsByRole", () => {
   it("should filter by ownerUuid when provided", async () => {
     mockPrisma.agent.findMany.mockResolvedValue([]);
 
-    await getAgentsByRole(companyUuid, "pm_agent", ownerUuid);
+    await getAgentsByRole(companyUuid, "research_lead_agent", ownerUuid);
 
     expect(mockPrisma.agent.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -542,7 +542,7 @@ describe("getAgentsByRole", () => {
   it("should order by name asc", async () => {
     mockPrisma.agent.findMany.mockResolvedValue([]);
 
-    await getAgentsByRole(companyUuid, "developer_agent");
+    await getAgentsByRole(companyUuid, "researcher_agent");
 
     expect(mockPrisma.agent.findMany).toHaveBeenCalledWith(
       expect.objectContaining({

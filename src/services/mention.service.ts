@@ -32,12 +32,12 @@ export interface Mentionable {
 
 export interface CreateMentionsParams {
   companyUuid: string;
-  sourceType: "comment" | "task" | "idea";
+  sourceType: "comment" | "experiment_run" | "research_question";
   sourceUuid: string;
   content: string;
   actorType: string;
   actorUuid: string;
-  projectUuid: string;
+  researchProjectUuid: string;
   entityTitle: string;
 }
 
@@ -98,7 +98,7 @@ export async function createMentions(params: CreateMentionsParams): Promise<void
     content,
     actorType,
     actorUuid,
-    projectUuid,
+    researchProjectUuid,
     entityTitle,
   } = params;
 
@@ -140,8 +140,8 @@ export async function createMentions(params: CreateMentionsParams): Promise<void
   const actorName = (await getActorName(actorType, actorUuid)) ?? "Someone";
 
   // Get project name for notification
-  const project = await prisma.project.findUnique({
-    where: { uuid: projectUuid },
+  const project = await prisma.researchProject.findUnique({
+    where: { uuid: researchProjectUuid },
     select: { name: true },
   });
   const projectName = project?.name ?? "Unknown Project";
@@ -182,7 +182,7 @@ export async function createMentions(params: CreateMentionsParams): Promise<void
 
     notifications.push({
       companyUuid,
-      projectUuid,
+      researchProjectUuid,
       recipientType: mention.type,
       recipientUuid: mention.uuid,
       entityType: notifEntityType,

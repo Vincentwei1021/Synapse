@@ -24,13 +24,13 @@ import {
   updateDocument,
   deleteDocument,
   listDocuments,
-  createDocumentFromProposal,
+  createDocumentFromExperimentDesign,
 } from "@/services/document.service";
 
 // ===== Helpers =====
 const now = new Date("2026-03-13T00:00:00Z");
 const companyUuid = "company-0000-0000-0000-000000000001";
-const projectUuid = "project-0000-0000-0000-000000000001";
+const researchProjectUuid = "project-0000-0000-0000-000000000001";
 const docUuid = "doc-0000-0000-0000-000000000001";
 const createdByUuid = "agent-0000-0000-0000-000000000001";
 
@@ -41,7 +41,7 @@ function makeDocRecord(overrides: Record<string, unknown> = {}) {
     title: "Test Document",
     content: "# Test",
     version: 1,
-    proposalUuid: null,
+    experimentDesignUuid: null,
     createdByUuid,
     createdAt: now,
     updatedAt: now,
@@ -64,7 +64,7 @@ describe("createDocument", () => {
 
     const result = await createDocument({
       companyUuid,
-      projectUuid,
+      researchProjectUuid,
       type: "prd",
       title: "Test Document",
       content: "# Test",
@@ -83,20 +83,20 @@ describe("createDocument", () => {
     );
   });
 
-  it("should pass proposalUuid when provided", async () => {
-    const proposalUuid = "proposal-0000-0000-0000-000000000001";
-    mockPrisma.document.create.mockResolvedValue(makeDocRecord({ proposalUuid }));
+  it("should pass experimentDesignUuid when provided", async () => {
+    const experimentDesignUuid = "proposal-0000-0000-0000-000000000001";
+    mockPrisma.document.create.mockResolvedValue(makeDocRecord({ experimentDesignUuid }));
 
     const result = await createDocument({
       companyUuid,
-      projectUuid,
+      researchProjectUuid,
       type: "prd",
       title: "From Proposal",
       createdByUuid,
-      proposalUuid,
+      experimentDesignUuid,
     });
 
-    expect(result.proposalUuid).toBe(proposalUuid);
+    expect(result.experimentDesignUuid).toBe(experimentDesignUuid);
   });
 });
 
@@ -104,7 +104,7 @@ describe("createDocument", () => {
 describe("getDocument", () => {
   it("should return document with project info and content", async () => {
     const record = makeDocRecord({
-      project: { uuid: projectUuid, name: "Test Project" },
+      project: { uuid: researchProjectUuid, name: "Test Project" },
     });
     mockPrisma.document.findFirst.mockResolvedValue(record);
 
@@ -112,7 +112,7 @@ describe("getDocument", () => {
 
     expect(result).not.toBeNull();
     expect(result!.uuid).toBe(docUuid);
-    expect(result!.project).toEqual({ uuid: projectUuid, name: "Test Project" });
+    expect(result!.project).toEqual({ uuid: researchProjectUuid, name: "Test Project" });
     expect(result!.content).toBe("# Test");
   });
 
@@ -130,7 +130,7 @@ describe("updateDocument", () => {
     const updated = makeDocRecord({
       title: "Updated Title",
       content: "# Updated",
-      project: { uuid: projectUuid, name: "Test Project" },
+      project: { uuid: researchProjectUuid, name: "Test Project" },
     });
     mockPrisma.document.update.mockResolvedValue(updated);
 
@@ -146,7 +146,7 @@ describe("updateDocument", () => {
   it("should increment version when requested", async () => {
     const updated = makeDocRecord({
       version: 2,
-      project: { uuid: projectUuid, name: "Test Project" },
+      project: { uuid: researchProjectUuid, name: "Test Project" },
     });
     mockPrisma.document.update.mockResolvedValue(updated);
 
@@ -167,7 +167,7 @@ describe("updateDocument", () => {
 
   it("should not include version increment when not requested", async () => {
     const updated = makeDocRecord({
-      project: { uuid: projectUuid, name: "Test Project" },
+      project: { uuid: researchProjectUuid, name: "Test Project" },
     });
     mockPrisma.document.update.mockResolvedValue(updated);
 
@@ -180,7 +180,7 @@ describe("updateDocument", () => {
   it("should update only title when only title is provided", async () => {
     const updated = makeDocRecord({
       title: "Only Title Changed",
-      project: { uuid: projectUuid, name: "Test Project" },
+      project: { uuid: researchProjectUuid, name: "Test Project" },
     });
     mockPrisma.document.update.mockResolvedValue(updated);
 
@@ -195,7 +195,7 @@ describe("updateDocument", () => {
   it("should update only content when only content is provided", async () => {
     const updated = makeDocRecord({
       content: "# Only content changed",
-      project: { uuid: projectUuid, name: "Test Project" },
+      project: { uuid: researchProjectUuid, name: "Test Project" },
     });
     mockPrisma.document.update.mockResolvedValue(updated);
 
@@ -209,7 +209,7 @@ describe("updateDocument", () => {
   it("should allow setting content to null", async () => {
     const updated = makeDocRecord({
       content: null,
-      project: { uuid: projectUuid, name: "Test Project" },
+      project: { uuid: researchProjectUuid, name: "Test Project" },
     });
     mockPrisma.document.update.mockResolvedValue(updated);
 
@@ -224,7 +224,7 @@ describe("updateDocument", () => {
       title: "All Updated",
       content: "# All fields",
       version: 2,
-      project: { uuid: projectUuid, name: "Test Project" },
+      project: { uuid: researchProjectUuid, name: "Test Project" },
     });
     mockPrisma.document.update.mockResolvedValue(updated);
 
@@ -283,7 +283,7 @@ describe("listDocuments", () => {
 
     const result = await listDocuments({
       companyUuid,
-      projectUuid,
+      researchProjectUuid,
       skip: 0,
       take: 20,
     });
@@ -301,7 +301,7 @@ describe("listDocuments", () => {
 
     await listDocuments({
       companyUuid,
-      projectUuid,
+      researchProjectUuid,
       skip: 0,
       take: 20,
       type: "architecture",
@@ -315,27 +315,27 @@ describe("listDocuments", () => {
   });
 });
 
-// ===== createDocumentFromProposal =====
-describe("createDocumentFromProposal", () => {
+// ===== createDocumentFromExperimentDesign =====
+describe("createDocumentFromExperimentDesign", () => {
   it("should create document linked to proposal with version 1", async () => {
-    const proposalUuid = "proposal-0000-0000-0000-000000000001";
-    const record = makeDocRecord({ proposalUuid });
+    const experimentDesignUuid = "proposal-0000-0000-0000-000000000001";
+    const record = makeDocRecord({ experimentDesignUuid });
     mockPrisma.document.create.mockResolvedValue(record);
 
-    const result = await createDocumentFromProposal(
+    const result = await createDocumentFromExperimentDesign(
       companyUuid,
-      projectUuid,
-      proposalUuid,
+      researchProjectUuid,
+      experimentDesignUuid,
       createdByUuid,
       { type: "prd", title: "Test Document", content: "# Test" }
     );
 
-    expect(result.proposalUuid).toBe(proposalUuid);
+    expect(result.experimentDesignUuid).toBe(experimentDesignUuid);
     expect(result.version).toBe(1);
     expect(mockPrisma.document.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          proposalUuid,
+          experimentDesignUuid,
           version: 1,
         }),
       })
@@ -343,13 +343,13 @@ describe("createDocumentFromProposal", () => {
   });
 
   it("should use 'prd' as default type when empty string provided", async () => {
-    const proposalUuid = "proposal-0000-0000-0000-000000000001";
-    mockPrisma.document.create.mockResolvedValue(makeDocRecord({ proposalUuid }));
+    const experimentDesignUuid = "proposal-0000-0000-0000-000000000001";
+    mockPrisma.document.create.mockResolvedValue(makeDocRecord({ experimentDesignUuid }));
 
-    await createDocumentFromProposal(
+    await createDocumentFromExperimentDesign(
       companyUuid,
-      projectUuid,
-      proposalUuid,
+      researchProjectUuid,
+      experimentDesignUuid,
       createdByUuid,
       { type: "", title: "Untitled" }
     );
@@ -362,14 +362,14 @@ describe("createDocumentFromProposal", () => {
   });
 
   it("should handle missing content and set it to null", async () => {
-    const proposalUuid = "proposal-0000-0000-0000-000000000001";
-    const record = makeDocRecord({ proposalUuid, content: null });
+    const experimentDesignUuid = "proposal-0000-0000-0000-000000000001";
+    const record = makeDocRecord({ experimentDesignUuid, content: null });
     mockPrisma.document.create.mockResolvedValue(record);
 
-    const result = await createDocumentFromProposal(
+    const result = await createDocumentFromExperimentDesign(
       companyUuid,
-      projectUuid,
-      proposalUuid,
+      researchProjectUuid,
+      experimentDesignUuid,
       createdByUuid,
       { type: "architecture", title: "No Content Doc" }
     );
@@ -385,15 +385,15 @@ describe("createDocumentFromProposal", () => {
   });
 
   it("should include content when provided in doc parameter", async () => {
-    const proposalUuid = "proposal-0000-0000-0000-000000000001";
+    const experimentDesignUuid = "proposal-0000-0000-0000-000000000001";
     const content = "# Architecture\n\nDetailed architecture...";
-    const record = makeDocRecord({ proposalUuid, content });
+    const record = makeDocRecord({ experimentDesignUuid, content });
     mockPrisma.document.create.mockResolvedValue(record);
 
-    const result = await createDocumentFromProposal(
+    const result = await createDocumentFromExperimentDesign(
       companyUuid,
-      projectUuid,
-      proposalUuid,
+      researchProjectUuid,
+      experimentDesignUuid,
       createdByUuid,
       { type: "architecture", title: "Arch Doc", content }
     );

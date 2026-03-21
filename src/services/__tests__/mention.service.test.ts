@@ -15,7 +15,7 @@ const { mockPrisma, mockGetActorName, mockGetPreferences, mockCreateBatch } = vi
       findFirst: vi.fn(),
       findMany: vi.fn(),
     },
-    project: {
+    researchProject: {
       findUnique: vi.fn(),
     },
     comment: {
@@ -61,19 +61,19 @@ describe("createMentions", () => {
     mockPrisma.user.findFirst.mockResolvedValue({ uuid: USER_UUID });
     mockPrisma.agent.findFirst.mockResolvedValue({ uuid: AGENT_UUID });
     mockPrisma.mention.createMany.mockResolvedValue({ count: 2 });
-    mockPrisma.project.findUnique.mockResolvedValue({
+    mockPrisma.researchProject.findUnique.mockResolvedValue({
       uuid: PROJECT_UUID,
       name: "Test Project",
     });
 
     await createMentions({
       companyUuid: COMPANY_UUID,
-      sourceType: "idea",
+      sourceType: "research_question",
       sourceUuid: SOURCE_UUID,
       content,
       actorType: "user",
       actorUuid: ACTOR_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
       entityTitle: "Test Idea",
     });
 
@@ -82,7 +82,7 @@ describe("createMentions", () => {
       data: expect.arrayContaining([
         expect.objectContaining({
           companyUuid: COMPANY_UUID,
-          sourceType: "idea",
+          sourceType: "research_question",
           sourceUuid: SOURCE_UUID,
           mentionedType: "user",
           mentionedUuid: USER_UUID,
@@ -115,12 +115,12 @@ describe("createMentions", () => {
   it("should skip if content has no mentions", async () => {
     await createMentions({
       companyUuid: COMPANY_UUID,
-      sourceType: "idea",
+      sourceType: "research_question",
       sourceUuid: SOURCE_UUID,
       content: "No mentions here.",
       actorType: "user",
       actorUuid: ACTOR_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
       entityTitle: "Test Idea",
     });
 
@@ -133,12 +133,12 @@ describe("createMentions", () => {
 
     await createMentions({
       companyUuid: COMPANY_UUID,
-      sourceType: "idea",
+      sourceType: "research_question",
       sourceUuid: SOURCE_UUID,
       content,
       actorType: "user",
       actorUuid: ACTOR_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
       entityTitle: "Test Idea",
     });
 
@@ -152,12 +152,12 @@ describe("createMentions", () => {
 
     await createMentions({
       companyUuid: COMPANY_UUID,
-      sourceType: "idea",
+      sourceType: "research_question",
       sourceUuid: SOURCE_UUID,
       content,
       actorType: "agent",
       actorUuid: ACTOR_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
       entityTitle: "Test Idea",
     });
 
@@ -169,7 +169,7 @@ describe("createMentions", () => {
 
     mockPrisma.user.findFirst.mockResolvedValue({ uuid: USER_UUID });
     mockPrisma.mention.createMany.mockResolvedValue({ count: 1 });
-    mockPrisma.project.findUnique.mockResolvedValue({
+    mockPrisma.researchProject.findUnique.mockResolvedValue({
       uuid: PROJECT_UUID,
       name: "Test Project",
     });
@@ -177,12 +177,12 @@ describe("createMentions", () => {
 
     await createMentions({
       companyUuid: COMPANY_UUID,
-      sourceType: "idea",
+      sourceType: "research_question",
       sourceUuid: SOURCE_UUID,
       content,
       actorType: "agent",
       actorUuid: ACTOR_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
       entityTitle: "Test Idea",
     });
 
@@ -196,12 +196,12 @@ describe("createMentions", () => {
 
     mockPrisma.user.findFirst.mockResolvedValue({ uuid: USER_UUID });
     mockPrisma.mention.createMany.mockResolvedValue({ count: 1 });
-    mockPrisma.project.findUnique.mockResolvedValue({
+    mockPrisma.researchProject.findUnique.mockResolvedValue({
       uuid: PROJECT_UUID,
       name: "Test Project",
     });
     mockPrisma.comment.findUnique.mockResolvedValue({
-      targetType: "task",
+      targetType: "experiment_run",
       targetUuid: "aabbccdd-1234-5678-abcd-ef1234567890",
     });
 
@@ -212,7 +212,7 @@ describe("createMentions", () => {
       content,
       actorType: "agent",
       actorUuid: ACTOR_UUID,
-      projectUuid: PROJECT_UUID,
+      researchProjectUuid: PROJECT_UUID,
       entityTitle: "Test Task",
     });
 
@@ -220,7 +220,7 @@ describe("createMentions", () => {
     expect(mockCreateBatch).toHaveBeenCalledWith(
       expect.arrayContaining([
         expect.objectContaining({
-          entityType: "task",
+          entityType: "experiment_run",
           entityUuid: "aabbccdd-1234-5678-abcd-ef1234567890",
         }),
       ])
@@ -234,7 +234,7 @@ describe("searchMentionables", () => {
       { uuid: USER_UUID, name: "Alice", email: "alice@example.com", avatarUrl: null },
     ]);
     mockPrisma.agent.findMany.mockResolvedValue([
-      { uuid: AGENT_UUID, name: "AliceBot", roles: ["pm_agent"] },
+      { uuid: AGENT_UUID, name: "AliceBot", roles: ["research_lead_agent"] },
     ]);
 
     const results = await searchMentionables({
@@ -273,7 +273,7 @@ describe("searchMentionables", () => {
 
   it("should return only own agents for empty query", async () => {
     mockPrisma.agent.findMany.mockResolvedValue([
-      { uuid: AGENT_UUID, name: "MyBot", roles: ["developer_agent"] },
+      { uuid: AGENT_UUID, name: "MyBot", roles: ["researcher_agent"] },
     ]);
 
     const results = await searchMentionables({

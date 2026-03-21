@@ -241,7 +241,7 @@ export async function getAgentsByOwner(companyUuid: string, ownerUuid: string) {
 }
 
 // Get Agents by role (for assignment)
-// Supports two role formats: "developer" and "developer_agent"
+// Supports two role formats: "researcher" and "researcher_agent"
 // ownerUuid: when provided, only returns Agents created by this user
 export async function getAgentsByRole(companyUuid: string, role: string, ownerUuid?: string) {
   return prisma.agent.findMany({

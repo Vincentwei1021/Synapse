@@ -31,7 +31,7 @@ import {
 // ===== Helpers =====
 const now = new Date("2026-03-13T00:00:00Z");
 const companyUuid = "company-0000-0000-0000-000000000001";
-const projectUuid = "project-0000-0000-0000-000000000001";
+const researchProjectUuid = "project-0000-0000-0000-000000000001";
 const targetUuid = "task-0000-0000-0000-000000000001";
 const actorUuid = "user-0000-0000-0000-000000000001";
 const activityUuid = "activity-0000-0000-0000-000000000001";
@@ -40,12 +40,12 @@ function makeActivity(overrides: Record<string, unknown> = {}) {
   return {
     uuid: activityUuid,
     companyUuid,
-    projectUuid,
-    targetType: "task",
+    researchProjectUuid,
+    targetType: "experiment_run",
     targetUuid,
     actorType: "user",
     actorUuid,
-    action: "task_created",
+    action: "experiment_run_created",
     value: null,
     sessionUuid: null,
     sessionName: null,
@@ -68,7 +68,7 @@ describe("listActivities", () => {
 
     const result = await listActivities({
       companyUuid,
-      projectUuid,
+      researchProjectUuid,
       skip: 0,
       take: 20,
     });
@@ -76,7 +76,7 @@ describe("listActivities", () => {
     expect(result.activities).toHaveLength(1);
     expect(result.total).toBe(1);
     expect(result.activities[0].uuid).toBe(activityUuid);
-    expect(result.activities[0].action).toBe("task_created");
+    expect(result.activities[0].action).toBe("experiment_run_created");
   });
 
   it("should filter by targetType when provided", async () => {
@@ -85,15 +85,15 @@ describe("listActivities", () => {
 
     await listActivities({
       companyUuid,
-      projectUuid,
+      researchProjectUuid,
       skip: 0,
       take: 20,
-      targetType: "idea",
+      targetType: "research_question",
     });
 
     expect(mockPrisma.activity.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ targetType: "idea" }),
+        where: expect.objectContaining({ targetType: "research_question" }),
       })
     );
   });
@@ -104,7 +104,7 @@ describe("listActivities", () => {
 
     await listActivities({
       companyUuid,
-      projectUuid,
+      researchProjectUuid,
       skip: 0,
       take: 20,
       targetUuid: "specific-uuid",
@@ -123,7 +123,7 @@ describe("listActivities", () => {
 
     await listActivities({
       companyUuid,
-      projectUuid,
+      researchProjectUuid,
       skip: 0,
       take: 20,
     });
@@ -141,7 +141,7 @@ describe("listActivities", () => {
 
     await listActivities({
       companyUuid,
-      projectUuid,
+      researchProjectUuid,
       skip: 10,
       take: 5,
     });
@@ -162,7 +162,7 @@ describe("listActivitiesWithActorNames", () => {
 
     const result = await listActivitiesWithActorNames({
       companyUuid,
-      projectUuid,
+      researchProjectUuid,
       skip: 0,
       take: 20,
     });
@@ -181,7 +181,7 @@ describe("listActivitiesWithActorNames", () => {
 
     const result = await listActivitiesWithActorNames({
       companyUuid,
-      projectUuid,
+      researchProjectUuid,
       skip: 0,
       take: 20,
     });
@@ -199,7 +199,7 @@ describe("listActivitiesWithActorNames", () => {
 
     const result = await listActivitiesWithActorNames({
       companyUuid,
-      projectUuid,
+      researchProjectUuid,
       skip: 0,
       take: 20,
     });
@@ -222,7 +222,7 @@ describe("listActivitiesWithActorNames", () => {
 
     const result = await listActivitiesWithActorNames({
       companyUuid,
-      projectUuid,
+      researchProjectUuid,
       skip: 0,
       take: 20,
     });
@@ -242,24 +242,24 @@ describe("createActivity", () => {
 
     const result = await createActivity({
       companyUuid,
-      projectUuid,
-      targetType: "task",
+      researchProjectUuid,
+      targetType: "experiment_run",
       targetUuid,
       actorType: "user",
       actorUuid,
-      action: "task_created",
+      action: "experiment_run_created",
     });
 
     expect(result.uuid).toBe(activityUuid);
     expect(mockPrisma.activity.create).toHaveBeenCalledWith({
       data: {
         companyUuid,
-        projectUuid,
-        targetType: "task",
+        researchProjectUuid,
+        targetType: "experiment_run",
         targetUuid,
         actorType: "user",
         actorUuid,
-        action: "task_created",
+        action: "experiment_run_created",
         value: undefined,
         sessionUuid: undefined,
         sessionName: undefined,
@@ -269,10 +269,10 @@ describe("createActivity", () => {
       "activity",
       expect.objectContaining({
         companyUuid,
-        projectUuid,
-        targetType: "task",
+        researchProjectUuid,
+        targetType: "experiment_run",
         targetUuid,
-        action: "task_created",
+        action: "experiment_run_created",
         uuid: activityUuid,
       })
     );
@@ -284,12 +284,12 @@ describe("createActivity", () => {
 
     await createActivity({
       companyUuid,
-      projectUuid,
-      targetType: "task",
+      researchProjectUuid,
+      targetType: "experiment_run",
       targetUuid,
       actorType: "user",
       actorUuid,
-      action: "task_updated",
+      action: "experiment_run_updated",
       value: { status: "done" },
     });
 
@@ -311,12 +311,12 @@ describe("createActivity", () => {
 
     await createActivity({
       companyUuid,
-      projectUuid,
-      targetType: "task",
+      researchProjectUuid,
+      targetType: "experiment_run",
       targetUuid,
       actorType: "agent",
       actorUuid,
-      action: "task_claimed",
+      action: "experiment_run_claimed",
       sessionUuid: "session-123",
       sessionName: "worker-1",
     });
@@ -337,12 +337,12 @@ describe("createActivity", () => {
 
     await createActivity({
       companyUuid,
-      projectUuid,
-      targetType: "idea",
+      researchProjectUuid,
+      targetType: "research_question",
       targetUuid,
       actorType: "user",
       actorUuid,
-      action: "idea_created",
+      action: "research_question_created",
       value: null,
     });
 
@@ -356,7 +356,7 @@ describe("createActivity", () => {
   });
 
   it("should support different target types", async () => {
-    const targetTypes = ["idea", "task", "proposal", "document"] as const;
+    const targetTypes = ["research_question", "experiment_run", "experiment_design", "document"] as const;
 
     for (const targetType of targetTypes) {
       const activity = makeActivity({ targetType });
@@ -364,7 +364,7 @@ describe("createActivity", () => {
 
       await createActivity({
         companyUuid,
-        projectUuid,
+        researchProjectUuid,
         targetType,
         targetUuid,
         actorType: "user",

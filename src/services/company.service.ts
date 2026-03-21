@@ -57,7 +57,7 @@ export async function getCompanyByUuid(uuid: string) {
         select: {
           users: true,
           agents: true,
-          projects: true,
+          researchProjects: true,
         },
       },
     },
@@ -161,11 +161,11 @@ export async function deleteCompany(id: number) {
     const companyUuid = company.uuid;
     await tx.activity.deleteMany({ where: { companyUuid } });
     await tx.comment.deleteMany({ where: { companyUuid } });
-    await tx.proposal.deleteMany({ where: { companyUuid } });
-    await tx.task.deleteMany({ where: { companyUuid } });
+    await tx.experimentDesign.deleteMany({ where: { companyUuid } });
+    await tx.experimentRun.deleteMany({ where: { companyUuid } });
     await tx.document.deleteMany({ where: { companyUuid } });
-    await tx.idea.deleteMany({ where: { companyUuid } });
-    await tx.project.deleteMany({ where: { companyUuid } });
+    await tx.researchQuestion.deleteMany({ where: { companyUuid } });
+    await tx.researchProject.deleteMany({ where: { companyUuid } });
     await tx.apiKey.deleteMany({ where: { companyUuid } });
     await tx.agent.deleteMany({ where: { companyUuid } });
     await tx.user.deleteMany({ where: { companyUuid } });

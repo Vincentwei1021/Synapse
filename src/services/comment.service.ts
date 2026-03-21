@@ -143,11 +143,11 @@ export async function createComment({
   const authorName = await getActorName(comment.authorType, comment.authorUuid);
 
   // Emit SSE event for real-time comment updates (fire-and-forget)
-  resolveProjectUuid(targetType, targetUuid).then((projectUuid) => {
-    if (projectUuid) {
+  resolveProjectUuid(targetType, targetUuid).then((researchProjectUuid) => {
+    if (researchProjectUuid) {
       eventBus.emitChange({
         companyUuid,
-        projectUuid,
+        researchProjectUuid,
         entityType: targetType as RealtimeEvent["entityType"],
         entityUuid: targetUuid,
         action: "updated",
@@ -182,27 +182,27 @@ export async function createComment({
   };
 }
 
-// Resolve projectUuid from a comment target entity
+// Resolve researchProjectUuid from a comment target entity
 export async function resolveProjectUuid(
   targetType: string,
   targetUuid: string
 ): Promise<string | null> {
   switch (targetType) {
-    case "task": {
-      const task = await prisma.task.findUnique({ where: { uuid: targetUuid }, select: { projectUuid: true } });
-      return task?.projectUuid ?? null;
+    case "experiment_run": {
+      const task = await prisma.experimentRun.findUnique({ where: { uuid: targetUuid }, select: { researchProjectUuid: true } });
+      return task?.researchProjectUuid ?? null;
     }
-    case "idea": {
-      const idea = await prisma.idea.findUnique({ where: { uuid: targetUuid }, select: { projectUuid: true } });
-      return idea?.projectUuid ?? null;
+    case "research_question": {
+      const idea = await prisma.researchQuestion.findUnique({ where: { uuid: targetUuid }, select: { researchProjectUuid: true } });
+      return idea?.researchProjectUuid ?? null;
     }
-    case "proposal": {
-      const proposal = await prisma.proposal.findUnique({ where: { uuid: targetUuid }, select: { projectUuid: true } });
-      return proposal?.projectUuid ?? null;
+    case "experiment_design": {
+      const proposal = await prisma.experimentDesign.findUnique({ where: { uuid: targetUuid }, select: { researchProjectUuid: true } });
+      return proposal?.researchProjectUuid ?? null;
     }
     case "document": {
-      const doc = await prisma.document.findUnique({ where: { uuid: targetUuid }, select: { projectUuid: true } });
-      return doc?.projectUuid ?? null;
+      const doc = await prisma.document.findUnique({ where: { uuid: targetUuid }, select: { researchProjectUuid: true } });
+      return doc?.researchProjectUuid ?? null;
     }
     default:
       return null;
@@ -215,17 +215,17 @@ async function resolveEntityTitle(
   targetUuid: string
 ): Promise<string> {
   switch (targetType) {
-    case "task": {
-      const task = await prisma.task.findUnique({ where: { uuid: targetUuid }, select: { title: true } });
-      return task?.title ?? "Unknown Task";
+    case "experiment_run": {
+      const task = await prisma.experimentRun.findUnique({ where: { uuid: targetUuid }, select: { title: true } });
+      return task?.title ?? "Unknown Experiment Run";
     }
-    case "idea": {
-      const idea = await prisma.idea.findUnique({ where: { uuid: targetUuid }, select: { title: true } });
-      return idea?.title ?? "Unknown Idea";
+    case "research_question": {
+      const idea = await prisma.researchQuestion.findUnique({ where: { uuid: targetUuid }, select: { title: true } });
+      return idea?.title ?? "Unknown Research Question";
     }
-    case "proposal": {
-      const proposal = await prisma.proposal.findUnique({ where: { uuid: targetUuid }, select: { title: true } });
-      return proposal?.title ?? "Unknown Proposal";
+    case "experiment_design": {
+      const proposal = await prisma.experimentDesign.findUnique({ where: { uuid: targetUuid }, select: { title: true } });
+      return proposal?.title ?? "Unknown Experiment Design";
     }
     case "document": {
       const doc = await prisma.document.findUnique({ where: { uuid: targetUuid }, select: { title: true } });
@@ -249,8 +249,8 @@ async function processCommentMentions(
   const mentions = mentionService.parseMentions(content);
   if (mentions.length === 0) return;
 
-  const projectUuid = await resolveProjectUuid(targetType, targetUuid);
-  if (!projectUuid) return;
+  const researchProjectUuid = await resolveProjectUuid(targetType, targetUuid);
+  if (!researchProjectUuid) return;
 
   const entityTitle = await resolveEntityTitle(targetType, targetUuid);
 
@@ -261,7 +261,7 @@ async function processCommentMentions(
     content,
     actorType: authorType,
     actorUuid: authorUuid,
-    projectUuid,
+    researchProjectUuid,
     entityTitle,
   });
 
@@ -270,7 +270,7 @@ async function processCommentMentions(
     if (mention.type === authorType && mention.uuid === authorUuid) continue; // skip self
     await activityService.createActivity({
       companyUuid,
-      projectUuid,
+      researchProjectUuid,
       targetType: targetType as activityService.TargetType,
       targetUuid,
       actorType: authorType,

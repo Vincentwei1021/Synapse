@@ -6,11 +6,11 @@ import { prisma } from "@/lib/prisma";
 import { eventBus } from "@/lib/event-bus";
 import { getActorName } from "@/lib/uuid-resolver";
 
-export type TargetType = "idea" | "task" | "proposal" | "document";
+export type TargetType = "research_question" | "experiment_run" | "experiment_design" | "document";
 
 export interface ActivityListParams {
   companyUuid: string;
-  projectUuid: string;
+  researchProjectUuid: string;
   skip: number;
   take: number;
   targetType?: TargetType;
@@ -19,7 +19,7 @@ export interface ActivityListParams {
 
 export interface ActivityCreateParams {
   companyUuid: string;
-  projectUuid: string;
+  researchProjectUuid: string;
   targetType: TargetType;
   targetUuid: string;
   actorType: string;
@@ -47,14 +47,14 @@ export interface ActivityResponse {
 // List activities query
 export async function listActivities({
   companyUuid,
-  projectUuid,
+  researchProjectUuid,
   skip,
   take,
   targetType,
   targetUuid,
 }: ActivityListParams) {
   const where = {
-    projectUuid,
+    researchProjectUuid,
     companyUuid,
     ...(targetType && { targetType }),
     ...(targetUuid && { targetUuid }),
@@ -116,7 +116,7 @@ export async function listActivitiesWithActorNames(
 // Create Activity
 export async function createActivity({
   companyUuid,
-  projectUuid,
+  researchProjectUuid,
   targetType,
   targetUuid,
   actorType,
@@ -129,7 +129,7 @@ export async function createActivity({
   const activity = await prisma.activity.create({
     data: {
       companyUuid,
-      projectUuid,
+      researchProjectUuid,
       targetType,
       targetUuid,
       actorType,
@@ -143,7 +143,7 @@ export async function createActivity({
 
   eventBus.emit("activity", {
     companyUuid,
-    projectUuid,
+    researchProjectUuid,
     targetType,
     targetUuid,
     actorType,

@@ -43,21 +43,21 @@ export interface GroupDashboardResponse {
   };
   stats: {
     projectCount: number;
-    totalTasks: number;
-    completedTasks: number;
+    totalExperimentRuns: number;
+    completedExperimentRuns: number;
     completionRate: number;
-    openIdeas: number;
-    activeProposals: number;
+    openResearchQuestions: number;
+    activeExperimentDesigns: number;
   };
   projects: {
     uuid: string;
     name: string;
-    taskCount: number;
+    experimentRunCount: number;
     completionRate: number;
   }[];
   recentActivity: {
     uuid: string;
-    projectUuid: string;
+    researchProjectUuid: string;
     projectName: string;
     targetType: string;
     targetUuid: string;
@@ -76,7 +76,7 @@ export interface GroupDashboardResponse {
 export async function createProjectGroup(
   params: ProjectGroupCreateParams
 ): Promise<ProjectGroupResponse> {
-  const group = await prisma.projectGroup.create({
+  const group = await prisma.researchProjectGroup.create({
     data: {
       companyUuid: params.companyUuid,
       name: params.name,
@@ -97,12 +97,12 @@ export async function createProjectGroup(
 export async function updateProjectGroup(
   params: ProjectGroupUpdateParams
 ): Promise<ProjectGroupResponse | null> {
-  const existing = await prisma.projectGroup.findFirst({
+  const existing = await prisma.researchProjectGroup.findFirst({
     where: { uuid: params.groupUuid, companyUuid: params.companyUuid },
   });
   if (!existing) return null;
 
-  const updated = await prisma.projectGroup.update({
+  const updated = await prisma.researchProjectGroup.update({
     where: { uuid: params.groupUuid },
     data: {
       ...(params.name !== undefined && { name: params.name }),
@@ -110,7 +110,7 @@ export async function updateProjectGroup(
     },
   });
 
-  const projectCount = await prisma.project.count({
+  const projectCount = await prisma.researchProject.count({
     where: { groupUuid: params.groupUuid, companyUuid: params.companyUuid },
   });
 
@@ -128,18 +128,18 @@ export async function deleteProjectGroup(
   companyUuid: string,
   groupUuid: string
 ): Promise<boolean> {
-  const existing = await prisma.projectGroup.findFirst({
+  const existing = await prisma.researchProjectGroup.findFirst({
     where: { uuid: groupUuid, companyUuid },
   });
   if (!existing) return false;
 
   // Unassign all projects from this group
-  await prisma.project.updateMany({
+  await prisma.researchProject.updateMany({
     where: { groupUuid, companyUuid },
     data: { groupUuid: null },
   });
 
-  await prisma.projectGroup.delete({
+  await prisma.researchProjectGroup.delete({
     where: { uuid: groupUuid },
   });
 
@@ -150,12 +150,12 @@ export async function getProjectGroup(
   companyUuid: string,
   groupUuid: string
 ): Promise<ProjectGroupDetailResponse | null> {
-  const group = await prisma.projectGroup.findFirst({
+  const group = await prisma.researchProjectGroup.findFirst({
     where: { uuid: groupUuid, companyUuid },
   });
   if (!group) return null;
 
-  const projects = await prisma.project.findMany({
+  const projects = await prisma.researchProject.findMany({
     where: { groupUuid, companyUuid },
     select: { uuid: true, name: true, description: true },
     orderBy: { updatedAt: "desc" },
@@ -175,7 +175,7 @@ export async function getProjectGroup(
 export async function listProjectGroups(
   companyUuid: string
 ): Promise<{ groups: ProjectGroupResponse[]; total: number; ungroupedCount: number }> {
-  const groups = await prisma.projectGroup.findMany({
+  const groups = await prisma.researchProjectGroup.findMany({
     where: { companyUuid },
     orderBy: { createdAt: "asc" },
   });
@@ -184,7 +184,7 @@ export async function listProjectGroups(
   const groupUuids = groups.map((g) => g.uuid);
   const projectCounts =
     groupUuids.length > 0
-      ? await prisma.project.groupBy({
+      ? await prisma.researchProject.groupBy({
           by: ["groupUuid"],
           where: { companyUuid, groupUuid: { in: groupUuids } },
           _count: { _all: true },
@@ -205,7 +205,7 @@ export async function listProjectGroups(
   }));
 
   // Count ungrouped projects
-  const ungroupedCount = await prisma.project.count({
+  const ungroupedCount = await prisma.researchProject.count({
     where: { companyUuid, groupUuid: null },
   });
 
@@ -218,33 +218,33 @@ export async function listProjectGroups(
 
 export async function moveProjectToGroup(
   companyUuid: string,
-  projectUuid: string,
+  researchProjectUuid: string,
   targetGroupUuid: string | null
 ): Promise<{ uuid: string; name: string; groupUuid: string | null } | null> {
   // Verify project belongs to company
-  const project = await prisma.project.findFirst({
-    where: { uuid: projectUuid, companyUuid },
+  const project = await prisma.researchProject.findFirst({
+    where: { uuid: researchProjectUuid, companyUuid },
   });
   if (!project) return null;
 
   // Verify target group belongs to company (if not null)
   if (targetGroupUuid) {
-    const group = await prisma.projectGroup.findFirst({
+    const group = await prisma.researchProjectGroup.findFirst({
       where: { uuid: targetGroupUuid, companyUuid },
     });
     if (!group) return null;
   }
 
-  const updated = await prisma.project.update({
-    where: { uuid: projectUuid },
+  const updated = await prisma.researchProject.update({
+    where: { uuid: researchProjectUuid },
     data: { groupUuid: targetGroupUuid },
   });
 
   eventBus.emitChange({
     companyUuid,
-    projectUuid,
-    entityType: "project",
-    entityUuid: projectUuid,
+    researchProjectUuid,
+    entityType: "research_project",
+    entityUuid: researchProjectUuid,
     action: "updated",
   });
 
@@ -263,29 +263,29 @@ export async function getGroupDashboard(
   companyUuid: string,
   groupUuid: string
 ): Promise<GroupDashboardResponse | null> {
-  const group = await prisma.projectGroup.findFirst({
+  const group = await prisma.researchProjectGroup.findFirst({
     where: { uuid: groupUuid, companyUuid },
   });
   if (!group) return null;
 
   // Get all projects in this group
-  const projects = await prisma.project.findMany({
+  const projects = await prisma.researchProject.findMany({
     where: { groupUuid, companyUuid },
     select: { uuid: true, name: true },
   });
 
-  const projectUuids = projects.map((p) => p.uuid);
+  const researchProjectUuids = projects.map((p) => p.uuid);
 
-  if (projectUuids.length === 0) {
+  if (researchProjectUuids.length === 0) {
     return {
       group: { uuid: group.uuid, name: group.name, description: group.description },
       stats: {
         projectCount: 0,
-        totalTasks: 0,
-        completedTasks: 0,
+        totalExperimentRuns: 0,
+        completedExperimentRuns: 0,
         completionRate: 0,
-        openIdeas: 0,
-        activeProposals: 0,
+        openResearchQuestions: 0,
+        activeExperimentDesigns: 0,
       },
       projects: [],
       recentActivity: [],
@@ -293,28 +293,28 @@ export async function getGroupDashboard(
   }
 
   // Aggregate stats across all projects
-  const [totalTasks, completedTasks, openIdeas, activeProposals] =
+  const [totalExperimentRuns, completedExperimentRuns, openResearchQuestions, activeExperimentDesigns] =
     await Promise.all([
-      prisma.task.count({
-        where: { projectUuid: { in: projectUuids }, companyUuid },
+      prisma.experimentRun.count({
+        where: { researchProjectUuid: { in: researchProjectUuids }, companyUuid },
       }),
-      prisma.task.count({
+      prisma.experimentRun.count({
         where: {
-          projectUuid: { in: projectUuids },
+          researchProjectUuid: { in: researchProjectUuids },
           companyUuid,
           status: { in: ["done", "closed"] },
         },
       }),
-      prisma.idea.count({
+      prisma.researchQuestion.count({
         where: {
-          projectUuid: { in: projectUuids },
+          researchProjectUuid: { in: researchProjectUuids },
           companyUuid,
           status: { in: ["open", "elaborating"] },
         },
       }),
-      prisma.proposal.count({
+      prisma.experimentDesign.count({
         where: {
-          projectUuid: { in: projectUuids },
+          researchProjectUuid: { in: researchProjectUuids },
           companyUuid,
           status: { in: ["draft", "pending"] },
         },
@@ -322,42 +322,42 @@ export async function getGroupDashboard(
     ]);
 
   // Per-project stats
-  const taskCountsByProject = await prisma.task.groupBy({
-    by: ["projectUuid"],
-    where: { projectUuid: { in: projectUuids }, companyUuid },
+  const experimentRunCountsByProject = await prisma.experimentRun.groupBy({
+    by: ["researchProjectUuid"],
+    where: { researchProjectUuid: { in: researchProjectUuids }, companyUuid },
     _count: { _all: true },
   });
-  const doneCountsByProject = await prisma.task.groupBy({
-    by: ["projectUuid"],
+  const doneCountsByProject = await prisma.experimentRun.groupBy({
+    by: ["researchProjectUuid"],
     where: {
-      projectUuid: { in: projectUuids },
+      researchProjectUuid: { in: researchProjectUuids },
       companyUuid,
       status: { in: ["done", "closed"] },
     },
     _count: { _all: true },
   });
 
-  const taskCountMap = new Map(
-    taskCountsByProject.map((tc) => [tc.projectUuid, tc._count._all])
+  const experimentRunCountMap = new Map(
+    experimentRunCountsByProject.map((tc) => [tc.researchProjectUuid, tc._count._all])
   );
   const doneCountMap = new Map(
-    doneCountsByProject.map((dc) => [dc.projectUuid, dc._count._all])
+    doneCountsByProject.map((dc) => [dc.researchProjectUuid, dc._count._all])
   );
 
   const projectStats = projects.map((p) => {
-    const tc = taskCountMap.get(p.uuid) ?? 0;
+    const tc = experimentRunCountMap.get(p.uuid) ?? 0;
     const dc = doneCountMap.get(p.uuid) ?? 0;
     return {
       uuid: p.uuid,
       name: p.name,
-      taskCount: tc,
+      experimentRunCount: tc,
       completionRate: tc > 0 ? Math.round((dc / tc) * 100) : 0,
     };
   });
 
   // Recent activity across all projects in the group
   const recentActivity = await prisma.activity.findMany({
-    where: { projectUuid: { in: projectUuids }, companyUuid },
+    where: { researchProjectUuid: { in: researchProjectUuids }, companyUuid },
     orderBy: { createdAt: "desc" },
     take: 20,
   });
@@ -369,18 +369,18 @@ export async function getGroupDashboard(
     group: { uuid: group.uuid, name: group.name, description: group.description },
     stats: {
       projectCount: projects.length,
-      totalTasks,
-      completedTasks,
+      totalExperimentRuns,
+      completedExperimentRuns,
       completionRate:
-        totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
-      openIdeas,
-      activeProposals,
+        totalExperimentRuns > 0 ? Math.round((completedExperimentRuns / totalExperimentRuns) * 100) : 0,
+      openResearchQuestions,
+      activeExperimentDesigns,
     },
     projects: projectStats,
     recentActivity: recentActivity.map((a) => ({
       uuid: a.uuid,
-      projectUuid: a.projectUuid,
-      projectName: projectNameMap.get(a.projectUuid) ?? "Unknown",
+      researchProjectUuid: a.researchProjectUuid,
+      projectName: projectNameMap.get(a.researchProjectUuid) ?? "Unknown",
       targetType: a.targetType,
       targetUuid: a.targetUuid,
       action: a.action,

@@ -8,13 +8,13 @@ const mockPrisma = vi.hoisted(() => ({
     count: vi.fn(),
     groupBy: vi.fn(),
   },
-  task: {
+  experimentRun: {
     findUnique: vi.fn(),
   },
-  idea: {
+  researchQuestion: {
     findUnique: vi.fn(),
   },
-  proposal: {
+  experimentDesign: {
     findUnique: vi.fn(),
   },
   document: {
@@ -63,7 +63,7 @@ const commentUuid = "comment-0000-0000-0000-000000000001";
 function makeCommentRecord(overrides: Record<string, unknown> = {}) {
   return {
     uuid: commentUuid,
-    targetType: "task",
+    targetType: "experiment_run",
     targetUuid,
     content: "Hello world",
     authorType: "user",
@@ -88,7 +88,7 @@ describe("createComment", () => {
 
     const result = await createComment({
       companyUuid,
-      targetType: "task",
+      targetType: "experiment_run",
       targetUuid,
       content: "Hello world",
       authorType: "user",
@@ -109,7 +109,7 @@ describe("createComment", () => {
     await expect(
       createComment({
         companyUuid,
-        targetType: "task",
+        targetType: "experiment_run",
         targetUuid: "nonexistent",
         content: "Hello",
         authorType: "user",
@@ -124,7 +124,7 @@ describe("createComment", () => {
 
     const result = await createComment({
       companyUuid,
-      targetType: "task",
+      targetType: "experiment_run",
       targetUuid,
       content: "Hello",
       authorType: "user",
@@ -136,13 +136,13 @@ describe("createComment", () => {
 
   it("should emit SSE event when projectUuid resolves", async () => {
     const record = makeCommentRecord();
-    const projectUuid = "project-0000-0000-0000-000000000001";
+    const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
-    mockPrisma.task.findUnique.mockResolvedValue({ projectUuid });
+    mockPrisma.experimentRun.findUnique.mockResolvedValue({ researchProjectUuid });
 
     await createComment({
       companyUuid,
-      targetType: "task",
+      targetType: "experiment_run",
       targetUuid,
       content: "Hello",
       authorType: "user",
@@ -154,8 +154,8 @@ describe("createComment", () => {
 
     expect(eventBus.emitChange).toHaveBeenCalledWith({
       companyUuid,
-      projectUuid,
-      entityType: "task",
+      researchProjectUuid,
+      entityType: "experiment_run",
       entityUuid: targetUuid,
       action: "updated",
       actorUuid: authorUuid,
@@ -164,9 +164,9 @@ describe("createComment", () => {
 
   it("should process mentions when comment contains @mentions", async () => {
     const record = makeCommentRecord({ content: "Hello @user(uuid-123,John)" });
-    const projectUuid = "project-0000-0000-0000-000000000001";
+    const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
-    mockPrisma.task.findUnique.mockResolvedValue({ projectUuid, title: "Test Task" });
+    mockPrisma.experimentRun.findUnique.mockResolvedValue({ researchProjectUuid, title: "Test Task" });
 
     (parseMentions as ReturnType<typeof vi.fn>).mockReturnValue([
       { type: "user", uuid: "uuid-123", displayName: "John" },
@@ -174,7 +174,7 @@ describe("createComment", () => {
 
     await createComment({
       companyUuid,
-      targetType: "task",
+      targetType: "experiment_run",
       targetUuid,
       content: "Hello @user(uuid-123,John)",
       authorType: "user",
@@ -192,13 +192,13 @@ describe("createComment", () => {
       content: "Hello @user(uuid-123,John)",
       actorType: "user",
       actorUuid: authorUuid,
-      projectUuid,
+      researchProjectUuid,
       entityTitle: "Test Task",
     });
     expect(createActivity).toHaveBeenCalledWith({
       companyUuid,
-      projectUuid,
-      targetType: "task",
+      researchProjectUuid,
+      targetType: "experiment_run",
       targetUuid,
       actorType: "user",
       actorUuid: authorUuid,
@@ -215,9 +215,9 @@ describe("createComment", () => {
 
   it("should skip self-mentions when processing mentions", async () => {
     const record = makeCommentRecord({ content: "Hello @user(user-0000-0000-0000-000000000001,Myself)" });
-    const projectUuid = "project-0000-0000-0000-000000000001";
+    const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
-    mockPrisma.task.findUnique.mockResolvedValue({ projectUuid, title: "Test Task" });
+    mockPrisma.experimentRun.findUnique.mockResolvedValue({ researchProjectUuid, title: "Test Task" });
 
     (parseMentions as ReturnType<typeof vi.fn>).mockReturnValue([
       { type: "user", uuid: authorUuid, displayName: "Myself" },
@@ -225,7 +225,7 @@ describe("createComment", () => {
 
     await createComment({
       companyUuid,
-      targetType: "task",
+      targetType: "experiment_run",
       targetUuid,
       content: "Hello @user(user-0000-0000-0000-000000000001,Myself)",
       authorType: "user",
@@ -240,9 +240,9 @@ describe("createComment", () => {
 
   it("should handle multiple mentions", async () => {
     const record = makeCommentRecord({ content: "@user(uuid-1,John) @agent(uuid-2,Bot)" });
-    const projectUuid = "project-0000-0000-0000-000000000001";
+    const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
-    mockPrisma.task.findUnique.mockResolvedValue({ projectUuid, title: "Test Task" });
+    mockPrisma.experimentRun.findUnique.mockResolvedValue({ researchProjectUuid, title: "Test Task" });
 
     (parseMentions as ReturnType<typeof vi.fn>).mockReturnValue([
       { type: "user", uuid: "uuid-1", displayName: "John" },
@@ -251,7 +251,7 @@ describe("createComment", () => {
 
     await createComment({
       companyUuid,
-      targetType: "task",
+      targetType: "experiment_run",
       targetUuid,
       content: "@user(uuid-1,John) @agent(uuid-2,Bot)",
       authorType: "user",
@@ -271,7 +271,7 @@ describe("createComment", () => {
 
     await createComment({
       companyUuid,
-      targetType: "task",
+      targetType: "experiment_run",
       targetUuid,
       content: "Hello world",
       authorType: "user",
@@ -287,9 +287,9 @@ describe("createComment", () => {
 
   it("should handle mention processing errors gracefully", async () => {
     const record = makeCommentRecord({ content: "Hello @user(uuid-123,John)" });
-    const projectUuid = "project-0000-0000-0000-000000000001";
+    const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
-    mockPrisma.task.findUnique.mockResolvedValue({ projectUuid, title: "Test Task" });
+    mockPrisma.experimentRun.findUnique.mockResolvedValue({ researchProjectUuid, title: "Test Task" });
 
     (parseMentions as ReturnType<typeof vi.fn>).mockReturnValue([
       { type: "user", uuid: "uuid-123", displayName: "John" },
@@ -300,7 +300,7 @@ describe("createComment", () => {
 
     await createComment({
       companyUuid,
-      targetType: "task",
+      targetType: "experiment_run",
       targetUuid,
       content: "Hello @user(uuid-123,John)",
       authorType: "user",
@@ -315,11 +315,11 @@ describe("createComment", () => {
   });
 
   it("should process mentions for idea target type", async () => {
-    const ideaUuid = "idea-0000-0000-0000-000000000001";
-    const record = makeCommentRecord({ targetType: "idea", targetUuid: ideaUuid, content: "Hello @user(uuid-123,John)" });
-    const projectUuid = "project-0000-0000-0000-000000000001";
+    const researchQuestionUuid = "idea-0000-0000-0000-000000000001";
+    const record = makeCommentRecord({ targetType: "research_question", targetUuid: researchQuestionUuid, content: "Hello @user(uuid-123,John)" });
+    const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
-    mockPrisma.idea.findUnique.mockResolvedValue({ projectUuid, title: "Test Idea" });
+    mockPrisma.researchQuestion.findUnique.mockResolvedValue({ researchProjectUuid, title: "Test Idea" });
 
     (parseMentions as ReturnType<typeof vi.fn>).mockReturnValue([
       { type: "user", uuid: "uuid-123", displayName: "John" },
@@ -327,8 +327,8 @@ describe("createComment", () => {
 
     await createComment({
       companyUuid,
-      targetType: "idea",
-      targetUuid: ideaUuid,
+      targetType: "research_question",
+      targetUuid: researchQuestionUuid,
       content: "Hello @user(uuid-123,John)",
       authorType: "user",
       authorUuid,
@@ -345,11 +345,11 @@ describe("createComment", () => {
   });
 
   it("should process mentions for proposal target type", async () => {
-    const proposalUuid = "proposal-0000-0000-0000-000000000001";
-    const record = makeCommentRecord({ targetType: "proposal", targetUuid: proposalUuid, content: "Hello @user(uuid-123,John)" });
-    const projectUuid = "project-0000-0000-0000-000000000001";
+    const experimentDesignUuid = "proposal-0000-0000-0000-000000000001";
+    const record = makeCommentRecord({ targetType: "experiment_design", targetUuid: experimentDesignUuid, content: "Hello @user(uuid-123,John)" });
+    const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
-    mockPrisma.proposal.findUnique.mockResolvedValue({ projectUuid, title: "Test Proposal" });
+    mockPrisma.experimentDesign.findUnique.mockResolvedValue({ researchProjectUuid, title: "Test Proposal" });
 
     (parseMentions as ReturnType<typeof vi.fn>).mockReturnValue([
       { type: "user", uuid: "uuid-123", displayName: "John" },
@@ -357,8 +357,8 @@ describe("createComment", () => {
 
     await createComment({
       companyUuid,
-      targetType: "proposal",
-      targetUuid: proposalUuid,
+      targetType: "experiment_design",
+      targetUuid: experimentDesignUuid,
       content: "Hello @user(uuid-123,John)",
       authorType: "user",
       authorUuid,
@@ -377,9 +377,9 @@ describe("createComment", () => {
   it("should process mentions for document target type", async () => {
     const docUuid = "doc-0000-0000-0000-000000000001";
     const record = makeCommentRecord({ targetType: "document", targetUuid: docUuid, content: "Hello @user(uuid-123,John)" });
-    const projectUuid = "project-0000-0000-0000-000000000001";
+    const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
-    mockPrisma.document.findUnique.mockResolvedValue({ projectUuid, title: "Test Document" });
+    mockPrisma.document.findUnique.mockResolvedValue({ researchProjectUuid, title: "Test Document" });
 
     (parseMentions as ReturnType<typeof vi.fn>).mockReturnValue([
       { type: "user", uuid: "uuid-123", displayName: "John" },
@@ -407,7 +407,7 @@ describe("createComment", () => {
   it("should handle unknown entity type in resolveEntityTitle", async () => {
     const unknownUuid = "unknown-0000-0000-0000-000000000001";
     const record = makeCommentRecord({ targetType: "unknown", targetUuid: unknownUuid, content: "Hello @user(uuid-123,John)" });
-    const projectUuid = "project-0000-0000-0000-000000000001";
+    const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
 
     // Mock resolveProjectUuid to return null for unknown type (default case)
@@ -421,7 +421,7 @@ describe("createComment", () => {
 
     await createComment({
       companyUuid,
-      targetType: "unknown" as "task",
+      targetType: "unknown" as "experiment_run",
       targetUuid: unknownUuid,
       content: "Hello @user(uuid-123,John)",
       authorType: "user",
@@ -437,14 +437,14 @@ describe("createComment", () => {
 
   it("should use fallback title when entity not found in resolveEntityTitle", async () => {
     const record = makeCommentRecord({ content: "Hello @user(uuid-123,John)" });
-    const projectUuid = "project-0000-0000-0000-000000000001";
+    const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
 
     // Mock findUnique to return different values based on the select clause
-    mockPrisma.task.findUnique.mockImplementation((args: any) => {
+    mockPrisma.experimentRun.findUnique.mockImplementation((args: any) => {
       if (args.select?.projectUuid) {
         // resolveProjectUuid call - return projectUuid
-        return Promise.resolve({ projectUuid });
+        return Promise.resolve({ researchProjectUuid });
       } else if (args.select?.title) {
         // resolveEntityTitle call - return null to trigger fallback
         return Promise.resolve(null);
@@ -458,7 +458,7 @@ describe("createComment", () => {
 
     await createComment({
       companyUuid,
-      targetType: "task",
+      targetType: "experiment_run",
       targetUuid,
       content: "Hello @user(uuid-123,John)",
       authorType: "user",
@@ -470,7 +470,7 @@ describe("createComment", () => {
 
     expect(createMentions).toHaveBeenCalledWith(
       expect.objectContaining({
-        entityTitle: "Unknown Task",
+        entityTitle: "Unknown Experiment Run",
       })
     );
   });
@@ -478,11 +478,11 @@ describe("createComment", () => {
   it("should not emit SSE event when projectUuid is null", async () => {
     const record = makeCommentRecord();
     mockPrisma.comment.create.mockResolvedValue(record);
-    mockPrisma.task.findUnique.mockResolvedValue(null);
+    mockPrisma.experimentRun.findUnique.mockResolvedValue(null);
 
     await createComment({
       companyUuid,
-      targetType: "task",
+      targetType: "experiment_run",
       targetUuid,
       content: "Hello",
       authorType: "user",
@@ -497,13 +497,13 @@ describe("createComment", () => {
 
   it("should handle SSE event emission errors gracefully", async () => {
     const record = makeCommentRecord();
-    const projectUuid = "project-0000-0000-0000-000000000001";
+    const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
-    mockPrisma.task.findUnique.mockRejectedValue(new Error("DB error"));
+    mockPrisma.experimentRun.findUnique.mockRejectedValue(new Error("DB error"));
 
     await createComment({
       companyUuid,
-      targetType: "task",
+      targetType: "experiment_run",
       targetUuid,
       content: "Hello",
       authorType: "user",
@@ -527,7 +527,7 @@ describe("listComments", () => {
 
     const result = await listComments({
       companyUuid,
-      targetType: "task",
+      targetType: "experiment_run",
       targetUuid,
       skip: 0,
       take: 20,
@@ -543,7 +543,7 @@ describe("listComments", () => {
 
     const result = await listComments({
       companyUuid,
-      targetType: "task",
+      targetType: "experiment_run",
       targetUuid: "nonexistent",
       skip: 0,
       take: 20,
@@ -563,7 +563,7 @@ describe("listComments", () => {
 
     const result = await listComments({
       companyUuid,
-      targetType: "task",
+      targetType: "experiment_run",
       targetUuid,
       skip: 5,
       take: 2,
@@ -586,7 +586,7 @@ describe("listComments", () => {
 
     const result = await listComments({
       companyUuid,
-      targetType: "task",
+      targetType: "experiment_run",
       targetUuid,
       skip: 0,
       take: 20,
@@ -599,7 +599,7 @@ describe("listComments", () => {
 // ===== batchCommentCounts =====
 describe("batchCommentCounts", () => {
   it("should return empty object for empty input", async () => {
-    const result = await batchCommentCounts(companyUuid, "task", []);
+    const result = await batchCommentCounts(companyUuid, "experiment_run", []);
     expect(result).toEqual({});
   });
 
@@ -611,7 +611,7 @@ describe("batchCommentCounts", () => {
       { targetUuid: uuid1, _count: { targetUuid: 3 } },
     ]);
 
-    const result = await batchCommentCounts(companyUuid, "task", [uuid1, uuid2]);
+    const result = await batchCommentCounts(companyUuid, "experiment_run", [uuid1, uuid2]);
 
     expect(result[uuid1]).toBe(3);
     expect(result[uuid2]).toBe(0);
@@ -621,7 +621,7 @@ describe("batchCommentCounts", () => {
     const uuids = ["a", "b", "c"];
     mockPrisma.comment.groupBy.mockResolvedValue([]);
 
-    const result = await batchCommentCounts(companyUuid, "task", uuids);
+    const result = await batchCommentCounts(companyUuid, "experiment_run", uuids);
 
     expect(result).toEqual({ a: 0, b: 0, c: 0 });
   });
@@ -630,54 +630,54 @@ describe("batchCommentCounts", () => {
 // ===== resolveProjectUuid =====
 describe("resolveProjectUuid", () => {
   it("should resolve projectUuid for task", async () => {
-    const projectUuid = "project-123";
-    mockPrisma.task.findUnique.mockResolvedValue({ projectUuid });
+    const researchProjectUuid = "project-123";
+    mockPrisma.experimentRun.findUnique.mockResolvedValue({ researchProjectUuid });
 
-    const result = await resolveProjectUuid("task", "task-123");
+    const result = await resolveProjectUuid("experiment_run", "task-123");
 
     expect(result).toBe(projectUuid);
-    expect(mockPrisma.task.findUnique).toHaveBeenCalledWith({
+    expect(mockPrisma.experimentRun.findUnique).toHaveBeenCalledWith({
       where: { uuid: "task-123" },
-      select: { projectUuid: true },
+      select: { researchProjectUuid: true },
     });
   });
 
   it("should resolve projectUuid for idea", async () => {
-    const projectUuid = "project-456";
-    mockPrisma.idea.findUnique.mockResolvedValue({ projectUuid });
+    const researchProjectUuid = "project-456";
+    mockPrisma.researchQuestion.findUnique.mockResolvedValue({ researchProjectUuid });
 
-    const result = await resolveProjectUuid("idea", "idea-123");
+    const result = await resolveProjectUuid("research_question", "idea-123");
 
     expect(result).toBe(projectUuid);
-    expect(mockPrisma.idea.findUnique).toHaveBeenCalledWith({
+    expect(mockPrisma.researchQuestion.findUnique).toHaveBeenCalledWith({
       where: { uuid: "idea-123" },
-      select: { projectUuid: true },
+      select: { researchProjectUuid: true },
     });
   });
 
   it("should resolve projectUuid for proposal", async () => {
-    const projectUuid = "project-789";
-    mockPrisma.proposal.findUnique.mockResolvedValue({ projectUuid });
+    const researchProjectUuid = "project-789";
+    mockPrisma.experimentDesign.findUnique.mockResolvedValue({ researchProjectUuid });
 
-    const result = await resolveProjectUuid("proposal", "proposal-123");
+    const result = await resolveProjectUuid("experiment_design", "proposal-123");
 
     expect(result).toBe(projectUuid);
-    expect(mockPrisma.proposal.findUnique).toHaveBeenCalledWith({
+    expect(mockPrisma.experimentDesign.findUnique).toHaveBeenCalledWith({
       where: { uuid: "proposal-123" },
-      select: { projectUuid: true },
+      select: { researchProjectUuid: true },
     });
   });
 
   it("should resolve projectUuid for document", async () => {
-    const projectUuid = "project-abc";
-    mockPrisma.document.findUnique.mockResolvedValue({ projectUuid });
+    const researchProjectUuid = "project-abc";
+    mockPrisma.document.findUnique.mockResolvedValue({ researchProjectUuid });
 
     const result = await resolveProjectUuid("document", "doc-123");
 
     expect(result).toBe(projectUuid);
     expect(mockPrisma.document.findUnique).toHaveBeenCalledWith({
       where: { uuid: "doc-123" },
-      select: { projectUuid: true },
+      select: { researchProjectUuid: true },
     });
   });
 
@@ -688,9 +688,9 @@ describe("resolveProjectUuid", () => {
   });
 
   it("should return null when entity not found", async () => {
-    mockPrisma.task.findUnique.mockResolvedValue(null);
+    mockPrisma.experimentRun.findUnique.mockResolvedValue(null);
 
-    const result = await resolveProjectUuid("task", "nonexistent");
+    const result = await resolveProjectUuid("experiment_run", "nonexistent");
 
     expect(result).toBeNull();
   });

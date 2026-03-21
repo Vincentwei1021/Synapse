@@ -22,19 +22,19 @@ const mockPrisma = vi.hoisted(() => ({
   apiKey: {
     deleteMany: vi.fn(),
   },
-  project: {
+  researchProject: {
     deleteMany: vi.fn(),
   },
-  idea: {
+  researchQuestion: {
     deleteMany: vi.fn(),
   },
   document: {
     deleteMany: vi.fn(),
   },
-  task: {
+  experimentRun: {
     deleteMany: vi.fn(),
   },
-  proposal: {
+  experimentDesign: {
     deleteMany: vi.fn(),
   },
   comment: {
@@ -127,7 +127,7 @@ describe("listCompanies", () => {
 describe("getCompanyByUuid", () => {
   it("should return company with project count", async () => {
     const company = makeCompany({
-      _count: { users: 5, agents: 3, projects: 10 },
+      _count: { users: 5, agents: 3, researchProjects: 10 },
     });
     mockPrisma.company.findFirst.mockResolvedValue(company);
 
@@ -135,7 +135,7 @@ describe("getCompanyByUuid", () => {
 
     expect(result).not.toBeNull();
     expect(result!.uuid).toBe(companyUuid);
-    expect(result!._count.projects).toBe(10);
+    expect(result!._count.researchProjects).toBe(10);
   });
 
   it("should return null when company not found", async () => {

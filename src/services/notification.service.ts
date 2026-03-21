@@ -9,7 +9,7 @@ import { eventBus } from "@/lib/event-bus";
 
 export interface NotificationCreateParams {
   companyUuid: string;
-  projectUuid: string;
+  researchProjectUuid: string;
   recipientType: string;
   recipientUuid: string;
   entityType: string;
@@ -27,7 +27,7 @@ export interface NotificationListParams {
   companyUuid: string;
   recipientType: string;
   recipientUuid: string;
-  projectUuid?: string;
+  researchProjectUuid?: string;
   readFilter?: "all" | "unread" | "read";
   archived?: boolean;
   skip?: number;
@@ -36,7 +36,7 @@ export interface NotificationListParams {
 
 export interface NotificationResponse {
   uuid: string;
-  projectUuid: string;
+  researchProjectUuid: string;
   projectName: string;
   recipientType: string;
   recipientUuid: string;
@@ -54,17 +54,17 @@ export interface NotificationResponse {
 }
 
 export interface NotificationPreferenceFields {
-  taskAssigned?: boolean;
-  taskStatusChanged?: boolean;
-  taskVerified?: boolean;
-  taskReopened?: boolean;
-  proposalSubmitted?: boolean;
-  proposalApproved?: boolean;
-  proposalRejected?: boolean;
-  ideaClaimed?: boolean;
+  runAssigned?: boolean;
+  runStatusChanged?: boolean;
+  runVerified?: boolean;
+  runReopened?: boolean;
+  designSubmitted?: boolean;
+  designApproved?: boolean;
+  designRejected?: boolean;
+  researchQuestionClaimed?: boolean;
   commentAdded?: boolean;
-  elaborationRequested?: boolean;
-  elaborationAnswered?: boolean;
+  hypothesisFormulationRequested?: boolean;
+  hypothesisFormulationAnswered?: boolean;
   mentioned?: boolean;
 }
 
@@ -72,17 +72,17 @@ export interface NotificationPreferenceResponse {
   uuid: string;
   ownerType: string;
   ownerUuid: string;
-  taskAssigned: boolean;
-  taskStatusChanged: boolean;
-  taskVerified: boolean;
-  taskReopened: boolean;
-  proposalSubmitted: boolean;
-  proposalApproved: boolean;
-  proposalRejected: boolean;
-  ideaClaimed: boolean;
+  runAssigned: boolean;
+  runStatusChanged: boolean;
+  runVerified: boolean;
+  runReopened: boolean;
+  designSubmitted: boolean;
+  designApproved: boolean;
+  designRejected: boolean;
+  researchQuestionClaimed: boolean;
   commentAdded: boolean;
-  elaborationRequested: boolean;
-  elaborationAnswered: boolean;
+  hypothesisFormulationRequested: boolean;
+  hypothesisFormulationAnswered: boolean;
   mentioned: boolean;
 }
 
@@ -90,7 +90,7 @@ export interface NotificationPreferenceResponse {
 
 function formatNotification(n: {
   uuid: string;
-  projectUuid: string;
+  researchProjectUuid: string;
   projectName: string;
   recipientType: string;
   recipientUuid: string;
@@ -108,7 +108,7 @@ function formatNotification(n: {
 }): NotificationResponse {
   return {
     uuid: n.uuid,
-    projectUuid: n.projectUuid,
+    researchProjectUuid: n.researchProjectUuid,
     projectName: n.projectName,
     recipientType: n.recipientType,
     recipientUuid: n.recipientUuid,
@@ -137,7 +137,7 @@ export async function create(
   const notification = await prisma.notification.create({
     data: {
       companyUuid: params.companyUuid,
-      projectUuid: params.projectUuid,
+      researchProjectUuid: params.researchProjectUuid,
       recipientType: params.recipientType,
       recipientUuid: params.recipientUuid,
       entityType: params.entityType,
@@ -185,7 +185,7 @@ export async function createBatch(
       prisma.notification.create({
         data: {
           companyUuid: params.companyUuid,
-          projectUuid: params.projectUuid,
+          researchProjectUuid: params.researchProjectUuid,
           recipientType: params.recipientType,
           recipientUuid: params.recipientUuid,
           entityType: params.entityType,
@@ -239,7 +239,7 @@ export async function createBatch(
 export async function list(
   params: NotificationListParams
 ): Promise<{ notifications: NotificationResponse[]; total: number; unreadCount: number }> {
-  const { companyUuid, recipientType, recipientUuid, projectUuid, readFilter, archived } = params;
+  const { companyUuid, recipientType, recipientUuid, researchProjectUuid, readFilter, archived } = params;
   const skip = params.skip ?? 0;
   const take = params.take ?? 20;
 
@@ -247,7 +247,7 @@ export async function list(
     companyUuid,
     recipientType,
     recipientUuid,
-    ...(projectUuid && { projectUuid }),
+    ...(researchProjectUuid && { researchProjectUuid }),
     ...(readFilter === "unread" && { readAt: null }),
     ...(readFilter === "read" && { readAt: { not: null } }),
     ...(archived === false && { archivedAt: null }),
@@ -343,7 +343,7 @@ export async function markAllRead(
   companyUuid: string,
   recipientType: string,
   recipientUuid: string,
-  projectUuid?: string
+  researchProjectUuid?: string
 ): Promise<{ count: number }> {
   const result = await prisma.notification.updateMany({
     where: {
@@ -351,7 +351,7 @@ export async function markAllRead(
       recipientType,
       recipientUuid,
       readAt: null,
-      ...(projectUuid && { projectUuid }),
+      ...(researchProjectUuid && { researchProjectUuid }),
     },
     data: { readAt: new Date() },
   });
@@ -429,17 +429,17 @@ export async function getPreferences(
     uuid: pref.uuid,
     ownerType: pref.ownerType,
     ownerUuid: pref.ownerUuid,
-    taskAssigned: pref.taskAssigned,
-    taskStatusChanged: pref.taskStatusChanged,
-    taskVerified: pref.taskVerified,
-    taskReopened: pref.taskReopened,
-    proposalSubmitted: pref.proposalSubmitted,
-    proposalApproved: pref.proposalApproved,
-    proposalRejected: pref.proposalRejected,
-    ideaClaimed: pref.ideaClaimed,
+    runAssigned: pref.runAssigned,
+    runStatusChanged: pref.runStatusChanged,
+    runVerified: pref.runVerified,
+    runReopened: pref.runReopened,
+    designSubmitted: pref.designSubmitted,
+    designApproved: pref.designApproved,
+    designRejected: pref.designRejected,
+    researchQuestionClaimed: pref.researchQuestionClaimed,
     commentAdded: pref.commentAdded,
-    elaborationRequested: pref.elaborationRequested,
-    elaborationAnswered: pref.elaborationAnswered,
+    hypothesisFormulationRequested: pref.hypothesisFormulationRequested,
+    hypothesisFormulationAnswered: pref.hypothesisFormulationAnswered,
     mentioned: pref.mentioned,
   };
 }
@@ -468,17 +468,17 @@ export async function updatePreferences(
     uuid: pref.uuid,
     ownerType: pref.ownerType,
     ownerUuid: pref.ownerUuid,
-    taskAssigned: pref.taskAssigned,
-    taskStatusChanged: pref.taskStatusChanged,
-    taskVerified: pref.taskVerified,
-    taskReopened: pref.taskReopened,
-    proposalSubmitted: pref.proposalSubmitted,
-    proposalApproved: pref.proposalApproved,
-    proposalRejected: pref.proposalRejected,
-    ideaClaimed: pref.ideaClaimed,
+    runAssigned: pref.runAssigned,
+    runStatusChanged: pref.runStatusChanged,
+    runVerified: pref.runVerified,
+    runReopened: pref.runReopened,
+    designSubmitted: pref.designSubmitted,
+    designApproved: pref.designApproved,
+    designRejected: pref.designRejected,
+    researchQuestionClaimed: pref.researchQuestionClaimed,
     commentAdded: pref.commentAdded,
-    elaborationRequested: pref.elaborationRequested,
-    elaborationAnswered: pref.elaborationAnswered,
+    hypothesisFormulationRequested: pref.hypothesisFormulationRequested,
+    hypothesisFormulationAnswered: pref.hypothesisFormulationAnswered,
     mentioned: pref.mentioned,
   };
 }

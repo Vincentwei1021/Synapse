@@ -4,7 +4,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { eventBus } from "@/lib/event-bus";
-import { claimTask } from "@/services/task.service";
+import { claimExperimentRun } from "@/services/experiment-run.service";
 
 // ===== Type Definitions =====
 
@@ -16,8 +16,8 @@ export interface SessionCreateParams {
   expiresAt?: Date | null;
 }
 
-export interface SessionCheckinInfo {
-  taskUuid: string;
+export interface SessionRunCheckinInfo {
+  runUuid: string;
   checkinAt: string;
   checkoutAt: string | null;
 }
@@ -32,10 +32,10 @@ export interface SessionResponse {
   expiresAt: string | null;
   createdAt: string;
   updatedAt: string;
-  checkins: SessionCheckinInfo[];
+  checkins: SessionRunCheckinInfo[];
 }
 
-export interface TaskSessionInfo {
+export interface RunSessionInfo {
   sessionUuid: string;
   sessionName: string;
   agentUuid: string;
@@ -56,8 +56,8 @@ function formatSessionResponse(
     expiresAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
-    taskCheckins?: Array<{
-      taskUuid: string;
+    runCheckins?: Array<{
+      runUuid: string;
       checkinAt: Date;
       checkoutAt: Date | null;
     }>;
@@ -73,8 +73,8 @@ function formatSessionResponse(
     expiresAt: session.expiresAt?.toISOString() ?? null,
     createdAt: session.createdAt.toISOString(),
     updatedAt: session.updatedAt.toISOString(),
-    checkins: (session.taskCheckins || []).map((c) => ({
-      taskUuid: c.taskUuid,
+    checkins: (session.runCheckins || []).map((c) => ({
+      runUuid: c.runUuid,
       checkinAt: c.checkinAt.toISOString(),
       checkoutAt: c.checkoutAt?.toISOString() ?? null,
     })),
@@ -107,9 +107,9 @@ export async function getSession(
   const session = await prisma.agentSession.findFirst({
     where: { uuid: sessionUuid, companyUuid },
     include: {
-      taskCheckins: {
+      runCheckins: {
         where: { checkoutAt: null },
-        select: { taskUuid: true, checkinAt: true, checkoutAt: true },
+        select: { runUuid: true, checkinAt: true, checkoutAt: true },
       },
     },
   });
@@ -131,9 +131,9 @@ export async function listAgentSessions(
       ...(status && { status }),
     },
     include: {
-      taskCheckins: {
+      runCheckins: {
         where: { checkoutAt: null },
-        select: { taskUuid: true, checkinAt: true, checkoutAt: true },
+        select: { runUuid: true, checkinAt: true, checkoutAt: true },
       },
     },
     orderBy: { createdAt: "desc" },
@@ -154,13 +154,13 @@ export async function closeSession(
   if (!session) throw new Error("Session not found");
 
   // Query active checkins before batch checkout for event emission
-  const activeCheckins = await prisma.sessionTaskCheckin.findMany({
+  const activeCheckins = await prisma.sessionRunCheckin.findMany({
     where: { sessionUuid, checkoutAt: null },
-    select: { task: { select: { uuid: true, projectUuid: true } } },
+    select: { task: { select: { uuid: true, researchProjectUuid: true } } },
   });
 
   // Batch checkout all active checkins
-  await prisma.sessionTaskCheckin.updateMany({
+  await prisma.sessionRunCheckin.updateMany({
     where: { sessionUuid, checkoutAt: null },
     data: { checkoutAt: new Date() },
   });
@@ -169,25 +169,25 @@ export async function closeSession(
     where: { uuid: sessionUuid },
     data: { status: "closed" },
     include: {
-      taskCheckins: {
-        select: { taskUuid: true, checkinAt: true, checkoutAt: true },
+      runCheckins: {
+        select: { runUuid: true, checkinAt: true, checkoutAt: true },
       },
     },
   });
 
   for (const checkin of activeCheckins) {
-    eventBus.emitChange({ companyUuid: session.companyUuid, projectUuid: checkin.task.projectUuid, entityType: "task", entityUuid: checkin.task.uuid, action: "updated" });
+    eventBus.emitChange({ companyUuid: session.companyUuid, researchProjectUuid: checkin.task.researchProjectUuid, entityType: "experiment_run", entityUuid: checkin.task.uuid, action: "updated" });
   }
 
   return formatSessionResponse(updated);
 }
 
-// Session checkin to Task
-export async function sessionCheckinToTask(
+// Session checkin to Experiment Run
+export async function sessionCheckinToRun(
   companyUuid: string,
   sessionUuid: string,
-  taskUuid: string
-): Promise<SessionCheckinInfo> {
+  runUuid: string
+): Promise<SessionRunCheckinInfo> {
   // Verify session exists and belongs to this company
   const session = await prisma.agentSession.findFirst({
     where: { uuid: sessionUuid, companyUuid, status: "active" },
@@ -195,16 +195,16 @@ export async function sessionCheckinToTask(
   if (!session) throw new Error("Session not found or not active");
 
   // Verify task exists and belongs to this company
-  const task = await prisma.task.findFirst({
-    where: { uuid: taskUuid, companyUuid },
+  const task = await prisma.experimentRun.findFirst({
+    where: { uuid: runUuid, companyUuid },
   });
-  if (!task) throw new Error("Task not found");
+  if (!task) throw new Error("Experiment run not found");
 
   // Auto-claim: if task has no assignee, claim it for the session's agent
   if (!task.assigneeUuid) {
     try {
-      await claimTask({
-        taskUuid,
+      await claimExperimentRun({
+        runUuid,
         companyUuid,
         assigneeType: "agent",
         assigneeUuid: session.agentUuid,
@@ -215,11 +215,11 @@ export async function sessionCheckinToTask(
   }
 
   // Upsert: reactivate if already exists
-  const checkin = await prisma.sessionTaskCheckin.upsert({
+  const checkin = await prisma.sessionRunCheckin.upsert({
     where: {
-      sessionUuid_taskUuid: { sessionUuid, taskUuid },
+      sessionUuid_runUuid: { sessionUuid, runUuid },
     },
-    create: { sessionUuid, taskUuid },
+    create: { sessionUuid, runUuid },
     update: { checkoutAt: null, checkinAt: new Date() },
   });
 
@@ -229,20 +229,20 @@ export async function sessionCheckinToTask(
     data: { lastActiveAt: new Date() },
   });
 
-  eventBus.emitChange({ companyUuid, projectUuid: task.projectUuid, entityType: "task", entityUuid: taskUuid, action: "updated" });
+  eventBus.emitChange({ companyUuid, researchProjectUuid: task.researchProjectUuid, entityType: "experiment_run", entityUuid: runUuid, action: "updated" });
 
   return {
-    taskUuid: checkin.taskUuid,
+    runUuid: checkin.runUuid,
     checkinAt: checkin.checkinAt.toISOString(),
     checkoutAt: checkin.checkoutAt?.toISOString() ?? null,
   };
 }
 
-// Session checkout from Task
-export async function sessionCheckoutFromTask(
+// Session checkout from Experiment Run
+export async function sessionCheckoutFromRun(
   companyUuid: string,
   sessionUuid: string,
-  taskUuid: string
+  runUuid: string
 ): Promise<void> {
   // Verify session belongs to this company
   const session = await prisma.agentSession.findFirst({
@@ -250,29 +250,29 @@ export async function sessionCheckoutFromTask(
   });
   if (!session) throw new Error("Session not found");
 
-  const task = await prisma.task.findFirst({
-    where: { uuid: taskUuid, companyUuid },
-    select: { projectUuid: true },
+  const task = await prisma.experimentRun.findFirst({
+    where: { uuid: runUuid, companyUuid },
+    select: { researchProjectUuid: true },
   });
 
-  await prisma.sessionTaskCheckin.updateMany({
-    where: { sessionUuid, taskUuid, checkoutAt: null },
+  await prisma.sessionRunCheckin.updateMany({
+    where: { sessionUuid, runUuid, checkoutAt: null },
     data: { checkoutAt: new Date() },
   });
 
   if (task) {
-    eventBus.emitChange({ companyUuid, projectUuid: task.projectUuid, entityType: "task", entityUuid: taskUuid, action: "updated" });
+    eventBus.emitChange({ companyUuid, researchProjectUuid: task.researchProjectUuid, entityType: "experiment_run", entityUuid: runUuid, action: "updated" });
   }
 }
 
-// Get all active Sessions for a Task
-export async function getSessionsForTask(
+// Get all active Sessions for an Experiment Run
+export async function getSessionsForRun(
   companyUuid: string,
-  taskUuid: string
-): Promise<TaskSessionInfo[]> {
-  const checkins = await prisma.sessionTaskCheckin.findMany({
+  runUuid: string
+): Promise<RunSessionInfo[]> {
+  const checkins = await prisma.sessionRunCheckin.findMany({
     where: {
-      taskUuid,
+      runUuid,
       checkoutAt: null,
       session: { companyUuid, status: { in: ["active", "inactive"] } },
     },
@@ -336,9 +336,9 @@ export async function reopenSession(
       lastActiveAt: new Date(),
     },
     include: {
-      taskCheckins: {
+      runCheckins: {
         where: { checkoutAt: null },
-        select: { taskUuid: true, checkinAt: true, checkoutAt: true },
+        select: { runUuid: true, checkinAt: true, checkoutAt: true },
       },
     },
   });
@@ -346,26 +346,26 @@ export async function reopenSession(
   return formatSessionResponse(updated);
 }
 
-// Batch get active worker counts for multiple tasks (1 groupBy query instead of N individual queries)
-export async function batchGetWorkerCountsForTasks(
+// Batch get active worker counts for multiple experiment runs (1 groupBy query instead of N individual queries)
+export async function batchGetWorkerCountsForRuns(
   companyUuid: string,
-  taskUuids: string[]
+  runUuids: string[]
 ): Promise<Record<string, number>> {
-  if (taskUuids.length === 0) return {};
+  if (runUuids.length === 0) return {};
 
-  const checkins = await prisma.sessionTaskCheckin.groupBy({
-    by: ["taskUuid"],
+  const checkins = await prisma.sessionRunCheckin.groupBy({
+    by: ["runUuid"],
     where: {
-      taskUuid: { in: taskUuids },
+      runUuid: { in: runUuids },
       checkoutAt: null,
       session: { companyUuid, status: { in: ["active", "inactive"] } },
     },
-    _count: { taskUuid: true },
+    _count: { runUuid: true },
   });
 
   const result: Record<string, number> = {};
   for (const checkin of checkins) {
-    result[checkin.taskUuid] = checkin._count.taskUuid;
+    result[checkin.runUuid] = checkin._count.runUuid;
   }
   return result;
 }
@@ -407,13 +407,13 @@ export async function getSessionName(sessionUuid: string): Promise<string | null
  */
 export async function getActiveSessionsForProject(
   companyUuid: string,
-  projectUuid: string
-): Promise<TaskSessionInfo[]> {
+  researchProjectUuid: string
+): Promise<RunSessionInfo[]> {
   // 1. Session-based workers: each unique session = one sub-agent worker
-  const checkins = await prisma.sessionTaskCheckin.findMany({
+  const checkins = await prisma.sessionRunCheckin.findMany({
     where: {
       checkoutAt: null,
-      task: { projectUuid },
+      task: { researchProjectUuid },
       session: { companyUuid, status: { in: ["active", "inactive"] } },
     },
     include: {
@@ -431,11 +431,11 @@ export async function getActiveSessionsForProject(
 
   // Deduplicate by session UUID, keep first checkin per session
   const seenSessions = new Set<string>();
-  const results: TaskSessionInfo[] = [];
+  const results: RunSessionInfo[] = [];
   // Collect task UUIDs that have active session checkins
-  const tasksWithCheckins = new Set<string>();
+  const runsWithCheckins = new Set<string>();
   for (const c of checkins) {
-    tasksWithCheckins.add(c.taskUuid);
+    runsWithCheckins.add(c.runUuid);
     if (seenSessions.has(c.session.uuid)) continue;
     seenSessions.add(c.session.uuid);
     results.push({
@@ -450,16 +450,16 @@ export async function getActiveSessionsForProject(
 
   // 2. Sessionless workers: agents doing in_progress tasks without a session
   //    (the main agent working directly, not via a sub-agent session)
-  const sessionlessTasks = await prisma.task.findMany({
+  const sessionlessRuns = await prisma.experimentRun.findMany({
     where: {
-      projectUuid,
+      researchProjectUuid,
       companyUuid,
       status: "in_progress",
       assigneeType: "agent",
       assigneeUuid: { not: null },
       // Exclude tasks that already have active session checkins
-      ...(tasksWithCheckins.size > 0
-        ? { uuid: { notIn: [...tasksWithCheckins] } }
+      ...(runsWithCheckins.size > 0
+        ? { uuid: { notIn: [...runsWithCheckins] } }
         : {}),
     },
     select: {
@@ -472,31 +472,31 @@ export async function getActiveSessionsForProject(
 
   // Deduplicate by agent UUID — one entry per "main agent" working directly
   const seenDirectAgents = new Set<string>();
-  const uniqueAgentTasks: typeof sessionlessTasks = [];
-  for (const task of sessionlessTasks) {
-    if (!task.assigneeUuid || seenDirectAgents.has(task.assigneeUuid)) continue;
-    seenDirectAgents.add(task.assigneeUuid);
-    uniqueAgentTasks.push(task);
-    if (results.length + uniqueAgentTasks.length >= 7) break;
+  const uniqueAgentRuns: typeof sessionlessRuns = [];
+  for (const run of sessionlessRuns) {
+    if (!run.assigneeUuid || seenDirectAgents.has(run.assigneeUuid)) continue;
+    seenDirectAgents.add(run.assigneeUuid);
+    uniqueAgentRuns.push(run);
+    if (results.length + uniqueAgentRuns.length >= 7) break;
   }
 
-  if (uniqueAgentTasks.length > 0) {
+  if (uniqueAgentRuns.length > 0) {
     // Batch-fetch agent names
     const agents = await prisma.agent.findMany({
-      where: { uuid: { in: uniqueAgentTasks.map((t) => t.assigneeUuid!) } },
+      where: { uuid: { in: uniqueAgentRuns.map((t) => t.assigneeUuid!) } },
       select: { uuid: true, name: true },
     });
     const agentMap = new Map(agents.map((a) => [a.uuid, a.name]));
 
-    for (const task of uniqueAgentTasks) {
-      const agentName = agentMap.get(task.assigneeUuid!);
+    for (const run of uniqueAgentRuns) {
+      const agentName = agentMap.get(run.assigneeUuid!);
       if (!agentName) continue;
       results.push({
         sessionUuid: "",
         sessionName: agentName,
-        agentUuid: task.assigneeUuid!,
+        agentUuid: run.assigneeUuid!,
         agentName,
-        checkinAt: task.updatedAt.toISOString(),
+        checkinAt: run.updatedAt.toISOString(),
       });
     }
   }

@@ -9,54 +9,54 @@ import type { NotificationCreateParams } from "./notification.service";
 
 // Map (action, targetType) → notification type
 // The activity action names from MCP tools are bare (e.g., "assigned", "submitted")
-// while notification types are prefixed (e.g., "task_assigned").
+// while notification types are prefixed (e.g., "run_assigned").
 function resolveNotificationType(action: string, targetType: string): string | null {
   const key = `${targetType}:${action}`;
   const mapping: Record<string, string> = {
-    "task:assigned": "task_assigned",
-    "task:status_changed": "task_status_changed",
-    "task:submitted": "task_submitted_for_verify",
-    "task:verified": "task_verified",
-    "task:reopened": "task_reopened",
-    "idea:assigned": "idea_claimed",
-    "proposal:approved": "proposal_approved",
-    "proposal:rejected_to_draft": "proposal_rejected",
+    "experiment_run:assigned": "run_assigned",
+    "experiment_run:status_changed": "run_status_changed",
+    "experiment_run:submitted": "run_submitted_for_verify",
+    "experiment_run:verified": "run_verified",
+    "experiment_run:reopened": "run_reopened",
+    "research_question:assigned": "research_question_claimed",
+    "experiment_design:approved": "design_approved",
+    "experiment_design:rejected_to_draft": "design_rejected",
     // comment_added is the same regardless of target type
-    "task:comment_added": "comment_added",
-    "idea:comment_added": "comment_added",
-    "proposal:comment_added": "comment_added",
+    "experiment_run:comment_added": "comment_added",
+    "research_question:comment_added": "comment_added",
+    "experiment_design:comment_added": "comment_added",
     "document:comment_added": "comment_added",
-    // elaboration events (target type is always "idea")
-    "idea:elaboration_started": "elaboration_requested",
-    "idea:elaboration_answered": "elaboration_answered",
-    "idea:elaboration_followup": "elaboration_requested",
-    "idea:elaboration_resolved": "elaboration_answered",
-    "idea:elaboration_skipped": "elaboration_answered",
+    // hypothesis formulation events (target type is always "research_question")
+    "research_question:hypothesis_formulation_started": "hypothesis_formulation_requested",
+    "research_question:hypothesis_formulation_answered": "hypothesis_formulation_answered",
+    "research_question:hypothesis_formulation_followup": "hypothesis_formulation_requested",
+    "research_question:hypothesis_formulation_resolved": "hypothesis_formulation_answered",
+    "research_question:hypothesis_formulation_skipped": "hypothesis_formulation_answered",
   };
   return mapping[key] ?? null;
 }
 
 // Preference field name for each notification type
 const PREF_FIELD_MAP: Record<string, keyof notificationService.NotificationPreferenceFields> = {
-  task_assigned: "taskAssigned",
-  task_status_changed: "taskStatusChanged",
-  task_submitted_for_verify: "taskVerified",
-  task_verified: "taskVerified",
-  task_reopened: "taskReopened",
-  proposal_submitted: "proposalSubmitted",
-  proposal_approved: "proposalApproved",
-  proposal_rejected: "proposalRejected",
-  idea_claimed: "ideaClaimed",
+  run_assigned: "runAssigned",
+  run_status_changed: "runStatusChanged",
+  run_submitted_for_verify: "runVerified",
+  run_verified: "runVerified",
+  run_reopened: "runReopened",
+  design_submitted: "designSubmitted",
+  design_approved: "designApproved",
+  design_rejected: "designRejected",
+  research_question_claimed: "researchQuestionClaimed",
   comment_added: "commentAdded",
-  elaboration_requested: "elaborationRequested",
-  elaboration_answered: "elaborationAnswered",
+  hypothesis_formulation_requested: "hypothesisFormulationRequested",
+  hypothesis_formulation_answered: "hypothesisFormulationAnswered",
   mentioned: "mentioned",
 };
 
 interface ActivityEvent {
   uuid: string;
   companyUuid: string;
-  projectUuid: string;
+  researchProjectUuid: string;
   targetType: string;
   targetUuid: string;
   actorType: string;
@@ -79,26 +79,26 @@ async function resolveEntityTitle(
   targetUuid: string
 ): Promise<string> {
   switch (targetType) {
-    case "task": {
-      const task = await prisma.task.findUnique({
+    case "experiment_run": {
+      const run = await prisma.experimentRun.findUnique({
         where: { uuid: targetUuid },
         select: { title: true },
       });
-      return task?.title ?? "Unknown Task";
+      return run?.title ?? "Unknown Experiment Run";
     }
-    case "idea": {
-      const idea = await prisma.idea.findUnique({
+    case "research_question": {
+      const rq = await prisma.researchQuestion.findUnique({
         where: { uuid: targetUuid },
         select: { title: true },
       });
-      return idea?.title ?? "Unknown Idea";
+      return rq?.title ?? "Unknown Research Question";
     }
-    case "proposal": {
-      const proposal = await prisma.proposal.findUnique({
+    case "experiment_design": {
+      const design = await prisma.experimentDesign.findUnique({
         where: { uuid: targetUuid },
         select: { title: true },
       });
-      return proposal?.title ?? "Unknown Proposal";
+      return design?.title ?? "Unknown Experiment Design";
     }
     case "document": {
       const doc = await prisma.document.findUnique({
@@ -133,12 +133,12 @@ async function resolveActorName(
   return "Unknown";
 }
 
-async function resolveProjectName(projectUuid: string): Promise<string> {
-  const project = await prisma.project.findUnique({
-    where: { uuid: projectUuid },
+async function resolveResearchProjectName(researchProjectUuid: string): Promise<string> {
+  const project = await prisma.researchProject.findUnique({
+    where: { uuid: researchProjectUuid },
     select: { name: true },
   });
-  return project?.name ?? "Unknown Project";
+  return project?.name ?? "Unknown Research Project";
 }
 
 // Resolve the owner of an agent. If the actor is a user, return the user directly.
@@ -173,19 +173,19 @@ async function resolveRecipients(
   actorUuid: string
 ): Promise<Recipient[]> {
   switch (notificationType) {
-    case "task_assigned": {
-      const task = await prisma.task.findUnique({
+    case "run_assigned": {
+      const run = await prisma.experimentRun.findUnique({
         where: { uuid: targetUuid },
         select: { assigneeType: true, assigneeUuid: true },
       });
-      if (task?.assigneeType && task?.assigneeUuid) {
-        return [{ type: task.assigneeType, uuid: task.assigneeUuid }];
+      if (run?.assigneeType && run?.assigneeUuid) {
+        return [{ type: run.assigneeType, uuid: run.assigneeUuid }];
       }
       return [];
     }
 
-    case "task_status_changed": {
-      const task = await prisma.task.findUnique({
+    case "run_status_changed": {
+      const run = await prisma.experimentRun.findUnique({
         where: { uuid: targetUuid },
         select: {
           assigneeType: true,
@@ -193,103 +193,103 @@ async function resolveRecipients(
           createdByUuid: true,
         },
       });
-      if (!task) return [];
+      if (!run) return [];
       const recipients: Recipient[] = [];
-      if (task.assigneeType && task.assigneeUuid) {
-        recipients.push({ type: task.assigneeType, uuid: task.assigneeUuid });
+      if (run.assigneeType && run.assigneeUuid) {
+        recipients.push({ type: run.assigneeType, uuid: run.assigneeUuid });
       }
       // Creator could be user or agent; resolve type
-      const creatorType = await resolveActorType(task.createdByUuid);
+      const creatorType = await resolveActorType(run.createdByUuid);
       if (creatorType) {
-        recipients.push({ type: creatorType, uuid: task.createdByUuid });
+        recipients.push({ type: creatorType, uuid: run.createdByUuid });
       }
       return recipients;
     }
 
-    case "task_submitted_for_verify": {
-      // Notify the actor's owner (human) + task creator
+    case "run_submitted_for_verify": {
+      // Notify the actor's owner (human) + experiment run creator
       const recipients: Recipient[] = [];
       const ownerRecipient = await resolveAgentOwner(actorType, actorUuid);
       if (ownerRecipient) {
         recipients.push(ownerRecipient);
       }
-      // Also notify task creator
-      const submittedTask = await prisma.task.findUnique({
+      // Also notify experiment run creator
+      const submittedRun = await prisma.experimentRun.findUnique({
         where: { uuid: targetUuid },
         select: { createdByUuid: true },
       });
-      if (submittedTask) {
-        const creatorType = await resolveActorType(submittedTask.createdByUuid);
+      if (submittedRun) {
+        const creatorType = await resolveActorType(submittedRun.createdByUuid);
         if (creatorType) {
-          recipients.push({ type: creatorType, uuid: submittedTask.createdByUuid });
+          recipients.push({ type: creatorType, uuid: submittedRun.createdByUuid });
         }
       }
       return recipients;
     }
 
-    case "task_verified": {
-      const task = await prisma.task.findUnique({
+    case "run_verified": {
+      const run = await prisma.experimentRun.findUnique({
         where: { uuid: targetUuid },
         select: { assigneeType: true, assigneeUuid: true },
       });
-      if (task?.assigneeType && task?.assigneeUuid) {
-        return [{ type: task.assigneeType, uuid: task.assigneeUuid }];
+      if (run?.assigneeType && run?.assigneeUuid) {
+        return [{ type: run.assigneeType, uuid: run.assigneeUuid }];
       }
       return [];
     }
 
-    case "task_reopened": {
-      const task = await prisma.task.findUnique({
+    case "run_reopened": {
+      const run = await prisma.experimentRun.findUnique({
         where: { uuid: targetUuid },
         select: { assigneeType: true, assigneeUuid: true },
       });
-      if (task?.assigneeType && task?.assigneeUuid) {
-        return [{ type: task.assigneeType, uuid: task.assigneeUuid }];
+      if (run?.assigneeType && run?.assigneeUuid) {
+        return [{ type: run.assigneeType, uuid: run.assigneeUuid }];
       }
       return [];
     }
 
-    case "proposal_approved":
-    case "proposal_rejected": {
-      const proposal = await prisma.proposal.findUnique({
+    case "design_approved":
+    case "design_rejected": {
+      const design = await prisma.experimentDesign.findUnique({
         where: { uuid: targetUuid },
         select: { createdByUuid: true, createdByType: true },
       });
-      if (proposal) {
-        return [{ type: proposal.createdByType, uuid: proposal.createdByUuid }];
+      if (design) {
+        return [{ type: design.createdByType, uuid: design.createdByUuid }];
       }
       return [];
     }
 
-    case "idea_claimed": {
-      const idea = await prisma.idea.findUnique({
+    case "research_question_claimed": {
+      const rq = await prisma.researchQuestion.findUnique({
         where: { uuid: targetUuid },
         select: { createdByUuid: true, assigneeType: true, assigneeUuid: true },
       });
-      if (idea) {
+      if (rq) {
         const recipients: Recipient[] = [
-          // Notify idea creator
-          { type: "user", uuid: idea.createdByUuid },
+          // Notify research question creator
+          { type: "user", uuid: rq.createdByUuid },
         ];
         // Also notify the assignee (e.g., agent assigned via UI)
-        if (idea.assigneeType && idea.assigneeUuid) {
-          recipients.push({ type: idea.assigneeType as "user" | "agent", uuid: idea.assigneeUuid });
+        if (rq.assigneeType && rq.assigneeUuid) {
+          recipients.push({ type: rq.assigneeType as "user" | "agent", uuid: rq.assigneeUuid });
         }
         return recipients;
       }
       return [];
     }
 
-    case "elaboration_requested": {
-      // Notify Idea creator (user) + actor's owner (if actor is an agent)
-      const reqIdea = await prisma.idea.findUnique({
+    case "hypothesis_formulation_requested": {
+      // Notify Research Question creator (user) + actor's owner (if actor is an agent)
+      const reqRQ = await prisma.researchQuestion.findUnique({
         where: { uuid: targetUuid },
         select: { createdByUuid: true },
       });
-      if (!reqIdea) return [];
+      if (!reqRQ) return [];
       const reqRecipients: Recipient[] = [];
-      // Idea creator is always a user
-      reqRecipients.push({ type: "user", uuid: reqIdea.createdByUuid });
+      // Research question creator is always a user
+      reqRecipients.push({ type: "user", uuid: reqRQ.createdByUuid });
       // Actor's owner (if actor is an agent, notify the human owner)
       const ownerRecipient = await resolveAgentOwner(actorType, actorUuid);
       if (ownerRecipient) {
@@ -298,9 +298,9 @@ async function resolveRecipients(
       return reqRecipients;
     }
 
-    case "elaboration_answered": {
-      // Notify Idea assignee (the PM agent)
-      const ansIdea = await prisma.idea.findUnique({
+    case "hypothesis_formulation_answered": {
+      // Notify Research Question assignee (the research lead agent)
+      const ansRQ = await prisma.researchQuestion.findUnique({
         where: { uuid: targetUuid },
         select: {
           assigneeType: true,
@@ -308,18 +308,12 @@ async function resolveRecipients(
           createdByUuid: true,
         },
       });
-      if (!ansIdea) return [];
+      if (!ansRQ) return [];
       const ansRecipients: Recipient[] = [];
-      // For elaboration_answered from "answered" action: notify assignee (PM)
-      // For elaboration_resolved/elaboration_skipped: notify idea creator
-      // We distinguish based on the original action stored in the event
-      // But since resolveRecipients only sees notificationType, and both map to
-      // "elaboration_answered", we include both assignee and creator, then
-      // the dedup + actor-exclusion in handleActivity will filter correctly.
-      if (ansIdea.assigneeType && ansIdea.assigneeUuid) {
-        ansRecipients.push({ type: ansIdea.assigneeType, uuid: ansIdea.assigneeUuid });
+      if (ansRQ.assigneeType && ansRQ.assigneeUuid) {
+        ansRecipients.push({ type: ansRQ.assigneeType, uuid: ansRQ.assigneeUuid });
       }
-      ansRecipients.push({ type: "user", uuid: ansIdea.createdByUuid });
+      ansRecipients.push({ type: "user", uuid: ansRQ.createdByUuid });
       return ansRecipients;
     }
 
@@ -327,8 +321,8 @@ async function resolveRecipients(
       // Notify entity assignee + creator, but EXCLUDE the comment author
       const recipients: Recipient[] = [];
 
-      if (targetType === "task") {
-        const task = await prisma.task.findUnique({
+      if (targetType === "experiment_run") {
+        const run = await prisma.experimentRun.findUnique({
           where: { uuid: targetUuid },
           select: {
             assigneeType: true,
@@ -336,17 +330,17 @@ async function resolveRecipients(
             createdByUuid: true,
           },
         });
-        if (task) {
-          if (task.assigneeType && task.assigneeUuid) {
-            recipients.push({ type: task.assigneeType, uuid: task.assigneeUuid });
+        if (run) {
+          if (run.assigneeType && run.assigneeUuid) {
+            recipients.push({ type: run.assigneeType, uuid: run.assigneeUuid });
           }
-          const creatorType = await resolveActorType(task.createdByUuid);
+          const creatorType = await resolveActorType(run.createdByUuid);
           if (creatorType) {
-            recipients.push({ type: creatorType, uuid: task.createdByUuid });
+            recipients.push({ type: creatorType, uuid: run.createdByUuid });
           }
         }
-      } else if (targetType === "idea") {
-        const idea = await prisma.idea.findUnique({
+      } else if (targetType === "research_question") {
+        const rq = await prisma.researchQuestion.findUnique({
           where: { uuid: targetUuid },
           select: {
             assigneeType: true,
@@ -354,19 +348,19 @@ async function resolveRecipients(
             createdByUuid: true,
           },
         });
-        if (idea) {
-          if (idea.assigneeType && idea.assigneeUuid) {
-            recipients.push({ type: idea.assigneeType, uuid: idea.assigneeUuid });
+        if (rq) {
+          if (rq.assigneeType && rq.assigneeUuid) {
+            recipients.push({ type: rq.assigneeType, uuid: rq.assigneeUuid });
           }
-          recipients.push({ type: "user", uuid: idea.createdByUuid });
+          recipients.push({ type: "user", uuid: rq.createdByUuid });
         }
-      } else if (targetType === "proposal") {
-        const proposal = await prisma.proposal.findUnique({
+      } else if (targetType === "experiment_design") {
+        const design = await prisma.experimentDesign.findUnique({
           where: { uuid: targetUuid },
           select: { createdByUuid: true, createdByType: true },
         });
-        if (proposal) {
-          recipients.push({ type: proposal.createdByType, uuid: proposal.createdByUuid });
+        if (design) {
+          recipients.push({ type: design.createdByType, uuid: design.createdByUuid });
         }
       } else if (targetType === "document") {
         const doc = await prisma.document.findUnique({
@@ -416,38 +410,38 @@ function buildMessage(
 ): string {
   const v = (typeof value === "object" && value !== null ? value : {}) as Record<string, unknown>;
   switch (notificationType) {
-    case "task_assigned":
-      return `${actorName} assigned you to task "${entityTitle}"`;
-    case "task_status_changed":
-      return `${actorName} changed the status of task "${entityTitle}"`;
-    case "task_submitted_for_verify":
-      return `${actorName} submitted task "${entityTitle}" for verification`;
-    case "task_verified":
-      return `Task "${entityTitle}" has been verified`;
-    case "task_reopened":
-      return `Task "${entityTitle}" has been reopened`;
-    case "proposal_submitted":
-      return `${actorName} submitted proposal "${entityTitle}" for review`;
-    case "proposal_approved": {
+    case "run_assigned":
+      return `${actorName} assigned you to experiment run "${entityTitle}"`;
+    case "run_status_changed":
+      return `${actorName} changed the status of experiment run "${entityTitle}"`;
+    case "run_submitted_for_verify":
+      return `${actorName} submitted experiment run "${entityTitle}" for verification`;
+    case "run_verified":
+      return `Experiment run "${entityTitle}" has been verified`;
+    case "run_reopened":
+      return `Experiment run "${entityTitle}" has been reopened`;
+    case "design_submitted":
+      return `${actorName} submitted experiment design "${entityTitle}" for review`;
+    case "design_approved": {
       const approveNote = typeof v.reviewNote === "string" ? v.reviewNote.trim() : "";
       return approveNote
-        ? `Proposal "${entityTitle}" has been approved. Note: ${approveNote}`
-        : `Proposal "${entityTitle}" has been approved`;
+        ? `Experiment design "${entityTitle}" has been approved. Note: ${approveNote}`
+        : `Experiment design "${entityTitle}" has been approved`;
     }
-    case "proposal_rejected": {
+    case "design_rejected": {
       const note = typeof v.reviewNote === "string" ? v.reviewNote.trim() : "";
       return note
-        ? `Proposal "${entityTitle}" has been rejected. Reason: ${note}`
-        : `Proposal "${entityTitle}" has been rejected`;
+        ? `Experiment design "${entityTitle}" has been rejected. Reason: ${note}`
+        : `Experiment design "${entityTitle}" has been rejected`;
     }
-    case "idea_claimed":
-      return `${actorName} claimed idea "${entityTitle}"`;
+    case "research_question_claimed":
+      return `${actorName} claimed research question "${entityTitle}"`;
     case "comment_added":
       return `${actorName} commented on "${entityTitle}"`;
-    case "elaboration_requested":
-      return `${actorName} requested elaboration on idea "${entityTitle}"`;
-    case "elaboration_answered":
-      return `${actorName} answered elaboration questions for idea "${entityTitle}"`;
+    case "hypothesis_formulation_requested":
+      return `${actorName} requested hypothesis formulation on research question "${entityTitle}"`;
+    case "hypothesis_formulation_answered":
+      return `${actorName} answered hypothesis formulation questions for research question "${entityTitle}"`;
     default:
       return `${actorName} performed an action on "${entityTitle}"`;
   }
@@ -464,7 +458,7 @@ export async function handleActivity(event: ActivityEvent): Promise<void> {
     const [entityTitle, actorName, projectName] = await Promise.all([
       resolveEntityTitle(event.targetType, event.targetUuid),
       resolveActorName(event.actorType, event.actorUuid),
-      resolveProjectName(event.projectUuid),
+      resolveResearchProjectName(event.researchProjectUuid),
     ]);
 
     // Resolve recipients (pass notificationType so switch cases match)
@@ -519,7 +513,7 @@ export async function handleActivity(event: ActivityEvent): Promise<void> {
     const notifications: NotificationCreateParams[] = eligibleRecipients.map(
       (recipient) => ({
         companyUuid: event.companyUuid,
-        projectUuid: event.projectUuid,
+        researchProjectUuid: event.researchProjectUuid,
         recipientType: recipient.type,
         recipientUuid: recipient.uuid,
         entityType: event.targetType,

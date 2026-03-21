@@ -9,8 +9,8 @@ import { formatAssignee, formatCreatedBy } from "@/lib/uuid-resolver";
 
 // ===== Type Definitions =====
 
-// Claimed Idea response format
-export interface AssignedIdeaResponse {
+// Claimed Research Question response format
+export interface AssignedResearchQuestionResponse {
   uuid: string;
   title: string;
   content: string | null;
@@ -22,8 +22,8 @@ export interface AssignedIdeaResponse {
   updatedAt: string;
 }
 
-// Claimed Task response format
-export interface AssignedTaskResponse {
+// Claimed Experiment Run response format
+export interface AssignedExperimentRunResponse {
   uuid: string;
   title: string;
   description: string | null;
@@ -36,8 +36,8 @@ export interface AssignedTaskResponse {
   updatedAt: string;
 }
 
-// Available Idea response format
-export interface AvailableIdeaResponse {
+// Available Research Question response format
+export interface AvailableResearchQuestionResponse {
   uuid: string;
   title: string;
   content: string | null;
@@ -46,8 +46,8 @@ export interface AvailableIdeaResponse {
   createdAt: string;
 }
 
-// Available Task response format
-export interface AvailableTaskResponse {
+// Available Experiment Run response format
+export interface AvailableExperimentRunResponse {
   uuid: string;
   title: string;
   description: string | null;
@@ -59,14 +59,14 @@ export interface AvailableTaskResponse {
 
 // My assignments response
 export interface MyAssignmentsResponse {
-  ideas: AssignedIdeaResponse[];
-  tasks: AssignedTaskResponse[];
+  researchQuestions: AssignedResearchQuestionResponse[];
+  experimentRuns: AssignedExperimentRunResponse[];
 }
 
 // Available items response
 export interface AvailableItemsResponse {
-  ideas: AvailableIdeaResponse[];
-  tasks: AvailableTaskResponse[];
+  researchQuestions: AvailableResearchQuestionResponse[];
+  experimentRuns: AvailableExperimentRunResponse[];
 }
 
 // ===== Internal Helper Functions =====
@@ -90,8 +90,8 @@ function getAssignmentConditions(auth: AuthContext) {
   return conditions;
 }
 
-// Format claimed Idea
-async function formatAssignedIdea(idea: {
+// Format claimed Research Question
+async function formatAssignedResearchQuestion(idea: {
   uuid: string;
   title: string;
   content: string | null;
@@ -102,7 +102,7 @@ async function formatAssignedIdea(idea: {
   project: { uuid: string; name: string };
   createdAt: Date;
   updatedAt: Date;
-}): Promise<AssignedIdeaResponse> {
+}): Promise<AssignedResearchQuestionResponse> {
   const assignee = await formatAssignee(idea.assigneeType, idea.assigneeUuid);
 
   return {
@@ -118,8 +118,8 @@ async function formatAssignedIdea(idea: {
   };
 }
 
-// Format claimed Task
-async function formatAssignedTask(task: {
+// Format claimed Experiment Run
+async function formatAssignedExperimentRun(task: {
   uuid: string;
   title: string;
   description: string | null;
@@ -131,7 +131,7 @@ async function formatAssignedTask(task: {
   project: { uuid: string; name: string };
   createdAt: Date;
   updatedAt: Date;
-}): Promise<AssignedTaskResponse> {
+}): Promise<AssignedExperimentRunResponse> {
   const assignee = await formatAssignee(task.assigneeType, task.assigneeUuid);
 
   return {
@@ -148,15 +148,15 @@ async function formatAssignedTask(task: {
   };
 }
 
-// Format available Idea
-async function formatAvailableIdea(idea: {
+// Format available Research Question
+async function formatAvailableResearchQuestion(idea: {
   uuid: string;
   title: string;
   content: string | null;
   status: string;
   createdByUuid: string;
   createdAt: Date;
-}): Promise<AvailableIdeaResponse> {
+}): Promise<AvailableResearchQuestionResponse> {
   const createdBy = await formatCreatedBy(idea.createdByUuid);
 
   return {
@@ -169,8 +169,8 @@ async function formatAvailableIdea(idea: {
   };
 }
 
-// Format available Task
-async function formatAvailableTask(task: {
+// Format available Experiment Run
+async function formatAvailableExperimentRun(task: {
   uuid: string;
   title: string;
   description: string | null;
@@ -178,7 +178,7 @@ async function formatAvailableTask(task: {
   priority: string;
   createdByUuid: string;
   createdAt: Date;
-}): Promise<AvailableTaskResponse> {
+}): Promise<AvailableExperimentRunResponse> {
   const createdBy = await formatCreatedBy(task.createdByUuid);
 
   return {
@@ -194,19 +194,19 @@ async function formatAvailableTask(task: {
 
 // ===== Service Methods =====
 
-// Get my claimed Ideas + Tasks
+// Get my claimed Research Questions + Experiment Runs
 export async function getMyAssignments(
   auth: AuthContext,
-  projectUuids?: string[],
+  researchProjectUuids?: string[],
 ): Promise<MyAssignmentsResponse> {
   const conditions = getAssignmentConditions(auth);
 
-  const [rawIdeas, rawTasks] = await Promise.all([
-    // Get claimed Ideas
-    prisma.idea.findMany({
+  const [rawResearchQuestions, rawExperimentRuns] = await Promise.all([
+    // Get claimed Research Questions
+    prisma.researchQuestion.findMany({
       where: {
         companyUuid: auth.companyUuid,
-        ...(projectUuids && projectUuids.length > 0 && { projectUuid: { in: projectUuids } }),
+        ...(researchProjectUuids && researchProjectUuids.length > 0 && { researchProjectUuid: { in: researchProjectUuids } }),
         OR: conditions,
         status: { notIn: ["completed", "closed"] },
       },
@@ -224,11 +224,11 @@ export async function getMyAssignments(
       },
       orderBy: { assignedAt: "desc" },
     }),
-    // Get claimed Tasks
-    prisma.task.findMany({
+    // Get claimed Experiment Runs
+    prisma.experimentRun.findMany({
       where: {
         companyUuid: auth.companyUuid,
-        ...(projectUuids && projectUuids.length > 0 && { projectUuid: { in: projectUuids } }),
+        ...(researchProjectUuids && researchProjectUuids.length > 0 && { researchProjectUuid: { in: researchProjectUuids } }),
         OR: conditions,
         status: { notIn: ["done", "closed"] },
       },
@@ -249,31 +249,31 @@ export async function getMyAssignments(
     }),
   ]);
 
-  const [ideas, tasks] = await Promise.all([
-    Promise.all(rawIdeas.map(formatAssignedIdea)),
-    Promise.all(rawTasks.map(formatAssignedTask)),
+  const [researchQuestions, experimentRuns] = await Promise.all([
+    Promise.all(rawResearchQuestions.map(formatAssignedResearchQuestion)),
+    Promise.all(rawExperimentRuns.map(formatAssignedExperimentRun)),
   ]);
 
-  return { ideas, tasks };
+  return { researchQuestions, experimentRuns };
 }
 
-// Get available Ideas + Tasks in a project
+// Get available Research Questions + Experiment Runs in a research project
 export async function getAvailableItems(
   companyUuid: string,
-  projectUuid: string,
-  canClaimIdeas: boolean,
-  canClaimTasks: boolean,
-  proposalUuids?: string[],
+  researchProjectUuid: string,
+  canClaimResearchQuestions: boolean,
+  canClaimExperimentRuns: boolean,
+  experimentDesignUuids?: string[],
 ): Promise<AvailableItemsResponse> {
-  const baseWhere = { projectUuid, companyUuid, status: "open" };
-  const taskWhere = {
+  const baseWhere = { researchProjectUuid, companyUuid, status: "open" };
+  const experimentRunWhere = {
     ...baseWhere,
-    ...(proposalUuids && proposalUuids.length > 0 && { proposalUuid: { in: proposalUuids } }),
+    ...(experimentDesignUuids && experimentDesignUuids.length > 0 && { experimentDesignUuid: { in: experimentDesignUuids } }),
   };
 
-  const [rawIdeas, rawTasks] = await Promise.all([
-    canClaimIdeas
-      ? prisma.idea.findMany({
+  const [rawResearchQuestions, rawExperimentRuns] = await Promise.all([
+    canClaimResearchQuestions
+      ? prisma.researchQuestion.findMany({
           where: baseWhere,
           select: {
             uuid: true,
@@ -287,9 +287,9 @@ export async function getAvailableItems(
           take: 50,
         })
       : [],
-    canClaimTasks
-      ? prisma.task.findMany({
-          where: taskWhere,
+    canClaimExperimentRuns
+      ? prisma.experimentRun.findMany({
+          where: experimentRunWhere,
           select: {
             uuid: true,
             title: true,
@@ -305,10 +305,10 @@ export async function getAvailableItems(
       : [],
   ]);
 
-  const [ideas, tasks] = await Promise.all([
-    Promise.all(rawIdeas.map(formatAvailableIdea)),
-    Promise.all(rawTasks.map(formatAvailableTask)),
+  const [researchQuestions, experimentRuns] = await Promise.all([
+    Promise.all(rawResearchQuestions.map(formatAvailableResearchQuestion)),
+    Promise.all(rawExperimentRuns.map(formatAvailableExperimentRun)),
   ]);
 
-  return { ideas, tasks };
+  return { researchQuestions, experimentRuns };
 }

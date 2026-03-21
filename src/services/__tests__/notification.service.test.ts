@@ -42,10 +42,10 @@ const notifUuid = "notif-0000-0000-0000-000000000001";
 function makeNotifParams(overrides: Record<string, unknown> = {}) {
   return {
     companyUuid,
-    projectUuid: "project-0000-0000-0000-000000000001",
+    researchProjectUuid: "project-0000-0000-0000-000000000001",
     recipientType: "user",
     recipientUuid,
-    entityType: "task",
+    entityType: "experiment_run",
     entityUuid: "task-0000-0000-0000-000000000001",
     entityTitle: "Test Task",
     projectName: "Test Project",
@@ -192,8 +192,8 @@ describe("list", () => {
     );
   });
 
-  it("should filter by projectUuid when provided", async () => {
-    const projectUuid = "project-0000-0000-0000-000000000001";
+  it("should filter by researchProjectUuid when provided", async () => {
+    const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.notification.findMany.mockResolvedValue([]);
     mockPrisma.notification.count.mockResolvedValue(0);
 
@@ -201,14 +201,14 @@ describe("list", () => {
       companyUuid,
       recipientType: "user",
       recipientUuid,
-      projectUuid,
+      researchProjectUuid,
       skip: 0,
       take: 20,
     });
 
     expect(mockPrisma.notification.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ projectUuid }),
+        where: expect.objectContaining({ researchProjectUuid }),
       })
     );
   });
@@ -257,16 +257,16 @@ describe("markAllRead", () => {
     );
   });
 
-  it("should scope to projectUuid when provided", async () => {
-    const projectUuid = "project-0000-0000-0000-000000000001";
+  it("should scope to researchProjectUuid when provided", async () => {
+    const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.notification.updateMany.mockResolvedValue({ count: 2 });
     mockPrisma.notification.count.mockResolvedValue(3);
 
-    await markAllRead(companyUuid, "user", recipientUuid, projectUuid);
+    await markAllRead(companyUuid, "user", recipientUuid, researchProjectUuid);
 
     expect(mockPrisma.notification.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ projectUuid }),
+        where: expect.objectContaining({ researchProjectUuid }),
       })
     );
   });
