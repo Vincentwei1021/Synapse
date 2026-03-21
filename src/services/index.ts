@@ -17,3 +17,6 @@ export * as documentService from "./document.service";
 export * as userService from "./user.service";
 export * as companyService from "./company.service";
 export * as projectGroupService from "./project-group.service";
+export * as baselineService from "./baseline.service";
+export * as experimentRegistryService from "./experiment-registry.service";
+export * as criteriaEvaluationService from "./criteria-evaluation.service";
