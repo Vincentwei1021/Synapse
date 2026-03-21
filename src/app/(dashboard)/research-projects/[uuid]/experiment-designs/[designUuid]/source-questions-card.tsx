@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Lightbulb, ArrowUpRight } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { IdeaDetailPanel } from "../../ideas/idea-detail-panel";
+import { IdeaDetailPanel } from "../../research-questions/idea-detail-panel";
 
 interface SourceIdea {
   uuid: string;
@@ -21,17 +21,17 @@ interface SourceIdea {
   createdAt: string;
 }
 
-interface SourceIdeasCardProps {
+interface SourceQuestionsCardProps {
   ideas: SourceIdea[];
   projectUuid: string;
   currentUserUuid: string;
 }
 
-export function SourceIdeasCard({
+export function SourceQuestionsCard({
   ideas,
   projectUuid,
   currentUserUuid,
-}: SourceIdeasCardProps) {
+}: SourceQuestionsCardProps) {
   const t = useTranslations("proposals");
   const [selectedIdea, setSelectedIdea] = useState<SourceIdea | null>(null);
 

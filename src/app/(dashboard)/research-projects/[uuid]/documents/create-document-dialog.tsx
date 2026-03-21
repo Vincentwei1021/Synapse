@@ -90,7 +90,7 @@ export function CreateDocumentDialog({ projectUuid, trigger }: CreateDocumentDia
       resetForm();
       router.refresh();
       if (result.documentUuid) {
-        router.push(`/projects/${projectUuid}/documents/${result.documentUuid}`);
+        router.push(`/research-projects/${projectUuid}/documents/${result.documentUuid}`);
       }
     } else {
       setError(result.error || t("documents.createFailed"));

@@ -2,11 +2,11 @@
 
 import { getServerAuthContext } from "@/lib/auth-server";
 import { listComments, createComment, type CommentResponse } from "@/services/comment.service";
-import { getIdeaByUuid } from "@/services/idea.service";
+import { getResearchQuestionByUuid } from "@/services/research-question.service";
 import { createActivity } from "@/services/activity.service";
 
-export async function getIdeaCommentsAction(
-  ideaUuid: string
+export async function getResearchQuestionCommentsAction(
+  questionUuid: string
 ): Promise<{ comments: CommentResponse[]; total: number }> {
   const auth = await getServerAuthContext();
   if (!auth) {
@@ -16,8 +16,8 @@ export async function getIdeaCommentsAction(
   try {
     const result = await listComments({
       companyUuid: auth.companyUuid,
-      targetType: "idea",
-      targetUuid: ideaUuid,
+      targetType: "research_question",
+      targetUuid: questionUuid,
       skip: 0,
       take: 100,
     });
@@ -28,8 +28,8 @@ export async function getIdeaCommentsAction(
   }
 }
 
-export async function createIdeaCommentAction(
-  ideaUuid: string,
+export async function createResearchQuestionCommentAction(
+  questionUuid: string,
   content: string
 ): Promise<{ success: boolean; comment?: CommentResponse; error?: string }> {
   const auth = await getServerAuthContext();
@@ -42,15 +42,15 @@ export async function createIdeaCommentAction(
   }
 
   try {
-    const idea = await getIdeaByUuid(auth.companyUuid, ideaUuid);
+    const idea = await getResearchQuestionByUuid(auth.companyUuid, questionUuid);
     if (!idea) {
       return { success: false, error: "Idea not found" };
     }
 
     const comment = await createComment({
       companyUuid: auth.companyUuid,
-      targetType: "idea",
-      targetUuid: ideaUuid,
+      targetType: "research_question",
+      targetUuid: questionUuid,
       content: content.trim(),
       authorType: auth.type,
       authorUuid: auth.actorUuid,
@@ -59,9 +59,9 @@ export async function createIdeaCommentAction(
     // Record activity for notification pipeline
     await createActivity({
       companyUuid: auth.companyUuid,
-      projectUuid: idea.projectUuid,
-      targetType: "idea",
-      targetUuid: ideaUuid,
+      researchProjectUuid: idea.researchProjectUuid,
+      targetType: "research_question",
+      targetUuid: questionUuid,
       actorType: auth.type,
       actorUuid: auth.actorUuid,
       action: "comment_added",

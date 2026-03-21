@@ -15,7 +15,7 @@ import {
   type SlotState,
   type PixelCanvasEffect,
 } from "@/components/pixel-canvas";
-import { getProjectActiveSessionsAction } from "@/app/(dashboard)/projects/[uuid]/actions";
+import { getProjectActiveSessionsAction } from "@/app/(dashboard)/research-projects/[uuid]/actions";
 import { useRealtimeEvent } from "@/contexts/realtime-context";
 
 interface PixelCanvasWidgetProps {

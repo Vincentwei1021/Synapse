@@ -160,9 +160,9 @@ describe("ProposalFilter - i18n keys", () => {
 describe("ProposalFilter - fetch URL construction", () => {
   it("constructs correct API URL from projectUuid", () => {
     const projectUuid = "proj-0000-0000-0000-000000000001";
-    const url = `/api/projects/${projectUuid}/proposals/summary`;
+    const url = `/api/research-projects/${projectUuid}/experiment-designs/summary`;
     expect(url).toBe(
-      "/api/projects/proj-0000-0000-0000-000000000001/proposals/summary"
+      "/api/research-projects/proj-0000-0000-0000-000000000001/experiment-designs/summary"
     );
   });
 
@@ -170,9 +170,9 @@ describe("ProposalFilter - fetch URL construction", () => {
     const selected = new Set(["uuid-1", "uuid-2"]);
     const params = new URLSearchParams();
     if (selected.size > 0) {
-      params.set("proposalUuids", Array.from(selected).join(","));
+      params.set("designUuids", Array.from(selected).join(","));
     }
-    expect(params.get("proposalUuids")).toContain("uuid-1");
-    expect(params.get("proposalUuids")).toContain("uuid-2");
+    expect(params.get("designUuids")).toContain("uuid-1");
+    expect(params.get("designUuids")).toContain("uuid-2");
   });
 });

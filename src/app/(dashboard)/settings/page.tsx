@@ -111,7 +111,7 @@ export default function SettingsPage() {
     setSelectedRoles((prev) => {
       const newRoles = prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role];
       // Reset admin confirmation if admin role is deselected
-      if (role === "admin_agent" && prev.includes(role)) {
+      if (role === "pi_agent" && prev.includes(role)) {
         setAdminConfirmed(false);
       }
       return newRoles;
@@ -234,20 +234,20 @@ export default function SettingsPage() {
   // Get available persona presets based on selected roles
   const getAvailablePersonas = () => {
     const personas: { id: string; labelKey: string; descKey: string }[] = [];
-    if (selectedRoles.includes("pm_agent")) {
+    if (selectedRoles.includes("research_lead_agent")) {
       personas.push(...PM_PERSONAS);
     }
-    if (selectedRoles.includes("developer_agent")) {
+    if (selectedRoles.includes("researcher_agent")) {
       personas.push(...DEV_PERSONAS);
     }
-    if (selectedRoles.includes("admin_agent")) {
+    if (selectedRoles.includes("pi_agent")) {
       personas.push(...ADMIN_PERSONAS);
     }
     return personas;
   };
 
   // Check if admin role is selected
-  const hasAdminRole = selectedRoles.includes("admin_agent");
+  const hasAdminRole = selectedRoles.includes("pi_agent");
 
   // Edit modal helpers
   const openEditModal = (key: ApiKey) => {
@@ -255,7 +255,7 @@ export default function SettingsPage() {
     setEditName(key.name || "");
     setEditRoles([...key.roles]);
     setEditPersona(key.persona || "");
-    setEditAdminConfirmed(key.roles.includes("admin_agent"));
+    setEditAdminConfirmed(key.roles.includes("pi_agent"));
     setShowEditModal(true);
   };
 
@@ -271,7 +271,7 @@ export default function SettingsPage() {
   const toggleEditRole = (role: string) => {
     setEditRoles((prev) => {
       const newRoles = prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role];
-      if (role === "admin_agent" && prev.includes(role)) {
+      if (role === "pi_agent" && prev.includes(role)) {
         setEditAdminConfirmed(false);
       }
       return newRoles;
@@ -280,13 +280,13 @@ export default function SettingsPage() {
 
   const getEditAvailablePersonas = () => {
     const personas: { id: string; labelKey: string; descKey: string }[] = [];
-    if (editRoles.includes("pm_agent")) {
+    if (editRoles.includes("research_lead_agent")) {
       personas.push(...PM_PERSONAS);
     }
-    if (editRoles.includes("developer_agent")) {
+    if (editRoles.includes("researcher_agent")) {
       personas.push(...DEV_PERSONAS);
     }
-    if (editRoles.includes("admin_agent")) {
+    if (editRoles.includes("pi_agent")) {
       personas.push(...ADMIN_PERSONAS);
     }
     return personas;
@@ -325,7 +325,7 @@ export default function SettingsPage() {
     }
   };
 
-  const editHasAdminRole = editRoles.includes("admin_agent");
+  const editHasAdminRole = editRoles.includes("pi_agent");
 
   if (loading) {
     return (
@@ -401,7 +401,7 @@ export default function SettingsPage() {
         ) : (
           <div className="space-y-3">
             {apiKeys.map((key) => {
-              const isAdmin = key.roles.includes("admin_agent");
+              const isAdmin = key.roles.includes("pi_agent");
               return (
               <div
                 key={key.uuid}
@@ -418,7 +418,7 @@ export default function SettingsPage() {
                       className={`flex h-9 w-9 items-center justify-center rounded-lg ${
                         isAdmin
                           ? "bg-red-100 dark:bg-red-900"
-                          : key.roles.includes("developer_agent")
+                          : key.roles.includes("researcher_agent")
                             ? "bg-green-100"
                             : "bg-primary/10"
                       }`}
@@ -428,7 +428,7 @@ export default function SettingsPage() {
                       ) : (
                       <Key
                         className={`h-[18px] w-[18px] ${
-                          key.roles.includes("developer_agent")
+                          key.roles.includes("researcher_agent")
                             ? "text-green-600"
                             : "text-primary"
                         }`}
@@ -471,17 +471,17 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-2">
                     <div
                       className={`flex h-[18px] w-[18px] items-center justify-center rounded ${
-                        key.roles.includes("developer_agent")
+                        key.roles.includes("researcher_agent")
                           ? "bg-primary"
                           : "border-2 border-border"
                       }`}
                     >
-                      {key.roles.includes("developer_agent") && (
+                      {key.roles.includes("researcher_agent") && (
                         <Check className="h-3 w-3 text-primary-foreground" strokeWidth={3} />
                       )}
                     </div>
                     <span
-                      className={`text-xs ${key.roles.includes("developer_agent") ? "text-foreground" : "text-muted-foreground"}`}
+                      className={`text-xs ${key.roles.includes("researcher_agent") ? "text-foreground" : "text-muted-foreground"}`}
                     >
                       {t("settings.developerAgent")}
                     </span>
@@ -489,17 +489,17 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-2">
                     <div
                       className={`flex h-[18px] w-[18px] items-center justify-center rounded ${
-                        key.roles.includes("pm_agent")
+                        key.roles.includes("research_lead_agent")
                           ? "bg-primary"
                           : "border-2 border-border"
                       }`}
                     >
-                      {key.roles.includes("pm_agent") && (
+                      {key.roles.includes("research_lead_agent") && (
                         <Check className="h-3 w-3 text-primary-foreground" strokeWidth={3} />
                       )}
                     </div>
                     <span
-                      className={`text-xs ${key.roles.includes("pm_agent") ? "text-foreground" : "text-muted-foreground"}`}
+                      className={`text-xs ${key.roles.includes("research_lead_agent") ? "text-foreground" : "text-muted-foreground"}`}
                     >
                       {t("settings.pmAgent")}
                     </span>
@@ -507,17 +507,17 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-2">
                     <div
                       className={`flex h-[18px] w-[18px] items-center justify-center rounded ${
-                        key.roles.includes("admin_agent")
+                        key.roles.includes("pi_agent")
                           ? "bg-red-500"
                           : "border-2 border-border"
                       }`}
                     >
-                      {key.roles.includes("admin_agent") && (
+                      {key.roles.includes("pi_agent") && (
                         <Check className="h-3 w-3 text-white" strokeWidth={3} />
                       )}
                     </div>
                     <span
-                      className={`text-xs ${key.roles.includes("admin_agent") ? "font-medium text-red-600 dark:text-red-400" : "text-muted-foreground"}`}
+                      className={`text-xs ${key.roles.includes("pi_agent") ? "font-medium text-red-600 dark:text-red-400" : "text-muted-foreground"}`}
                     >
                       {t("settings.adminAgent")}
                     </span>
@@ -712,21 +712,21 @@ export default function SettingsPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => toggleRole("developer_agent")}
+                        onClick={() => toggleRole("researcher_agent")}
                         className={`flex h-auto w-full items-start justify-start gap-3 rounded-lg border p-3 text-left transition-colors ${
-                          selectedRoles.includes("developer_agent")
+                          selectedRoles.includes("researcher_agent")
                             ? "border-primary bg-primary/5"
                             : "border-border hover:border-primary"
                         }`}
                       >
                         <div
                           className={`mt-0.5 flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded ${
-                            selectedRoles.includes("developer_agent")
+                            selectedRoles.includes("researcher_agent")
                               ? "bg-primary"
                               : "border-2 border-border"
                           }`}
                         >
-                          {selectedRoles.includes("developer_agent") && (
+                          {selectedRoles.includes("researcher_agent") && (
                             <Check className="h-3 w-3 text-primary-foreground" strokeWidth={3} />
                           )}
                         </div>
@@ -742,21 +742,21 @@ export default function SettingsPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => toggleRole("pm_agent")}
+                        onClick={() => toggleRole("research_lead_agent")}
                         className={`flex h-auto w-full items-start justify-start gap-3 rounded-lg border p-3 text-left transition-colors ${
-                          selectedRoles.includes("pm_agent")
+                          selectedRoles.includes("research_lead_agent")
                             ? "border-primary bg-primary/5"
                             : "border-border hover:border-primary"
                         }`}
                       >
                         <div
                           className={`mt-0.5 flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded ${
-                            selectedRoles.includes("pm_agent")
+                            selectedRoles.includes("research_lead_agent")
                               ? "bg-primary"
                               : "border-2 border-border"
                           }`}
                         >
-                          {selectedRoles.includes("pm_agent") && (
+                          {selectedRoles.includes("research_lead_agent") && (
                             <Check className="h-3 w-3 text-primary-foreground" strokeWidth={3} />
                           )}
                         </div>
@@ -773,21 +773,21 @@ export default function SettingsPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => toggleRole("admin_agent")}
+                        onClick={() => toggleRole("pi_agent")}
                         className={`flex h-auto w-full items-start justify-start gap-3 rounded-lg border p-3 text-left transition-colors ${
-                          selectedRoles.includes("admin_agent")
+                          selectedRoles.includes("pi_agent")
                             ? "border-red-500 bg-red-50 dark:bg-red-950"
                             : "border-border hover:border-red-400"
                         }`}
                       >
                         <div
                           className={`mt-0.5 flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded ${
-                            selectedRoles.includes("admin_agent")
+                            selectedRoles.includes("pi_agent")
                               ? "bg-red-500"
                               : "border-2 border-red-300"
                           }`}
                         >
-                          {selectedRoles.includes("admin_agent") && (
+                          {selectedRoles.includes("pi_agent") && (
                             <Check className="h-3 w-3 text-white" strokeWidth={3} />
                           )}
                         </div>
@@ -956,21 +956,21 @@ export default function SettingsPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => toggleEditRole("developer_agent")}
+                      onClick={() => toggleEditRole("researcher_agent")}
                       className={`flex h-auto w-full items-start justify-start gap-3 rounded-lg border p-3 text-left transition-colors ${
-                        editRoles.includes("developer_agent")
+                        editRoles.includes("researcher_agent")
                           ? "border-primary bg-primary/5"
                           : "border-border hover:border-primary"
                       }`}
                     >
                       <div
                         className={`mt-0.5 flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded ${
-                          editRoles.includes("developer_agent")
+                          editRoles.includes("researcher_agent")
                             ? "bg-primary"
                             : "border-2 border-border"
                         }`}
                       >
-                        {editRoles.includes("developer_agent") && (
+                        {editRoles.includes("researcher_agent") && (
                           <Check className="h-3 w-3 text-primary-foreground" strokeWidth={3} />
                         )}
                       </div>
@@ -986,21 +986,21 @@ export default function SettingsPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => toggleEditRole("pm_agent")}
+                      onClick={() => toggleEditRole("research_lead_agent")}
                       className={`flex h-auto w-full items-start justify-start gap-3 rounded-lg border p-3 text-left transition-colors ${
-                        editRoles.includes("pm_agent")
+                        editRoles.includes("research_lead_agent")
                           ? "border-primary bg-primary/5"
                           : "border-border hover:border-primary"
                       }`}
                     >
                       <div
                         className={`mt-0.5 flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded ${
-                          editRoles.includes("pm_agent")
+                          editRoles.includes("research_lead_agent")
                             ? "bg-primary"
                             : "border-2 border-border"
                         }`}
                       >
-                        {editRoles.includes("pm_agent") && (
+                        {editRoles.includes("research_lead_agent") && (
                           <Check className="h-3 w-3 text-primary-foreground" strokeWidth={3} />
                         )}
                       </div>
@@ -1017,21 +1017,21 @@ export default function SettingsPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => toggleEditRole("admin_agent")}
+                      onClick={() => toggleEditRole("pi_agent")}
                       className={`flex h-auto w-full items-start justify-start gap-3 rounded-lg border p-3 text-left transition-colors ${
-                        editRoles.includes("admin_agent")
+                        editRoles.includes("pi_agent")
                           ? "border-red-500 bg-red-50 dark:bg-red-950"
                           : "border-border hover:border-red-400"
                       }`}
                     >
                       <div
                         className={`mt-0.5 flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded ${
-                          editRoles.includes("admin_agent")
+                          editRoles.includes("pi_agent")
                             ? "bg-red-500"
                             : "border-2 border-red-300"
                         }`}
                       >
-                        {editRoles.includes("admin_agent") && (
+                        {editRoles.includes("pi_agent") && (
                           <Check className="h-3 w-3 text-white" strokeWidth={3} />
                         )}
                       </div>
@@ -1048,7 +1048,7 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Admin Warning Box */}
-                  {editHasAdminRole && !editingKey.roles.includes("admin_agent") && (
+                  {editHasAdminRole && !editingKey.roles.includes("pi_agent") && (
                     <div className="mt-3 rounded-lg border border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
                       <div className="flex items-start gap-3">
                         <AlertTriangle className="h-5 w-5 flex-shrink-0 text-red-600 dark:text-red-400" />
@@ -1136,9 +1136,9 @@ export default function SettingsPage() {
                   type="submit"
                   disabled={
                     !editName || editRoles.length === 0 || saving ||
-                    (editHasAdminRole && !editingKey.roles.includes("admin_agent") && !editAdminConfirmed)
+                    (editHasAdminRole && !editingKey.roles.includes("pi_agent") && !editAdminConfirmed)
                   }
-                  className={editHasAdminRole && !editingKey.roles.includes("admin_agent") ? "bg-red-600 hover:bg-red-700" : ""}
+                  className={editHasAdminRole && !editingKey.roles.includes("pi_agent") ? "bg-red-600 hover:bg-red-700" : ""}
                 >
                   {saving ? t("settings.saving") : t("settings.saveChanges")}
                 </Button>

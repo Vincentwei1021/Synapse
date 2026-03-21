@@ -1,4 +1,4 @@
-// src/app/(dashboard)/projects/[uuid]/proposals/[proposalUuid]/page.tsx
+// src/app/(dashboard)/research-projects/[uuid]/experiment-designs/[designUuid]/page.tsx
 // Server Component - UUID obtained from URL
 // Container Model: Proposal contains documentDrafts and taskDrafts
 
@@ -22,14 +22,14 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { MarkdownContent } from "@/components/markdown-content";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { getProposal, type DocumentDraft, type TaskDraft } from "@/services/proposal.service";
-import { getIdea } from "@/services/idea.service";
-import { projectExists } from "@/services/project.service";
-import { ProposalActions } from "./proposal-actions";
-import { ProposalEditor } from "./proposal-editor";
-import { ProposalComments } from "./proposal-comments";
-import { SourceIdeasCard } from "./source-ideas-card";
-import { ProposalValidationChecklist } from "./proposal-validation-checklist";
+import { getExperimentDesign, type DocumentDraft, type TaskDraft } from "@/services/experiment-design.service";
+import { getResearchQuestion } from "@/services/research-question.service";
+import { researchProjectExists } from "@/services/research-project.service";
+import { DesignActions } from "./design-actions";
+import { DesignEditor } from "./design-editor";
+import { DesignComments } from "./design-comments";
+import { SourceQuestionsCard } from "./source-questions-card";
+import { DesignValidationChecklist } from "./design-validation-checklist";
 
 // Status color configuration
 const statusColors: Record<string, string> = {
@@ -60,12 +60,12 @@ const statusI18nKeys: Record<string, string> = {
 
 // Input type to i18n key mapping
 const inputTypeI18nKeys: Record<string, { key: string }> = {
-  idea: { key: "ideas.title" },
+  research_question: { key: "ideas.title" },
   document: { key: "documents.title" },
 };
 
 interface PageProps {
-  params: Promise<{ uuid: string; proposalUuid: string }>;
+  params: Promise<{ uuid: string; designUuid: string }>;
 }
 
 export default async function ProposalDetailPage({ params }: PageProps) {
@@ -74,22 +74,22 @@ export default async function ProposalDetailPage({ params }: PageProps) {
     redirect("/login");
   }
 
-  const { uuid: projectUuid, proposalUuid } = await params;
+  const { uuid: projectUuid, designUuid } = await params;
   const t = await getTranslations();
 
   // Validate project exists
-  const exists = await projectExists(auth.companyUuid, projectUuid);
+  const exists = await researchProjectExists(auth.companyUuid, projectUuid);
   if (!exists) {
-    redirect("/projects");
+    redirect("/research-projects");
   }
 
   // Get Proposal details
-  const proposal = await getProposal(auth.companyUuid, proposalUuid);
+  const proposal = await getExperimentDesign(auth.companyUuid, designUuid);
   if (!proposal) {
     return (
       <div className="flex h-full flex-col items-center justify-center">
         <div className="text-muted-foreground">{t("proposals.proposalNotFound")}</div>
-        <Link href={`/projects/${projectUuid}/proposals`} className="mt-4 text-[#C67A52] hover:underline">
+        <Link href={`/research-projects/${projectUuid}/experiment-designs`} className="mt-4 text-[#C67A52] hover:underline">
           {t("proposals.backToProposals")}
         </Link>
       </div>
@@ -100,17 +100,17 @@ export default async function ProposalDetailPage({ params }: PageProps) {
   const taskDrafts = proposal.taskDrafts as TaskDraft[] | null;
 
   // Fetch source ideas (when inputType is "idea" and inputUuids exist)
-  const sourceIdeas = proposal.inputType === "idea" && proposal.inputUuids?.length
+  const sourceIdeas = proposal.inputType === "research_question" && proposal.inputUuids?.length
     ? (await Promise.all(
-        proposal.inputUuids.map((uuid: string) => getIdea(auth.companyUuid, uuid))
-      )).filter(Boolean) as Awaited<ReturnType<typeof getIdea>>[]
+        proposal.inputUuids.map((uuid: string) => getResearchQuestion(auth.companyUuid, uuid))
+      )).filter(Boolean) as Awaited<ReturnType<typeof getResearchQuestion>>[]
     : [];
 
   return (
     <div className="px-4 py-4 md:px-10 md:py-8">
       {/* Breadcrumb */}
       <div className="mb-7 flex items-center gap-2 text-xs">
-        <Link href={`/projects/${projectUuid}/proposals`} className="text-muted-foreground hover:text-foreground transition-colors">
+        <Link href={`/research-projects/${projectUuid}/experiment-designs`} className="text-muted-foreground hover:text-foreground transition-colors">
           {t("nav.proposals")}
         </Link>
         <ChevronRight className="h-3.5 w-3.5 text-[#D0CCC4]" />
@@ -164,8 +164,8 @@ export default async function ProposalDetailPage({ params }: PageProps) {
             </div>
           </div>
         </div>
-        <ProposalActions
-          proposalUuid={proposalUuid}
+        <DesignActions
+          designUuid={designUuid}
           projectUuid={projectUuid}
           status={proposal.status}
         />
@@ -193,16 +193,16 @@ export default async function ProposalDetailPage({ params }: PageProps) {
 
           {/* Validation Checklist (draft only) */}
           {proposal.status === "draft" && (
-            <ProposalValidationChecklist
+            <DesignValidationChecklist
               projectUuid={projectUuid}
-              proposalUuid={proposalUuid}
+              designUuid={designUuid}
               status={proposal.status}
             />
           )}
 
           {/* Editable Document and Task Drafts */}
-          <ProposalEditor
-            proposalUuid={proposalUuid}
+          <DesignEditor
+            designUuid={designUuid}
             projectUuid={projectUuid}
             status={proposal.status}
             documentDrafts={documentDrafts}
@@ -260,7 +260,7 @@ export default async function ProposalDetailPage({ params }: PageProps) {
 
           {/* Source Ideas Card */}
           {sourceIdeas.length > 0 && (
-            <SourceIdeasCard
+            <SourceQuestionsCard
               ideas={sourceIdeas.map((idea) => ({
                 uuid: idea!.uuid,
                 title: idea!.title,
@@ -384,7 +384,7 @@ export default async function ProposalDetailPage({ params }: PageProps) {
           )}
 
           {/* Comments */}
-          <ProposalComments proposalUuid={proposalUuid} currentUserUuid={auth.actorUuid} />
+          <DesignComments designUuid={designUuid} currentUserUuid={auth.actorUuid} />
 
           {/* Draft Notice */}
           {proposal.status === "draft" && (

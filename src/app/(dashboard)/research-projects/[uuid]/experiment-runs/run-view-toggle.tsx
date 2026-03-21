@@ -9,10 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePanelUrl } from "@/hooks/use-panel-url";
-import { ProposalFilter } from "@/components/proposal-filter";
+import { ProposalFilter } from "@/components/design-filter";
 import { KanbanBoard } from "./kanban-board";
 import { DagView } from "./dag-view";
-import { TaskDetailPanel } from "./task-detail-panel";
+import { TaskDetailPanel } from "./run-detail-panel";
 
 interface Task {
   uuid: string;
@@ -20,8 +20,8 @@ interface Task {
   description: string | null;
   status: string;
   priority: string;
-  storyPoints: number | null;
-  proposalUuid: string | null;
+  computeBudgetHours: number | null;
+  experimentDesignUuid: string | null;
   assignee: {
     type: string;
     uuid: string;
@@ -83,12 +83,12 @@ export function TaskViewToggle({ projectUuid, initialTasks, currentUserUuid, ini
   const searchParams = useSearchParams();
   const [view, setView] = useState<"kanban" | "dag" | "list">("kanban");
 
-  const basePath = `/projects/${projectUuid}/tasks`;
+  const basePath = `/research-projects/${projectUuid}/experiment-runs`;
   const { selectedId: selectedTaskUuid, openPanel, closePanel } = usePanelUrl(basePath, initialSelectedTaskUuid);
 
-  // Parse proposalUuids from URL for filtering
-  const proposalUuidFilter = useMemo(() => {
-    const param = searchParams.get("proposalUuids");
+  // Parse experimentDesignUuids from URL for filtering
+  const experimentDesignUuidFilter = useMemo(() => {
+    const param = searchParams.get("experimentDesignUuids");
     if (!param) return null;
     const uuids = param.split(",").filter(Boolean);
     return uuids.length > 0 ? new Set(uuids) : null;
@@ -115,9 +115,9 @@ export function TaskViewToggle({ projectUuid, initialTasks, currentUserUuid, ini
 
   // Apply both proposal filter and status filter
   const proposalFilteredTasks = useMemo(() => {
-    if (!proposalUuidFilter) return initialTasks;
-    return initialTasks.filter(task => task.proposalUuid && proposalUuidFilter.has(task.proposalUuid));
-  }, [initialTasks, proposalUuidFilter]);
+    if (!experimentDesignUuidFilter) return initialTasks;
+    return initialTasks.filter(task => task.experimentDesignUuid && experimentDesignUuidFilter.has(task.experimentDesignUuid));
+  }, [initialTasks, experimentDesignUuidFilter]);
 
   const filteredTasks = useMemo(() => {
     const filter = statusFilters.find(f => f.id === activeFilter);
@@ -246,9 +246,9 @@ export function TaskViewToggle({ projectUuid, initialTasks, currentUserUuid, ini
                       )}
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      {task.storyPoints != null && task.storyPoints > 0 && (
+                      {task.computeBudgetHours != null && task.computeBudgetHours > 0 && (
                         <span className="rounded bg-[#FFF3E0] px-2 py-0.5 text-xs font-medium text-[#E65100]">
-                          {task.storyPoints}h
+                          {task.computeBudgetHours}h
                         </span>
                       )}
                       <Badge className={priorityColors[task.priority] || ""}>
@@ -293,7 +293,7 @@ export function TaskViewToggle({ projectUuid, initialTasks, currentUserUuid, ini
         <div className="flex flex-1 flex-col">
           <DagView
             projectUuid={projectUuid}
-            onTaskSelect={(taskUuid) => openPanel(taskUuid)}
+            onTaskSelect={(runUuid) => openPanel(runUuid)}
             refreshKey={dagRefreshKey}
           />
           {selectedTask && (

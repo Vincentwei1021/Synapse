@@ -41,7 +41,7 @@ export function ManageProjectGroupDialog({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteProjects, setDeleteProjects] = useState(false);
+  const [deleteResearchProjects, setDeleteProjects] = useState(false);
 
   // Reset state when dialog opens
   const handleOpenChange = (open: boolean) => {
@@ -75,7 +75,7 @@ export function ManageProjectGroupDialog({
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      // If deleteProjects is true, we'd need a separate endpoint.
+      // If deleteResearchProjects is true, we'd need a separate endpoint.
       // For now, the delete endpoint just ungroups projects.
       // TODO: Add delete-with-projects option to API if needed.
       const res = await authFetch(`/api/project-groups/${groupUuid}`, {
@@ -84,7 +84,7 @@ export function ManageProjectGroupDialog({
       const json = await res.json();
       if (json.success) {
         onOpenChange(false);
-        router.push("/projects");
+        router.push("/research-projects");
       }
     } finally {
       setDeleting(false);
@@ -168,7 +168,7 @@ export function ManageProjectGroupDialog({
                     <input
                       type="radio"
                       name="deleteOption"
-                      checked={!deleteProjects}
+                      checked={!deleteResearchProjects}
                       onChange={() => setDeleteProjects(false)}
                       className="accent-[#C67A52]"
                     />
@@ -178,7 +178,7 @@ export function ManageProjectGroupDialog({
                     <input
                       type="radio"
                       name="deleteOption"
-                      checked={deleteProjects}
+                      checked={deleteResearchProjects}
                       onChange={() => setDeleteProjects(true)}
                       className="accent-red-600"
                     />

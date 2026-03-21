@@ -1,8 +1,8 @@
-// src/app/(dashboard)/projects/[uuid]/ideas/page.tsx
+// src/app/(dashboard)/research-projects/[uuid]/research-questions/page.tsx
 // Server Component — list view (no panel selected)
 // Legacy ?idea={id} redirect is handled by middleware (HTTP 307)
 
-import { IdeasPageContent } from "./ideas-page-content";
+import { IdeasPageContent } from "./questions-page-content";
 
 interface PageProps {
   params: Promise<{ uuid: string }>;

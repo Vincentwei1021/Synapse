@@ -16,7 +16,7 @@ interface DagNode {
   title: string;
   status: string;
   priority: string;
-  proposalUuid: string | null;
+  experimentDesignUuid: string | null;
 }
 
 interface DagEdge {
@@ -33,14 +33,14 @@ function parseProposalUuidsParam(param: string | null): Set<string> | null {
 function filterDagByProposals(
   nodes: DagNode[],
   edges: DagEdge[],
-  proposalUuids: Set<string> | null
+  experimentDesignUuids: Set<string> | null
 ): { nodes: DagNode[]; edges: DagEdge[] } {
-  if (!proposalUuids) {
+  if (!experimentDesignUuids) {
     return { nodes, edges };
   }
 
   const filteredNodes = nodes.filter(
-    (n) => n.proposalUuid !== null && proposalUuids.has(n.proposalUuid)
+    (n) => n.experimentDesignUuid !== null && experimentDesignUuids.has(n.experimentDesignUuid)
   );
   const visibleNodeIds = new Set(filteredNodes.map((n) => n.uuid));
   const filteredEdges = edges.filter(
@@ -55,11 +55,11 @@ function filterDagByProposals(
 // ------------------------------------------------------------------
 
 const NODES: DagNode[] = [
-  { uuid: "t1", title: "Task 1", status: "open", priority: "high", proposalUuid: "p1" },
-  { uuid: "t2", title: "Task 2", status: "in_progress", priority: "medium", proposalUuid: "p1" },
-  { uuid: "t3", title: "Task 3", status: "done", priority: "low", proposalUuid: "p2" },
-  { uuid: "t4", title: "Task 4", status: "open", priority: "high", proposalUuid: "p2" },
-  { uuid: "t5", title: "Task 5", status: "assigned", priority: "medium", proposalUuid: null },
+  { uuid: "t1", title: "Task 1", status: "open", priority: "high", experimentDesignUuid: "p1" },
+  { uuid: "t2", title: "Task 2", status: "in_progress", priority: "medium", experimentDesignUuid: "p1" },
+  { uuid: "t3", title: "Task 3", status: "done", priority: "low", experimentDesignUuid: "p2" },
+  { uuid: "t4", title: "Task 4", status: "open", priority: "high", experimentDesignUuid: "p2" },
+  { uuid: "t5", title: "Task 5", status: "assigned", priority: "medium", experimentDesignUuid: null },
 ];
 
 const EDGES: DagEdge[] = [
@@ -81,7 +81,7 @@ describe("DAG view - ProposalFilter integration", () => {
     const fs = require("fs");
     const path = require("path");
     const content = fs.readFileSync(
-      path.resolve(__dirname, "../task-view-toggle.tsx"),
+      path.resolve(__dirname, "../run-view-toggle.tsx"),
       "utf-8"
     );
 
@@ -95,7 +95,7 @@ describe("DAG view - ProposalFilter integration", () => {
 // ------------------------------------------------------------------
 // 2. URL param parsing
 // ------------------------------------------------------------------
-describe("DAG view - proposalUuids param parsing", () => {
+describe("DAG view - experimentDesignUuids param parsing", () => {
   it("returns null for empty/null param", () => {
     expect(parseProposalUuidsParam(null)).toBeNull();
     expect(parseProposalUuidsParam("")).toBeNull();
@@ -113,10 +113,10 @@ describe("DAG view - proposalUuids param parsing", () => {
 });
 
 // ------------------------------------------------------------------
-// 3. Node filtering by proposalUuids
+// 3. Node filtering by experimentDesignUuids
 // ------------------------------------------------------------------
 describe("DAG view - node filtering", () => {
-  it("returns all nodes when proposalUuids is null (no filter)", () => {
+  it("returns all nodes when experimentDesignUuids is null (no filter)", () => {
     const result = filterDagByProposals(NODES, EDGES, null);
     expect(result.nodes).toHaveLength(5);
     expect(result.edges).toHaveLength(4);
@@ -134,7 +134,7 @@ describe("DAG view - node filtering", () => {
     expect(result.nodes.map((n) => n.uuid).sort()).toEqual(["t1", "t2", "t3", "t4"]);
   });
 
-  it("excludes tasks with null proposalUuid", () => {
+  it("excludes tasks with null experimentDesignUuid", () => {
     const result = filterDagByProposals(NODES, EDGES, new Set(["p1"]));
     const uuids = result.nodes.map((n) => n.uuid);
     expect(uuids).not.toContain("t5");
@@ -169,7 +169,7 @@ describe("DAG view - edge filtering", () => {
 
   it("keeps cross-proposal edges when both proposals selected", () => {
     const result = filterDagByProposals(NODES, EDGES, new Set(["p1", "p2"]));
-    // t1, t2, t3, t4 visible; t5 hidden (null proposalUuid)
+    // t1, t2, t3, t4 visible; t5 hidden (null experimentDesignUuid)
     // Edge t2->t1: both visible => kept
     // Edge t3->t1: both visible => kept
     // Edge t4->t3: both visible => kept
@@ -180,8 +180,8 @@ describe("DAG view - edge filtering", () => {
     expect(result.edges).toContainEqual({ from: "t4", to: "t3" });
   });
 
-  it("removes edges to null-proposalUuid tasks", () => {
-    // t5 has null proposalUuid, so it's always excluded when filtering
+  it("removes edges to null-experimentDesignUuid tasks", () => {
+    // t5 has null experimentDesignUuid, so it's always excluded when filtering
     const result = filterDagByProposals(NODES, EDGES, new Set(["p1"]));
     const edgeTargets = result.edges.map((e) => [e.from, e.to]).flat();
     expect(edgeTargets).not.toContain("t5");

@@ -29,9 +29,9 @@ import {
   ArrowRight,
   Folder,
 } from "lucide-react";
-import { MoveProjectConfirmDialog } from "@/components/move-project-confirm-dialog";
+import { MoveProjectConfirmDialog } from "@/components/move-research-project-confirm-dialog";
 import { CreateProjectGroupDialog } from "@/components/create-project-group-dialog";
-import { CreateProjectDialog } from "@/components/create-project-dialog";
+import { CreateProjectDialog } from "@/components/create-research-project-dialog";
 
 // Types
 interface ProjectData {
@@ -293,7 +293,7 @@ function GroupSection({
                               {...provided.dragHandleProps}
                             >
                               <Link
-                                href={`/projects/${project.uuid}/dashboard`}
+                                href={`/research-projects/${project.uuid}/dashboard`}
                                 draggable={false}
                                 onClick={(e) => {
                                   if (snapshot.isDragging) e.preventDefault();
@@ -407,7 +407,7 @@ function UngroupedSection({ projects, onNewProject }: { projects: ProjectData[];
                                 {...provided.dragHandleProps}
                               >
                                 <Link
-                                  href={`/projects/${project.uuid}/dashboard`}
+                                  href={`/research-projects/${project.uuid}/dashboard`}
                                   draggable={false}
                                   onClick={(e) => {
                                     if (snapshot.isDragging) e.preventDefault();
@@ -456,12 +456,12 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
-  const [createProjectTarget, setCreateProjectTarget] = useState<{ groupUuid: string | null; groupName: string } | null>(null);
+  const [createResearchProjectTarget, setCreateProjectTarget] = useState<{ groupUuid: string | null; groupName: string } | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
       const [projectsRes, groupsRes] = await Promise.all([
-        fetch("/api/projects?pageSize=200"),
+        fetch("/api/research-projects?pageSize=200"),
         fetch("/api/project-groups"),
       ]);
       const projectsJson = await projectsRes.json();
@@ -536,7 +536,7 @@ export default function ProjectsPage() {
     const sourceGroupUuid = project.groupUuid;
 
     setPendingMove({
-      projectUuid: project.uuid,
+      researchProjectUuid: project.uuid,
       projectName: project.name,
       sourceGroupName: getGroupName(sourceGroupUuid),
       targetGroupUuid,
@@ -546,7 +546,7 @@ export default function ProjectsPage() {
 
   async function handleConfirmMove() {
     if (!pendingMove) return;
-    const res = await fetch(`/api/projects/${pendingMove.projectUuid}/group`, {
+    const res = await fetch(`/api/research-projects/${pendingMove.projectUuid}/group`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ groupUuid: pendingMove.targetGroupUuid }),
@@ -603,7 +603,7 @@ export default function ProjectsPage() {
               <p className="mb-6 max-w-sm text-sm text-[#6B6B6B]">
                 {t("projects.noProjectsDesc")}
               </p>
-              <Link href="/projects/new">
+              <Link href="/research-projects/new">
                 <Button className="bg-[#C67A52] text-white hover:bg-[#B56A42]">
                   {t("projects.createFirst")}
                 </Button>
@@ -660,12 +660,12 @@ export default function ProjectsPage() {
 
       {/* Create Project dialog */}
       <CreateProjectDialog
-        open={createProjectTarget !== null}
+        open={createResearchProjectTarget !== null}
         onOpenChange={(open) => {
           if (!open) setCreateProjectTarget(null);
         }}
-        groupUuid={createProjectTarget?.groupUuid ?? null}
-        groupName={createProjectTarget?.groupName ?? ""}
+        groupUuid={createResearchProjectTarget?.groupUuid ?? null}
+        groupName={createResearchProjectTarget?.groupName ?? ""}
         onCreated={() => {
           setCreateProjectTarget(null);
           fetchData();

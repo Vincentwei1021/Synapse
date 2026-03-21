@@ -2,11 +2,11 @@
 
 import { getServerAuthContext } from "@/lib/auth-server";
 import { listComments, createComment, type CommentResponse } from "@/services/comment.service";
-import { getTaskByUuid } from "@/services/task.service";
+import { getExperimentRunByUuid } from "@/services/experiment-run.service";
 import { createActivity } from "@/services/activity.service";
 
-export async function getTaskCommentsAction(
-  taskUuid: string
+export async function getExperimentRunCommentsAction(
+  runUuid: string
 ): Promise<{ comments: CommentResponse[]; total: number }> {
   const auth = await getServerAuthContext();
   if (!auth) {
@@ -16,8 +16,8 @@ export async function getTaskCommentsAction(
   try {
     const result = await listComments({
       companyUuid: auth.companyUuid,
-      targetType: "task",
-      targetUuid: taskUuid,
+      targetType: "experiment_run",
+      targetUuid: runUuid,
       skip: 0,
       take: 100,
     });
@@ -28,8 +28,8 @@ export async function getTaskCommentsAction(
   }
 }
 
-export async function createTaskCommentAction(
-  taskUuid: string,
+export async function createExperimentRunCommentAction(
+  runUuid: string,
   content: string
 ): Promise<{ success: boolean; comment?: CommentResponse; error?: string }> {
   const auth = await getServerAuthContext();
@@ -43,15 +43,15 @@ export async function createTaskCommentAction(
 
   try {
     // Validate task exists
-    const task = await getTaskByUuid(auth.companyUuid, taskUuid);
+    const task = await getExperimentRunByUuid(auth.companyUuid, runUuid);
     if (!task) {
       return { success: false, error: "Task not found" };
     }
 
     const comment = await createComment({
       companyUuid: auth.companyUuid,
-      targetType: "task",
-      targetUuid: taskUuid,
+      targetType: "experiment_run",
+      targetUuid: runUuid,
       content: content.trim(),
       authorType: auth.type,
       authorUuid: auth.actorUuid,
@@ -60,9 +60,9 @@ export async function createTaskCommentAction(
     // Record activity for notification pipeline
     await createActivity({
       companyUuid: auth.companyUuid,
-      projectUuid: task.projectUuid,
-      targetType: "task",
-      targetUuid: taskUuid,
+      researchProjectUuid: task.researchProjectUuid,
+      targetType: "experiment_run",
+      targetUuid: runUuid,
       actorType: auth.type,
       actorUuid: auth.actorUuid,
       action: "comment_added",

@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { AssignModal } from "@/components/assign-modal";
 import { UserPlus, CheckCircle, Loader2 } from "lucide-react";
-import { claimTaskAction, claimTaskToAgentAction, claimTaskToUserAction, verifyTaskAction, getDeveloperAgentsAction } from "./actions";
+import { claimRunAction, claimRunToAgentAction, claimTaskToUserAction, verifyTaskAction, getDeveloperAgentsAction } from "./actions";
 
 interface Agent {
   uuid: string;
@@ -22,13 +22,13 @@ interface CompanyUser {
 }
 
 interface TaskActionsProps {
-  taskUuid: string;
+  runUuid: string;
   projectUuid: string;
   status: string;
   currentUserUuid?: string;
 }
 
-export function TaskActions({ taskUuid, status, currentUserUuid }: TaskActionsProps) {
+export function TaskActions({ runUuid, status, currentUserUuid }: TaskActionsProps) {
   const t = useTranslations();
   const router = useRouter();
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -47,20 +47,20 @@ export function TaskActions({ taskUuid, status, currentUserUuid }: TaskActionsPr
   }, [showAssignModal]);
 
   const handleAssignToSelf = async () => {
-    return claimTaskAction(taskUuid);
+    return claimRunAction(runUuid);
   };
 
   const handleAssignToAgent = async (agentUuid: string) => {
-    return claimTaskToAgentAction(taskUuid, agentUuid);
+    return claimRunToAgentAction(runUuid, agentUuid);
   };
 
   const handleAssignToUser = async (userUuid: string) => {
-    return claimTaskToUserAction(taskUuid, userUuid);
+    return claimTaskToUserAction(runUuid, userUuid);
   };
 
   const handleVerify = () => {
     startTransition(async () => {
-      const result = await verifyTaskAction(taskUuid);
+      const result = await verifyTaskAction(runUuid);
       if (result.success) {
         router.refresh();
       }

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Card } from "@/components/ui/card";
-import { updateTaskStatusAction } from "./actions";
+import { updateExperimentRunStatusAction } from "./actions";
 
 const statusOrder = ["open", "assigned", "in_progress", "to_verify", "done"];
 
@@ -17,11 +17,11 @@ const statusI18nKeys: Record<string, string> = {
 };
 
 interface TaskStatusProgressProps {
-  taskUuid: string;
+  runUuid: string;
   currentStatus: string;
 }
 
-export function TaskStatusProgress({ taskUuid, currentStatus }: TaskStatusProgressProps) {
+export function TaskStatusProgress({ runUuid, currentStatus }: TaskStatusProgressProps) {
   const t = useTranslations();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -30,7 +30,7 @@ export function TaskStatusProgress({ taskUuid, currentStatus }: TaskStatusProgre
 
   const handleStatusChange = (newStatus: string) => {
     startTransition(async () => {
-      const result = await updateTaskStatusAction(taskUuid, newStatus);
+      const result = await updateExperimentRunStatusAction(runUuid, newStatus);
       if (result.success) {
         router.refresh();
       }

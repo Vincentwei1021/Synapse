@@ -46,7 +46,7 @@ export function CreateProjectDialog({
 
     startTransition(async () => {
       try {
-        const res = await fetch("/api/projects", {
+        const res = await fetch("/api/research-projects", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -147,7 +147,7 @@ export function CreateProjectDialog({
             )}
             {isPending
               ? t("common.creating")
-              : t("projectGroups.createProject")}
+              : t("projectGroups.createResearchProject")}
           </Button>
         </div>
       </DialogContent>

@@ -3,20 +3,20 @@
 import { revalidatePath } from "next/cache";
 import { getServerAuthContext } from "@/lib/auth-server";
 import {
-  createProposal,
+  createExperimentDesign,
   checkIdeasAssignee,
   type DocumentDraftInput,
   type TaskDraftInput,
-} from "@/services/proposal.service";
-import { projectExists } from "@/services/project.service";
+} from "@/services/experiment-design.service";
+import { researchProjectExists } from "@/services/research-project.service";
 
 // Create Proposal
-export async function createProposalAction(
+export async function createExperimentDesignAction(
   projectUuid: string,
   data: {
     title: string;
     description?: string;
-    inputType: "idea" | "document";
+    inputType: "research_question" | "document";
     inputUuids: string[];
     documentDrafts?: DocumentDraftInput[];
     taskDrafts?: TaskDraftInput[];
@@ -29,7 +29,7 @@ export async function createProposalAction(
 
   try {
     // Validate project exists
-    if (!(await projectExists(auth.companyUuid, projectUuid))) {
+    if (!(await researchProjectExists(auth.companyUuid, projectUuid))) {
       return { success: false, error: "Project not found" };
     }
 
@@ -42,7 +42,7 @@ export async function createProposalAction(
     }
 
     // If input type is idea, additional validation is needed
-    if (data.inputType === "idea") {
+    if (data.inputType === "research_question") {
       // Validate if user is the assignee of these Ideas
       const assigneeCheck = await checkIdeasAssignee(
         auth.companyUuid,
@@ -60,7 +60,7 @@ export async function createProposalAction(
       // Note: Ideas can be reused across multiple Proposals (no availability check blocking)
     }
 
-    const proposal = await createProposal({
+    const proposal = await createExperimentDesign({
       companyUuid: auth.companyUuid,
       projectUuid,
       title: data.title.trim(),
@@ -73,7 +73,7 @@ export async function createProposalAction(
       createdByType: "user",
     });
 
-    revalidatePath(`/projects/${projectUuid}/proposals`);
+    revalidatePath(`/research-projects/${projectUuid}/experiment-designs`);
 
     return { success: true, proposal };
   } catch (error) {

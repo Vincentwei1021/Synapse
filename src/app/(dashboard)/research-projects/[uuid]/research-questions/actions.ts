@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { createIdea, updateIdea, deleteIdea } from "@/services/idea.service";
+import { createResearchQuestion, updateResearchQuestion, deleteResearchQuestion } from "@/services/research-question.service";
 
 interface Attachment {
   type: string;
@@ -18,24 +18,24 @@ interface CreateIdeaInput {
   attachments?: Attachment[];
 }
 
-export async function createIdeaAction(input: CreateIdeaInput) {
+export async function createResearchQuestionAction(input: CreateIdeaInput) {
   const auth = await getServerAuthContext();
   if (!auth) {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
-    const idea = await createIdea({
+    const idea = await createResearchQuestion({
       companyUuid: auth.companyUuid,
-      projectUuid: input.projectUuid,
+      researchProjectUuid: input.projectUuid,
       title: input.title,
       content: input.content || null,
       attachments: input.attachments || null,
       createdByUuid: auth.actorUuid,
     });
 
-    revalidatePath(`/projects/${input.projectUuid}/ideas`);
-    return { success: true, ideaUuid: idea.uuid };
+    revalidatePath(`/research-projects/${input.projectUuid}/research-questions`);
+    return { success: true, questionUuid: idea.uuid };
   } catch (error) {
     console.error("Failed to create idea:", error);
     return { success: false, error: "Failed to create idea" };
@@ -43,25 +43,25 @@ export async function createIdeaAction(input: CreateIdeaInput) {
 }
 
 interface UpdateIdeaInput {
-  ideaUuid: string;
+  questionUuid: string;
   projectUuid: string;
   title: string;
   content: string | null;
 }
 
-export async function updateIdeaAction(input: UpdateIdeaInput) {
+export async function updateResearchQuestionAction(input: UpdateIdeaInput) {
   const auth = await getServerAuthContext();
   if (!auth) {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
-    const idea = await updateIdea(input.ideaUuid, auth.companyUuid, {
+    const idea = await updateResearchQuestion(input.questionUuid, auth.companyUuid, {
       title: input.title,
       content: input.content,
     });
 
-    revalidatePath(`/projects/${input.projectUuid}/ideas`);
+    revalidatePath(`/research-projects/${input.projectUuid}/research-questions`);
     return { success: true, idea };
   } catch (error) {
     console.error("Failed to update idea:", error);
@@ -69,15 +69,15 @@ export async function updateIdeaAction(input: UpdateIdeaInput) {
   }
 }
 
-export async function deleteIdeaAction(ideaUuid: string, projectUuid: string) {
+export async function deleteResearchQuestionAction(questionUuid: string, projectUuid: string) {
   const auth = await getServerAuthContext();
   if (!auth) {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
-    await deleteIdea(ideaUuid);
-    revalidatePath(`/projects/${projectUuid}/ideas`);
+    await deleteResearchQuestion(questionUuid);
+    revalidatePath(`/research-projects/${projectUuid}/research-questions`);
     return { success: true };
   } catch (error) {
     console.error("Failed to delete idea:", error);

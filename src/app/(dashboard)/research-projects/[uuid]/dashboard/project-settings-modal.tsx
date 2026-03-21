@@ -27,7 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { updateProjectAction, deleteProjectAction } from "../actions";
+import { updateResearchProjectAction, deleteResearchProjectAction } from "../actions";
 
 interface ProjectSettingsModalProps {
   projectUuid: string;
@@ -50,7 +50,7 @@ export function ProjectSettingsModal({
 
   const handleSave = async () => {
     setSaving(true);
-    const result = await updateProjectAction(projectUuid, {
+    const result = await updateResearchProjectAction(projectUuid, {
       name,
       description: description || null,
     });
@@ -63,7 +63,7 @@ export function ProjectSettingsModal({
 
   const handleDelete = async () => {
     setDeleting(true);
-    const result = await deleteProjectAction(projectUuid);
+    const result = await deleteResearchProjectAction(projectUuid);
     if (result && !result.success) {
       setDeleting(false);
     }
@@ -167,10 +167,10 @@ export function ProjectSettingsModal({
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>
-                        {t("projectOverview.deleteProject")}
+                        {t("projectOverview.deleteResearchProject")}
                       </AlertDialogTitle>
                       <AlertDialogDescription>
-                        {t("projectOverview.deleteProjectConfirm", {
+                        {t("projectOverview.deleteResearchProjectConfirm", {
                           name: projectName,
                         })}
                       </AlertDialogDescription>

@@ -23,8 +23,8 @@ export async function updateDocumentAction(
 
     await updateDocument(documentUuid, { content });
 
-    revalidatePath(`/projects/${projectUuid}/documents/${documentUuid}`);
-    revalidatePath(`/projects/${projectUuid}/documents`);
+    revalidatePath(`/research-projects/${projectUuid}/documents/${documentUuid}`);
+    revalidatePath(`/research-projects/${projectUuid}/documents`);
 
     return { success: true };
   } catch (error) {

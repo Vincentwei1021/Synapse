@@ -8,7 +8,7 @@ import {
   type TaskSessionInfo,
 } from "@/services/session.service";
 
-export async function getTaskSessionsAction(taskUuid: string): Promise<{
+export async function getExperimentRunSessionsAction(runUuid: string): Promise<{
   success: boolean;
   data?: TaskSessionInfo[];
   error?: string;
@@ -19,7 +19,7 @@ export async function getTaskSessionsAction(taskUuid: string): Promise<{
   }
 
   try {
-    const sessions = await getSessionsForTask(auth.companyUuid, taskUuid);
+    const sessions = await getSessionsForTask(auth.companyUuid, runUuid);
     return { success: true, data: sessions };
   } catch (error) {
     console.error("Failed to fetch task sessions:", error);
@@ -27,7 +27,7 @@ export async function getTaskSessionsAction(taskUuid: string): Promise<{
   }
 }
 
-export async function getBatchWorkerCountsAction(taskUuids: string[]): Promise<{
+export async function getBatchWorkerCountsAction(runUuids: string[]): Promise<{
   success: boolean;
   data?: Record<string, number>;
   error?: string;
@@ -38,7 +38,7 @@ export async function getBatchWorkerCountsAction(taskUuids: string[]): Promise<{
   }
 
   try {
-    const counts = await batchGetWorkerCountsForTasks(auth.companyUuid, taskUuids);
+    const counts = await batchGetWorkerCountsForTasks(auth.companyUuid, runUuids);
     return { success: true, data: counts };
   } catch (error) {
     console.error("Failed to fetch batch worker counts:", error);

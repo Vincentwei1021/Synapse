@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { createIdeaAction } from "./actions";
+import { createResearchQuestionAction } from "./actions";
 
 interface IdeaCreateFormProps {
   projectUuid: string;
@@ -34,7 +34,7 @@ export function IdeaCreateForm({ projectUuid }: IdeaCreateFormProps) {
 
     startTransition(async () => {
       try {
-        const result = await createIdeaAction({
+        const result = await createResearchQuestionAction({
           projectUuid,
           title: title.trim(),
           content: content.trim() || undefined,

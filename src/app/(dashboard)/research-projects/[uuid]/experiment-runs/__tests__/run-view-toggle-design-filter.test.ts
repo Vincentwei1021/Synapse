@@ -25,17 +25,17 @@ interface MockTask {
   uuid: string;
   title: string;
   status: string;
-  proposalUuid: string | null;
+  experimentDesignUuid: string | null;
 }
 
 function filterByProposal(
   tasks: MockTask[],
-  proposalUuidFilter: Set<string> | null
+  experimentDesignUuidFilter: Set<string> | null
 ): MockTask[] {
-  if (!proposalUuidFilter) return tasks;
+  if (!experimentDesignUuidFilter) return tasks;
   return tasks.filter(
     (task) =>
-      task.proposalUuid && proposalUuidFilter.has(task.proposalUuid)
+      task.experimentDesignUuid && experimentDesignUuidFilter.has(task.experimentDesignUuid)
   );
 }
 
@@ -55,31 +55,31 @@ const sampleTasks: MockTask[] = [
     uuid: "task-1",
     title: "Task from proposal A",
     status: "open",
-    proposalUuid: "proposal-a",
+    experimentDesignUuid: "proposal-a",
   },
   {
     uuid: "task-2",
     title: "Task from proposal A (in progress)",
     status: "in_progress",
-    proposalUuid: "proposal-a",
+    experimentDesignUuid: "proposal-a",
   },
   {
     uuid: "task-3",
     title: "Task from proposal B",
     status: "open",
-    proposalUuid: "proposal-b",
+    experimentDesignUuid: "proposal-b",
   },
   {
     uuid: "task-4",
     title: "Task without proposal",
     status: "done",
-    proposalUuid: null,
+    experimentDesignUuid: null,
   },
   {
     uuid: "task-5",
     title: "Task from proposal C",
     status: "to_verify",
-    proposalUuid: "proposal-c",
+    experimentDesignUuid: "proposal-c",
   },
 ];
 
@@ -100,7 +100,7 @@ describe("TaskViewToggle - ProposalFilter integration", () => {
 
     // Verify import
     expect(content).toContain(
-      'import { ProposalFilter } from "@/components/proposal-filter"'
+      'import { ProposalFilter } from "@/components/design-filter"'
     );
 
     // Verify usage in JSX - rendered before the toolbar (shared across all views)
@@ -130,7 +130,7 @@ describe("TaskViewToggle - ProposalFilter integration", () => {
 });
 
 // ------------------------------------------------------------------
-// 2. Task filtering by proposalUuids works correctly
+// 2. Task filtering by experimentDesignUuids works correctly
 // ------------------------------------------------------------------
 describe("TaskViewToggle - proposal UUID filtering", () => {
   it("returns null filter when param is null", () => {
@@ -160,7 +160,7 @@ describe("TaskViewToggle - proposal UUID filtering", () => {
     const filter = new Set(["proposal-a"]);
     const result = filterByProposal(sampleTasks, filter);
     expect(result).toHaveLength(2);
-    expect(result.every((t) => t.proposalUuid === "proposal-a")).toBe(true);
+    expect(result.every((t) => t.experimentDesignUuid === "proposal-a")).toBe(true);
   });
 
   it("filters tasks by multiple proposal UUIDs", () => {
@@ -170,12 +170,12 @@ describe("TaskViewToggle - proposal UUID filtering", () => {
     expect(
       result.every(
         (t) =>
-          t.proposalUuid === "proposal-a" || t.proposalUuid === "proposal-c"
+          t.experimentDesignUuid === "proposal-a" || t.experimentDesignUuid === "proposal-c"
       )
     ).toBe(true);
   });
 
-  it("excludes tasks with null proposalUuid", () => {
+  it("excludes tasks with null experimentDesignUuid", () => {
     const filter = new Set(["proposal-a"]);
     const result = filterByProposal(sampleTasks, filter);
     expect(result.find((t) => t.uuid === "task-4")).toBeUndefined();

@@ -38,10 +38,10 @@ interface Project {
   name: string;
 }
 
-// Extract project UUID from URL
+// Extract research project UUID from URL
 function extractProjectUuid(pathname: string): string | null {
-  // Match /projects/[uuid] or /projects/[uuid]/anything
-  const match = pathname.match(/^\/projects\/([a-f0-9-]{36})(\/|$)/);
+  // Match /research-projects/[uuid] or /research-projects/[uuid]/anything
+  const match = pathname.match(/^\/research-projects\/([a-f0-9-]{36})(\/|$)/);
   return match ? match[1] : null;
 }
 
@@ -68,10 +68,10 @@ export default function DashboardLayout({
   const currentProjectUuid = extractProjectUuid(pathname);
   const currentProject = projects.find((p) => p.uuid === currentProjectUuid) || null;
 
-  // Global pages: /projects, /projects/new, /settings
+  // Global pages: /research-projects, /research-projects/new, /settings
   const isGlobalPage =
-    pathname === "/projects" ||
-    pathname === "/projects/new" ||
+    pathname === "/research-projects" ||
+    pathname === "/research-projects/new" ||
     pathname === "/settings" ||
     pathname.startsWith("/project-groups");
   const isProjectContext = currentProjectUuid && !isGlobalPage;
@@ -128,7 +128,7 @@ export default function DashboardLayout({
 
   const fetchProjects = async () => {
     try {
-      const response = await authFetch("/api/projects");
+      const response = await authFetch("/api/research-projects");
       if (!response.ok) {
         console.error("Failed to fetch projects:", response.status);
         return;
@@ -145,7 +145,7 @@ export default function DashboardLayout({
   const selectProject = (project: Project) => {
     setProjectMenuOpen(false);
     // Navigate to project dashboard with UUID in URL
-    router.push(`/projects/${project.uuid}/dashboard`);
+    router.push(`/research-projects/${project.uuid}/dashboard`);
   };
 
   const handleLogout = async () => {
@@ -167,17 +167,17 @@ export default function DashboardLayout({
 
   // Project navigation items - build URLs using UUIDs
   const getProjectNavItems = (projectUuid: string) => [
-    { href: `/projects/${projectUuid}/dashboard`, label: t("nav.overview"), icon: LayoutDashboard },
-    { href: `/projects/${projectUuid}/ideas`, label: t("nav.ideas"), icon: Lightbulb },
-    { href: `/projects/${projectUuid}/documents`, label: t("nav.documents"), icon: FileText },
-    { href: `/projects/${projectUuid}/proposals`, label: t("nav.proposals"), icon: Tags },
-    { href: `/projects/${projectUuid}/tasks`, label: t("nav.tasks"), icon: CheckSquare },
-    { href: `/projects/${projectUuid}/activity`, label: t("nav.activity"), icon: Activity },
+    { href: `/research-projects/${projectUuid}/dashboard`, label: t("nav.overview"), icon: LayoutDashboard },
+    { href: `/research-projects/${projectUuid}/research-questions`, label: t("nav.ideas"), icon: Lightbulb },
+    { href: `/research-projects/${projectUuid}/documents`, label: t("nav.documents"), icon: FileText },
+    { href: `/research-projects/${projectUuid}/experiment-designs`, label: t("nav.proposals"), icon: Tags },
+    { href: `/research-projects/${projectUuid}/experiment-runs`, label: t("nav.tasks"), icon: CheckSquare },
+    { href: `/research-projects/${projectUuid}/activity`, label: t("nav.activity"), icon: Activity },
   ];
 
   // Global navigation items
   const globalNavItems = [
-    { href: "/projects", label: t("nav.projects"), icon: FolderKanban },
+    { href: "/research-projects", label: t("nav.projects"), icon: FolderKanban },
     { href: "/settings", label: t("nav.settings"), icon: Settings },
   ];
 
@@ -187,8 +187,8 @@ export default function DashboardLayout({
       return pathname === href;
     }
     // For /projects list page
-    if (href === "/projects") {
-      return pathname === "/projects";
+    if (href === "/research-projects") {
+      return pathname === "/research-projects";
     }
     return pathname === href || pathname.startsWith(href + "/");
   };
@@ -210,7 +210,7 @@ export default function DashboardLayout({
         {/* Logo + Notification Bell */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src="/chorus-icon.png" alt="Chorus" className="h-7 w-7" />
+            <img src="/synapse-icon.png" alt="Synapse" className="h-7 w-7" />
             <span className="text-base font-semibold text-foreground">
               {t("common.appName")}
             </span>
@@ -225,7 +225,7 @@ export default function DashboardLayout({
           {isProjectContext && currentProjectUuid ? (
             <>
               {/* Back to Projects */}
-              <Link href="/projects">
+              <Link href="/research-projects">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -271,7 +271,7 @@ export default function DashboardLayout({
                       ))}
                       <div className="my-1 border-t border-border" />
                       <Link
-                        href="/projects/new"
+                        href="/research-projects/new"
                         onClick={() => setProjectMenuOpen(false)}
                       >
                         <Button
@@ -382,7 +382,7 @@ export default function DashboardLayout({
           <Menu className="h-5 w-5 text-muted-foreground" />
         </button>
         <div className="flex items-center gap-2">
-          <img src="/chorus-icon.png" alt="Chorus" className="h-6 w-6" />
+          <img src="/synapse-icon.png" alt="Synapse" className="h-6 w-6" />
           <span className="text-sm font-semibold text-foreground">{t("common.appName")}</span>
         </div>
         <NotificationBell />

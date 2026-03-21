@@ -15,12 +15,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  claimTaskAction,
-  claimTaskToAgentAction,
+  claimRunAction,
+  claimRunToAgentAction,
   claimTaskToUserAction,
-  releaseTaskAction,
+  releaseRunAction,
   getDeveloperAgentsAction,
-} from "./[taskUuid]/actions";
+} from "./[runUuid]/actions";
 
 interface Task {
   uuid: string;
@@ -95,13 +95,13 @@ export function AssignTaskModal({
     let result;
 
     if (selectedOption === "self") {
-      result = await claimTaskAction(task.uuid);
+      result = await claimRunAction(task.uuid);
     } else if (selectedOption === "agent" && selectedAgentUuid) {
-      result = await claimTaskToAgentAction(task.uuid, selectedAgentUuid);
+      result = await claimRunToAgentAction(task.uuid, selectedAgentUuid);
     } else if (selectedOption === "user" && selectedUserUuid) {
       result = await claimTaskToUserAction(task.uuid, selectedUserUuid);
     } else if (selectedOption === "release") {
-      result = await releaseTaskAction(task.uuid);
+      result = await releaseRunAction(task.uuid);
     } else {
       setIsLoading(false);
       return;

@@ -2,10 +2,10 @@
 
 import { getServerAuthContext } from "@/lib/auth-server";
 import { listActivitiesWithActorNames, type ActivityResponse } from "@/services/activity.service";
-import { getIdeaByUuid } from "@/services/idea.service";
+import { getResearchQuestionByUuid } from "@/services/research-question.service";
 
-export async function getIdeaActivitiesAction(
-  ideaUuid: string
+export async function getQuestionActivitiesAction(
+  questionUuid: string
 ): Promise<{ activities: ActivityResponse[]; total: number }> {
   const auth = await getServerAuthContext();
   if (!auth) {
@@ -13,16 +13,16 @@ export async function getIdeaActivitiesAction(
   }
 
   try {
-    const idea = await getIdeaByUuid(auth.companyUuid, ideaUuid);
+    const idea = await getResearchQuestionByUuid(auth.companyUuid, questionUuid);
     if (!idea) {
       return { activities: [], total: 0 };
     }
 
     return await listActivitiesWithActorNames({
       companyUuid: auth.companyUuid,
-      projectUuid: idea.projectUuid,
-      targetType: "idea",
-      targetUuid: ideaUuid,
+      researchProjectUuid: idea.researchProjectUuid,
+      targetType: "research_question",
+      targetUuid: questionUuid,
       skip: 0,
       take: 50,
     });

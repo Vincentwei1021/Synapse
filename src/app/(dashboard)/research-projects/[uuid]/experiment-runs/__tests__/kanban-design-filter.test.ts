@@ -8,13 +8,13 @@
 import { describe, it, expect } from "vitest";
 
 // ------------------------------------------------------------------
-// Helper: replicate the proposalUuid filtering logic from TaskViewToggle
+// Helper: replicate the experimentDesignUuid filtering logic from TaskViewToggle
 // ------------------------------------------------------------------
 interface MockTask {
   uuid: string;
   title: string;
   status: string;
-  proposalUuid: string | null;
+  experimentDesignUuid: string | null;
 }
 
 function parseProposalUuidFilter(paramValue: string | null): Set<string> | null {
@@ -25,18 +25,18 @@ function parseProposalUuidFilter(paramValue: string | null): Set<string> | null 
 
 function filterTasksByProposal(tasks: MockTask[], filter: Set<string> | null): MockTask[] {
   if (!filter) return tasks;
-  return tasks.filter((task) => task.proposalUuid && filter.has(task.proposalUuid));
+  return tasks.filter((task) => task.experimentDesignUuid && filter.has(task.experimentDesignUuid));
 }
 
 // ------------------------------------------------------------------
 // Sample data
 // ------------------------------------------------------------------
 const sampleTasks: MockTask[] = [
-  { uuid: "t1", title: "Task 1", status: "open", proposalUuid: "prop-a" },
-  { uuid: "t2", title: "Task 2", status: "in_progress", proposalUuid: "prop-a" },
-  { uuid: "t3", title: "Task 3", status: "done", proposalUuid: "prop-b" },
-  { uuid: "t4", title: "Task 4", status: "open", proposalUuid: null },
-  { uuid: "t5", title: "Task 5", status: "assigned", proposalUuid: "prop-c" },
+  { uuid: "t1", title: "Task 1", status: "open", experimentDesignUuid: "prop-a" },
+  { uuid: "t2", title: "Task 2", status: "in_progress", experimentDesignUuid: "prop-a" },
+  { uuid: "t3", title: "Task 3", status: "done", experimentDesignUuid: "prop-b" },
+  { uuid: "t4", title: "Task 4", status: "open", experimentDesignUuid: null },
+  { uuid: "t5", title: "Task 5", status: "assigned", experimentDesignUuid: "prop-c" },
 ];
 
 // ------------------------------------------------------------------
@@ -91,39 +91,39 @@ describe("Kanban view - ProposalFilter integration", () => {
 });
 
 // ------------------------------------------------------------------
-// 2. Task filtering logic when proposalUuids are provided
+// 2. Task filtering logic when experimentDesignUuids are provided
 // ------------------------------------------------------------------
-describe("Kanban view - task filtering by proposalUuids", () => {
-  it("returns all tasks when no proposalUuids filter is set", () => {
+describe("Kanban view - task filtering by experimentDesignUuids", () => {
+  it("returns all tasks when no experimentDesignUuids filter is set", () => {
     const filter = parseProposalUuidFilter(null);
     const result = filterTasksByProposal(sampleTasks, filter);
     expect(result).toHaveLength(sampleTasks.length);
   });
 
-  it("returns all tasks when proposalUuids param is empty string", () => {
+  it("returns all tasks when experimentDesignUuids param is empty string", () => {
     const filter = parseProposalUuidFilter("");
     const result = filterTasksByProposal(sampleTasks, filter);
     expect(result).toHaveLength(sampleTasks.length);
   });
 
-  it("filters tasks to only those matching a single proposalUuid", () => {
+  it("filters tasks to only those matching a single experimentDesignUuid", () => {
     const filter = parseProposalUuidFilter("prop-a");
     const result = filterTasksByProposal(sampleTasks, filter);
     expect(result).toHaveLength(2);
     expect(result.map((t) => t.uuid)).toEqual(["t1", "t2"]);
   });
 
-  it("filters tasks matching multiple proposalUuids", () => {
+  it("filters tasks matching multiple experimentDesignUuids", () => {
     const filter = parseProposalUuidFilter("prop-a,prop-b");
     const result = filterTasksByProposal(sampleTasks, filter);
     expect(result).toHaveLength(3);
     expect(result.map((t) => t.uuid)).toEqual(["t1", "t2", "t3"]);
   });
 
-  it("excludes tasks with null proposalUuid when filter is active", () => {
+  it("excludes tasks with null experimentDesignUuid when filter is active", () => {
     const filter = parseProposalUuidFilter("prop-a,prop-b,prop-c");
     const result = filterTasksByProposal(sampleTasks, filter);
-    // t4 has null proposalUuid, should be excluded
+    // t4 has null experimentDesignUuid, should be excluded
     expect(result).toHaveLength(4);
     expect(result.find((t) => t.uuid === "t4")).toBeUndefined();
   });
@@ -158,7 +158,7 @@ describe("Kanban view - filtered subtitle", () => {
 
   it("does not show subtitle when no filter is active", () => {
     const filter = parseProposalUuidFilter(null);
-    // proposalUuidFilter is null, so subtitle should not be shown
+    // experimentDesignUuidFilter is null, so subtitle should not be shown
     expect(filter).toBeNull();
   });
 });

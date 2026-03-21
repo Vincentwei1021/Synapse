@@ -21,7 +21,7 @@ import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { getProjectDependenciesAction } from "./actions";
-import { addTaskDependencyAction } from "./[taskUuid]/dependency-actions";
+import { addRunDependencyAction } from "./[runUuid]/dependency-actions";
 
 // Status colors matching existing patterns
 const statusColors: Record<string, string> = {
@@ -69,7 +69,7 @@ interface TaskNodeData {
   title: string;
   status: string;
   priority: string;
-  proposalUuid: string | null;
+  experimentDesignUuid: string | null;
   [key: string]: unknown;
 }
 
@@ -139,7 +139,7 @@ function getLayoutedElements(
 
 interface DagViewProps {
   projectUuid: string;
-  onTaskSelect: (taskUuid: string) => void;
+  onTaskSelect: (runUuid: string) => void;
   refreshKey?: number;
 }
 
@@ -157,9 +157,9 @@ export function DagView({ projectUuid, onTaskSelect, refreshKey }: DagViewProps)
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Parse proposalUuids from URL search params
-  const proposalUuids = useMemo(() => {
-    const param = searchParams.get("proposalUuids");
+  // Parse experimentDesignUuids from URL search params
+  const experimentDesignUuids = useMemo(() => {
+    const param = searchParams.get("experimentDesignUuids");
     if (!param) return null;
     const uuids = param.split(",").filter(Boolean);
     return uuids.length > 0 ? new Set(uuids) : null;
@@ -172,10 +172,10 @@ export function DagView({ projectUuid, onTaskSelect, refreshKey }: DagViewProps)
     let filteredNodes = data.nodes;
     let filteredEdgeData = data.edges;
 
-    // Filter by proposalUuids if set
-    if (proposalUuids) {
+    // Filter by experimentDesignUuids if set
+    if (experimentDesignUuids) {
       filteredNodes = data.nodes.filter(
-        (n) => n.proposalUuid !== null && proposalUuids.has(n.proposalUuid)
+        (n) => n.experimentDesignUuid !== null && experimentDesignUuids.has(n.experimentDesignUuid)
       );
       const visibleNodeIds = new Set(filteredNodes.map((n) => n.uuid));
       filteredEdgeData = data.edges.filter(
@@ -187,15 +187,15 @@ export function DagView({ projectUuid, onTaskSelect, refreshKey }: DagViewProps)
       id: n.uuid,
       type: "taskNode",
       position: { x: 0, y: 0 },
-      data: { title: n.title, status: n.status, priority: n.priority, proposalUuid: n.proposalUuid },
+      data: { title: n.title, status: n.status, priority: n.priority, experimentDesignUuid: n.experimentDesignUuid },
     }));
 
-    // edges: from = taskUuid (depends on), to = dependsOnUuid
-    // In visualization: dependsOnUuid -> taskUuid (arrow from dependency to dependent)
+    // edges: from = runUuid (depends on), to = dependsOnUuid
+    // In visualization: dependsOnUuid -> runUuid (arrow from dependency to dependent)
     const rawEdges: Edge[] = filteredEdgeData.map((e, i) => ({
       id: `e-${i}`,
       source: e.to,    // dependsOnUuid (the upstream task)
-      target: e.from,   // taskUuid (the task that depends on it)
+      target: e.from,   // runUuid (the task that depends on it)
       ...defaultEdgeStyle,
     }));
 
@@ -203,7 +203,7 @@ export function DagView({ projectUuid, onTaskSelect, refreshKey }: DagViewProps)
     setNodes(layoutedNodes);
     setEdges(layoutedEdges);
     setIsLoading(false);
-  }, [projectUuid, proposalUuids, setNodes, setEdges]);
+  }, [projectUuid, experimentDesignUuids, setNodes, setEdges]);
 
   useEffect(() => {
     loadDag();
@@ -214,11 +214,11 @@ export function DagView({ projectUuid, onTaskSelect, refreshKey }: DagViewProps)
       if (!connection.source || !connection.target) return;
       setError(null);
 
-      // source = upstream task (dependsOnUuid), target = downstream task (taskUuid)
-      const taskUuid = connection.target;
+      // source = upstream task (dependsOnUuid), target = downstream task (runUuid)
+      const runUuid = connection.target;
       const dependsOnUuid = connection.source;
 
-      const result = await addTaskDependencyAction(taskUuid, dependsOnUuid);
+      const result = await addRunDependencyAction(runUuid, dependsOnUuid);
       if (!result.success) {
         setError(result.error || t("tasks.failedToAddDep"));
         return;

@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { assignIdea, releaseIdea, getIdeaByUuid } from "@/services/idea.service";
+import { assignIdea, releaseIdea, getResearchQuestionByUuid } from "@/services/research-question.service";
 import { getAgentsByRole, getCompanyUsers } from "@/services/agent.service";
 import { createActivity } from "@/services/activity.service";
 
-export async function claimIdeaAction(ideaUuid: string) {
+export async function claimIdeaAction(questionUuid: string) {
   const auth = await getServerAuthContext();
   if (!auth) {
     return { success: false, error: "Unauthorized" };
@@ -14,7 +14,7 @@ export async function claimIdeaAction(ideaUuid: string) {
 
   try {
     // Validate idea exists and belongs to this company
-    const idea = await getIdeaByUuid(auth.companyUuid, ideaUuid);
+    const idea = await getResearchQuestionByUuid(auth.companyUuid, questionUuid);
     if (!idea) {
       return { success: false, error: "Idea not found" };
     }
@@ -25,7 +25,7 @@ export async function claimIdeaAction(ideaUuid: string) {
     }
 
     await assignIdea({
-      ideaUuid,
+      questionUuid,
       companyUuid: auth.companyUuid,
       assigneeType: auth.type,
       assigneeUuid: auth.actorUuid,
@@ -34,17 +34,17 @@ export async function claimIdeaAction(ideaUuid: string) {
 
     await createActivity({
       companyUuid: auth.companyUuid,
-      projectUuid: idea.projectUuid,
-      targetType: "idea",
-      targetUuid: ideaUuid,
+      researchProjectUuid: idea.researchProjectUuid,
+      targetType: "research_question",
+      targetUuid: questionUuid,
       actorType: auth.type,
       actorUuid: auth.actorUuid,
       action: "assigned",
       value: { assigneeType: auth.type, assigneeUuid: auth.actorUuid },
     });
 
-    revalidatePath(`/projects/${idea.projectUuid}/ideas/${ideaUuid}`);
-    revalidatePath(`/projects/${idea.projectUuid}/ideas`);
+    revalidatePath(`/research-projects/${idea.researchProjectUuid}/research-questions/${questionUuid}`);
+    revalidatePath(`/research-projects/${idea.researchProjectUuid}/research-questions`);
 
     return { success: true };
   } catch (error) {
@@ -54,14 +54,14 @@ export async function claimIdeaAction(ideaUuid: string) {
 }
 
 // Claim idea to a specific agent
-export async function claimIdeaToAgentAction(ideaUuid: string, agentUuid: string) {
+export async function claimIdeaToAgentAction(questionUuid: string, agentUuid: string) {
   const auth = await getServerAuthContext();
   if (!auth || auth.type !== "user") {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
-    const idea = await getIdeaByUuid(auth.companyUuid, ideaUuid);
+    const idea = await getResearchQuestionByUuid(auth.companyUuid, questionUuid);
     if (!idea) {
       return { success: false, error: "Idea not found" };
     }
@@ -72,7 +72,7 @@ export async function claimIdeaToAgentAction(ideaUuid: string, agentUuid: string
     }
 
     await assignIdea({
-      ideaUuid,
+      questionUuid,
       companyUuid: auth.companyUuid,
       assigneeType: "agent",
       assigneeUuid: agentUuid,
@@ -81,17 +81,17 @@ export async function claimIdeaToAgentAction(ideaUuid: string, agentUuid: string
 
     await createActivity({
       companyUuid: auth.companyUuid,
-      projectUuid: idea.projectUuid,
-      targetType: "idea",
-      targetUuid: ideaUuid,
+      researchProjectUuid: idea.researchProjectUuid,
+      targetType: "research_question",
+      targetUuid: questionUuid,
       actorType: "user",
       actorUuid: auth.actorUuid,
       action: "assigned",
       value: { assigneeType: "agent", assigneeUuid: agentUuid },
     });
 
-    revalidatePath(`/projects/${idea.projectUuid}/ideas/${ideaUuid}`);
-    revalidatePath(`/projects/${idea.projectUuid}/ideas`);
+    revalidatePath(`/research-projects/${idea.researchProjectUuid}/research-questions/${questionUuid}`);
+    revalidatePath(`/research-projects/${idea.researchProjectUuid}/research-questions`);
 
     return { success: true };
   } catch (error) {
@@ -101,14 +101,14 @@ export async function claimIdeaToAgentAction(ideaUuid: string, agentUuid: string
 }
 
 // Claim idea to a specific user (all their PM agents can see it)
-export async function claimIdeaToUserAction(ideaUuid: string, userUuid: string) {
+export async function claimIdeaToUserAction(questionUuid: string, userUuid: string) {
   const auth = await getServerAuthContext();
   if (!auth || auth.type !== "user") {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
-    const idea = await getIdeaByUuid(auth.companyUuid, ideaUuid);
+    const idea = await getResearchQuestionByUuid(auth.companyUuid, questionUuid);
     if (!idea) {
       return { success: false, error: "Idea not found" };
     }
@@ -119,15 +119,15 @@ export async function claimIdeaToUserAction(ideaUuid: string, userUuid: string) 
     }
 
     await assignIdea({
-      ideaUuid,
+      questionUuid,
       companyUuid: auth.companyUuid,
       assigneeType: "user",
       assigneeUuid: userUuid,
       assignedByUuid: auth.actorUuid,
     });
 
-    revalidatePath(`/projects/${idea.projectUuid}/ideas/${ideaUuid}`);
-    revalidatePath(`/projects/${idea.projectUuid}/ideas`);
+    revalidatePath(`/research-projects/${idea.researchProjectUuid}/research-questions/${questionUuid}`);
+    revalidatePath(`/research-projects/${idea.researchProjectUuid}/research-questions`);
 
     return { success: true };
   } catch (error) {
@@ -137,14 +137,14 @@ export async function claimIdeaToUserAction(ideaUuid: string, userUuid: string) 
 }
 
 // Release idea (clear assignee, back to open)
-export async function releaseIdeaAction(ideaUuid: string) {
+export async function releaseIdeaAction(questionUuid: string) {
   const auth = await getServerAuthContext();
   if (!auth) {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
-    const idea = await getIdeaByUuid(auth.companyUuid, ideaUuid);
+    const idea = await getResearchQuestionByUuid(auth.companyUuid, questionUuid);
     if (!idea) {
       return { success: false, error: "Idea not found" };
     }
@@ -156,8 +156,8 @@ export async function releaseIdeaAction(ideaUuid: string) {
 
     await releaseIdea(idea.uuid);
 
-    revalidatePath(`/projects/${idea.projectUuid}/ideas/${ideaUuid}`);
-    revalidatePath(`/projects/${idea.projectUuid}/ideas`);
+    revalidatePath(`/research-projects/${idea.researchProjectUuid}/research-questions/${questionUuid}`);
+    revalidatePath(`/research-projects/${idea.researchProjectUuid}/research-questions`);
 
     return { success: true };
   } catch (error) {

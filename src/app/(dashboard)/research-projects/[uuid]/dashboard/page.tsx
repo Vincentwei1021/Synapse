@@ -1,4 +1,4 @@
-// src/app/(dashboard)/projects/[uuid]/dashboard/page.tsx
+// src/app/(dashboard)/research-projects/[uuid]/dashboard/page.tsx
 // Server Component — Project Dashboard (Industrial Humanist design)
 
 import { redirect } from "next/navigation";
@@ -16,7 +16,7 @@ import {
   CircleCheck,
 } from "lucide-react";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { getProject, getProjectStats } from "@/services/project.service";
+import { getResearchProject, getResearchProjectStats } from "@/services/research-project.service";
 import { listActivitiesWithActorNames } from "@/services/activity.service";
 import { ProjectSettingsModal } from "./project-settings-modal";
 
@@ -52,13 +52,13 @@ export default async function DashboardPage({ params }: PageProps) {
   const { uuid: projectUuid } = await params;
   const t = await getTranslations();
 
-  const project = await getProject(auth.companyUuid, projectUuid);
+  const project = await getResearchProject(auth.companyUuid, projectUuid);
   if (!project) {
-    redirect("/projects");
+    redirect("/research-projects");
   }
 
   const [stats, { activities }] = await Promise.all([
-    getProjectStats(auth.companyUuid, projectUuid),
+    getResearchProjectStats(auth.companyUuid, projectUuid),
     listActivitiesWithActorNames({
       companyUuid: auth.companyUuid,
       projectUuid,
@@ -69,7 +69,7 @@ export default async function DashboardPage({ params }: PageProps) {
 
   // Recent tasks (last 4 with status)
   const prisma = (await import("@/lib/prisma")).prisma;
-  const recentTasks = await prisma.task.findMany({
+  const recentTasks = await prisma.experimentRun.findMany({
     where: { projectUuid, companyUuid: auth.companyUuid },
     orderBy: { updatedAt: "desc" },
     take: 4,
@@ -95,9 +95,9 @@ export default async function DashboardPage({ params }: PageProps) {
   };
 
   const activityDotColors: Record<string, string> = {
-    idea: "bg-[#C67A52]",
-    task: "bg-[#5A9E6F]",
-    proposal: "bg-[#1976D2]",
+    research_question: "bg-[#C67A52]",
+    experiment_run: "bg-[#5A9E6F]",
+    experiment_design: "bg-[#1976D2]",
     document: "bg-[#9A9A9A]",
   };
 
@@ -107,7 +107,7 @@ export default async function DashboardPage({ params }: PageProps) {
       value: stats.ideas.total,
       badge: stats.ideas.open > 0 ? `${stats.ideas.open} ${t("status.open")}` : null,
       badgeStyle: "bg-[#C67A5220] text-[#C67A52]",
-      href: `/projects/${projectUuid}/ideas`,
+      href: `/research-projects/${projectUuid}/research-questions`,
       iconBg: "bg-[#FFF3E0]",
       icon: <Lightbulb className="h-5 w-5 text-[#E65100]" />,
     },
@@ -116,7 +116,7 @@ export default async function DashboardPage({ params }: PageProps) {
       value: stats.tasks.total,
       badge: stats.tasks.inProgress > 0 ? `${stats.tasks.inProgress} ${t("status.active")}` : null,
       badgeStyle: "bg-[#5A9E6F20] text-[#5A9E6F]",
-      href: `/projects/${projectUuid}/tasks`,
+      href: `/research-projects/${projectUuid}/experiment-runs`,
       iconBg: "bg-[#E3F2FD]",
       icon: <LayoutGrid className="h-5 w-5 text-[#1976D2]" />,
     },
@@ -125,7 +125,7 @@ export default async function DashboardPage({ params }: PageProps) {
       value: stats.proposals.total,
       badge: stats.proposals.pending > 0 ? `${stats.proposals.pending} ${t("status.pending")}` : null,
       badgeStyle: "bg-[#C67A5220] text-[#C67A52]",
-      href: `/projects/${projectUuid}/proposals`,
+      href: `/research-projects/${projectUuid}/experiment-designs`,
       iconBg: "bg-[#F3E5F5]",
       icon: <ClipboardList className="h-5 w-5 text-[#7B1FA2]" />,
     },
@@ -134,7 +134,7 @@ export default async function DashboardPage({ params }: PageProps) {
       value: stats.documents.total,
       badge: null,
       badgeStyle: "",
-      href: `/projects/${projectUuid}/documents`,
+      href: `/research-projects/${projectUuid}/documents`,
       iconBg: "bg-[#E8F5E9]",
       icon: <FileText className="h-5 w-5 text-[#5A9E6F]" />,
     },
@@ -164,19 +164,19 @@ export default async function DashboardPage({ params }: PageProps) {
 
       {/* Quick Actions Row */}
       <div className="flex flex-wrap gap-2.5">
-        <Link href={`/projects/${projectUuid}/ideas`}>
+        <Link href={`/research-projects/${projectUuid}/research-questions`}>
           <Button variant="outline" size="sm" className="gap-1.5 rounded-lg border-[#E5E2DC] bg-white text-[12px] font-medium text-[#2C2C2C] hover:border-[#C67A52] hover:bg-white">
             <Plus className="h-3.5 w-3.5 text-[#C67A52]" />
             {t("dashboard.addNewIdea")}
           </Button>
         </Link>
-        <Link href={`/projects/${projectUuid}/proposals`}>
+        <Link href={`/research-projects/${projectUuid}/experiment-designs`}>
           <Button variant="outline" size="sm" className="gap-1.5 rounded-lg border-[#E5E2DC] bg-white text-[12px] font-medium text-[#2C2C2C] hover:border-[#C67A52] hover:bg-white">
             <CircleCheck className="h-3.5 w-3.5 text-[#C67A52]" />
             {t("dashboard.reviewProposals")}
           </Button>
         </Link>
-        <Link href={`/projects/${projectUuid}/tasks`}>
+        <Link href={`/research-projects/${projectUuid}/experiment-runs`}>
           <Button variant="outline" size="sm" className="gap-1.5 rounded-lg border-[#E5E2DC] bg-white text-[12px] font-medium text-[#2C2C2C] hover:border-[#C67A52] hover:bg-white">
             <LayoutGrid className="h-3.5 w-3.5 text-[#C67A52]" />
             {t("dashboard.viewTaskBoard")}
@@ -258,7 +258,7 @@ export default async function DashboardPage({ params }: PageProps) {
                   const style = taskStatusStyle[task.status] || taskStatusStyle.open;
                   const dotColor = taskStatusDot[task.status] || "bg-[#9A9A9A]";
                   return (
-                    <Link key={task.uuid} href={`/projects/${projectUuid}/tasks/${task.uuid}`}>
+                    <Link key={task.uuid} href={`/research-projects/${projectUuid}/experiment-runs/${task.uuid}`}>
                       <div className={`flex items-center gap-3 py-2.5 ${i < recentTasks.length - 1 ? "border-b border-[#F5F2EC]" : ""}`}>
                         <div className={`h-2 w-2 shrink-0 rounded-full ${dotColor}`} />
                         <span className="flex-1 truncate text-[13px] text-[#2C2C2C]">{task.title}</span>
@@ -282,7 +282,7 @@ export default async function DashboardPage({ params }: PageProps) {
         <Card className="flex flex-col rounded-2xl border-0 bg-white p-6 shadow-none">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-[16px] font-semibold text-[#2C2C2C]">{t("dashboard.recentActivity")}</h2>
-            <Link href={`/projects/${projectUuid}/activity`} className="text-[12px] font-medium text-[#C67A52] hover:underline">
+            <Link href={`/research-projects/${projectUuid}/activity`} className="text-[12px] font-medium text-[#C67A52] hover:underline">
               {t("dashboard.viewAll")}
             </Link>
           </div>

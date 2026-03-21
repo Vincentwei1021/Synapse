@@ -31,31 +31,31 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { updateTaskStatusAction, createTaskAction, updateTaskFieldsAction, deleteTaskAction } from "./[taskUuid]/actions";
-import { markCriteriaAction, selfCheckCriteriaAction, resetCriterionAction } from "./[taskUuid]/criteria-actions";
+import { updateExperimentRunStatusAction, createExperimentRunAction, updateExperimentRunFieldsAction, deleteExperimentRunAction } from "./[runUuid]/actions";
+import { markCriteriaAction, selfCheckCriteriaAction, resetCriterionAction } from "./[runUuid]/criteria-actions";
 import {
-  getTaskCommentsAction,
-  createTaskCommentAction,
-} from "./[taskUuid]/comment-actions";
-import { getTaskActivitiesAction } from "./[taskUuid]/activity-actions";
+  getExperimentRunCommentsAction,
+  createExperimentRunCommentAction,
+} from "./[runUuid]/comment-actions";
+import { getRunActivitiesAction } from "./[runUuid]/activity-actions";
 import type { ActivityResponse } from "@/services/activity.service";
 import {
-  getTaskSourceAction,
+  getRunSourceAction,
   type ProposalSource,
-} from "./[taskUuid]/source-actions";
+} from "./[runUuid]/source-actions";
 import type { CommentResponse } from "@/services/comment.service";
 import { Streamdown } from "streamdown";
 import { code } from "@streamdown/code";
 import { ContentWithMentions } from "@/components/mention-renderer";
 import { MentionEditor, type MentionEditorRef } from "@/components/mention-editor";
-import { AssignTaskModal } from "./assign-task-modal";
+import { AssignTaskModal } from "./assign-run-modal";
 import {
-  getTaskDependenciesAction,
-  addTaskDependencyAction,
-  removeTaskDependencyAction,
+  getExperimentRunDependenciesAction,
+  addRunDependencyAction,
+  removeRunDependencyAction,
   getProjectTasksForDependencyAction,
-} from "./[taskUuid]/dependency-actions";
-import { getTaskSessionsAction } from "./session-actions";
+} from "./[runUuid]/dependency-actions";
+import { getExperimentRunSessionsAction } from "./session-actions";
 import type { TaskSessionInfo } from "@/services/session.service";
 import { useRealtimeEntityEvent } from "@/contexts/realtime-context";
 
@@ -93,12 +93,12 @@ interface Task {
   description: string | null;
   status: string;
   priority: string;
-  storyPoints: number | null;
+  computeBudgetHours: number | null;
   acceptanceCriteria?: string | null;
   acceptanceCriteriaItems?: AcceptanceCriterionItem[];
   acceptanceStatus?: string;
   acceptanceSummary?: AcceptanceSummaryData;
-  proposalUuid: string | null;
+  experimentDesignUuid: string | null;
   assignee: {
     type: string;
     uuid: string;
@@ -266,10 +266,10 @@ export function TaskDetailPanel({
   const [activeWorkers, setActiveWorkers] = useState<TaskSessionInfo[]>([]);
 
   // Auto-refresh comments when another user adds a comment
-  useRealtimeEntityEvent("task", task?.uuid ?? "", (event) => {
+  useRealtimeEntityEvent("experiment_run", task?.uuid ?? "", (event) => {
     if (event.actorUuid === currentUserUuid) return;
     if (!task) return;
-    getTaskCommentsAction(task.uuid).then((result) => {
+    getExperimentRunCommentsAction(task.uuid).then((result) => {
       setComments(result.comments);
     });
   });
@@ -284,7 +284,7 @@ export function TaskDetailPanel({
   const [editDescription, setEditDescription] = useState(task?.description || "");
   const [editPriority, setEditPriority] = useState(task?.priority || "medium");
   const [editStoryPoints, setEditStoryPoints] = useState<string>(
-    task?.storyPoints != null ? String(task.storyPoints) : ""
+    task?.computeBudgetHours != null ? String(task.computeBudgetHours) : ""
   );
   const [editAcceptanceCriteria, setEditAcceptanceCriteria] = useState(
     task?.acceptanceCriteria || ""
@@ -304,26 +304,26 @@ export function TaskDetailPanel({
 
     async function loadComments() {
       setIsLoadingComments(true);
-      const result = await getTaskCommentsAction(task!.uuid);
+      const result = await getExperimentRunCommentsAction(task!.uuid);
       setComments(result.comments);
       setIsLoadingComments(false);
     }
     async function loadActivities() {
       setIsLoadingActivities(true);
-      const result = await getTaskActivitiesAction(task!.uuid);
+      const result = await getRunActivitiesAction(task!.uuid);
       setActivities(result.activities);
       setIsLoadingActivities(false);
     }
     async function loadSource() {
-      if (task!.proposalUuid) {
-        const result = await getTaskSourceAction(task!.proposalUuid);
+      if (task!.experimentDesignUuid) {
+        const result = await getRunSourceAction(task!.experimentDesignUuid);
         setSource(result);
       }
     }
     async function loadDependencies() {
       setIsLoadingDeps(true);
       const [depsResult, projectTasksResult] = await Promise.all([
-        getTaskDependenciesAction(task!.uuid),
+        getExperimentRunDependenciesAction(task!.uuid),
         getProjectTasksForDependencyAction(projectUuid),
       ]);
       setDependsOn(depsResult.dependsOn);
@@ -332,7 +332,7 @@ export function TaskDetailPanel({
       setIsLoadingDeps(false);
     }
     async function loadActiveWorkers() {
-      const result = await getTaskSessionsAction(task!.uuid);
+      const result = await getExperimentRunSessionsAction(task!.uuid);
       if (result.success && result.data) {
         setActiveWorkers(result.data);
       }
@@ -342,7 +342,7 @@ export function TaskDetailPanel({
     loadSource();
     loadDependencies();
     loadActiveWorkers();
-  }, [task?.uuid, task?.proposalUuid, projectUuid]);
+  }, [task?.uuid, task?.experimentDesignUuid, projectUuid]);
 
   // Load project tasks for dependency picker in create mode
   useEffect(() => {
@@ -361,16 +361,16 @@ export function TaskDetailPanel({
       setEditTitle(task.title);
       setEditDescription(task.description || "");
       setEditPriority(task.priority);
-      setEditStoryPoints(task.storyPoints != null ? String(task.storyPoints) : "");
+      setEditStoryPoints(task.computeBudgetHours != null ? String(task.computeBudgetHours) : "");
       setEditAcceptanceCriteria(task.acceptanceCriteria || "");
       setEditError(null);
     }
-  }, [task?.uuid, task?.title, task?.description, task?.priority, task?.storyPoints, task?.acceptanceCriteria]);
+  }, [task?.uuid, task?.title, task?.description, task?.priority, task?.computeBudgetHours, task?.acceptanceCriteria]);
 
   const handleStatusChange = async (newStatus: string) => {
     if (!task) return;
     setIsLoading(true);
-    const result = await updateTaskStatusAction(task.uuid, newStatus);
+    const result = await updateExperimentRunStatusAction(task.uuid, newStatus);
     setIsLoading(false);
     if (result.success) {
       onClose();
@@ -382,7 +382,7 @@ export function TaskDetailPanel({
     if (!task || !comment.trim() || isSubmittingComment) return;
 
     setIsSubmittingComment(true);
-    const result = await createTaskCommentAction(task.uuid, comment);
+    const result = await createExperimentRunCommentAction(task.uuid, comment);
     setIsSubmittingComment(false);
 
     if (result.success && result.comment) {
@@ -397,7 +397,7 @@ export function TaskDetailPanel({
     setEditTitle(task.title);
     setEditDescription(task.description || "");
     setEditPriority(task.priority);
-    setEditStoryPoints(task.storyPoints != null ? String(task.storyPoints) : "");
+    setEditStoryPoints(task.computeBudgetHours != null ? String(task.computeBudgetHours) : "");
     setEditAcceptanceCriteria(task.acceptanceCriteria || "");
     setEditError(null);
     setIsEditing(true);
@@ -413,7 +413,7 @@ export function TaskDetailPanel({
       setEditTitle(task.title);
       setEditDescription(task.description || "");
       setEditPriority(task.priority);
-      setEditStoryPoints(task.storyPoints != null ? String(task.storyPoints) : "");
+      setEditStoryPoints(task.computeBudgetHours != null ? String(task.computeBudgetHours) : "");
       setEditAcceptanceCriteria(task.acceptanceCriteria || "");
     }
     setEditError(null);
@@ -428,15 +428,15 @@ export function TaskDetailPanel({
     setIsSaving(true);
     setEditError(null);
 
-    const storyPointsValue = editStoryPoints.trim() ? parseFloat(editStoryPoints) : null;
+    const computeBudgetHoursValue = editStoryPoints.trim() ? parseFloat(editStoryPoints) : null;
 
     if (isCreateMode) {
-      const result = await createTaskAction({
+      const result = await createExperimentRunAction({
         projectUuid,
         title: editTitle.trim(),
         description: editDescription.trim() || undefined,
         priority: editPriority,
-        storyPoints: storyPointsValue,
+        computeBudgetHours: computeBudgetHoursValue,
         acceptanceCriteria: editAcceptanceCriteria.trim() || null,
       });
 
@@ -444,9 +444,9 @@ export function TaskDetailPanel({
 
       if (result.success) {
         // Add pending dependencies after task creation
-        if (pendingDeps.length > 0 && result.taskUuid) {
+        if (pendingDeps.length > 0 && result.runUuid) {
           await Promise.all(
-            pendingDeps.map((dep) => addTaskDependencyAction(result.taskUuid!, dep.uuid))
+            pendingDeps.map((dep) => addRunDependencyAction(result.runUuid!, dep.uuid))
           );
           onDependencyChange?.();
         }
@@ -457,13 +457,13 @@ export function TaskDetailPanel({
         setEditError(result.error || t("tasks.createFailed"));
       }
     } else {
-      const result = await updateTaskFieldsAction({
-        taskUuid: task!.uuid,
+      const result = await updateExperimentRunFieldsAction({
+        runUuid: task!.uuid,
         projectUuid,
         title: editTitle.trim(),
         description: editDescription.trim() || null,
         priority: editPriority,
-        storyPoints: storyPointsValue,
+        computeBudgetHours: computeBudgetHoursValue,
         acceptanceCriteria: editAcceptanceCriteria.trim() || null,
       });
 
@@ -481,7 +481,7 @@ export function TaskDetailPanel({
   const handleDelete = async () => {
     if (!task) return;
     setIsDeleting(true);
-    const result = await deleteTaskAction(task.uuid, projectUuid);
+    const result = await deleteExperimentRunAction(task.uuid, projectUuid);
     setIsDeleting(false);
 
     if (result.success) {
@@ -493,7 +493,7 @@ export function TaskDetailPanel({
   const handleAddDependency = async (dependsOnUuid: string) => {
     if (!task) return;
     setDepError(null);
-    const result = await addTaskDependencyAction(task.uuid, dependsOnUuid);
+    const result = await addRunDependencyAction(task.uuid, dependsOnUuid);
     if (result.success) {
       const addedTask = allProjectTasks.find(t => t.uuid === dependsOnUuid);
       if (addedTask) {
@@ -508,7 +508,7 @@ export function TaskDetailPanel({
   const handleRemoveDependency = async (dependsOnUuid: string) => {
     if (!task) return;
     setDepError(null);
-    const result = await removeTaskDependencyAction(task.uuid, dependsOnUuid);
+    const result = await removeRunDependencyAction(task.uuid, dependsOnUuid);
     if (result.success) {
       setDependsOn(prev => prev.filter(d => d.uuid !== dependsOnUuid));
       onDependencyChange?.();
@@ -517,13 +517,13 @@ export function TaskDetailPanel({
     }
   };
 
-  const handleRemoveDependedBy = async (taskUuid: string) => {
+  const handleRemoveDependedBy = async (runUuid: string) => {
     if (!task) return;
     setDepError(null);
     // Reverse: the other task depends on us, so remove from the other task's perspective
-    const result = await removeTaskDependencyAction(taskUuid, task.uuid);
+    const result = await removeRunDependencyAction(runUuid, task.uuid);
     if (result.success) {
-      setDependedBy(prev => prev.filter(d => d.uuid !== taskUuid));
+      setDependedBy(prev => prev.filter(d => d.uuid !== runUuid));
       onDependencyChange?.();
     } else {
       setDepError(result.error || t("tasks.failedToRemoveDep"));
@@ -593,7 +593,7 @@ export function TaskDetailPanel({
 
       <div className="space-y-2">
         <Label htmlFor="edit-story-points" className="text-[13px] font-medium text-[#2C2C2C]">
-          {t("tasks.storyPointsLabel")}
+          {t("tasks.computeBudgetHoursLabel")}
         </Label>
         <Input
           id="edit-story-points"
@@ -701,7 +701,7 @@ export function TaskDetailPanel({
           <div className="flex-1 min-w-0">
             {isEditing ? (
               <h2 className="text-base font-semibold text-[#2C2C2C]">
-                {isCreateMode ? t("tasks.createTaskTitle") : t("tasks.editTask")}
+                {isCreateMode ? t("tasks.createExperimentRunTitle") : t("tasks.editTask")}
               </h2>
             ) : task ? (
               <>
@@ -715,9 +715,9 @@ export function TaskDetailPanel({
                   <Badge className={priorityColors[task.priority] || ""}>
                     {t(`priority.${priorityI18nKeys[task.priority] || task.priority}`)}
                   </Badge>
-                  {task.storyPoints && (
+                  {task.computeBudgetHours && (
                     <span className="rounded bg-[#F5F2EC] px-2 py-0.5 text-xs font-medium text-[#6B6B6B]">
-                      {task.storyPoints}h
+                      {task.computeBudgetHours}h
                     </span>
                   )}
                 </div>
@@ -853,7 +853,7 @@ export function TaskDetailPanel({
                       {t("common.source")}
                     </label>
                     <a
-                      href={`/projects/${projectUuid}/proposals/${source.uuid}`}
+                      href={`/research-projects/${projectUuid}/experiment-designs/${source.uuid}`}
                       className="mt-2 flex items-center justify-between rounded-lg bg-[#FAF8F4] p-3 hover:bg-[#F0EDE5] transition-colors"
                     >
                       <div className="flex items-center gap-2">
@@ -1337,9 +1337,9 @@ export function TaskDetailPanel({
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>{t("tasks.deleteTask")}</AlertDialogTitle>
+                        <AlertDialogTitle>{t("tasks.deleteExperimentRun")}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          {t("tasks.deleteTaskConfirm", { title: task.title })}
+                          {t("tasks.deleteExperimentRunConfirm", { title: task.title })}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

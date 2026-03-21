@@ -44,9 +44,9 @@ import {
   addDocumentDraftAction,
   updateDocumentDraftAction,
   removeDocumentDraftAction,
-  updateTaskDraftAction,
+  updateRunDraftAction,
 } from "./actions";
-import { TaskDraftDetailPanel } from "./task-draft-detail-panel";
+import { TaskDraftDetailPanel } from "./run-draft-detail-panel";
 
 interface DocumentDraft {
   uuid: string;
@@ -64,7 +64,7 @@ interface TaskDraft {
   uuid: string;
   title: string;
   description?: string;
-  storyPoints?: number;
+  computeBudgetHours?: number;
   priority?: string;
   acceptanceCriteria?: string;
   acceptanceCriteriaItems?: AcceptanceCriteriaItem[];
@@ -162,20 +162,20 @@ function getLayoutedElements(
 
 // ===== Main Component =====
 
-interface ProposalEditorProps {
-  proposalUuid: string;
+interface DesignEditorProps {
+  designUuid: string;
   projectUuid: string;
   status: string;
   documentDrafts: DocumentDraft[] | null;
   taskDrafts: TaskDraft[] | null;
 }
 
-export function ProposalEditor({
-  proposalUuid,
+export function DesignEditor({
+  designUuid,
   status,
   documentDrafts,
   taskDrafts,
-}: ProposalEditorProps) {
+}: DesignEditorProps) {
   const t = useTranslations();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -252,15 +252,15 @@ export function ProposalEditor({
       if (connection.source === connection.target) return;
       setDagError(null);
 
-      // source = upstream (dependsOnUuid), target = downstream (taskUuid)
-      const taskUuid = connection.target;
+      // source = upstream (dependsOnUuid), target = downstream (runUuid)
+      const runUuid = connection.target;
       const dependsOnUuid = connection.source;
 
       // Find the target task draft
-      const targetTask = taskDrafts?.find((t) => t.uuid === taskUuid);
-      if (!targetTask) return;
+      const targetExperimentRun = taskDrafts?.find((t) => t.uuid === runUuid);
+      if (!targetExperimentRun) return;
 
-      const existingDeps = targetTask.dependsOnDraftUuids || [];
+      const existingDeps = targetExperimentRun.dependsOnDraftUuids || [];
 
       // Check for duplicate
       if (existingDeps.includes(dependsOnUuid)) {
@@ -285,7 +285,7 @@ export function ProposalEditor({
         return false;
       };
 
-      if (wouldCycle(dependsOnUuid, taskUuid)) {
+      if (wouldCycle(dependsOnUuid, runUuid)) {
         setDagError(t("proposals.cyclicDependency"));
         return;
       }
@@ -293,7 +293,7 @@ export function ProposalEditor({
       const newDeps = [...existingDeps, dependsOnUuid];
 
       startTransition(async () => {
-        const result = await updateTaskDraftAction(proposalUuid, taskUuid, {
+        const result = await updateRunDraftAction(designUuid, runUuid, {
           dependsOnDraftUuids: newDeps,
         });
         if (result.success) {
@@ -303,7 +303,7 @@ export function ProposalEditor({
         }
       });
     },
-    [canEdit, taskDrafts, proposalUuid, router, startTransition, t]
+    [canEdit, taskDrafts, designUuid, router, startTransition, t]
   );
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
@@ -351,13 +351,13 @@ export function ProposalEditor({
     startTransition(async () => {
       let result;
       if (editingDoc) {
-        result = await updateDocumentDraftAction(proposalUuid, editingDoc.uuid, {
+        result = await updateDocumentDraftAction(designUuid, editingDoc.uuid, {
           type: docType,
           title: docTitle.trim(),
           content: docContent,
         });
       } else {
-        result = await addDocumentDraftAction(proposalUuid, {
+        result = await addDocumentDraftAction(designUuid, {
           type: docType,
           title: docTitle.trim(),
           content: docContent,
@@ -377,7 +377,7 @@ export function ProposalEditor({
     if (!confirm(t("common.confirmDelete"))) return;
 
     startTransition(async () => {
-      const result = await removeDocumentDraftAction(proposalUuid, doc.uuid);
+      const result = await removeDocumentDraftAction(designUuid, doc.uuid);
       if (result.success) {
         router.refresh();
       }
@@ -624,10 +624,10 @@ export function ProposalEditor({
                             </Badge>
                           )}
                         </div>
-                        {task.storyPoints != null && task.storyPoints > 0 && (
+                        {task.computeBudgetHours != null && task.computeBudgetHours > 0 && (
                           <span className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
                             <Zap className="h-2.5 w-2.5 text-[#C67A52]" />
-                            {task.storyPoints} SP
+                            {task.computeBudgetHours} SP
                           </span>
                         )}
                       </div>
@@ -753,7 +753,7 @@ export function ProposalEditor({
         <TaskDraftDetailPanel
           taskDraft={showCreateTaskPanel ? null : selectedTaskDraft}
           allTaskDrafts={taskDrafts || []}
-          proposalUuid={proposalUuid}
+          designUuid={designUuid}
           canEdit={canEdit}
           onClose={() => {
             setSelectedTaskDraftUuid(null);

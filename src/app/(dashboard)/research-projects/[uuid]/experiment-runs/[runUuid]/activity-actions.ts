@@ -2,10 +2,10 @@
 
 import { getServerAuthContext } from "@/lib/auth-server";
 import { listActivitiesWithActorNames, type ActivityResponse } from "@/services/activity.service";
-import { getTaskByUuid } from "@/services/task.service";
+import { getExperimentRunByUuid } from "@/services/experiment-run.service";
 
-export async function getTaskActivitiesAction(
-  taskUuid: string
+export async function getRunActivitiesAction(
+  runUuid: string
 ): Promise<{ activities: ActivityResponse[]; total: number }> {
   const auth = await getServerAuthContext();
   if (!auth) {
@@ -14,16 +14,16 @@ export async function getTaskActivitiesAction(
 
   try {
     // Validate task exists
-    const task = await getTaskByUuid(auth.companyUuid, taskUuid);
+    const task = await getExperimentRunByUuid(auth.companyUuid, runUuid);
     if (!task) {
       return { activities: [], total: 0 };
     }
 
     return await listActivitiesWithActorNames({
       companyUuid: auth.companyUuid,
-      projectUuid: task.projectUuid,
-      targetType: "task",
-      targetUuid: taskUuid,
+      researchProjectUuid: task.researchProjectUuid,
+      targetType: "experiment_run",
+      targetUuid: runUuid,
       skip: 0,
       take: 50,
     });

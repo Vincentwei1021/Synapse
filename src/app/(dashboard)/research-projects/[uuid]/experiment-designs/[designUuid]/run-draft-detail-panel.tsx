@@ -32,9 +32,9 @@ import {
 import { Streamdown } from "streamdown";
 import { code } from "@streamdown/code";
 import {
-  addTaskDraftAction,
-  updateTaskDraftAction,
-  removeTaskDraftAction,
+  addRunDraftAction,
+  updateRunDraftAction,
+  removeRunDraftAction,
 } from "./actions";
 
 interface AcceptanceCriteriaItem {
@@ -46,7 +46,7 @@ interface TaskDraft {
   uuid: string;
   title: string;
   description?: string;
-  storyPoints?: number;
+  computeBudgetHours?: number;
   priority?: string;
   acceptanceCriteria?: string;
   acceptanceCriteriaItems?: AcceptanceCriteriaItem[];
@@ -63,7 +63,7 @@ const priorityColors: Record<string, { bg: string; text: string }> = {
 interface TaskDraftDetailPanelProps {
   taskDraft: TaskDraft | null; // null = create mode
   allTaskDrafts: TaskDraft[];
-  proposalUuid: string;
+  designUuid: string;
   canEdit: boolean;
   onClose: () => void;
   onSaved: () => void;
@@ -73,7 +73,7 @@ interface TaskDraftDetailPanelProps {
 export function TaskDraftDetailPanel({
   taskDraft,
   allTaskDrafts,
-  proposalUuid,
+  designUuid,
   canEdit,
   onClose,
   onSaved,
@@ -98,7 +98,7 @@ export function TaskDraftDetailPanel({
   const [editDescription, setEditDescription] = useState(taskDraft?.description || "");
   const [editPriority, setEditPriority] = useState(taskDraft?.priority || "medium");
   const [editStoryPoints, setEditStoryPoints] = useState(
-    taskDraft?.storyPoints?.toString() || ""
+    taskDraft?.computeBudgetHours?.toString() || ""
   );
   const [editCriteriaItems, setEditCriteriaItems] = useState<AcceptanceCriteriaItem[]>(
     taskDraft?.acceptanceCriteriaItems?.map((item) => ({ description: item.description, required: item.required ?? true })) || []
@@ -147,7 +147,7 @@ export function TaskDraftDetailPanel({
     setEditTitle(taskDraft.title);
     setEditDescription(taskDraft.description || "");
     setEditPriority(taskDraft.priority || "medium");
-    setEditStoryPoints(taskDraft.storyPoints?.toString() || "");
+    setEditStoryPoints(taskDraft.computeBudgetHours?.toString() || "");
     setEditCriteriaItems(
       taskDraft.acceptanceCriteriaItems?.map((item) => ({ description: item.description, required: item.required ?? true })) || []
     );
@@ -165,7 +165,7 @@ export function TaskDraftDetailPanel({
       setEditTitle(taskDraft.title);
       setEditDescription(taskDraft.description || "");
       setEditPriority(taskDraft.priority || "medium");
-      setEditStoryPoints(taskDraft.storyPoints?.toString() || "");
+      setEditStoryPoints(taskDraft.computeBudgetHours?.toString() || "");
       setEditCriteriaItems(
         taskDraft.acceptanceCriteriaItems?.map((item) => ({ description: item.description, required: item.required ?? true })) || []
       );
@@ -188,7 +188,7 @@ export function TaskDraftDetailPanel({
         title: editTitle.trim(),
         description: editDescription.trim() || undefined,
         priority: editPriority,
-        storyPoints: editStoryPoints ? parseFloat(editStoryPoints) : undefined,
+        computeBudgetHours: editStoryPoints ? parseFloat(editStoryPoints) : undefined,
         acceptanceCriteriaItems: validCriteriaItems.length > 0
           ? validCriteriaItems.map((item) => ({ description: item.description.trim(), required: item.required ?? true }))
           : undefined,
@@ -199,9 +199,9 @@ export function TaskDraftDetailPanel({
 
       let result;
       if (isCreateMode) {
-        result = await addTaskDraftAction(proposalUuid, taskData);
+        result = await addRunDraftAction(designUuid, taskData);
       } else {
-        result = await updateTaskDraftAction(proposalUuid, taskDraft!.uuid, taskData);
+        result = await updateRunDraftAction(designUuid, taskDraft!.uuid, taskData);
       }
 
       if (result.success) {
@@ -217,7 +217,7 @@ export function TaskDraftDetailPanel({
   const handleDelete = () => {
     if (!taskDraft) return;
     startTransition(async () => {
-      const result = await removeTaskDraftAction(proposalUuid, taskDraft.uuid);
+      const result = await removeRunDraftAction(designUuid, taskDraft.uuid);
       if (result.success) {
         router.refresh();
         onDeleted?.();
@@ -243,7 +243,7 @@ export function TaskDraftDetailPanel({
     setError(null);
     const newDeps = [...(taskDraft.dependsOnDraftUuids || []), depUuid];
     startTransition(async () => {
-      const result = await updateTaskDraftAction(proposalUuid, taskDraft.uuid, {
+      const result = await updateRunDraftAction(designUuid, taskDraft.uuid, {
         dependsOnDraftUuids: newDeps,
       });
       if (result.success) {
@@ -267,7 +267,7 @@ export function TaskDraftDetailPanel({
       (uuid) => uuid !== depUuid
     );
     startTransition(async () => {
-      const result = await updateTaskDraftAction(proposalUuid, taskDraft.uuid, {
+      const result = await updateRunDraftAction(designUuid, taskDraft.uuid, {
         dependsOnDraftUuids: newDeps,
       });
       if (result.success) {
@@ -409,7 +409,7 @@ export function TaskDraftDetailPanel({
             step="0.5"
             value={editStoryPoints}
             onChange={(e) => setEditStoryPoints(e.target.value)}
-            placeholder={t("proposals.storyPointsPlaceholder")}
+            placeholder={t("proposals.computeBudgetHoursPlaceholder")}
             className="border-[#E5E2DC] text-sm focus-visible:ring-[#C67A52]"
           />
         </div>
@@ -511,10 +511,10 @@ export function TaskDraftDetailPanel({
                       {t(`priority.${taskDraft.priority}`)}
                     </Badge>
                   )}
-                  {taskDraft.storyPoints != null && taskDraft.storyPoints > 0 && (
+                  {taskDraft.computeBudgetHours != null && taskDraft.computeBudgetHours > 0 && (
                     <span className="flex items-center gap-1 rounded bg-[#F5F2EC] px-2 py-0.5 text-xs font-medium text-[#6B6B6B]">
                       <Zap className="h-2.5 w-2.5 text-[#C67A52]" />
-                      {taskDraft.storyPoints} SP
+                      {taskDraft.computeBudgetHours} SP
                     </span>
                   )}
                 </div>
@@ -682,9 +682,9 @@ export function TaskDraftDetailPanel({
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>{t("proposals.deleteTaskDraft")}</AlertDialogTitle>
+                          <AlertDialogTitle>{t("proposals.deleteExperimentRunDraft")}</AlertDialogTitle>
                           <AlertDialogDescription>
-                            {t("proposals.deleteTaskDraftConfirm")}
+                            {t("proposals.deleteExperimentRunDraftConfirm")}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

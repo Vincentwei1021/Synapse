@@ -15,15 +15,15 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Chorus",
-    template: "%s | Chorus",
+    default: "Synapse",
+    template: "%s | Synapse",
   },
-  description: "AI Agent & Human collaboration platform for the AI-Driven Development Lifecycle",
+  description: "AI-powered research experimentation platform",
   openGraph: {
-    title: "Chorus",
-    description: "AI Agent & Human collaboration platform for the AI-Driven Development Lifecycle",
+    title: "Synapse",
+    description: "AI-powered research experimentation platform",
     type: "website",
-    siteName: "Chorus",
+    siteName: "Synapse",
   },
 };
 

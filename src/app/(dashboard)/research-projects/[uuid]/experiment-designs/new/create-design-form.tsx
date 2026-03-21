@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { createProposalAction } from "../actions";
+import { createExperimentDesignAction } from "../actions";
 
 interface Idea {
   uuid: string;
@@ -62,15 +62,15 @@ export function CreateProposalForm({
     setError(null);
 
     startTransition(async () => {
-      const result = await createProposalAction(projectUuid, {
+      const result = await createExperimentDesignAction(projectUuid, {
         title: title.trim(),
         description: description.trim() || undefined,
-        inputType: "idea",
+        inputType: "research_question",
         inputUuids: selectedIdeaUuids,
       });
 
       if (result.success && result.proposal) {
-        router.push(`/projects/${projectUuid}/proposals/${result.proposal.uuid}`);
+        router.push(`/research-projects/${projectUuid}/experiment-designs/${result.proposal.uuid}`);
       } else {
         setError(result.error || t("proposals.createFailed"));
       }

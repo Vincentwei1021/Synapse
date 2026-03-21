@@ -20,8 +20,8 @@ import type {
   ElaborationRoundResponse,
   ElaborationQuestionResponse,
   AnswerInput,
-} from "@/types/elaboration";
-import { submitElaborationAnswersAction } from "@/app/(dashboard)/projects/[uuid]/ideas/[ideaUuid]/elaboration-actions";
+} from "@/types/hypothesis-formulation";
+import { submitHypothesisFormulationAnswersAction } from "@/app/(dashboard)/research-projects/[uuid]/research-questions/[questionUuid]/hypothesis-formulation-actions";
 
 // Other option id prefix (when user picks "Other" and provides custom text)
 const OTHER_OPTION_ID = "__other__";
@@ -47,13 +47,13 @@ const categoryBgColors: Record<string, string> = {
 };
 
 interface ElaborationPanelProps {
-  ideaUuid: string;
+  questionUuid: string;
   elaboration: ElaborationResponse | null;
   onRefresh?: () => void;
 }
 
 export function ElaborationPanel({
-  ideaUuid,
+  questionUuid,
   elaboration,
   onRefresh,
 }: ElaborationPanelProps) {
@@ -87,7 +87,7 @@ export function ElaborationPanel({
           <RoundCard
             key={round.uuid}
             round={round}
-            ideaUuid={ideaUuid}
+            questionUuid={questionUuid}
             onAnswered={() => { onRefresh?.(); router.refresh(); }}
           />
         ))}
@@ -100,11 +100,11 @@ export function ElaborationPanel({
 
 interface RoundCardProps {
   round: ElaborationRoundResponse;
-  ideaUuid: string;
+  questionUuid: string;
   onAnswered: () => void;
 }
 
-function RoundCard({ round, ideaUuid, onAnswered }: RoundCardProps) {
+function RoundCard({ round, questionUuid, onAnswered }: RoundCardProps) {
   const t = useTranslations("elaboration");
   const isPending = round.status === "pending_answers";
   const isValidated = round.status === "validated";
@@ -165,7 +165,7 @@ function RoundCard({ round, ideaUuid, onAnswered }: RoundCardProps) {
             {isPending ? (
               <PendingRoundContent
                 round={round}
-                ideaUuid={ideaUuid}
+                questionUuid={questionUuid}
                 onAnswered={onAnswered}
               />
             ) : (
@@ -245,13 +245,13 @@ function AnsweredQuestion({
 
 interface PendingRoundContentProps {
   round: ElaborationRoundResponse;
-  ideaUuid: string;
+  questionUuid: string;
   onAnswered: () => void;
 }
 
 function PendingRoundContent({
   round,
-  ideaUuid,
+  questionUuid,
   onAnswered,
 }: PendingRoundContentProps) {
   const t = useTranslations("elaboration");
@@ -319,8 +319,8 @@ function PendingRoundContent({
     setError(null);
 
     const answerList: AnswerInput[] = Object.values(answers);
-    const result = await submitElaborationAnswersAction(
-      ideaUuid,
+    const result = await submitHypothesisFormulationAnswersAction(
+      questionUuid,
       round.uuid,
       answerList
     );

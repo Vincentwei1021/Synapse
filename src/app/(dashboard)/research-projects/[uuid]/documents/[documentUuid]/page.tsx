@@ -1,4 +1,4 @@
-// src/app/(dashboard)/projects/[uuid]/documents/[documentUuid]/page.tsx
+// src/app/(dashboard)/research-projects/[uuid]/documents/[documentUuid]/page.tsx
 // Server Component - UUID obtained from URL
 
 import { redirect } from "next/navigation";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ClipboardList, FileEdit, Palette, BookOpen, FileText, ChevronRight, type LucideIcon } from "lucide-react";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { getDocument } from "@/services/document.service";
-import { projectExists } from "@/services/project.service";
+import { researchProjectExists } from "@/services/research-project.service";
 import { DocumentActions } from "./document-actions";
 import { DocumentContent } from "./document-content";
 
@@ -35,9 +35,9 @@ export default async function DocumentDetailPage({ params }: PageProps) {
   const t = await getTranslations();
 
   // Validate project exists
-  const exists = await projectExists(auth.companyUuid, projectUuid);
+  const exists = await researchProjectExists(auth.companyUuid, projectUuid);
   if (!exists) {
-    redirect("/projects");
+    redirect("/research-projects");
   }
 
   // Get Document details
@@ -46,7 +46,7 @@ export default async function DocumentDetailPage({ params }: PageProps) {
     return (
       <div className="flex h-full flex-col items-center justify-center">
         <div className="text-[#6B6B6B]">{t("documents.documentNotFound")}</div>
-        <Link href={`/projects/${projectUuid}/documents`} className="mt-4 text-[#C67A52] hover:underline">
+        <Link href={`/research-projects/${projectUuid}/documents`} className="mt-4 text-[#C67A52] hover:underline">
           {t("documents.backToDocuments")}
         </Link>
       </div>
@@ -57,7 +57,7 @@ export default async function DocumentDetailPage({ params }: PageProps) {
     <div className="flex h-full flex-col p-4 md:p-8">
       {/* Breadcrumb */}
       <div className="mb-6 flex items-center gap-2 text-sm">
-        <Link href={`/projects/${projectUuid}/documents`} className="text-[#6B6B6B] hover:text-[#2C2C2C]">
+        <Link href={`/research-projects/${projectUuid}/documents`} className="text-[#6B6B6B] hover:text-[#2C2C2C]">
           {t("nav.documents")}
         </Link>
         <ChevronRight className="h-4 w-4 text-[#9A9A9A]" />
@@ -103,11 +103,11 @@ export default async function DocumentDetailPage({ params }: PageProps) {
         {/* Sidebar */}
         <div className="w-full space-y-4 lg:w-64 lg:flex-shrink-0">
           {/* Source Proposal */}
-          {document.proposalUuid && (
+          {document.experimentDesignUuid && (
             <Card className="border-[#E5E0D8] p-4">
               <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">{t("documents.sourceProposal")}</h3>
               <Link
-                href={`/projects/${projectUuid}/proposals/${document.proposalUuid}`}
+                href={`/research-projects/${projectUuid}/experiment-designs/${document.experimentDesignUuid}`}
                 className="flex items-center gap-2 text-sm text-[#C67A52] hover:underline"
               >
                 <FileText className="h-4 w-4" />

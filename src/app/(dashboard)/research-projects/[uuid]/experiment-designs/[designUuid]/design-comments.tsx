@@ -9,8 +9,8 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MentionEditor, type MentionEditorRef } from "@/components/mention-editor";
 import {
-  getProposalCommentsAction,
-  createProposalCommentAction,
+  getDesignCommentsAction,
+  createDesignCommentAction,
 } from "./comment-actions";
 import type { CommentResponse } from "@/services/comment.service";
 import { ContentWithMentions } from "@/components/mention-renderer";
@@ -32,12 +32,12 @@ function formatRelativeTime(dateString: string, t: any): string {
   return date.toLocaleDateString();
 }
 
-interface ProposalCommentsProps {
-  proposalUuid: string;
+interface DesignCommentsProps {
+  designUuid: string;
   currentUserUuid?: string;
 }
 
-export function ProposalComments({ proposalUuid, currentUserUuid }: ProposalCommentsProps) {
+export function DesignComments({ designUuid, currentUserUuid }: DesignCommentsProps) {
   const t = useTranslations();
   const [comment, setComment] = useState("");
   const [comments, setComments] = useState<CommentResponse[]>([]);
@@ -46,9 +46,9 @@ export function ProposalComments({ proposalUuid, currentUserUuid }: ProposalComm
   const editorRef = useRef<MentionEditorRef>(null);
 
   // Auto-refresh comments when another user adds a comment
-  useRealtimeEntityEvent("proposal", proposalUuid, (event) => {
+  useRealtimeEntityEvent("experiment_design", designUuid, (event) => {
     if (currentUserUuid && event.actorUuid === currentUserUuid) return;
-    getProposalCommentsAction(proposalUuid).then((result) => {
+    getDesignCommentsAction(designUuid).then((result) => {
       setComments(result.comments);
     });
   });
@@ -56,18 +56,18 @@ export function ProposalComments({ proposalUuid, currentUserUuid }: ProposalComm
   useEffect(() => {
     async function loadComments() {
       setIsLoading(true);
-      const result = await getProposalCommentsAction(proposalUuid);
+      const result = await getDesignCommentsAction(designUuid);
       setComments(result.comments);
       setIsLoading(false);
     }
     loadComments();
-  }, [proposalUuid]);
+  }, [designUuid]);
 
   const handleSubmit = async () => {
     if (!comment.trim() || isSubmitting) return;
 
     setIsSubmitting(true);
-    const result = await createProposalCommentAction(proposalUuid, comment);
+    const result = await createDesignCommentAction(designUuid, comment);
     setIsSubmitting(false);
 
     if (result.success && result.comment) {

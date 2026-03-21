@@ -2,8 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { createProject } from "@/services/project.service";
-import { createIdea } from "@/services/idea.service";
+import { createResearchProject } from "@/services/research-project.service";
+import { createResearchQuestion } from "@/services/research-question.service";
 import { createDocument } from "@/services/document.service";
 
 interface UploadedDocument {
@@ -19,7 +19,7 @@ interface CreateProjectInput {
   documents?: UploadedDocument[];
 }
 
-export async function createProjectAction(input: CreateProjectInput) {
+export async function createResearchProjectAction(input: CreateProjectInput) {
   const auth = await getServerAuthContext();
   if (!auth) {
     redirect("/login");
@@ -27,7 +27,7 @@ export async function createProjectAction(input: CreateProjectInput) {
 
   try {
     // Create project
-    const project = await createProject({
+    const project = await createResearchProject({
       companyUuid: auth.companyUuid,
       name: input.name,
       description: input.description,
@@ -36,9 +36,9 @@ export async function createProjectAction(input: CreateProjectInput) {
     // Create ideas if any
     const validIdeas = input.ideas.filter((idea) => idea.trim());
     for (const ideaContent of validIdeas) {
-      await createIdea({
+      await createResearchQuestion({
         companyUuid: auth.companyUuid,
-        projectUuid: project.uuid,
+        researchProjectUuid: project.uuid,
         title: ideaContent.slice(0, 100),
         content: ideaContent,
         createdByUuid: auth.actorUuid,
@@ -50,7 +50,7 @@ export async function createProjectAction(input: CreateProjectInput) {
       for (const doc of input.documents) {
         await createDocument({
           companyUuid: auth.companyUuid,
-          projectUuid: project.uuid,
+          researchProjectUuid: project.uuid,
           type: doc.type,
           title: doc.name.replace(/\.md$/i, ""),
           content: doc.content,
@@ -59,7 +59,7 @@ export async function createProjectAction(input: CreateProjectInput) {
       }
     }
 
-    return { success: true, projectUuid: project.uuid };
+    return { success: true, researchProjectUuid: project.uuid };
   } catch (error) {
     console.error("Failed to create project:", error);
     return { success: false, error: "Failed to create project" };

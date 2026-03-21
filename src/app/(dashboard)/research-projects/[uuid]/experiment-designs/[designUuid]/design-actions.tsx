@@ -13,15 +13,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { approveProposalAction, rejectProposalAction, closeProposalAction, submitProposalAction, deleteProposalAction } from "./actions";
+import { approveDesignAction, rejectDesignAction, closeDesignAction, submitDesignAction, deleteExperimentDesignAction } from "./actions";
 
-interface ProposalActionsProps {
-  proposalUuid: string;
+interface DesignActionsProps {
+  designUuid: string;
   projectUuid: string;
   status: string;
 }
 
-export function ProposalActions({ proposalUuid, projectUuid, status }: ProposalActionsProps) {
+export function DesignActions({ designUuid, projectUuid, status }: DesignActionsProps) {
   const t = useTranslations();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -36,7 +36,7 @@ export function ProposalActions({ proposalUuid, projectUuid, status }: ProposalA
 
   const handleSubmit = () => {
     startTransition(async () => {
-      const result = await submitProposalAction(proposalUuid);
+      const result = await submitDesignAction(designUuid);
       if (result.success) {
         setSubmitDialogOpen(false);
         router.refresh();
@@ -46,7 +46,7 @@ export function ProposalActions({ proposalUuid, projectUuid, status }: ProposalA
 
   const handleApprove = () => {
     startTransition(async () => {
-      const result = await approveProposalAction(proposalUuid, approveNote.trim() || undefined);
+      const result = await approveDesignAction(designUuid, approveNote.trim() || undefined);
       if (result.success) {
         setApproveDialogOpen(false);
         setApproveNote("");
@@ -57,7 +57,7 @@ export function ProposalActions({ proposalUuid, projectUuid, status }: ProposalA
 
   const handleReject = () => {
     startTransition(async () => {
-      const result = await rejectProposalAction(proposalUuid, rejectReason);
+      const result = await rejectDesignAction(designUuid, rejectReason);
       if (result.success) {
         setRejectDialogOpen(false);
         setRejectReason("");
@@ -68,7 +68,7 @@ export function ProposalActions({ proposalUuid, projectUuid, status }: ProposalA
 
   const handleClose = () => {
     startTransition(async () => {
-      const result = await closeProposalAction(proposalUuid, closeReason);
+      const result = await closeDesignAction(designUuid, closeReason);
       if (result.success) {
         setCloseDialogOpen(false);
         setCloseReason("");
@@ -79,10 +79,10 @@ export function ProposalActions({ proposalUuid, projectUuid, status }: ProposalA
 
   const handleDelete = () => {
     startTransition(async () => {
-      const result = await deleteProposalAction(proposalUuid, projectUuid);
+      const result = await deleteExperimentDesignAction(designUuid, projectUuid);
       if (result.success) {
         setDeleteDialogOpen(false);
-        router.push(`/projects/${projectUuid}/proposals`);
+        router.push(`/research-projects/${projectUuid}/experiment-designs`);
         router.refresh();
       }
     });
@@ -133,7 +133,7 @@ export function ProposalActions({ proposalUuid, projectUuid, status }: ProposalA
           disabled={isPending}
           className="border-[#D32F2F] text-[#D32F2F] hover:bg-[#FFEBEE]"
         >
-          {t("proposals.deleteProposal")}
+          {t("proposals.deleteExperimentDesign")}
         </Button>
         <Button
           variant="outline"
@@ -265,8 +265,8 @@ export function ProposalActions({ proposalUuid, projectUuid, status }: ProposalA
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{t("proposals.deleteProposal")}</DialogTitle>
-            <DialogDescription>{t("proposals.deleteProposalDesc")}</DialogDescription>
+            <DialogTitle>{t("proposals.deleteExperimentDesign")}</DialogTitle>
+            <DialogDescription>{t("proposals.deleteExperimentDesignDesc")}</DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
             <Button

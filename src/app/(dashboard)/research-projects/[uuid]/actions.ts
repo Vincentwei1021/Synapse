@@ -2,32 +2,32 @@
 
 import { redirect } from "next/navigation";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { getProject, deleteProject, updateProject } from "@/services/project.service";
+import { getResearchProject, deleteResearchProject, updateResearchProject } from "@/services/research-project.service";
 import { revalidatePath } from "next/cache";
 import { getActiveSessionsForProject, type TaskSessionInfo } from "@/services/session.service";
 
-export async function deleteProjectAction(projectUuid: string) {
+export async function deleteResearchProjectAction(projectUuid: string) {
   const auth = await getServerAuthContext();
   if (!auth) {
     return { success: false, error: "Unauthorized" };
   }
 
-  const project = await getProject(auth.companyUuid, projectUuid);
+  const project = await getResearchProject(auth.companyUuid, projectUuid);
   if (!project) {
     return { success: false, error: "Project not found" };
   }
 
   try {
-    await deleteProject(projectUuid);
+    await deleteResearchProject(projectUuid);
   } catch (error) {
     console.error("Failed to delete project:", error);
     return { success: false, error: "Failed to delete project" };
   }
 
-  redirect("/projects");
+  redirect("/research-projects");
 }
 
-export async function updateProjectAction(
+export async function updateResearchProjectAction(
   projectUuid: string,
   data: { name?: string; description?: string | null }
 ) {
@@ -36,14 +36,14 @@ export async function updateProjectAction(
     return { success: false, error: "Unauthorized" };
   }
 
-  const project = await getProject(auth.companyUuid, projectUuid);
+  const project = await getResearchProject(auth.companyUuid, projectUuid);
   if (!project) {
     return { success: false, error: "Project not found" };
   }
 
   try {
-    const updated = await updateProject(projectUuid, data);
-    revalidatePath(`/projects/${projectUuid}/dashboard`);
+    const updated = await updateResearchProject(projectUuid, data);
+    revalidatePath(`/research-projects/${projectUuid}/dashboard`);
     return { success: true, data: updated };
   } catch (error) {
     console.error("Failed to update project:", error);

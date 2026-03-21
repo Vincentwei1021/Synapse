@@ -1,4 +1,4 @@
-// src/app/(dashboard)/projects/[uuid]/proposals/page.tsx
+// src/app/(dashboard)/research-projects/[uuid]/experiment-designs/page.tsx
 // Server Component - Proposal Kanban Board
 
 import { redirect } from "next/navigation";
@@ -8,9 +8,9 @@ import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { listProposals } from "@/services/proposal.service";
-import { projectExists } from "@/services/project.service";
-import { ProposalKanban } from "./proposal-kanban";
+import { listExperimentDesigns } from "@/services/experiment-design.service";
+import { researchProjectExists } from "@/services/research-project.service";
+import { ProposalKanban } from "./design-kanban";
 
 interface PageProps {
   params: Promise<{ uuid: string }>;
@@ -25,12 +25,12 @@ export default async function ProposalsPage({ params }: PageProps) {
   const { uuid: projectUuid } = await params;
   const t = await getTranslations();
 
-  const exists = await projectExists(auth.companyUuid, projectUuid);
+  const exists = await researchProjectExists(auth.companyUuid, projectUuid);
   if (!exists) {
-    redirect("/projects");
+    redirect("/research-projects");
   }
 
-  const { proposals } = await listProposals({
+  const { proposals } = await listExperimentDesigns({
     companyUuid: auth.companyUuid,
     projectUuid,
     skip: 0,
@@ -56,9 +56,9 @@ export default async function ProposalsPage({ params }: PageProps) {
             </Badge>
           )}
           <Button asChild className="bg-[#C67A52] hover:bg-[#B56A42] text-white">
-            <Link href={`/projects/${projectUuid}/proposals/new`}>
+            <Link href={`/research-projects/${projectUuid}/experiment-designs/new`}>
               <Plus className="mr-2 h-4 w-4" />
-              {t("proposals.createProposal")}
+              {t("proposals.createExperimentDesign")}
             </Link>
           </Button>
         </div>

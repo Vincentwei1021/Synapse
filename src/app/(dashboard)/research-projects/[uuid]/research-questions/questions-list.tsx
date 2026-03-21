@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Streamdown } from "streamdown";
 import { code } from "@streamdown/code";
-import { IdeaDetailPanel } from "./idea-detail-panel";
+import { IdeaDetailPanel } from "./question-detail-panel";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
 import { usePanelUrl } from "@/hooks/use-panel-url";
 
@@ -90,7 +90,7 @@ export function IdeasList({
   const t = useTranslations();
   useRealtimeRefresh();
 
-  const basePath = `/projects/${projectUuid}/ideas`;
+  const basePath = `/research-projects/${projectUuid}/research-questions`;
   const { selectedId, openPanel, closePanel } = usePanelUrl(basePath, initialSelectedIdeaUuid);
 
   const usedSet = new Set(usedIdeaUuids);
@@ -188,7 +188,7 @@ export function IdeasList({
                 </div>
                 {isUsed && ideaProposalMap[idea.uuid] && (
                   <Link
-                    href={`/projects/${projectUuid}/proposals/${ideaProposalMap[idea.uuid]}`}
+                    href={`/research-projects/${projectUuid}/experiment-designs/${ideaProposalMap[idea.uuid]}`}
                     onClick={(e) => e.stopPropagation()}
                     className="flex items-center gap-1.5 text-[#C67A52] hover:text-[#B56A42] transition-colors"
                   >

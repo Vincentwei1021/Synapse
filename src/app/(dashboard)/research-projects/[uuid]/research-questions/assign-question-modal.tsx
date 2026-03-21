@@ -20,7 +20,7 @@ import {
   claimIdeaToUserAction,
   releaseIdeaAction,
   getPmAgentsAction,
-} from "./[ideaUuid]/actions";
+} from "./[questionUuid]/actions";
 
 interface Idea {
   uuid: string;

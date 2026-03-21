@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { deleteProjectAction } from "./actions";
+import { deleteResearchProjectAction } from "./actions";
 
 interface ProjectActionsProps {
   projectUuid: string;
@@ -30,7 +30,7 @@ export function ProjectActions({ projectUuid, projectName }: ProjectActionsProps
 
   const handleDelete = async () => {
     setIsDeleting(true);
-    const result = await deleteProjectAction(projectUuid);
+    const result = await deleteResearchProjectAction(projectUuid);
     // If redirect succeeds, we won't reach here.
     // If it fails, reset state.
     if (result && !result.success) {
@@ -51,9 +51,9 @@ export function ProjectActions({ projectUuid, projectName }: ProjectActionsProps
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{t("projectOverview.deleteProject")}</AlertDialogTitle>
+          <AlertDialogTitle>{t("projectOverview.deleteResearchProject")}</AlertDialogTitle>
           <AlertDialogDescription>
-            {t("projectOverview.deleteProjectConfirm", { name: projectName })}
+            {t("projectOverview.deleteResearchProjectConfirm", { name: projectName })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

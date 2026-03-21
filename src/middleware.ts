@@ -151,22 +151,22 @@ async function handleUserSessionRefresh(request: NextRequest): Promise<NextRespo
 
 // ─── Main middleware ─────────────────────────────────────────────────────────
 export async function middleware(request: NextRequest) {
-  // --- 0. Legacy URL redirects: ?idea={id} → /ideas/{id}, ?task={id} → /tasks/{id} ---
+  // --- 0. Legacy URL redirects: ?research-question={id} → /research-questions/{id}, ?run={id} → /experiment-runs/{id} ---
   const { pathname, searchParams } = request.nextUrl;
-  const ideasMatch = pathname.match(/^\/projects\/([^/]+)\/ideas$/);
-  if (ideasMatch && searchParams.has("idea")) {
-    const ideaUuid = searchParams.get("idea")!;
+  const questionsMatch = pathname.match(/^\/research-projects\/([^/]+)\/research-questions$/);
+  if (questionsMatch && searchParams.has("research-question")) {
+    const questionUuid = searchParams.get("research-question")!;
     const url = request.nextUrl.clone();
-    url.pathname = `/projects/${ideasMatch[1]}/ideas/${ideaUuid}`;
-    url.searchParams.delete("idea");
+    url.pathname = `/research-projects/${questionsMatch[1]}/research-questions/${questionUuid}`;
+    url.searchParams.delete("research-question");
     return NextResponse.redirect(url, 307);
   }
-  const tasksMatch = pathname.match(/^\/projects\/([^/]+)\/tasks$/);
-  if (tasksMatch && searchParams.has("task")) {
-    const taskUuid = searchParams.get("task")!;
+  const runsMatch = pathname.match(/^\/research-projects\/([^/]+)\/experiment-runs$/);
+  if (runsMatch && searchParams.has("run")) {
+    const runUuid = searchParams.get("run")!;
     const url = request.nextUrl.clone();
-    url.pathname = `/projects/${tasksMatch[1]}/tasks/${taskUuid}`;
-    url.searchParams.delete("task");
+    url.pathname = `/research-projects/${runsMatch[1]}/experiment-runs/${runUuid}`;
+    url.searchParams.delete("run");
     return NextResponse.redirect(url, 307);
   }
 

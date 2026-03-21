@@ -6,16 +6,16 @@ import {
   getElaboration,
   answerElaboration,
   skipElaboration,
-} from "@/services/elaboration.service";
+} from "@/services/hypothesis-formulation.service";
 import { prisma } from "@/lib/prisma";
 import type {
   ElaborationResponse,
   AnswerInput,
   ElaborationRoundResponse,
-} from "@/types/elaboration";
+} from "@/types/hypothesis-formulation";
 
-export async function getElaborationAction(
-  ideaUuid: string
+export async function getHypothesisFormulationAction(
+  questionUuid: string
 ): Promise<{ success: boolean; data?: ElaborationResponse; error?: string }> {
   const auth = await getServerAuthContext();
   if (!auth) {
@@ -25,7 +25,7 @@ export async function getElaborationAction(
   try {
     const data = await getElaboration({
       companyUuid: auth.companyUuid,
-      ideaUuid,
+      questionUuid,
     });
     return { success: true, data };
   } catch (error) {
@@ -37,8 +37,8 @@ export async function getElaborationAction(
   }
 }
 
-export async function submitElaborationAnswersAction(
-  ideaUuid: string,
+export async function submitHypothesisFormulationAnswersAction(
+  questionUuid: string,
   roundUuid: string,
   answers: AnswerInput[]
 ): Promise<{ success: boolean; data?: ElaborationRoundResponse; error?: string }> {
@@ -50,7 +50,7 @@ export async function submitElaborationAnswersAction(
   try {
     const data = await answerElaboration({
       companyUuid: auth.companyUuid,
-      ideaUuid,
+      questionUuid,
       roundUuid,
       actorUuid: auth.actorUuid,
       actorType: auth.type,
@@ -58,10 +58,10 @@ export async function submitElaborationAnswersAction(
     });
 
     // Revalidate the ideas page so the panel refreshes
-    const idea = await prisma.idea.findFirst({ where: { uuid: ideaUuid, companyUuid: auth.companyUuid } });
+    const idea = await prisma.researchQuestion.findFirst({ where: { uuid: questionUuid, companyUuid: auth.companyUuid } });
     if (idea) {
-      revalidatePath(`/projects/${idea.projectUuid}/ideas/${ideaUuid}`);
-      revalidatePath(`/projects/${idea.projectUuid}/ideas`);
+      revalidatePath(`/research-projects/${idea.researchProjectUuid}/research-questions/${questionUuid}`);
+      revalidatePath(`/research-projects/${idea.researchProjectUuid}/research-questions`);
     }
 
     return { success: true, data };
@@ -74,8 +74,8 @@ export async function submitElaborationAnswersAction(
   }
 }
 
-export async function skipElaborationAction(
-  ideaUuid: string,
+export async function skipHypothesisFormulationAction(
+  questionUuid: string,
   reason: string
 ): Promise<{ success: boolean; error?: string }> {
   const auth = await getServerAuthContext();
@@ -86,17 +86,17 @@ export async function skipElaborationAction(
   try {
     await skipElaboration({
       companyUuid: auth.companyUuid,
-      ideaUuid,
+      questionUuid,
       actorUuid: auth.actorUuid,
       actorType: auth.type,
       reason,
     });
 
     // Revalidate the ideas page so the panel refreshes
-    const idea = await prisma.idea.findFirst({ where: { uuid: ideaUuid, companyUuid: auth.companyUuid } });
+    const idea = await prisma.researchQuestion.findFirst({ where: { uuid: questionUuid, companyUuid: auth.companyUuid } });
     if (idea) {
-      revalidatePath(`/projects/${idea.projectUuid}/ideas/${ideaUuid}`);
-      revalidatePath(`/projects/${idea.projectUuid}/ideas`);
+      revalidatePath(`/research-projects/${idea.researchProjectUuid}/research-questions/${questionUuid}`);
+      revalidatePath(`/research-projects/${idea.researchProjectUuid}/research-questions`);
     }
 
     return { success: true };

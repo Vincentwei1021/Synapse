@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { markAcceptanceCriteria, reportCriteriaSelfCheck, resetAcceptanceCriterion, getTaskByUuid } from "@/services/task.service";
+import { markAcceptanceCriteria, reportCriteriaSelfCheck, resetAcceptanceCriterion, getExperimentRunByUuid } from "@/services/experiment-run.service";
 
 export async function markCriteriaAction(
-  taskUuid: string,
+  runUuid: string,
   criteria: Array<{ uuid: string; status: "passed" | "failed"; evidence?: string }>,
 ) {
   const auth = await getServerAuthContext();
@@ -19,20 +19,20 @@ export async function markCriteriaAction(
   }
 
   try {
-    const task = await getTaskByUuid(auth.companyUuid, taskUuid);
+    const task = await getExperimentRunByUuid(auth.companyUuid, runUuid);
     if (!task) {
       return { success: false, error: "Task not found" };
     }
 
     const result = await markAcceptanceCriteria(
       auth.companyUuid,
-      taskUuid,
+      runUuid,
       criteria,
       { type: auth.type, actorUuid: auth.actorUuid },
     );
 
-    revalidatePath(`/projects/${task.projectUuid}/tasks/${taskUuid}`);
-    revalidatePath(`/projects/${task.projectUuid}/tasks`);
+    revalidatePath(`/research-projects/${task.researchProjectUuid}/experiment-runs/${runUuid}`);
+    revalidatePath(`/research-projects/${task.researchProjectUuid}/experiment-runs`);
 
     return { success: true, data: result };
   } catch (error) {
@@ -42,7 +42,7 @@ export async function markCriteriaAction(
 }
 
 export async function resetCriterionAction(
-  taskUuid: string,
+  runUuid: string,
   criterionUuid: string,
 ) {
   const auth = await getServerAuthContext();
@@ -55,15 +55,15 @@ export async function resetCriterionAction(
   }
 
   try {
-    const task = await getTaskByUuid(auth.companyUuid, taskUuid);
+    const task = await getExperimentRunByUuid(auth.companyUuid, runUuid);
     if (!task) {
       return { success: false, error: "Task not found" };
     }
 
-    await resetAcceptanceCriterion(auth.companyUuid, taskUuid, criterionUuid);
+    await resetAcceptanceCriterion(auth.companyUuid, runUuid, criterionUuid);
 
-    revalidatePath(`/projects/${task.projectUuid}/tasks/${taskUuid}`);
-    revalidatePath(`/projects/${task.projectUuid}/tasks`);
+    revalidatePath(`/research-projects/${task.researchProjectUuid}/experiment-runs/${runUuid}`);
+    revalidatePath(`/research-projects/${task.researchProjectUuid}/experiment-runs`);
 
     return { success: true };
   } catch (error) {
@@ -73,7 +73,7 @@ export async function resetCriterionAction(
 }
 
 export async function selfCheckCriteriaAction(
-  taskUuid: string,
+  runUuid: string,
   criteria: Array<{ uuid: string; devStatus: "passed" | "failed"; devEvidence?: string }>,
 ) {
   const auth = await getServerAuthContext();
@@ -82,20 +82,20 @@ export async function selfCheckCriteriaAction(
   }
 
   try {
-    const task = await getTaskByUuid(auth.companyUuid, taskUuid);
+    const task = await getExperimentRunByUuid(auth.companyUuid, runUuid);
     if (!task) {
       return { success: false, error: "Task not found" };
     }
 
     const result = await reportCriteriaSelfCheck(
       auth.companyUuid,
-      taskUuid,
+      runUuid,
       criteria,
       { type: auth.type, actorUuid: auth.actorUuid },
     );
 
-    revalidatePath(`/projects/${task.projectUuid}/tasks/${taskUuid}`);
-    revalidatePath(`/projects/${task.projectUuid}/tasks`);
+    revalidatePath(`/research-projects/${task.researchProjectUuid}/experiment-runs/${runUuid}`);
+    revalidatePath(`/research-projects/${task.researchProjectUuid}/experiment-runs`);
 
     return { success: true, data: result };
   } catch (error) {

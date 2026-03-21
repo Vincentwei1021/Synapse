@@ -20,7 +20,7 @@ import {
   Rocket,
   Bell,
 } from "lucide-react";
-import { createProjectAction } from "./actions";
+import { createResearchProjectAction } from "./actions";
 
 interface UploadedFile {
   name: string;
@@ -129,7 +129,7 @@ export default function NewProjectPage() {
         }
       }
 
-      const result = await createProjectAction({
+      const result = await createResearchProjectAction({
         name: formData.name,
         description: formData.description,
         ideas: ideas,
@@ -138,7 +138,7 @@ export default function NewProjectPage() {
 
       if (result.success && result.projectUuid) {
         localStorage.setItem("currentProjectUuid", result.projectUuid);
-        router.push(`/projects/${result.projectUuid}/dashboard`);
+        router.push(`/research-projects/${result.projectUuid}/dashboard`);
       } else {
         setError(result.error || t("projects.createFailed"));
       }
@@ -155,7 +155,7 @@ export default function NewProjectPage() {
         {/* Top Bar */}
         <div className="mb-6 flex items-center justify-between">
           <div className="text-[11px] text-muted-foreground">
-            <Link href="/projects" className="hover:text-foreground">
+            <Link href="/research-projects" className="hover:text-foreground">
               {t("nav.projects")}
             </Link>
             <span className="mx-1">/</span>
@@ -391,7 +391,7 @@ export default function NewProjectPage() {
           {/* Action Bar */}
           <Separator className="bg-[#E5E2DC]" />
           <div className="flex items-center justify-end gap-3 py-2">
-            <Link href="/projects">
+            <Link href="/research-projects">
               <Button type="button" variant="outline" className="rounded-xl px-6 py-2.5">
                 {t("common.cancel")}
               </Button>
@@ -402,7 +402,7 @@ export default function NewProjectPage() {
               className="rounded-xl bg-[#C67A52] px-6 py-2.5 hover:bg-[#B56A42]"
             >
               <Plus className="mr-2 h-3.5 w-3.5" />
-              {loading ? t("common.creating") : t("projects.createNew.createProject")}
+              {loading ? t("common.creating") : t("projects.createNew.createResearchProject")}
             </Button>
           </div>
         </form>

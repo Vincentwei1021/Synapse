@@ -6,11 +6,11 @@ import { CheckCircle2, XCircle, AlertTriangle, Info, ChevronDown, ChevronUp, Cli
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { ValidationIssue, ValidationResult } from "@/services/proposal.service";
+import type { ValidationIssue, ValidationResult } from "@/services/experiment-design.service";
 
-interface ProposalValidationChecklistProps {
+interface DesignValidationChecklistProps {
   projectUuid: string;
-  proposalUuid: string;
+  designUuid: string;
   status: string;
 }
 
@@ -26,7 +26,7 @@ const levelColors = {
   info: { icon: "text-blue-500", bg: "bg-blue-50", badge: "bg-blue-100 text-blue-700" },
 } as const;
 
-export function ProposalValidationChecklist({ projectUuid, proposalUuid, status }: ProposalValidationChecklistProps) {
+export function DesignValidationChecklist({ projectUuid, designUuid, status }: DesignValidationChecklistProps) {
   const t = useTranslations("proposalValidation");
   const [result, setResult] = useState<ValidationResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,7 +42,7 @@ export function ProposalValidationChecklist({ projectUuid, proposalUuid, status 
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch(`/api/projects/${projectUuid}/proposals/${proposalUuid}/validate`);
+        const res = await fetch(`/api/research-projects/${projectUuid}/experiment-designs/${designUuid}/validate`);
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }
@@ -63,7 +63,7 @@ export function ProposalValidationChecklist({ projectUuid, proposalUuid, status 
 
     fetchValidation();
     return () => { cancelled = true; };
-  }, [projectUuid, proposalUuid, status]);
+  }, [projectUuid, designUuid, status]);
 
   if (status !== "draft") return null;
 

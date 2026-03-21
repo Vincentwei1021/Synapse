@@ -1,4 +1,4 @@
-// src/app/(dashboard)/projects/[uuid]/documents/page.tsx
+// src/app/(dashboard)/research-projects/[uuid]/documents/page.tsx
 // Server Component - UUID obtained from URL
 
 import { redirect } from "next/navigation";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ClipboardList, FileEdit, Palette, BookOpen, FileText, FilePlus, type LucideIcon } from "lucide-react";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { listDocuments } from "@/services/document.service";
-import { projectExists } from "@/services/project.service";
+import { researchProjectExists } from "@/services/research-project.service";
 import { CreateDocumentDialog } from "./create-document-dialog";
 
 const docTypeConfig: Record<string, { labelKey: string; color: string; icon: LucideIcon }> = {
@@ -37,9 +37,9 @@ export default async function DocumentsPage({ params, searchParams }: PageProps)
   const t = await getTranslations();
 
   // Validate project exists
-  const exists = await projectExists(auth.companyUuid, projectUuid);
+  const exists = await researchProjectExists(auth.companyUuid, projectUuid);
   if (!exists) {
-    redirect("/projects");
+    redirect("/research-projects");
   }
 
   // Get all Documents
@@ -74,7 +74,7 @@ export default async function DocumentsPage({ params, searchParams }: PageProps)
 
       {/* Filter Tabs */}
       <div className="mb-6 flex gap-2 overflow-x-auto border-b border-border pb-4">
-        <Link href={`/projects/${projectUuid}/documents`}>
+        <Link href={`/research-projects/${projectUuid}/documents`}>
           <Button variant={filter === "all" ? "default" : "ghost"} size="sm">
             {t("documents.all")} ({allDocuments.length})
           </Button>
@@ -83,7 +83,7 @@ export default async function DocumentsPage({ params, searchParams }: PageProps)
           const count = typeCounts[type] || 0;
           if (count === 0) return null;
           return (
-            <Link key={type} href={`/projects/${projectUuid}/documents?type=${type}`}>
+            <Link key={type} href={`/research-projects/${projectUuid}/documents?type=${type}`}>
               <Button variant={filter === type ? "default" : "ghost"} size="sm">
                 {t(config.labelKey)} ({count})
               </Button>
@@ -105,7 +105,7 @@ export default async function DocumentsPage({ params, searchParams }: PageProps)
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredDocuments.map((doc) => (
-            <Link key={doc.uuid} href={`/projects/${projectUuid}/documents/${doc.uuid}`}>
+            <Link key={doc.uuid} href={`/research-projects/${projectUuid}/documents/${doc.uuid}`}>
               <Card className="group cursor-pointer border-[#E5E0D8] p-5 transition-all hover:border-[#C67A52] hover:shadow-md">
                 <div className="mb-3 flex items-start justify-between">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F5F2EC]">

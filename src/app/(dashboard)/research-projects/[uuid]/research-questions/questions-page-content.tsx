@@ -1,5 +1,5 @@
-// src/app/(dashboard)/projects/[uuid]/ideas/ideas-page-content.tsx
-// Server Component — shared by both /ideas and /ideas/[ideaUuid] pages
+// src/app/(dashboard)/research-projects/[uuid]/research-questions/ideas-page-content.tsx
+// Server Component — shared by both /ideas and /research-questions/[questionUuid] pages
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Lightbulb } from "lucide-react";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { listIdeas } from "@/services/idea.service";
-import { projectExists } from "@/services/project.service";
-import { checkIdeasAvailability } from "@/services/proposal.service";
+import { listResearchQuestions } from "@/services/research-question.service";
+import { researchProjectExists } from "@/services/research-project.service";
+import { checkIdeasAvailability } from "@/services/experiment-design.service";
 import { batchCommentCounts } from "@/services/comment.service";
-import { IdeaCreateForm } from "./idea-create-form";
-import { IdeasList } from "./ideas-list";
+import { IdeaCreateForm } from "./question-create-form";
+import { IdeasList } from "./questions-list";
 
 // Filter tab statuses (simplified lifecycle)
 const filterStatuses = ["open", "elaborating", "proposal_created"] as const;
@@ -48,13 +48,13 @@ export async function IdeasPageContent({
   const t = await getTranslations();
 
   // Validate project exists
-  const exists = await projectExists(auth.companyUuid, projectUuid);
+  const exists = await researchProjectExists(auth.companyUuid, projectUuid);
   if (!exists) {
-    redirect("/projects");
+    redirect("/research-projects");
   }
 
   // Get all Ideas (for counting)
-  const { ideas: allIdeas } = await listIdeas({
+  const { ideas: allIdeas } = await listResearchQuestions({
     companyUuid: auth.companyUuid,
     projectUuid,
     skip: 0,
@@ -62,7 +62,7 @@ export async function IdeasPageContent({
   });
 
   // Get Ideas assigned to me (for counting)
-  const { ideas: myIdeas } = await listIdeas({
+  const { ideas: myIdeas } = await listResearchQuestions({
     companyUuid: auth.companyUuid,
     projectUuid,
     skip: 0,
@@ -87,12 +87,12 @@ export async function IdeasPageContent({
   // idea UUID -> proposal UUID mapping
   const ideaProposalMap: Record<string, string> = {};
   for (const u of availabilityCheck.usedIdeas) {
-    ideaProposalMap[u.uuid] = u.proposalUuid;
+    ideaProposalMap[u.uuid] = u.experimentDesignUuid;
   }
 
   // Batch get comment counts
   const commentCounts = allIdeaUuids.length > 0
-    ? await batchCommentCounts(auth.companyUuid, "idea", allIdeaUuids)
+    ? await batchCommentCounts(auth.companyUuid, "research_question", allIdeaUuids)
     : {};
 
   // Filter by selected status
@@ -125,12 +125,12 @@ export async function IdeasPageContent({
 
       {/* Filter Tabs */}
       <div className="mb-6 flex gap-2 overflow-x-auto border-b border-border pb-4">
-        <Link href={`/projects/${projectUuid}/ideas`}>
+        <Link href={`/research-projects/${projectUuid}/research-questions`}>
           <Button variant={filter === "all" && !isAssignedToMeFilter ? "default" : "ghost"} size="sm">
             {t("ideas.all")} ({allIdeas.length})
           </Button>
         </Link>
-        <Link href={`/projects/${projectUuid}/ideas?assignedToMe=true`}>
+        <Link href={`/research-projects/${projectUuid}/research-questions?assignedToMe=true`}>
           <Button variant={isAssignedToMeFilter && filter === "all" ? "default" : "ghost"} size="sm">
             {t("ideas.assignedToMe")} ({myIdeas.length})
           </Button>
@@ -138,7 +138,7 @@ export async function IdeasPageContent({
         {filterStatuses.map((status) => {
           const count = statusCounts[status] || 0;
           return (
-            <Link key={status} href={`/projects/${projectUuid}/ideas?status=${status}${isAssignedToMeFilter ? "&assignedToMe=true" : ""}`}>
+            <Link key={status} href={`/research-projects/${projectUuid}/research-questions?status=${status}${isAssignedToMeFilter ? "&assignedToMe=true" : ""}`}>
               <Button variant={filter === status ? "default" : "ghost"} size="sm">
                 {t(`status.${statusI18nKeys[status]}`)} ({count})
               </Button>

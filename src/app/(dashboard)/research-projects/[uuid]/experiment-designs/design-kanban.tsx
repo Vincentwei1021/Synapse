@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Bot, User } from "lucide-react";
 import { Streamdown } from "streamdown";
 import { code } from "@streamdown/code";
-import type { DocumentDraft, TaskDraft } from "@/services/proposal.service";
+import type { DocumentDraft, TaskDraft } from "@/services/experiment-design.service";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -93,7 +93,7 @@ function ProposalCard({
 
   return (
     <Link
-      href={`/projects/${projectUuid}/proposals/${proposal.uuid}`}
+      href={`/research-projects/${projectUuid}/experiment-designs/${proposal.uuid}`}
       className="block"
     >
       <Card className="cursor-pointer border-[#E5E0D8] bg-white p-4 transition-all hover:border-[#C67A52] hover:shadow-sm">
@@ -151,7 +151,7 @@ export function ProposalKanban({ projectUuid, proposals }: ProposalKanbanProps) 
   const [activeFilter, setActiveFilter] = useState("all");
   useRealtimeRefresh();
 
-  const getProposalsForColumn = (statuses: string[]) =>
+  const getExperimentDesignsForColumn = (statuses: string[]) =>
     proposals.filter((p) => statuses.includes(p.status));
 
   // Mobile: vertical list with horizontal status filter tabs
@@ -160,7 +160,7 @@ export function ProposalKanban({ projectUuid, proposals }: ProposalKanbanProps) 
     const filteredProposals =
       activeFilter === "all"
         ? proposals
-        : getProposalsForColumn(activeTab.statuses);
+        : getExperimentDesignsForColumn(activeTab.statuses);
 
     return (
       <div className="flex flex-1 flex-col">
@@ -170,7 +170,7 @@ export function ProposalKanban({ projectUuid, proposals }: ProposalKanbanProps) 
             const count =
               tab.id === "all"
                 ? proposals.length
-                : getProposalsForColumn(tab.statuses).length;
+                : getExperimentDesignsForColumn(tab.statuses).length;
             const isActive = activeFilter === tab.id;
 
             return (
@@ -223,7 +223,7 @@ export function ProposalKanban({ projectUuid, proposals }: ProposalKanbanProps) 
   return (
     <div className="flex flex-1 gap-4 overflow-x-auto pb-4">
       {columnConfigs.map((column) => {
-        const columnProposals = getProposalsForColumn(column.statuses);
+        const columnProposals = getExperimentDesignsForColumn(column.statuses);
 
         return (
           <div

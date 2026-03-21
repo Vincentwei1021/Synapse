@@ -40,22 +40,22 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  getIdeaCommentsAction,
-  createIdeaCommentAction,
-} from "./[ideaUuid]/comment-actions";
-import { getIdeaActivitiesAction } from "./[ideaUuid]/activity-actions";
-import { updateIdeaAction, deleteIdeaAction } from "./actions";
+  getResearchQuestionCommentsAction,
+  createResearchQuestionCommentAction,
+} from "./[questionUuid]/comment-actions";
+import { getQuestionActivitiesAction } from "./[questionUuid]/activity-actions";
+import { updateResearchQuestionAction, deleteResearchQuestionAction } from "./actions";
 import type { ActivityResponse } from "@/services/activity.service";
 import type { CommentResponse } from "@/services/comment.service";
 import { Streamdown } from "streamdown";
 import { code } from "@streamdown/code";
 import { ContentWithMentions } from "@/components/mention-renderer";
 import { MentionEditor, type MentionEditorRef } from "@/components/mention-editor";
-import { AssignIdeaModal } from "./assign-idea-modal";
-import { ElaborationPanel } from "@/components/elaboration-panel";
-import { getElaborationAction, skipElaborationAction } from "./[ideaUuid]/elaboration-actions";
+import { AssignIdeaModal } from "./assign-question-modal";
+import { ElaborationPanel } from "@/components/hypothesis-formulation-panel";
+import { getHypothesisFormulationAction, skipHypothesisFormulationAction } from "./[questionUuid]/elaboration-actions";
 import { useRealtimeEvent, useRealtimeEntityEvent } from "@/contexts/realtime-context";
-import type { ElaborationResponse } from "@/types/elaboration";
+import type { ElaborationResponse } from "@/types/hypothesis-formulation";
 
 interface Idea {
   uuid: string;
@@ -178,7 +178,7 @@ export function IdeaDetailPanel({
 
   // Reload elaboration data (called on mount + SSE events)
   const reloadElaboration = useCallback(async () => {
-    const result = await getElaborationAction(idea.uuid);
+    const result = await getHypothesisFormulationAction(idea.uuid);
     if (result.success && result.data) {
       setElaboration(result.data);
     }
@@ -188,9 +188,9 @@ export function IdeaDetailPanel({
   useRealtimeEvent(reloadElaboration);
 
   // Auto-refresh comments when another user adds a comment
-  useRealtimeEntityEvent("idea", idea.uuid, (event) => {
+  useRealtimeEntityEvent("research_question", idea.uuid, (event) => {
     if (event.actorUuid === currentUserUuid) return;
-    getIdeaCommentsAction(idea.uuid).then((result) => {
+    getResearchQuestionCommentsAction(idea.uuid).then((result) => {
       setComments(result.comments);
     });
   });
@@ -239,13 +239,13 @@ export function IdeaDetailPanel({
   useEffect(() => {
     async function loadComments() {
       setIsLoadingComments(true);
-      const result = await getIdeaCommentsAction(idea.uuid);
+      const result = await getResearchQuestionCommentsAction(idea.uuid);
       setComments(result.comments);
       setIsLoadingComments(false);
     }
     async function loadActivities() {
       setIsLoadingActivities(true);
-      const result = await getIdeaActivitiesAction(idea.uuid);
+      const result = await getQuestionActivitiesAction(idea.uuid);
       setActivities(result.activities);
       setIsLoadingActivities(false);
     }
@@ -265,7 +265,7 @@ export function IdeaDetailPanel({
     if (!comment.trim() || isSubmittingComment) return;
 
     setIsSubmittingComment(true);
-    const result = await createIdeaCommentAction(idea.uuid, comment);
+    const result = await createResearchQuestionCommentAction(idea.uuid, comment);
     setIsSubmittingComment(false);
 
     if (result.success && result.comment) {
@@ -298,8 +298,8 @@ export function IdeaDetailPanel({
     setIsSaving(true);
     setEditError(null);
 
-    const result = await updateIdeaAction({
-      ideaUuid: idea.uuid,
+    const result = await updateResearchQuestionAction({
+      questionUuid: idea.uuid,
       projectUuid,
       title: editTitle.trim(),
       content: editContent.trim() || null,
@@ -317,7 +317,7 @@ export function IdeaDetailPanel({
 
   const handleDelete = async () => {
     setIsDeleting(true);
-    const result = await deleteIdeaAction(idea.uuid, projectUuid);
+    const result = await deleteResearchQuestionAction(idea.uuid, projectUuid);
     setIsDeleting(false);
 
     if (result.success) {
@@ -336,7 +336,7 @@ export function IdeaDetailPanel({
     setIsSkipping(true);
     setSkipError(null);
 
-    const result = await skipElaborationAction(idea.uuid, skipReason.trim());
+    const result = await skipHypothesisFormulationAction(idea.uuid, skipReason.trim());
 
     setIsSkipping(false);
 
@@ -356,7 +356,7 @@ export function IdeaDetailPanel({
     setIsLoadingProjects(true);
     try {
       const [projRes, groupRes] = await Promise.all([
-        fetch("/api/projects?pageSize=100"),
+        fetch("/api/research-projects?pageSize=100"),
         fetch("/api/project-groups"),
       ]);
       const [projJson, groupJson] = await Promise.all([projRes.json(), groupRes.json()]);
@@ -409,7 +409,7 @@ export function IdeaDetailPanel({
     setMoveError(null);
 
     try {
-      const res = await fetch(`/api/ideas/${idea.uuid}/move`, {
+      const res = await fetch(`/api/research-questions/${idea.uuid}/move`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetProjectUuid: selectedMoveProject.uuid }),
@@ -574,10 +574,10 @@ export function IdeaDetailPanel({
                 {!isLoadingElaboration && elaboration && elaboration.rounds.length > 0 && (
                   <div className="mt-5">
                     <ElaborationPanel
-                      ideaUuid={idea.uuid}
+                      questionUuid={idea.uuid}
                       elaboration={elaboration}
                       onRefresh={async () => {
-                        const result = await getElaborationAction(idea.uuid);
+                        const result = await getHypothesisFormulationAction(idea.uuid);
                         if (result.success && result.data) {
                           setElaboration(result.data);
                         }
@@ -766,10 +766,10 @@ export function IdeaDetailPanel({
                   </Button>
                 )}
                 {canCreateProposal && (
-                  <Link href={`/projects/${projectUuid}/proposals/new?ideaUuid=${idea.uuid}`}>
+                  <Link href={`/research-projects/${projectUuid}/experiment-designs/new?questionUuid=${idea.uuid}`}>
                     <Button className="bg-[#C67A52] hover:bg-[#B56A42] text-white">
                       <FileText className="mr-2 h-4 w-4" />
-                      {t("proposals.createProposal")}
+                      {t("proposals.createExperimentDesign")}
                     </Button>
                   </Link>
                 )}
@@ -796,9 +796,9 @@ export function IdeaDetailPanel({
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>{t("ideas.deleteIdea")}</AlertDialogTitle>
+                        <AlertDialogTitle>{t("ideas.deleteResearchQuestion")}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          {t("ideas.deleteIdeaConfirm", { title: idea.title })}
+                          {t("ideas.deleteResearchQuestionConfirm", { title: idea.title })}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

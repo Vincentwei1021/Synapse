@@ -44,7 +44,7 @@ export function ProposalFilter({ projectUuid }: ProposalFilterProps) {
 
   // Initialize selection from URL params
   useEffect(() => {
-    const param = searchParams.get("proposalUuids");
+    const param = searchParams.get("designUuids");
     if (param) {
       setSelectedUuids(new Set(param.split(",").filter(Boolean)));
     } else {
@@ -58,7 +58,7 @@ export function ProposalFilter({ projectUuid }: ProposalFilterProps) {
     async function fetchProposals() {
       try {
         const res = await fetch(
-          `/api/projects/${projectUuid}/proposals/summary`
+          `/api/research-projects/${projectUuid}/experiment-designs/summary`
         );
         if (!res.ok) return;
         const json = await res.json();
@@ -79,9 +79,9 @@ export function ProposalFilter({ projectUuid }: ProposalFilterProps) {
     (uuids: Set<string>) => {
       const params = new URLSearchParams(searchParams.toString());
       if (uuids.size > 0) {
-        params.set("proposalUuids", Array.from(uuids).join(","));
+        params.set("designUuids", Array.from(uuids).join(","));
       } else {
-        params.delete("proposalUuids");
+        params.delete("designUuids");
       }
       const query = params.toString();
       router.replace(`${pathname}${query ? `?${query}` : ""}`, {

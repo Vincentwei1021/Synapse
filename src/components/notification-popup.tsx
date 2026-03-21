@@ -110,14 +110,14 @@ function useRelativeTime(t: ReturnType<typeof useTranslations>) {
 
 function getEntityPath(notification: Notification): string {
   const { entityType, entityUuid, projectUuid } = notification;
-  const base = `/projects/${projectUuid}`;
+  const base = `/research-projects/${projectUuid}`;
   switch (entityType) {
-    case "task":
-      return `${base}/tasks/${entityUuid}`;
-    case "idea":
-      return `${base}/ideas/${entityUuid}`;
-    case "proposal":
-      return `${base}/proposals/${entityUuid}`;
+    case "experiment_run":
+      return `${base}/experiment-runs/${entityUuid}`;
+    case "research_question":
+      return `${base}/research-questions/${entityUuid}`;
+    case "experiment_design":
+      return `${base}/experiment-designs/${entityUuid}`;
     case "document":
       return `${base}/documents/${entityUuid}`;
     default:

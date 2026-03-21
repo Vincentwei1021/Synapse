@@ -1,13 +1,13 @@
-// src/app/(dashboard)/projects/[uuid]/tasks/tasks-page-content.tsx
-// Server Component — shared by both /tasks and /tasks/[taskUuid] pages
+// src/app/(dashboard)/research-projects/[uuid]/experiment-runs/tasks-page-content.tsx
+// Server Component — shared by both /tasks and /experiment-runs/[runUuid] pages
 
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Clock } from "lucide-react";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { listTasks } from "@/services/task.service";
-import { projectExists } from "@/services/project.service";
-import { TaskViewToggle } from "./task-view-toggle";
+import { listExperimentRuns } from "@/services/experiment-run.service";
+import { researchProjectExists } from "@/services/research-project.service";
+import { TaskViewToggle } from "./run-view-toggle";
 
 interface TasksPageContentProps {
   projectUuid: string;
@@ -26,20 +26,20 @@ export async function TasksPageContent({
   const t = await getTranslations();
 
   // Validate project exists
-  const exists = await projectExists(auth.companyUuid, projectUuid);
+  const exists = await researchProjectExists(auth.companyUuid, projectUuid);
   if (!exists) {
-    redirect("/projects");
+    redirect("/research-projects");
   }
 
   // Get all Tasks
-  const { tasks } = await listTasks({
+  const { tasks } = await listExperimentRuns({
     companyUuid: auth.companyUuid,
     projectUuid,
     skip: 0,
     take: 1000,
   });
 
-  const totalHours = tasks.reduce((sum, task) => sum + (task.storyPoints || 0), 0);
+  const totalHours = tasks.reduce((sum, task) => sum + (task.computeBudgetHours || 0), 0);
 
   return (
     <div className="flex h-full flex-col p-4 md:p-8">

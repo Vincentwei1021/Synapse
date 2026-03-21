@@ -21,8 +21,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { moveTaskToColumnAction, forceMoveTaskToColumnAction } from "./actions";
-import { TaskDetailPanel } from "./task-detail-panel";
+import { moveRunToColumnAction, forceMoveTaskToColumnAction } from "./actions";
+import { TaskDetailPanel } from "./run-detail-panel";
 import { getBatchWorkerCountsAction } from "./session-actions";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
 
@@ -32,8 +32,8 @@ interface Task {
   description: string | null;
   status: string;
   priority: string;
-  storyPoints: number | null;
-  proposalUuid: string | null;
+  computeBudgetHours: number | null;
+  experimentDesignUuid: string | null;
   assignee: {
     type: string;
     uuid: string;
@@ -59,7 +59,7 @@ interface KanbanBoardProps {
   initialTasks: Task[];
   currentUserUuid: string;
   selectedTaskUuid?: string | null;
-  onTaskSelect: (taskUuid: string) => void;
+  onTaskSelect: (runUuid: string) => void;
   onPanelClose: () => void;
 }
 
@@ -148,13 +148,13 @@ export function KanbanBoard({ projectUuid, initialTasks, currentUserUuid, select
     [selectedTaskUuid, tasks]
   );
 
-  const getTasksForColumn = (statuses: string[]) => {
+  const getExperimentRunsForColumn = (statuses: string[]) => {
     return tasks.filter((task) => statuses.includes(task.status));
   };
 
   const getColumnHours = (statuses: string[]) => {
-    return getTasksForColumn(statuses).reduce(
-      (sum, task) => sum + (task.storyPoints || 0),
+    return getExperimentRunsForColumn(statuses).reduce(
+      (sum, task) => sum + (task.computeBudgetHours || 0),
       0
     );
   };
@@ -173,12 +173,12 @@ export function KanbanBoard({ projectUuid, initialTasks, currentUserUuid, select
       return;
     }
 
-    const taskUuid = draggableId;
+    const runUuid = draggableId;
     const newColumnId = destination.droppableId;
     const sourceColumnId = source.droppableId;
 
     // Find the task
-    const task = tasks.find((t) => t.uuid === taskUuid);
+    const task = tasks.find((t) => t.uuid === runUuid);
     if (!task) return;
 
     // Determine the new status based on destination column
@@ -200,11 +200,11 @@ export function KanbanBoard({ projectUuid, initialTasks, currentUserUuid, select
 
     // Optimistically update the UI
     setTasks((prev) =>
-      prev.map((t) => (t.uuid === taskUuid ? { ...t, status: newStatus } : t))
+      prev.map((t) => (t.uuid === runUuid ? { ...t, status: newStatus } : t))
     );
 
     // Call the server action
-    const result2 = await moveTaskToColumnAction(taskUuid, newColumnId, projectUuid);
+    const result2 = await moveRunToColumnAction(runUuid, newColumnId, projectUuid);
 
     if (!result2.success) {
       // Check if blocked by dependencies
@@ -212,7 +212,7 @@ export function KanbanBoard({ projectUuid, initialTasks, currentUserUuid, select
         // Revert optimistic update
         setTasks((prev) =>
           prev.map((t) =>
-            t.uuid === taskUuid ? { ...t, status: task.status } : t
+            t.uuid === runUuid ? { ...t, status: task.status } : t
           )
         );
         // Show force move dialog
@@ -225,7 +225,7 @@ export function KanbanBoard({ projectUuid, initialTasks, currentUserUuid, select
       // Revert on other errors
       setTasks((prev) =>
         prev.map((t) =>
-          t.uuid === taskUuid ? { ...t, status: task.status } : t
+          t.uuid === runUuid ? { ...t, status: task.status } : t
         )
       );
 
@@ -273,7 +273,7 @@ export function KanbanBoard({ projectUuid, initialTasks, currentUserUuid, select
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="flex flex-1 gap-4 overflow-x-auto pb-4">
         {columnConfigs.map((column) => {
-          const columnTasks = getTasksForColumn(column.statuses);
+          const columnTasks = getExperimentRunsForColumn(column.statuses);
           return (
             <div
               key={column.id}
@@ -370,7 +370,7 @@ export function KanbanBoard({ projectUuid, initialTasks, currentUserUuid, select
                                     {t(`status.${statusI18nKeys[task.status] || task.status}`)}
                                   </Badge>
                                   <div className="flex items-center gap-1.5">
-                                    {task.storyPoints && (
+                                    {task.computeBudgetHours && (
                                     <span className="flex items-center gap-1 rounded bg-[#FFF3E0] px-2 py-0.5 text-xs font-medium text-[#E65100]">
                                       <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -385,7 +385,7 @@ export function KanbanBoard({ projectUuid, initialTasks, currentUserUuid, select
                                         <circle cx="12" cy="12" r="10" />
                                         <polyline points="12 6 12 12 16 14" />
                                       </svg>
-                                      {task.storyPoints}h
+                                      {task.computeBudgetHours}h
                                     </span>
                                     )}
                                   </div>

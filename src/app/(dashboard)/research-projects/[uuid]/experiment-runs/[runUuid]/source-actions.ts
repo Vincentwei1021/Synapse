@@ -1,15 +1,15 @@
 "use server";
 
 import { getServerAuthContext } from "@/lib/auth-server";
-import { getProposalByUuid } from "@/services/proposal.service";
+import { getExperimentDesignByUuid } from "@/services/experiment-design.service";
 
 export interface ProposalSource {
   uuid: string;
   title: string;
 }
 
-export async function getTaskSourceAction(
-  proposalUuid: string
+export async function getRunSourceAction(
+  experimentDesignUuid: string
 ): Promise<ProposalSource | null> {
   const auth = await getServerAuthContext();
   if (!auth) {
@@ -17,7 +17,7 @@ export async function getTaskSourceAction(
   }
 
   try {
-    const proposal = await getProposalByUuid(auth.companyUuid, proposalUuid);
+    const proposal = await getExperimentDesignByUuid(auth.companyUuid, experimentDesignUuid);
     if (!proposal) {
       return null;
     }

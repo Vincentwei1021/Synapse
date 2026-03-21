@@ -1,4 +1,4 @@
-// src/app/(dashboard)/projects/[uuid]/activity/page.tsx
+// src/app/(dashboard)/research-projects/[uuid]/activity/page.tsx
 // Server Component - UUID obtained from URL
 
 import { redirect } from "next/navigation";
@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Monitor, User, Settings } from "lucide-react";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { listActivities } from "@/services/activity.service";
-import { projectExists } from "@/services/project.service";
+import { researchProjectExists } from "@/services/research-project.service";
 import { prisma } from "@/lib/prisma";
 
 interface ActivityWithActor {
@@ -31,9 +31,9 @@ const actionConfig: Record<string, { i18nKey: string; color: string }> = {
 };
 
 const entityTypeConfig: Record<string, { i18nKey: string; color: string }> = {
-  idea: { i18nKey: "activity.entityIdea", color: "bg-[#FFF3E0] text-[#E65100]" },
-  proposal: { i18nKey: "activity.entityProposal", color: "bg-[#F3E5F5] text-[#7B1FA2]" },
-  task: { i18nKey: "activity.entityTask", color: "bg-[#E3F2FD] text-[#1976D2]" },
+  research_question: { i18nKey: "activity.entityIdea", color: "bg-[#FFF3E0] text-[#E65100]" },
+  experiment_design: { i18nKey: "activity.entityProposal", color: "bg-[#F3E5F5] text-[#7B1FA2]" },
+  experiment_run: { i18nKey: "activity.entityTask", color: "bg-[#E3F2FD] text-[#1976D2]" },
   document: { i18nKey: "activity.entityDocument", color: "bg-[#E8F5E9] text-[#5A9E6F]" },
   project: { i18nKey: "activity.entityProject", color: "bg-[#FFF3E0] text-[#E65100]" },
 };
@@ -95,9 +95,9 @@ export default async function ActivityPage({ params }: PageProps) {
   const t = await getTranslations();
 
   // Validate project exists
-  const exists = await projectExists(auth.companyUuid, projectUuid);
+  const exists = await researchProjectExists(auth.companyUuid, projectUuid);
   if (!exists) {
-    redirect("/projects");
+    redirect("/research-projects");
   }
 
   // Get Activities

@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { authFetch } from "@/lib/auth-client";
 import { ManageProjectGroupDialog } from "@/components/manage-project-group-dialog";
-import { CreateProjectDialog } from "@/components/create-project-dialog";
+import { CreateProjectDialog } from "@/components/create-research-project-dialog";
 
 // ── Types ──────────────────────────────────────────────────────
 interface GroupDashboardData {
@@ -78,9 +78,9 @@ function getAvatarColor(name: string): string {
 }
 
 const activityDotColors: Record<string, string> = {
-  task: "#5A9E6F",
-  idea: "#C67A52",
-  proposal: "#1976D2",
+  experiment_run: "#5A9E6F",
+  research_question: "#C67A52",
+  experiment_design: "#1976D2",
   document: "#9A9A9A",
 };
 
@@ -131,7 +131,7 @@ export default function ProjectGroupDashboardPage() {
       const res = await authFetch(`/api/project-groups/${params.uuid}/dashboard`);
       if (!res.ok) {
         if (res.status === 404) {
-          router.push("/projects");
+          router.push("/research-projects");
           return;
         }
         setError(t("common.genericError"));
@@ -206,7 +206,7 @@ export default function ProjectGroupDashboardPage() {
       {/* Breadcrumb */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-[12px]">
-          <Link href="/projects" className="text-[#C67A52] hover:underline">
+          <Link href="/research-projects" className="text-[#C67A52] hover:underline">
             {t("nav.projects")}
           </Link>
           <span className="text-[#9A9A9A]">/</span>
@@ -283,7 +283,7 @@ export default function ProjectGroupDashboardPage() {
                 return (
                   <Link
                     key={project.uuid}
-                    href={`/projects/${project.uuid}/dashboard`}
+                    href={`/research-projects/${project.uuid}/dashboard`}
                   >
                     <div className="flex cursor-pointer items-center justify-between rounded-xl border border-[#E5E2DC] bg-white py-3 px-4 transition-all hover:border-[#C67A52] hover:shadow-sm">
                       <div className="flex items-center gap-3">

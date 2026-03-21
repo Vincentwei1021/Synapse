@@ -2,11 +2,11 @@
 
 import { getServerAuthContext } from "@/lib/auth-server";
 import { listComments, createComment, type CommentResponse } from "@/services/comment.service";
-import { getProposal } from "@/services/proposal.service";
+import { getExperimentDesign } from "@/services/experiment-design.service";
 import { createActivity } from "@/services/activity.service";
 
-export async function getProposalCommentsAction(
-  proposalUuid: string
+export async function getDesignCommentsAction(
+  designUuid: string
 ): Promise<{ comments: CommentResponse[]; total: number }> {
   const auth = await getServerAuthContext();
   if (!auth) {
@@ -16,8 +16,8 @@ export async function getProposalCommentsAction(
   try {
     const result = await listComments({
       companyUuid: auth.companyUuid,
-      targetType: "proposal",
-      targetUuid: proposalUuid,
+      targetType: "experiment_design",
+      targetUuid: designUuid,
       skip: 0,
       take: 100,
     });
@@ -28,8 +28,8 @@ export async function getProposalCommentsAction(
   }
 }
 
-export async function createProposalCommentAction(
-  proposalUuid: string,
+export async function createDesignCommentAction(
+  designUuid: string,
   content: string
 ): Promise<{ success: boolean; comment?: CommentResponse; error?: string }> {
   const auth = await getServerAuthContext();
@@ -42,15 +42,15 @@ export async function createProposalCommentAction(
   }
 
   try {
-    const proposal = await getProposal(auth.companyUuid, proposalUuid);
+    const proposal = await getExperimentDesign(auth.companyUuid, designUuid);
     if (!proposal) {
       return { success: false, error: "Proposal not found" };
     }
 
     const comment = await createComment({
       companyUuid: auth.companyUuid,
-      targetType: "proposal",
-      targetUuid: proposalUuid,
+      targetType: "experiment_design",
+      targetUuid: designUuid,
       content: content.trim(),
       authorType: auth.type,
       authorUuid: auth.actorUuid,
@@ -61,8 +61,8 @@ export async function createProposalCommentAction(
       await createActivity({
         companyUuid: auth.companyUuid,
         projectUuid: proposal.project.uuid,
-        targetType: "proposal",
-        targetUuid: proposalUuid,
+        targetType: "experiment_design",
+        targetUuid: designUuid,
         actorType: auth.type,
         actorUuid: auth.actorUuid,
         action: "comment_added",

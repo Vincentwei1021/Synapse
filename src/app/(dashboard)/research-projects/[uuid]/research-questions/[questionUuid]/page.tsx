@@ -1,15 +1,15 @@
-// src/app/(dashboard)/projects/[uuid]/ideas/[ideaUuid]/page.tsx
+// src/app/(dashboard)/research-projects/[uuid]/research-questions/[questionUuid]/page.tsx
 // Server Component — renders list + panel for the selected idea
 
-import { IdeasPageContent } from "../ideas-page-content";
+import { IdeasPageContent } from "../questions-page-content";
 
 interface PageProps {
-  params: Promise<{ uuid: string; ideaUuid: string }>;
+  params: Promise<{ uuid: string; questionUuid: string }>;
   searchParams: Promise<{ status?: string; assignedToMe?: string }>;
 }
 
 export default async function IdeaDetailPage({ params, searchParams }: PageProps) {
-  const { uuid: projectUuid, ideaUuid } = await params;
+  const { uuid: projectUuid, questionUuid } = await params;
   const { status: filter = "all", assignedToMe } = await searchParams;
 
   return (
@@ -17,7 +17,7 @@ export default async function IdeaDetailPage({ params, searchParams }: PageProps
       projectUuid={projectUuid}
       filter={filter}
       isAssignedToMeFilter={assignedToMe === "true"}
-      initialSelectedIdeaUuid={ideaUuid}
+      initialSelectedIdeaUuid={questionUuid}
     />
   );
 }

@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { claimTask, getTaskByUuid, updateTask, releaseTask, createTask, deleteTask, checkAcceptanceCriteriaGate } from "@/services/task.service";
+import { claimTask, getExperimentRunByUuid, updateExperimentRun, releaseTask, createExperimentRun, deleteExperimentRun, checkAcceptanceCriteriaGate } from "@/services/experiment-run.service";
 import { getAgentsByRole, getCompanyUsers } from "@/services/agent.service";
 import { createActivity } from "@/services/activity.service";
 
-export async function claimTaskAction(taskUuid: string) {
+export async function claimRunAction(runUuid: string) {
   const auth = await getServerAuthContext();
   if (!auth) {
     return { success: false, error: "Unauthorized" };
@@ -14,7 +14,7 @@ export async function claimTaskAction(taskUuid: string) {
 
   try {
     // Validate task exists and belongs to this company
-    const task = await getTaskByUuid(auth.companyUuid, taskUuid);
+    const task = await getExperimentRunByUuid(auth.companyUuid, runUuid);
     if (!task) {
       return { success: false, error: "Task not found" };
     }
@@ -25,7 +25,7 @@ export async function claimTaskAction(taskUuid: string) {
     }
 
     await claimTask({
-      taskUuid,
+      runUuid,
       companyUuid: auth.companyUuid,
       assigneeType: auth.type,
       assigneeUuid: auth.actorUuid,
@@ -35,17 +35,17 @@ export async function claimTaskAction(taskUuid: string) {
     // Record activity
     await createActivity({
       companyUuid: auth.companyUuid,
-      projectUuid: task.projectUuid,
-      targetType: "task",
-      targetUuid: taskUuid,
+      researchProjectUuid: task.researchProjectUuid,
+      targetType: "experiment_run",
+      targetUuid: runUuid,
       actorType: auth.type,
       actorUuid: auth.actorUuid,
       action: "assigned",
       value: { assigneeType: auth.type, assigneeUuid: auth.actorUuid },
     });
 
-    revalidatePath(`/projects/${task.projectUuid}/tasks/${taskUuid}`);
-    revalidatePath(`/projects/${task.projectUuid}/tasks`);
+    revalidatePath(`/research-projects/${task.researchProjectUuid}/experiment-runs/${runUuid}`);
+    revalidatePath(`/research-projects/${task.researchProjectUuid}/experiment-runs`);
 
     return { success: true };
   } catch (error) {
@@ -55,14 +55,14 @@ export async function claimTaskAction(taskUuid: string) {
 }
 
 // Claim task to a specific agent
-export async function claimTaskToAgentAction(taskUuid: string, agentUuid: string) {
+export async function claimRunToAgentAction(runUuid: string, agentUuid: string) {
   const auth = await getServerAuthContext();
   if (!auth || auth.type !== "user") {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
-    const task = await getTaskByUuid(auth.companyUuid, taskUuid);
+    const task = await getExperimentRunByUuid(auth.companyUuid, runUuid);
     if (!task) {
       return { success: false, error: "Task not found" };
     }
@@ -72,7 +72,7 @@ export async function claimTaskToAgentAction(taskUuid: string, agentUuid: string
     }
 
     await claimTask({
-      taskUuid,
+      runUuid,
       companyUuid: auth.companyUuid,
       assigneeType: "agent",
       assigneeUuid: agentUuid,
@@ -82,17 +82,17 @@ export async function claimTaskToAgentAction(taskUuid: string, agentUuid: string
     // Record activity
     await createActivity({
       companyUuid: auth.companyUuid,
-      projectUuid: task.projectUuid,
-      targetType: "task",
-      targetUuid: taskUuid,
+      researchProjectUuid: task.researchProjectUuid,
+      targetType: "experiment_run",
+      targetUuid: runUuid,
       actorType: auth.type,
       actorUuid: auth.actorUuid,
       action: "assigned",
       value: { assigneeType: "agent", assigneeUuid: agentUuid },
     });
 
-    revalidatePath(`/projects/${task.projectUuid}/tasks/${taskUuid}`);
-    revalidatePath(`/projects/${task.projectUuid}/tasks`);
+    revalidatePath(`/research-projects/${task.researchProjectUuid}/experiment-runs/${runUuid}`);
+    revalidatePath(`/research-projects/${task.researchProjectUuid}/experiment-runs`);
 
     return { success: true };
   } catch (error) {
@@ -101,7 +101,7 @@ export async function claimTaskToAgentAction(taskUuid: string, agentUuid: string
   }
 }
 
-export async function releaseTaskAction(taskUuid: string) {
+export async function releaseRunAction(runUuid: string) {
   const auth = await getServerAuthContext();
   if (!auth) {
     return { success: false, error: "Unauthorized" };
@@ -109,7 +109,7 @@ export async function releaseTaskAction(taskUuid: string) {
 
   try {
     // Validate task exists and belongs to this company
-    const task = await getTaskByUuid(auth.companyUuid, taskUuid);
+    const task = await getExperimentRunByUuid(auth.companyUuid, runUuid);
     if (!task) {
       return { success: false, error: "Task not found" };
     }
@@ -120,21 +120,21 @@ export async function releaseTaskAction(taskUuid: string) {
     }
 
     // Release task
-    await releaseTask(taskUuid);
+    await releaseTask(runUuid);
 
     // Record activity
     await createActivity({
       companyUuid: auth.companyUuid,
-      projectUuid: task.projectUuid,
-      targetType: "task",
-      targetUuid: taskUuid,
+      researchProjectUuid: task.researchProjectUuid,
+      targetType: "experiment_run",
+      targetUuid: runUuid,
       actorType: auth.type,
       actorUuid: auth.actorUuid,
       action: "released",
     });
 
-    revalidatePath(`/projects/${task.projectUuid}/tasks/${taskUuid}`);
-    revalidatePath(`/projects/${task.projectUuid}/tasks`);
+    revalidatePath(`/research-projects/${task.researchProjectUuid}/experiment-runs/${runUuid}`);
+    revalidatePath(`/research-projects/${task.researchProjectUuid}/experiment-runs`);
 
     return { success: true };
   } catch (error) {
@@ -143,7 +143,7 @@ export async function releaseTaskAction(taskUuid: string) {
   }
 }
 
-export async function updateTaskStatusAction(taskUuid: string, newStatus: string) {
+export async function updateExperimentRunStatusAction(runUuid: string, newStatus: string) {
   const auth = await getServerAuthContext();
   if (!auth) {
     return { success: false, error: "Unauthorized" };
@@ -151,27 +151,27 @@ export async function updateTaskStatusAction(taskUuid: string, newStatus: string
 
   try {
     // Validate task exists and belongs to this company
-    const task = await getTaskByUuid(auth.companyUuid, taskUuid);
+    const task = await getExperimentRunByUuid(auth.companyUuid, runUuid);
     if (!task) {
       return { success: false, error: "Task not found" };
     }
 
-    await updateTask(taskUuid, { status: newStatus });
+    await updateExperimentRun(runUuid, { status: newStatus });
 
     // Record activity
     await createActivity({
       companyUuid: auth.companyUuid,
-      projectUuid: task.projectUuid,
-      targetType: "task",
-      targetUuid: taskUuid,
+      researchProjectUuid: task.researchProjectUuid,
+      targetType: "experiment_run",
+      targetUuid: runUuid,
       actorType: auth.type,
       actorUuid: auth.actorUuid,
       action: "status_changed",
       value: { status: newStatus },
     });
 
-    revalidatePath(`/projects/${task.projectUuid}/tasks/${taskUuid}`);
-    revalidatePath(`/projects/${task.projectUuid}/tasks`);
+    revalidatePath(`/research-projects/${task.researchProjectUuid}/experiment-runs/${runUuid}`);
+    revalidatePath(`/research-projects/${task.researchProjectUuid}/experiment-runs`);
 
     return { success: true };
   } catch (error) {
@@ -181,14 +181,14 @@ export async function updateTaskStatusAction(taskUuid: string, newStatus: string
 }
 
 // Verify task (to_verify -> done) - Human only
-export async function verifyTaskAction(taskUuid: string) {
+export async function verifyTaskAction(runUuid: string) {
   const auth = await getServerAuthContext();
   if (!auth || auth.type !== "user") {
     return { success: false, error: "Only humans can verify tasks" };
   }
 
   try {
-    const task = await getTaskByUuid(auth.companyUuid, taskUuid);
+    const task = await getExperimentRunByUuid(auth.companyUuid, runUuid);
     if (!task) {
       return { success: false, error: "Task not found" };
     }
@@ -198,15 +198,15 @@ export async function verifyTaskAction(taskUuid: string) {
     }
 
     // Check acceptance criteria gate
-    const gate = await checkAcceptanceCriteriaGate(taskUuid);
+    const gate = await checkAcceptanceCriteriaGate(runUuid);
     if (!gate.allowed) {
       return { success: false, error: gate.reason || "Not all required acceptance criteria are passed" };
     }
 
-    await updateTask(taskUuid, { status: "done" });
+    await updateExperimentRun(runUuid, { status: "done" });
 
-    revalidatePath(`/projects/${task.projectUuid}/tasks/${taskUuid}`);
-    revalidatePath(`/projects/${task.projectUuid}/tasks`);
+    revalidatePath(`/research-projects/${task.researchProjectUuid}/experiment-runs/${runUuid}`);
+    revalidatePath(`/research-projects/${task.researchProjectUuid}/experiment-runs`);
 
     return { success: true };
   } catch (error) {
@@ -216,14 +216,14 @@ export async function verifyTaskAction(taskUuid: string) {
 }
 
 // Assign task to another user
-export async function claimTaskToUserAction(taskUuid: string, userUuid: string) {
+export async function claimTaskToUserAction(runUuid: string, userUuid: string) {
   const auth = await getServerAuthContext();
   if (!auth || auth.type !== "user") {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
-    const task = await getTaskByUuid(auth.companyUuid, taskUuid);
+    const task = await getExperimentRunByUuid(auth.companyUuid, runUuid);
     if (!task) {
       return { success: false, error: "Task not found" };
     }
@@ -233,7 +233,7 @@ export async function claimTaskToUserAction(taskUuid: string, userUuid: string) 
     }
 
     await claimTask({
-      taskUuid,
+      runUuid,
       companyUuid: auth.companyUuid,
       assigneeType: "user",
       assigneeUuid: userUuid,
@@ -243,17 +243,17 @@ export async function claimTaskToUserAction(taskUuid: string, userUuid: string) 
     // Record activity
     await createActivity({
       companyUuid: auth.companyUuid,
-      projectUuid: task.projectUuid,
-      targetType: "task",
-      targetUuid: taskUuid,
+      researchProjectUuid: task.researchProjectUuid,
+      targetType: "experiment_run",
+      targetUuid: runUuid,
       actorType: auth.type,
       actorUuid: auth.actorUuid,
       action: "assigned",
       value: { assigneeType: "user", assigneeUuid: userUuid },
     });
 
-    revalidatePath(`/projects/${task.projectUuid}/tasks/${taskUuid}`);
-    revalidatePath(`/projects/${task.projectUuid}/tasks`);
+    revalidatePath(`/research-projects/${task.researchProjectUuid}/experiment-runs/${runUuid}`);
+    revalidatePath(`/research-projects/${task.researchProjectUuid}/experiment-runs`);
 
     return { success: true };
   } catch (error) {
@@ -268,24 +268,24 @@ interface CreateTaskInput {
   title: string;
   description?: string;
   priority?: string;
-  storyPoints?: number | null;
+  computeBudgetHours?: number | null;
   acceptanceCriteria?: string | null;
 }
 
-export async function createTaskAction(input: CreateTaskInput) {
+export async function createExperimentRunAction(input: CreateTaskInput) {
   const auth = await getServerAuthContext();
   if (!auth) {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
-    const task = await createTask({
+    const task = await createExperimentRun({
       companyUuid: auth.companyUuid,
-      projectUuid: input.projectUuid,
+      researchProjectUuid: input.projectUuid,
       title: input.title,
       description: input.description || null,
       priority: input.priority || "medium",
-      storyPoints: input.storyPoints,
+      computeBudgetHours: input.computeBudgetHours,
       acceptanceCriteria: input.acceptanceCriteria,
       createdByUuid: auth.actorUuid,
     });
@@ -293,16 +293,16 @@ export async function createTaskAction(input: CreateTaskInput) {
     // Record activity
     await createActivity({
       companyUuid: auth.companyUuid,
-      projectUuid: input.projectUuid,
-      targetType: "task",
+      researchProjectUuid: input.projectUuid,
+      targetType: "experiment_run",
       targetUuid: task.uuid,
       actorType: auth.type,
       actorUuid: auth.actorUuid,
       action: "task_created",
     });
 
-    revalidatePath(`/projects/${input.projectUuid}/tasks`);
-    return { success: true, taskUuid: task.uuid };
+    revalidatePath(`/research-projects/${input.projectUuid}/experiment-runs`);
+    return { success: true, runUuid: task.uuid };
   } catch (error) {
     console.error("Failed to create task:", error);
     return { success: false, error: "Failed to create task" };
@@ -311,36 +311,36 @@ export async function createTaskAction(input: CreateTaskInput) {
 
 // Update task editable fields
 interface UpdateTaskFieldsInput {
-  taskUuid: string;
+  runUuid: string;
   projectUuid: string;
   title: string;
   description?: string | null;
   priority?: string;
-  storyPoints?: number | null;
+  computeBudgetHours?: number | null;
   acceptanceCriteria?: string | null;
 }
 
-export async function updateTaskFieldsAction(input: UpdateTaskFieldsInput) {
+export async function updateExperimentRunFieldsAction(input: UpdateTaskFieldsInput) {
   const auth = await getServerAuthContext();
   if (!auth) {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
-    const task = await getTaskByUuid(auth.companyUuid, input.taskUuid);
+    const task = await getExperimentRunByUuid(auth.companyUuid, input.runUuid);
     if (!task) {
       return { success: false, error: "Task not found" };
     }
 
-    await updateTask(input.taskUuid, {
+    await updateExperimentRun(input.runUuid, {
       title: input.title,
       description: input.description,
       priority: input.priority,
-      storyPoints: input.storyPoints,
+      computeBudgetHours: input.computeBudgetHours,
       acceptanceCriteria: input.acceptanceCriteria,
     });
 
-    revalidatePath(`/projects/${input.projectUuid}/tasks`);
+    revalidatePath(`/research-projects/${input.projectUuid}/experiment-runs`);
     return { success: true };
   } catch (error) {
     console.error("Failed to update task:", error);
@@ -349,20 +349,20 @@ export async function updateTaskFieldsAction(input: UpdateTaskFieldsInput) {
 }
 
 // Delete a task
-export async function deleteTaskAction(taskUuid: string, projectUuid: string) {
+export async function deleteExperimentRunAction(runUuid: string, projectUuid: string) {
   const auth = await getServerAuthContext();
   if (!auth) {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
-    const task = await getTaskByUuid(auth.companyUuid, taskUuid);
+    const task = await getExperimentRunByUuid(auth.companyUuid, runUuid);
     if (!task) {
       return { success: false, error: "Task not found" };
     }
 
-    await deleteTask(taskUuid);
-    revalidatePath(`/projects/${projectUuid}/tasks`);
+    await deleteExperimentRun(runUuid);
+    revalidatePath(`/research-projects/${projectUuid}/experiment-runs`);
     return { success: true };
   } catch (error) {
     console.error("Failed to delete task:", error);
