@@ -30,7 +30,7 @@ export const GET = withErrorHandler<{ uuid: string }>(
       oidcEnabled: company.oidcEnabled,
       userCount: company._count.users,
       agentCount: company._count.agents,
-      projectCount: company._count.projects,
+      projectCount: company._count.researchProjects,
       createdAt: company.createdAt.toISOString(),
       updatedAt: company.updatedAt.toISOString(),
     });

@@ -54,8 +54,8 @@ describe('eventBus', () => {
 
     const event: RealtimeEvent = {
       companyUuid: 'comp-1',
-      projectUuid: 'proj-1',
-      entityType: 'task',
+      researchProjectUuid: 'proj-1',
+      entityType: 'experiment_run',
       entityUuid: 'task-1',
       action: 'created',
     };
@@ -77,8 +77,8 @@ describe('eventBus', () => {
 
     const event: RealtimeEvent = {
       companyUuid: 'comp-1',
-      projectUuid: 'proj-1',
-      entityType: 'idea',
+      researchProjectUuid: 'proj-1',
+      entityType: 'research_question',
       entityUuid: 'idea-1',
       action: 'updated',
     };
@@ -97,7 +97,7 @@ describe('eventBus', () => {
 
     const event: RealtimeEvent = {
       companyUuid: 'comp-1',
-      projectUuid: 'proj-1',
+      researchProjectUuid: 'proj-1',
       entityType: 'document',
       entityUuid: 'doc-1',
       action: 'deleted',
@@ -117,12 +117,12 @@ describe('eventBus', () => {
     const listener = vi.fn();
     eventBus.on('change', listener);
 
-    const entityTypes = ['task', 'idea', 'proposal', 'document', 'project'] as const;
+    const entityTypes = ['experiment_run', 'research_question', 'experiment_design', 'document', 'research_project'] as const;
 
     for (const entityType of entityTypes) {
       const event: RealtimeEvent = {
         companyUuid: 'comp-1',
-        projectUuid: 'proj-1',
+        researchProjectUuid: 'proj-1',
         entityType,
         entityUuid: `${entityType}-1`,
         action: 'created',
@@ -144,8 +144,8 @@ describe('eventBus', () => {
     for (const action of actions) {
       const event: RealtimeEvent = {
         companyUuid: 'comp-1',
-        projectUuid: 'proj-1',
-        entityType: 'task',
+        researchProjectUuid: 'proj-1',
+        entityType: 'experiment_run',
         entityUuid: 'task-1',
         action,
       };
@@ -163,8 +163,8 @@ describe('eventBus', () => {
 
     const event: RealtimeEvent = {
       companyUuid: 'comp-1',
-      projectUuid: 'proj-1',
-      entityType: 'task',
+      researchProjectUuid: 'proj-1',
+      entityType: 'experiment_run',
       entityUuid: 'task-1',
       action: 'created',
       actorUuid: 'user-1',
@@ -205,7 +205,7 @@ describe('eventBus', () => {
 
     expect(mockRedis.mockSubscriber.connect).toHaveBeenCalled();
     expect(mockRedis.mockPublisher.connect).toHaveBeenCalled();
-    expect(mockRedis.mockSubscriber.subscribe).toHaveBeenCalledWith('chorus:events');
+    expect(mockRedis.mockSubscriber.subscribe).toHaveBeenCalledWith('synapse:events');
   });
 
   it('publishes to Redis when enabled and ready', async () => {
@@ -222,8 +222,8 @@ describe('eventBus', () => {
 
     const event: RealtimeEvent = {
       companyUuid: 'comp-1',
-      projectUuid: 'proj-1',
-      entityType: 'task',
+      researchProjectUuid: 'proj-1',
+      entityType: 'experiment_run',
       entityUuid: 'task-1',
       action: 'created',
     };
@@ -232,7 +232,7 @@ describe('eventBus', () => {
 
     expect(mockRedis.mockPublisher.publish).toHaveBeenCalled();
     const publishCall = mockRedis.mockPublisher.publish.mock.calls[0];
-    expect(publishCall[0]).toBe('chorus:events');
+    expect(publishCall[0]).toBe('synapse:events');
 
     const envelope = JSON.parse(publishCall[1] as string);
     expect(envelope).toHaveProperty('_origin');
@@ -262,8 +262,8 @@ describe('eventBus', () => {
 
     const event: RealtimeEvent = {
       companyUuid: 'comp-1',
-      projectUuid: 'proj-1',
-      entityType: 'task',
+      researchProjectUuid: 'proj-1',
+      entityType: 'experiment_run',
       entityUuid: 'task-1',
       action: 'created',
     };
@@ -303,8 +303,8 @@ describe('eventBus', () => {
     // Emit an event to publish to Redis
     const event: RealtimeEvent = {
       companyUuid: 'comp-1',
-      projectUuid: 'proj-1',
-      entityType: 'task',
+      researchProjectUuid: 'proj-1',
+      entityType: 'experiment_run',
       entityUuid: 'task-1',
       action: 'created',
     };
@@ -320,7 +320,7 @@ describe('eventBus', () => {
 
     // Simulate receiving our own message back from Redis
     if (messageHandler) {
-      (messageHandler as (channel: string, message: string) => void)('chorus:events', envelope);
+      (messageHandler as (channel: string, message: string) => void)('synapse:events', envelope);
     }
 
     // Listener should NOT be called again (deduplication)
@@ -335,8 +335,8 @@ describe('eventBus', () => {
 
     const event: RealtimeEvent = {
       companyUuid: 'comp-1',
-      projectUuid: 'proj-1',
-      entityType: 'task',
+      researchProjectUuid: 'proj-1',
+      entityType: 'experiment_run',
       entityUuid: 'task-1',
       action: 'created',
     };
@@ -382,7 +382,7 @@ describe('eventBus', () => {
 
     // Send malformed JSON
     if (messageHandler) {
-      expect(() => (messageHandler as (channel: string, message: string) => void)('chorus:events', 'not valid json{')).not.toThrow();
+      expect(() => (messageHandler as (channel: string, message: string) => void)('synapse:events', 'not valid json{')).not.toThrow();
     }
 
     expect(listener).not.toHaveBeenCalled();

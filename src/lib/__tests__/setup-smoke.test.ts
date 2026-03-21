@@ -8,6 +8,6 @@ describe('Vitest setup smoke test', () => {
 
   it('should run basic assertions', () => {
     expect(1 + 1).toBe(2);
-    expect('cho_').toMatch(/^cho_/);
+    expect('syn_').toMatch(/^syn_/);
   });
 });

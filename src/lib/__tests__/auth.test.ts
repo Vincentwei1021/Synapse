@@ -17,8 +17,8 @@ import {
   isAgent,
   isUser,
   hasRole,
-  isPmAgent,
-  isDeveloperAgent,
+  isResearchLead,
+  isResearcher,
   requireAuth,
   requireUser,
   requireAgentRole,
@@ -44,23 +44,23 @@ const agentCtx: AgentAuthContext = {
   type: 'agent',
   companyUuid: 'comp-uuid',
   actorUuid: 'agent-uuid',
-  roles: ['developer'],
-  agentName: 'Dev Agent',
+  roles: ['researcher'],
+  agentName: 'Researcher Agent',
 };
 
-const pmAgentCtx: AgentAuthContext = {
+const researchLeadAgentCtx: AgentAuthContext = {
   type: 'agent',
   companyUuid: 'comp-uuid',
   actorUuid: 'pm-uuid',
-  roles: ['pm'],
-  agentName: 'PM Agent',
+  roles: ['research_lead'],
+  agentName: 'Research Lead Agent',
 };
 
 const multiRoleCtx: AgentAuthContext = {
   type: 'agent',
   companyUuid: 'comp-uuid',
   actorUuid: 'multi-uuid',
-  roles: ['pm', 'developer'],
+  roles: ['research_lead', 'researcher'],
   agentName: 'Multi Agent',
 };
 
@@ -86,49 +86,49 @@ describe('isUser', () => {
 
 describe('hasRole', () => {
   it('returns true when agent has the role', () => {
-    expect(hasRole(agentCtx, 'developer')).toBe(true);
+    expect(hasRole(agentCtx, 'researcher')).toBe(true);
   });
 
   it('returns false when agent does not have the role', () => {
-    expect(hasRole(agentCtx, 'pm')).toBe(false);
+    expect(hasRole(agentCtx, 'research_lead')).toBe(false);
   });
 
   it('returns false for user context (not an agent)', () => {
-    expect(hasRole(userCtx, 'developer')).toBe(false);
+    expect(hasRole(userCtx, 'researcher')).toBe(false);
   });
 
   it('works with multiple roles', () => {
-    expect(hasRole(multiRoleCtx, 'pm')).toBe(true);
-    expect(hasRole(multiRoleCtx, 'developer')).toBe(true);
-    expect(hasRole(multiRoleCtx, 'admin')).toBe(false);
+    expect(hasRole(multiRoleCtx, 'research_lead')).toBe(true);
+    expect(hasRole(multiRoleCtx, 'researcher')).toBe(true);
+    expect(hasRole(multiRoleCtx, 'pi')).toBe(false);
   });
 });
 
-describe('isPmAgent', () => {
-  it('returns true for pm agent', () => {
-    expect(isPmAgent(pmAgentCtx)).toBe(true);
+describe('isResearchLead', () => {
+  it('returns true for research lead agent', () => {
+    expect(isResearchLead(researchLeadAgentCtx)).toBe(true);
   });
 
-  it('returns false for developer agent', () => {
-    expect(isPmAgent(agentCtx)).toBe(false);
+  it('returns false for researcher agent', () => {
+    expect(isResearchLead(agentCtx)).toBe(false);
   });
 
   it('returns false for user context', () => {
-    expect(isPmAgent(userCtx)).toBe(false);
+    expect(isResearchLead(userCtx)).toBe(false);
   });
 });
 
-describe('isDeveloperAgent', () => {
-  it('returns true for developer agent', () => {
-    expect(isDeveloperAgent(agentCtx)).toBe(true);
+describe('isResearcher', () => {
+  it('returns true for researcher agent', () => {
+    expect(isResearcher(agentCtx)).toBe(true);
   });
 
-  it('returns false for pm agent', () => {
-    expect(isDeveloperAgent(pmAgentCtx)).toBe(false);
+  it('returns false for research lead agent', () => {
+    expect(isResearcher(researchLeadAgentCtx)).toBe(false);
   });
 
   it('returns false for user context', () => {
-    expect(isDeveloperAgent(userCtx)).toBe(false);
+    expect(isResearcher(userCtx)).toBe(false);
   });
 });
 
@@ -154,7 +154,7 @@ describe('getAuthContext', () => {
       uuid: 'agent-uuid',
       companyUuid: 'company-uuid',
       name: 'Test Agent',
-      roles: ['developer'],
+      roles: ['researcher'],
       ownerUuid: 'owner-uuid',
     };
 
@@ -163,18 +163,18 @@ describe('getAuthContext', () => {
       agent: mockAgent,
     });
 
-    const req = makeRequest('/api/test', { authorization: 'Bearer cho_testkey123' });
+    const req = makeRequest('/api/test', { authorization: 'Bearer syn_testkey123' });
     const result = await getAuthContext(req);
 
     expect(result).toEqual({
       type: 'agent',
       companyUuid: 'company-uuid',
       actorUuid: 'agent-uuid',
-      roles: ['developer'],
+      roles: ['researcher'],
       ownerUuid: 'owner-uuid',
       agentName: 'Test Agent',
     });
-    expect(validateApiKey).toHaveBeenCalledWith('cho_testkey123');
+    expect(validateApiKey).toHaveBeenCalledWith('syn_testkey123');
   });
 
   it('returns user context when Bearer token is a valid OIDC token', async () => {
@@ -261,7 +261,7 @@ describe('getAuthContext', () => {
     vi.mocked(validateApiKey).mockResolvedValue({ valid: false, error: 'Invalid key' });
     vi.mocked(getUserSessionFromRequest).mockResolvedValue(null);
 
-    const req = makeRequest('/api/test', { authorization: 'Bearer cho_invalidkey' });
+    const req = makeRequest('/api/test', { authorization: 'Bearer syn_invalidkey' });
     const result = await getAuthContext(req);
 
     expect(result).toBeNull();
@@ -341,7 +341,7 @@ describe('requireUser', () => {
       type: 'agent',
       companyUuid: 'company-uuid',
       actorUuid: 'agent-uuid',
-      roles: ['developer'],
+      roles: ['researcher'],
       agentName: 'Test Agent',
     };
 
@@ -372,14 +372,14 @@ describe('requireAgentRole', () => {
       type: 'agent',
       companyUuid: 'company-uuid',
       actorUuid: 'agent-uuid',
-      roles: ['developer'],
+      roles: ['researcher'],
       agentName: 'Test Agent',
     };
 
     vi.mocked(getUserSessionFromRequest).mockResolvedValue(mockAuth as unknown as UserAuthContext);
 
     const handler = vi.fn().mockResolvedValue(NextResponse.json({ success: true }));
-    const wrappedHandler = requireAgentRole('developer', handler);
+    const wrappedHandler = requireAgentRole('researcher', handler);
 
     const req = new NextRequest(new URL('http://localhost:3000/api/test'));
     const context = { params: Promise.resolve({}) };
@@ -394,14 +394,14 @@ describe('requireAgentRole', () => {
       type: 'agent',
       companyUuid: 'company-uuid',
       actorUuid: 'agent-uuid',
-      roles: ['developer'],
+      roles: ['researcher'],
       agentName: 'Test Agent',
     };
 
     vi.mocked(getUserSessionFromRequest).mockResolvedValue(mockAuth as unknown as UserAuthContext);
 
     const handler = vi.fn();
-    const wrappedHandler = requireAgentRole('pm', handler);
+    const wrappedHandler = requireAgentRole('research_lead', handler);
 
     const req = new NextRequest(new URL('http://localhost:3000/api/test'));
     const context = { params: Promise.resolve({}) };
@@ -411,7 +411,7 @@ describe('requireAgentRole', () => {
     expect(handler).not.toHaveBeenCalled();
     expect(response.status).toBe(403);
     const body = await response.json();
-    expect(body.error.message).toContain('pm role');
+    expect(body.error.message).toContain('research_lead role');
   });
 
   it('returns 403 when authenticated as user', async () => {
@@ -424,7 +424,7 @@ describe('requireAgentRole', () => {
     vi.mocked(getUserSessionFromRequest).mockResolvedValue(mockAuth);
 
     const handler = vi.fn();
-    const wrappedHandler = requireAgentRole('developer', handler);
+    const wrappedHandler = requireAgentRole('researcher', handler);
 
     const req = new NextRequest(new URL('http://localhost:3000/api/test'));
     const context = { params: Promise.resolve({}) };

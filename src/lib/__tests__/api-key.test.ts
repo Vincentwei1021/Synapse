@@ -22,9 +22,9 @@ describe('generateApiKey', () => {
     expect(result).toHaveProperty('prefix');
   });
 
-  it('key starts with cho_ prefix', () => {
+  it('key starts with syn_ prefix', () => {
     const { key } = generateApiKey();
-    expect(key).toMatch(/^cho_/);
+    expect(key).toMatch(/^syn_/);
   });
 
   it('hash is a 64-character hex string (SHA-256)', () => {
@@ -32,9 +32,9 @@ describe('generateApiKey', () => {
     expect(hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  it('prefix has cho_ prefix with truncated key', () => {
+  it('prefix has syn_ prefix with truncated key', () => {
     const { prefix } = generateApiKey();
-    expect(prefix).toMatch(/^cho_[A-Za-z0-9_-]{4}\.{3}[A-Za-z0-9_-]{4}$/);
+    expect(prefix).toMatch(/^syn_[A-Za-z0-9_-]{4}\.{3}[A-Za-z0-9_-]{4}$/);
   });
 
   it('generates unique keys each time', () => {
@@ -47,17 +47,17 @@ describe('generateApiKey', () => {
 
 describe('hashApiKey', () => {
   it('returns a 64-character hex string', () => {
-    const hash = hashApiKey('cho_testkey');
+    const hash = hashApiKey('syn_testkey');
     expect(hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it('is deterministic (same input produces same hash)', () => {
-    const input = 'cho_deterministic_test';
+    const input = 'syn_deterministic_test';
     expect(hashApiKey(input)).toBe(hashApiKey(input));
   });
 
   it('different inputs produce different hashes', () => {
-    expect(hashApiKey('cho_aaa')).not.toBe(hashApiKey('cho_bbb'));
+    expect(hashApiKey('syn_aaa')).not.toBe(hashApiKey('syn_bbb'));
   });
 });
 
@@ -67,11 +67,11 @@ describe('extractApiKey', () => {
   });
 
   it('extracts key from Bearer header', () => {
-    expect(extractApiKey('Bearer cho_mykey123')).toBe('cho_mykey123');
+    expect(extractApiKey('Bearer syn_mykey123')).toBe('syn_mykey123');
   });
 
-  it('returns key directly when it starts with cho_ prefix', () => {
-    expect(extractApiKey('cho_directkey')).toBe('cho_directkey');
+  it('returns key directly when it starts with syn_ prefix', () => {
+    expect(extractApiKey('syn_directkey')).toBe('syn_directkey');
   });
 
   it('returns null for unrecognized header format', () => {
@@ -82,7 +82,7 @@ describe('extractApiKey', () => {
     expect(extractApiKey('')).toBeNull();
   });
 
-  it('returns Bearer token even if it is not a cho_ key', () => {
+  it('returns Bearer token even if it is not a syn_ key', () => {
     // The function strips "Bearer " but does not validate the token format
     expect(extractApiKey('Bearer some_other_token')).toBe('some_other_token');
   });
@@ -115,7 +115,7 @@ describe('validateApiKey', () => {
     vi.clearAllMocks();
   });
 
-  it('returns invalid for key without cho_ prefix', async () => {
+  it('returns invalid for key without syn_ prefix', async () => {
     const result = await validateApiKey('invalid_prefix_key');
 
     expect(result).toEqual({
@@ -128,7 +128,7 @@ describe('validateApiKey', () => {
   it('returns invalid when key is not found in database', async () => {
     vi.mocked(prisma.apiKey.findUnique).mockResolvedValue(null);
 
-    const result = await validateApiKey('cho_notfoundkey');
+    const result = await validateApiKey('syn_notfoundkey');
 
     expect(result).toEqual({
       valid: false,
@@ -147,14 +147,14 @@ describe('validateApiKey', () => {
         uuid: 'agent-uuid',
         companyUuid: 'company-uuid',
         name: 'Test Agent',
-        roles: ['developer'],
+        roles: ['researcher'],
         ownerUuid: null,
       },
     };
 
     vi.mocked(prisma.apiKey.findUnique).mockResolvedValue(revokedKey as any);
 
-    const result = await validateApiKey('cho_testkey');
+    const result = await validateApiKey('syn_testkey');
 
     expect(result).toEqual({
       valid: false,
@@ -172,14 +172,14 @@ describe('validateApiKey', () => {
         uuid: 'agent-uuid',
         companyUuid: 'company-uuid',
         name: 'Test Agent',
-        roles: ['developer'],
+        roles: ['researcher'],
         ownerUuid: null,
       },
     };
 
     vi.mocked(prisma.apiKey.findUnique).mockResolvedValue(expiredKey as any);
 
-    const result = await validateApiKey('cho_testkey');
+    const result = await validateApiKey('syn_testkey');
 
     expect(result).toEqual({
       valid: false,
@@ -197,7 +197,7 @@ describe('validateApiKey', () => {
         uuid: 'agent-uuid',
         companyUuid: 'company-uuid',
         name: 'Test Agent',
-        roles: ['developer', 'pm'],
+        roles: ['researcher', 'research_lead'],
         ownerUuid: 'owner-uuid',
       },
     };
@@ -205,7 +205,7 @@ describe('validateApiKey', () => {
     vi.mocked(prisma.apiKey.findUnique).mockResolvedValue(validKey as any);
     vi.mocked(prisma.apiKey.update).mockResolvedValue(validKey as any);
 
-    const result = await validateApiKey('cho_testkey');
+    const result = await validateApiKey('syn_testkey');
 
     expect(result).toEqual({
       valid: true,
@@ -213,7 +213,7 @@ describe('validateApiKey', () => {
         uuid: 'agent-uuid',
         companyUuid: 'company-uuid',
         name: 'Test Agent',
-        roles: ['developer', 'pm'],
+        roles: ['researcher', 'research_lead'],
         ownerUuid: 'owner-uuid',
       },
       apiKey: {
@@ -232,7 +232,7 @@ describe('validateApiKey', () => {
         uuid: 'agent-uuid',
         companyUuid: 'company-uuid',
         name: 'Test Agent',
-        roles: ['developer'],
+        roles: ['researcher'],
         ownerUuid: null,
       },
     };
@@ -240,7 +240,7 @@ describe('validateApiKey', () => {
     vi.mocked(prisma.apiKey.findUnique).mockResolvedValue(validKey as any);
     vi.mocked(prisma.apiKey.update).mockResolvedValue(validKey as any);
 
-    const result = await validateApiKey('cho_testkey');
+    const result = await validateApiKey('syn_testkey');
 
     expect(result.valid).toBe(true);
     expect(result.agent?.ownerUuid).toBeNull();
@@ -256,7 +256,7 @@ describe('validateApiKey', () => {
         uuid: 'agent-uuid',
         companyUuid: 'company-uuid',
         name: 'Test Agent',
-        roles: ['developer'],
+        roles: ['researcher'],
         ownerUuid: null,
       },
     };
@@ -264,7 +264,7 @@ describe('validateApiKey', () => {
     vi.mocked(prisma.apiKey.findUnique).mockResolvedValue(validKey as any);
     vi.mocked(prisma.apiKey.update).mockResolvedValue(validKey as any);
 
-    await validateApiKey('cho_testkey');
+    await validateApiKey('syn_testkey');
 
     expect(prisma.apiKey.update).toHaveBeenCalledWith({
       where: { uuid: 'key-uuid' },
@@ -275,7 +275,7 @@ describe('validateApiKey', () => {
   it('handles database errors gracefully', async () => {
     vi.mocked(prisma.apiKey.findUnique).mockRejectedValue(new Error('Database connection failed'));
 
-    const result = await validateApiKey('cho_testkey');
+    const result = await validateApiKey('syn_testkey');
 
     expect(result).toEqual({
       valid: false,
@@ -293,7 +293,7 @@ describe('validateApiKey', () => {
         uuid: 'agent-uuid',
         companyUuid: 'company-uuid',
         name: 'Test Agent',
-        roles: ['developer'],
+        roles: ['researcher'],
         ownerUuid: null,
       },
     };
@@ -301,14 +301,14 @@ describe('validateApiKey', () => {
     vi.mocked(prisma.apiKey.findUnique).mockResolvedValue(validKey as any);
     vi.mocked(prisma.apiKey.update).mockRejectedValue(new Error('Update failed'));
 
-    const result = await validateApiKey('cho_testkey');
+    const result = await validateApiKey('syn_testkey');
 
     // Should still return valid even if update fails
     expect(result.valid).toBe(true);
   });
 
   it('correctly hashes the key before database lookup', async () => {
-    const testKey = 'cho_testkey123';
+    const testKey = 'syn_testkey123';
     const expectedHash = hashApiKey(testKey);
 
     vi.mocked(prisma.apiKey.findUnique).mockResolvedValue(null);

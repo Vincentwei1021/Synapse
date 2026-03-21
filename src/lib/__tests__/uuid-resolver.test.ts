@@ -14,13 +14,13 @@ const prismaMock = vi.hoisted(() => {
     agentSession: {
       findUnique: vi.fn(),
     },
-    idea: {
+    researchQuestion: {
       findFirst: vi.fn(),
     },
-    proposal: {
+    experimentDesign: {
       findFirst: vi.fn(),
     },
-    task: {
+    experimentRun: {
       findFirst: vi.fn(),
     },
     document: {
@@ -540,28 +540,28 @@ describe('validateTargetExists', () => {
     vi.clearAllMocks();
   });
 
-  it('validates idea exists', async () => {
-    prismaMock.idea.findFirst.mockResolvedValue({ uuid: 'idea-1' } as any);
+  it('validates research question exists', async () => {
+    prismaMock.researchQuestion.findFirst.mockResolvedValue({ uuid: 'idea-1' } as any);
 
-    const result = await validateTargetExists('idea', 'idea-1', 'comp-1');
+    const result = await validateTargetExists('research_question', 'idea-1', 'comp-1');
     expect(result).toBe(true);
-    expect(prismaMock.idea.findFirst).toHaveBeenCalledWith({
+    expect(prismaMock.researchQuestion.findFirst).toHaveBeenCalledWith({
       where: { uuid: 'idea-1', companyUuid: 'comp-1' },
       select: { uuid: true },
     });
   });
 
-  it('validates proposal exists', async () => {
-    prismaMock.proposal.findFirst.mockResolvedValue({ uuid: 'prop-1' } as any);
+  it('validates experiment design exists', async () => {
+    prismaMock.experimentDesign.findFirst.mockResolvedValue({ uuid: 'prop-1' } as any);
 
-    const result = await validateTargetExists('proposal', 'prop-1', 'comp-1');
+    const result = await validateTargetExists('experiment_design', 'prop-1', 'comp-1');
     expect(result).toBe(true);
   });
 
-  it('validates task exists', async () => {
-    prismaMock.task.findFirst.mockResolvedValue({ uuid: 'task-1' } as any);
+  it('validates experiment run exists', async () => {
+    prismaMock.experimentRun.findFirst.mockResolvedValue({ uuid: 'task-1' } as any);
 
-    const result = await validateTargetExists('task', 'task-1', 'comp-1');
+    const result = await validateTargetExists('experiment_run', 'task-1', 'comp-1');
     expect(result).toBe(true);
   });
 
@@ -573,9 +573,9 @@ describe('validateTargetExists', () => {
   });
 
   it('returns false when target not found', async () => {
-    prismaMock.task.findFirst.mockResolvedValue(null);
+    prismaMock.experimentRun.findFirst.mockResolvedValue(null);
 
-    const result = await validateTargetExists('task', 'missing', 'comp-1');
+    const result = await validateTargetExists('experiment_run', 'missing', 'comp-1');
     expect(result).toBe(false);
   });
 

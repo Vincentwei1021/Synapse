@@ -7,7 +7,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { createMcpServer } from "@/mcp/server";
 import { extractApiKey, validateApiKey } from "@/lib/api-key";
 import { getResearchProjectUuidsByGroup } from "@/services/research-project.service";
-import type { AgentAuthContext } from "@/types/auth";
+import type { AgentAuthContext, AgentRole } from "@/types/auth";
 
 // Store session transport instances with activity tracking
 const sessions = new Map<string, {
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       type: "agent",
       companyUuid: validation.agent.companyUuid,
       actorUuid: validation.agent.uuid,
-      roles: validation.agent.roles as ("pm" | "developer" | "admin")[],
+      roles: validation.agent.roles as AgentRole[],
       ownerUuid: validation.agent.ownerUuid ?? undefined,
       agentName: validation.agent.name,
       projectUuids,

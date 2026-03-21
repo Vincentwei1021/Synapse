@@ -272,8 +272,8 @@ describe('verifyOidcAccessToken', () => {
 });
 
 describe('isOidcToken', () => {
-  it('returns false for API key with cho_ prefix', () => {
-    expect(isOidcToken('cho_abc123xyz')).toBe(false);
+  it('returns false for API key with syn_ prefix', () => {
+    expect(isOidcToken('syn_abc123xyz')).toBe(false);
   });
 
   it('returns true for valid JWT with RS256 algorithm', () => {
