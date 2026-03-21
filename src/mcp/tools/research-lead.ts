@@ -13,6 +13,7 @@ import * as documentService from "@/services/document.service";
 import * as experimentRunService from "@/services/experiment-run.service";
 import * as activityService from "@/services/activity.service";
 import * as hypothesisFormulationService from "@/services/hypothesis-formulation.service";
+import * as baselineService from "@/services/baseline.service";
 import { getAgentByUuid } from "@/services/agent.service";
 import { AlreadyClaimedError, NotClaimedError } from "@/lib/errors";
 import { zArray } from "./schema-utils";
@@ -1018,6 +1019,92 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
       return {
         content: [{ type: "text", text: JSON.stringify({ uuid: researchQuestion.uuid, title: researchQuestion.title }) }],
       };
+    }
+  );
+
+  // ===== Baseline & RDR Tools =====
+
+  // synapse_create_baseline — Register a baseline result for comparison
+  server.registerTool(
+    "synapse_create_baseline",
+    {
+      description: "Register a baseline result for comparison in a research project",
+      inputSchema: z.object({
+        researchProjectUuid: z.string(),
+        name: z.string(),
+        metrics: z.record(z.string(), z.number()),
+        experimentUuid: z.string().optional(),
+      }),
+    },
+    async (params) => {
+      const result = await baselineService.createBaseline(auth.companyUuid, params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  // synapse_list_baselines — List baselines for a project
+  server.registerTool(
+    "synapse_list_baselines",
+    {
+      description: "List all baselines for a research project",
+      inputSchema: z.object({
+        researchProjectUuid: z.string(),
+      }),
+    },
+    async (params) => {
+      const result = await baselineService.listBaselines(auth.companyUuid, params.researchProjectUuid);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  // synapse_compare_results — Compare experiment results against active baseline
+  server.registerTool(
+    "synapse_compare_results",
+    {
+      description: "Compare experiment run results against the active baseline",
+      inputSchema: z.object({
+        researchProjectUuid: z.string(),
+        experimentResults: z.record(z.string(), z.number()),
+      }),
+    },
+    async (params) => {
+      const baseline = await baselineService.getActiveBaseline(auth.companyUuid, params.researchProjectUuid);
+      if (!baseline) {
+        return { content: [{ type: "text", text: JSON.stringify({ error: "No active baseline found" }) }] };
+      }
+      const comparison: Record<string, { baseline: number; experiment: number; delta: number; improved: boolean }> = {};
+      const baselineMetrics = baseline.metrics as Record<string, number>;
+      for (const [key, value] of Object.entries(params.experimentResults)) {
+        if (key in baselineMetrics) {
+          const baseVal = baselineMetrics[key];
+          comparison[key] = { baseline: baseVal, experiment: value, delta: value - baseVal, improved: value > baseVal };
+        }
+      }
+      return { content: [{ type: "text", text: JSON.stringify({ baseline: baseline.name, comparison }, null, 2) }] };
+    }
+  );
+
+  // synapse_create_rdr — Create a Research Decision Record
+  server.registerTool(
+    "synapse_create_rdr",
+    {
+      description: "Create a Research Decision Record documenting why a particular approach was chosen",
+      inputSchema: z.object({
+        researchProjectUuid: z.string(),
+        title: z.string(),
+        content: z.string(),
+      }),
+    },
+    async (params) => {
+      const result = await documentService.createDocument({
+        researchProjectUuid: params.researchProjectUuid,
+        type: "rdr",
+        title: params.title,
+        content: params.content,
+        createdByUuid: auth.actorUuid,
+        companyUuid: auth.companyUuid,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     }
   );
 }

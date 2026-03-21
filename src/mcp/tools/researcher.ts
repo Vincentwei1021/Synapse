@@ -9,6 +9,8 @@ import * as experimentRunService from "@/services/experiment-run.service";
 import * as activityService from "@/services/activity.service";
 import * as commentService from "@/services/comment.service";
 import * as sessionService from "@/services/session.service";
+import * as experimentRegistryService from "@/services/experiment-registry.service";
+import * as criteriaEvaluationService from "@/services/criteria-evaluation.service";
 import { AlreadyClaimedError, NotClaimedError } from "@/lib/errors";
 
 export function registerResearcherTools(server: McpServer, auth: AgentAuthContext) {
@@ -348,6 +350,86 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
       return {
         content: [{ type: "text", text: `Work report recorded: ${report}` }],
       };
+    }
+  );
+
+  // ===== Experiment Registry & Criteria Tools =====
+
+  // synapse_register_experiment — Register experiment config and environment
+  server.registerTool(
+    "synapse_register_experiment",
+    {
+      description: "Register experiment configuration and environment for reproducibility tracking",
+      inputSchema: z.object({
+        researchProjectUuid: z.string(),
+        runUuid: z.string(),
+        config: z.record(z.string(), z.unknown()),
+        environment: z.record(z.string(), z.unknown()),
+        seed: z.number().optional(),
+      }),
+    },
+    async (params) => {
+      const result = await experimentRegistryService.registerExperiment(auth.companyUuid, {
+        ...params,
+        startedAt: new Date(),
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  // synapse_report_metrics — Report structured metrics and auto-evaluate criteria
+  server.registerTool(
+    "synapse_report_metrics",
+    {
+      description: "Report structured experiment metrics and auto-evaluate Go/No-Go criteria",
+      inputSchema: z.object({
+        runUuid: z.string(),
+        metrics: z.record(z.string(), z.number()),
+      }),
+    },
+    async (params) => {
+      const evaluation = await criteriaEvaluationService.evaluateCriteria(auth.companyUuid, params.runUuid, params.metrics);
+      return { content: [{ type: "text", text: JSON.stringify(evaluation, null, 2) }] };
+    }
+  );
+
+  // synapse_check_criteria — Check Go/No-Go criteria status without reporting new metrics
+  server.registerTool(
+    "synapse_check_criteria",
+    {
+      description: "Check current Go/No-Go criteria evaluation status for an experiment run",
+      inputSchema: z.object({
+        runUuid: z.string(),
+      }),
+    },
+    async (params) => {
+      // Pass empty metrics to just read current state
+      const evaluation = await criteriaEvaluationService.evaluateCriteria(auth.companyUuid, params.runUuid, {});
+      return { content: [{ type: "text", text: JSON.stringify(evaluation, null, 2) }] };
+    }
+  );
+
+  // synapse_request_early_stop — Request early termination of an experiment
+  server.registerTool(
+    "synapse_request_early_stop",
+    {
+      description: "Request early termination of an experiment run with justification",
+      inputSchema: z.object({
+        runUuid: z.string(),
+        reason: z.string(),
+        metrics: z.record(z.string(), z.number()).optional(),
+      }),
+    },
+    async (params) => {
+      let evaluation = null;
+      if (params.metrics) {
+        evaluation = await criteriaEvaluationService.evaluateCriteria(auth.companyUuid, params.runUuid, params.metrics);
+      }
+      return { content: [{ type: "text", text: JSON.stringify({
+        earlyStopRequested: true,
+        reason: params.reason,
+        evaluation,
+      }, null, 2) }] };
     }
   );
 }

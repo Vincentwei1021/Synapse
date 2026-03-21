@@ -13,6 +13,8 @@ import * as researchQuestionService from "@/services/research-question.service";
 import * as documentService from "@/services/document.service";
 import * as activityService from "@/services/activity.service";
 import * as projectGroupService from "@/services/project-group.service";
+import * as experimentRegistryService from "@/services/experiment-registry.service";
+import * as baselineService from "@/services/baseline.service";
 
 export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
   // synapse_pi_create_research_project - Create a new research project
@@ -557,6 +559,38 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
       };
+    }
+  );
+
+  // ===== Research Verification Tools =====
+
+  // synapse_verify_reproducibility — Mark an experiment as reproducibility-verified
+  server.registerTool(
+    "synapse_verify_reproducibility",
+    {
+      description: "Mark an experiment as verified for reproducibility",
+      inputSchema: z.object({
+        registryUuid: z.string(),
+      }),
+    },
+    async (params) => {
+      const result = await experimentRegistryService.markReproducible(auth.companyUuid, params.registryUuid);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  // synapse_set_active_baseline — Set which baseline is the current active one
+  server.registerTool(
+    "synapse_set_active_baseline",
+    {
+      description: "Set the active baseline for a research project (deactivates all others)",
+      inputSchema: z.object({
+        baselineUuid: z.string(),
+      }),
+    },
+    async (params) => {
+      const result = await baselineService.setActiveBaseline(auth.companyUuid, params.baselineUuid);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     }
   );
 }
