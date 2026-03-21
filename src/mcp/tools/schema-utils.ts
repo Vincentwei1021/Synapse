@@ -2,7 +2,7 @@
 // Defensive coercion for MCP tool array parameters.
 // Some MCP clients (e.g. Claude Code) intermittently serialize array arguments
 // as JSON strings instead of native arrays. This helper transparently handles both.
-// See: https://github.com/Chorus-AIDLC/Chorus/issues/8
+// See: https://github.com/Synapse-AIDLC/Synapse/issues/8
 
 import { z } from "zod";
 

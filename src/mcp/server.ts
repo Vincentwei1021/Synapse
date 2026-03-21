@@ -3,16 +3,16 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerPublicTools } from "./tools/public";
-import { registerPmTools } from "./tools/pm";
-import { registerDeveloperTools } from "./tools/developer";
-import { registerAdminTools } from "./tools/admin";
+import { registerResearchLeadTools } from "./tools/research-lead";
+import { registerResearcherTools } from "./tools/researcher";
+import { registerPiTools } from "./tools/pi";
 import { registerSessionTools } from "./tools/session";
 import type { AgentAuthContext } from "@/types/auth";
 
 // MCP Server factory function
 export function createMcpServer(auth: AgentAuthContext): McpServer {
   const server = new McpServer({
-    name: "chorus",
+    name: "synapse",
     version: "1.0.0",
   });
 
@@ -25,19 +25,19 @@ export function createMcpServer(auth: AgentAuthContext): McpServer {
   // Register role-specific tools based on agent roles
   const roles = auth.roles || [];
 
-  // Support two role formats: "pm" / "pm_agent", "developer" / "developer_agent", "admin" / "admin_agent"
-  const hasPmRole = roles.some(r => r === "pm" || r === "pm_agent");
-  const hasDevRole = roles.some(r => r === "developer" || r === "developer_agent");
-  const hasAdminRole = roles.some(r => r === "admin" || r === "admin_agent");
+  // Support two role formats: "research_lead" / "research_lead_agent", "researcher" / "researcher_agent", "pi" / "pi_agent"
+  const hasResearchLeadRole = roles.some(r => r === "research_lead" || r === "research_lead_agent");
+  const hasResearcherRole = roles.some(r => r === "researcher" || r === "researcher_agent");
+  const hasPiRole = roles.some(r => r === "pi" || r === "pi_agent");
 
-  if (hasAdminRole) {
-    registerAdminTools(server, auth);
+  if (hasPiRole) {
+    registerPiTools(server, auth);
   }
-  if (hasPmRole || hasAdminRole) {
-    registerPmTools(server, auth);
+  if (hasResearchLeadRole || hasPiRole) {
+    registerResearchLeadTools(server, auth);
   }
-  if (hasDevRole || hasAdminRole) {
-    registerDeveloperTools(server, auth);
+  if (hasResearcherRole || hasPiRole) {
+    registerResearcherTools(server, auth);
   }
 
   return server;

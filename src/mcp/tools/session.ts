@@ -8,9 +8,9 @@ import type { AgentAuthContext } from "@/types/auth";
 import * as sessionService from "@/services/session.service";
 
 export function registerSessionTools(server: McpServer, auth: AgentAuthContext) {
-  // chorus_list_sessions - List current agent's sessions
+  // synapse_list_sessions - List current agent's sessions
   server.registerTool(
-    "chorus_list_sessions",
+    "synapse_list_sessions",
     {
       description: "List all Sessions for the current Agent",
       inputSchema: z.object({
@@ -30,9 +30,9 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
     }
   );
 
-  // chorus_get_session - Get session details
+  // synapse_get_session - Get session details
   server.registerTool(
-    "chorus_get_session",
+    "synapse_get_session",
     {
       description: "Get Session details and active checkins",
       inputSchema: z.object({
@@ -55,11 +55,11 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
     }
   );
 
-  // chorus_create_session - Create a new session
+  // synapse_create_session - Create a new session
   server.registerTool(
-    "chorus_create_session",
+    "synapse_create_session",
     {
-      description: "Create a new Agent Session. TIP: Before creating, call chorus_list_sessions first to check for existing sessions that can be reopened with chorus_reopen_session.",
+      description: "Create a new Agent Session. TIP: Before creating, call synapse_list_sessions first to check for existing sessions that can be reopened with synapse_reopen_session.",
       inputSchema: z.object({
         name: z.string().describe("Session name (e.g. 'frontend-worker')"),
         description: z.string().optional().describe("Session description"),
@@ -81,9 +81,9 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
     }
   );
 
-  // chorus_close_session - Close a session
+  // synapse_close_session - Close a session
   server.registerTool(
-    "chorus_close_session",
+    "synapse_close_session",
     {
       description: "Close a Session (batch checkout all checkins)",
       inputSchema: z.object({
@@ -108,11 +108,11 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
     }
   );
 
-  // chorus_reopen_session - Reopen a closed session
+  // synapse_reopen_session - Reopen a closed session
   server.registerTool(
-    "chorus_reopen_session",
+    "synapse_reopen_session",
     {
-      description: "Reopen a closed Session (closed → active). Use this to reuse a previous session instead of creating a new one.",
+      description: "Reopen a closed Session (closed -> active). Use this to reuse a previous session instead of creating a new one.",
       inputSchema: z.object({
         sessionUuid: z.string().describe("Session UUID"),
       }),
@@ -139,17 +139,17 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
     }
   );
 
-  // chorus_session_checkin_task - Check in session to a task
+  // synapse_session_checkin_experiment_run - Check in session to an experiment run
   server.registerTool(
-    "chorus_session_checkin_task",
+    "synapse_session_checkin_experiment_run",
     {
-      description: "Check in a Session to a specified Task",
+      description: "Check in a Session to a specified Experiment Run",
       inputSchema: z.object({
         sessionUuid: z.string().describe("Session UUID"),
-        taskUuid: z.string().describe("Task UUID"),
+        runUuid: z.string().describe("Experiment Run UUID"),
       }),
     },
-    async ({ sessionUuid, taskUuid }) => {
+    async ({ sessionUuid, runUuid }) => {
       const session = await sessionService.getSession(auth.companyUuid, sessionUuid);
       if (!session) {
         return { content: [{ type: "text", text: "Session not found" }], isError: true };
@@ -162,26 +162,26 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
       const checkin = await sessionService.sessionCheckinToTask(
         auth.companyUuid,
         sessionUuid,
-        taskUuid
+        runUuid
       );
 
       return {
-        content: [{ type: "text", text: JSON.stringify({ sessionUuid, taskUuid, checkedInAt: checkin.checkinAt }, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ sessionUuid, runUuid, checkedInAt: checkin.checkinAt }, null, 2) }],
       };
     }
   );
 
-  // chorus_session_checkout_task - Check out session from a task
+  // synapse_session_checkout_experiment_run - Check out session from an experiment run
   server.registerTool(
-    "chorus_session_checkout_task",
+    "synapse_session_checkout_experiment_run",
     {
-      description: "Check out a Session from a specified Task",
+      description: "Check out a Session from a specified Experiment Run",
       inputSchema: z.object({
         sessionUuid: z.string().describe("Session UUID"),
-        taskUuid: z.string().describe("Task UUID"),
+        runUuid: z.string().describe("Experiment Run UUID"),
       }),
     },
-    async ({ sessionUuid, taskUuid }) => {
+    async ({ sessionUuid, runUuid }) => {
       const session = await sessionService.getSession(auth.companyUuid, sessionUuid);
       if (!session) {
         return { content: [{ type: "text", text: "Session not found" }], isError: true };
@@ -191,17 +191,17 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
         return { content: [{ type: "text", text: "No permission to operate this Session" }], isError: true };
       }
 
-      await sessionService.sessionCheckoutFromTask(auth.companyUuid, sessionUuid, taskUuid);
+      await sessionService.sessionCheckoutFromTask(auth.companyUuid, sessionUuid, runUuid);
 
       return {
-        content: [{ type: "text", text: `Successfully checked out from task ${taskUuid}` }],
+        content: [{ type: "text", text: `Successfully checked out from experiment run ${runUuid}` }],
       };
     }
   );
 
-  // chorus_session_heartbeat - Session heartbeat
+  // synapse_session_heartbeat - Session heartbeat
   server.registerTool(
-    "chorus_session_heartbeat",
+    "synapse_session_heartbeat",
     {
       description: "Session heartbeat (updates lastActiveAt)",
       inputSchema: z.object({

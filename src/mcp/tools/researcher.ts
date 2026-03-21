@@ -1,35 +1,35 @@
-// src/mcp/tools/developer.ts
-// Developer Agent MCP Tools (ARCHITECTURE.md §5.2)
+// src/mcp/tools/researcher.ts
+// Researcher Agent MCP Tools (ARCHITECTURE.md §5.2)
 // UUID-Based Architecture: All operations use UUIDs
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { AgentAuthContext } from "@/types/auth";
-import * as taskService from "@/services/task.service";
+import * as experimentRunService from "@/services/experiment-run.service";
 import * as activityService from "@/services/activity.service";
 import * as commentService from "@/services/comment.service";
 import * as sessionService from "@/services/session.service";
 import { AlreadyClaimedError, NotClaimedError } from "@/lib/errors";
 
-export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext) {
-  // chorus_claim_task - Claim a Task
+export function registerResearcherTools(server: McpServer, auth: AgentAuthContext) {
+  // synapse_claim_experiment_run - Claim an Experiment Run
   server.registerTool(
-    "chorus_claim_task",
+    "synapse_claim_experiment_run",
     {
-      description: "Claim a Task (open -> assigned)",
+      description: "Claim an Experiment Run (open -> assigned)",
       inputSchema: z.object({
-        taskUuid: z.string().describe("Task UUID"),
+        runUuid: z.string().describe("Experiment Run UUID"),
       }),
     },
-    async ({ taskUuid }) => {
-      const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
-      if (!task) {
-        return { content: [{ type: "text", text: "Task not found" }], isError: true };
+    async ({ runUuid }) => {
+      const run = await experimentRunService.getTaskByUuid(auth.companyUuid, runUuid);
+      if (!run) {
+        return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }
 
       try {
-        const updated = await taskService.claimTask({
-          taskUuid: task.uuid,
+        const updated = await experimentRunService.claimTask({
+          taskUuid: run.uuid,
           companyUuid: auth.companyUuid,
           assigneeType: "agent",
           assigneeUuid: auth.actorUuid,
@@ -37,9 +37,9 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
 
         await activityService.createActivity({
           companyUuid: auth.companyUuid,
-          projectUuid: task.projectUuid,
-          targetType: "task",
-          targetUuid: task.uuid,
+          projectUuid: run.projectUuid,
+          targetType: "experiment_run",
+          targetUuid: run.uuid,
           actorType: "agent",
           actorUuid: auth.actorUuid,
           action: "assigned",
@@ -51,45 +51,45 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
         };
       } catch (e) {
         if (e instanceof AlreadyClaimedError) {
-          return { content: [{ type: "text", text: "Can only claim tasks with open status" }], isError: true };
+          return { content: [{ type: "text", text: "Can only claim experiment runs with open status" }], isError: true };
         }
         throw e;
       }
     }
   );
 
-  // chorus_release_task - Release a claimed Task
+  // synapse_release_experiment_run - Release a claimed Experiment Run
   server.registerTool(
-    "chorus_release_task",
+    "synapse_release_experiment_run",
     {
-      description: "Release a claimed Task (assigned -> open)",
+      description: "Release a claimed Experiment Run (assigned -> open)",
       inputSchema: z.object({
-        taskUuid: z.string().describe("Task UUID"),
+        runUuid: z.string().describe("Experiment Run UUID"),
       }),
     },
-    async ({ taskUuid }) => {
-      const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
-      if (!task) {
-        return { content: [{ type: "text", text: "Task not found" }], isError: true };
+    async ({ runUuid }) => {
+      const run = await experimentRunService.getTaskByUuid(auth.companyUuid, runUuid);
+      if (!run) {
+        return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }
 
       // Check if the caller is the assignee (UUID comparison)
       const isAssignee =
-        (task.assigneeType === "agent" && task.assigneeUuid === auth.actorUuid) ||
-        (task.assigneeType === "user" && auth.ownerUuid && task.assigneeUuid === auth.ownerUuid);
+        (run.assigneeType === "agent" && run.assigneeUuid === auth.actorUuid) ||
+        (run.assigneeType === "user" && auth.ownerUuid && run.assigneeUuid === auth.ownerUuid);
 
       if (!isAssignee) {
-        return { content: [{ type: "text", text: "Only the assignee can release a task" }], isError: true };
+        return { content: [{ type: "text", text: "Only the assignee can release an experiment run" }], isError: true };
       }
 
       try {
-        const updated = await taskService.releaseTask(task.uuid);
+        const updated = await experimentRunService.releaseTask(run.uuid);
 
         await activityService.createActivity({
           companyUuid: auth.companyUuid,
-          projectUuid: task.projectUuid,
-          targetType: "task",
-          targetUuid: task.uuid,
+          projectUuid: run.projectUuid,
+          targetType: "experiment_run",
+          targetUuid: run.uuid,
           actorType: "agent",
           actorUuid: auth.actorUuid,
           action: "released",
@@ -100,37 +100,37 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
         };
       } catch (e) {
         if (e instanceof NotClaimedError) {
-          return { content: [{ type: "text", text: "Can only release tasks with assigned status" }], isError: true };
+          return { content: [{ type: "text", text: "Can only release experiment runs with assigned status" }], isError: true };
         }
         throw e;
       }
     }
   );
 
-  // chorus_update_task - Update task status
+  // synapse_update_experiment_run - Update experiment run status
   server.registerTool(
-    "chorus_update_task",
+    "synapse_update_experiment_run",
     {
-      description: "Update task status (only the assignee can operate)",
+      description: "Update experiment run status (only the assignee can operate)",
       inputSchema: z.object({
-        taskUuid: z.string().describe("Task UUID"),
+        runUuid: z.string().describe("Experiment Run UUID"),
         status: z.enum(["in_progress", "to_verify"]).describe("New status"),
         sessionUuid: z.string().optional().describe("Session UUID (for sub-agent identification)"),
       }),
     },
-    async ({ taskUuid, status, sessionUuid }) => {
-      const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
-      if (!task) {
-        return { content: [{ type: "text", text: "Task not found" }], isError: true };
+    async ({ runUuid, status, sessionUuid }) => {
+      const run = await experimentRunService.getTaskByUuid(auth.companyUuid, runUuid);
+      if (!run) {
+        return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }
 
       // Check if the caller is the assignee (UUID comparison)
       const isAssignee =
-        (task.assigneeType === "agent" && task.assigneeUuid === auth.actorUuid) ||
-        (task.assigneeType === "user" && auth.ownerUuid && task.assigneeUuid === auth.ownerUuid);
+        (run.assigneeType === "agent" && run.assigneeUuid === auth.actorUuid) ||
+        (run.assigneeType === "user" && auth.ownerUuid && run.assigneeUuid === auth.ownerUuid);
 
       if (!isAssignee) {
-        return { content: [{ type: "text", text: "Only the assignee can update task status" }], isError: true };
+        return { content: [{ type: "text", text: "Only the assignee can update experiment run status" }], isError: true };
       }
 
       // Resolve session info
@@ -144,16 +144,16 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
       }
 
       // Validate status transition
-      if (!taskService.isValidTaskStatusTransition(task.status, status)) {
+      if (!experimentRunService.isValidTaskStatusTransition(run.status, status)) {
         return {
-          content: [{ type: "text", text: `Invalid status transition: ${task.status} -> ${status}` }],
+          content: [{ type: "text", text: `Invalid status transition: ${run.status} -> ${status}` }],
           isError: true,
         };
       }
 
       // Check dependencies are resolved before moving to in_progress
       if (status === "in_progress") {
-        const depCheck = await taskService.checkDependenciesResolved(task.uuid);
+        const depCheck = await experimentRunService.checkDependenciesResolved(run.uuid);
         if (!depCheck.resolved) {
           const blockerLines = depCheck.blockers.map((b, i) => {
             const assigneeStr = b.assignee
@@ -170,19 +170,19 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
             "Blockers:",
             ...blockerLines,
             "",
-            "Tip: Use chorus_get_unblocked_tasks to find tasks you can start now.",
+            "Tip: Use synapse_get_unblocked_experiment_runs to find experiment runs you can start now.",
           ].join("\n");
           return { content: [{ type: "text", text: msg }], isError: true };
         }
       }
 
-      const updated = await taskService.updateTask(task.uuid, { status });
+      const updated = await experimentRunService.updateTask(run.uuid, { status });
 
       await activityService.createActivity({
         companyUuid: auth.companyUuid,
-        projectUuid: task.projectUuid,
-        targetType: "task",
-        targetUuid: task.uuid,
+        projectUuid: run.projectUuid,
+        targetType: "experiment_run",
+        targetUuid: run.uuid,
         actorType: "agent",
         actorUuid: auth.actorUuid,
         action: "status_changed",
@@ -197,43 +197,43 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
     }
   );
 
-  // chorus_submit_for_verify - Submit task for human verification
+  // synapse_submit_for_verify - Submit experiment run for human verification
   server.registerTool(
-    "chorus_submit_for_verify",
+    "synapse_submit_for_verify",
     {
-      description: "Submit task for human verification (in_progress -> to_verify)",
+      description: "Submit experiment run for human verification (in_progress -> to_verify)",
       inputSchema: z.object({
-        taskUuid: z.string().describe("Task UUID"),
+        runUuid: z.string().describe("Experiment Run UUID"),
         summary: z.string().optional().describe("Work summary"),
       }),
     },
-    async ({ taskUuid, summary }) => {
-      const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
-      if (!task) {
-        return { content: [{ type: "text", text: "Task not found" }], isError: true };
+    async ({ runUuid, summary }) => {
+      const run = await experimentRunService.getTaskByUuid(auth.companyUuid, runUuid);
+      if (!run) {
+        return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }
 
       // Check if the caller is the assignee (UUID comparison)
       const isAssignee =
-        (task.assigneeType === "agent" && task.assigneeUuid === auth.actorUuid) ||
-        (task.assigneeType === "user" && auth.ownerUuid && task.assigneeUuid === auth.ownerUuid);
+        (run.assigneeType === "agent" && run.assigneeUuid === auth.actorUuid) ||
+        (run.assigneeType === "user" && auth.ownerUuid && run.assigneeUuid === auth.ownerUuid);
 
       if (!isAssignee) {
         return { content: [{ type: "text", text: "Only the assignee can submit for verification" }], isError: true };
       }
 
-      if (task.status !== "in_progress") {
+      if (run.status !== "in_progress") {
         return { content: [{ type: "text", text: "Can only submit for verification from in_progress status" }], isError: true };
       }
 
-      const updated = await taskService.updateTask(task.uuid, { status: "to_verify" });
+      const updated = await experimentRunService.updateTask(run.uuid, { status: "to_verify" });
 
       // Log activity
       await activityService.createActivity({
         companyUuid: auth.companyUuid,
-        projectUuid: task.projectUuid,
-        targetType: "task",
-        targetUuid: task.uuid,
+        projectUuid: run.projectUuid,
+        targetType: "experiment_run",
+        targetUuid: run.uuid,
         actorType: "agent",
         actorUuid: auth.actorUuid,
         action: "submitted",
@@ -246,13 +246,13 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
     }
   );
 
-  // chorus_report_criteria_self_check - Report self-check results on acceptance criteria
+  // synapse_report_criteria_self_check - Report self-check results on acceptance criteria
   server.registerTool(
-    "chorus_report_criteria_self_check",
+    "synapse_report_criteria_self_check",
     {
-      description: "Report self-check results on acceptance criteria for a task you're working on",
+      description: "Report self-check results on acceptance criteria for an experiment run you're working on",
       inputSchema: z.object({
-        taskUuid: z.string().describe("Task UUID"),
+        runUuid: z.string().describe("Experiment Run UUID"),
         criteria: z.array(z.object({
           uuid: z.string().describe("AcceptanceCriterion UUID"),
           devStatus: z.enum(["passed", "failed"]).describe("Self-check result"),
@@ -260,18 +260,18 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
         })).describe("Criteria self-check results"),
       }),
     },
-    async ({ taskUuid, criteria }) => {
+    async ({ runUuid, criteria }) => {
       // Verify caller is the assignee
-      const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
-      if (!task) return { content: [{ type: "text", text: "Task not found" }], isError: true };
+      const run = await experimentRunService.getTaskByUuid(auth.companyUuid, runUuid);
+      if (!run) return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       const isAssignee =
-        (task.assigneeType === "agent" && task.assigneeUuid === auth.actorUuid) ||
-        (task.assigneeType === "user" && auth.ownerUuid && task.assigneeUuid === auth.ownerUuid);
+        (run.assigneeType === "agent" && run.assigneeUuid === auth.actorUuid) ||
+        (run.assigneeType === "user" && auth.ownerUuid && run.assigneeUuid === auth.ownerUuid);
       if (!isAssignee) return { content: [{ type: "text", text: "Only the assignee can self-check acceptance criteria" }], isError: true };
 
-      const result = await taskService.reportCriteriaSelfCheck(
+      const result = await experimentRunService.reportCriteriaSelfCheck(
         auth.companyUuid,
-        taskUuid,
+        runUuid,
         criteria,
         { type: auth.type, actorUuid: auth.actorUuid },
       );
@@ -279,28 +279,28 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
     }
   );
 
-  // chorus_report_work - Report work progress or completion
+  // synapse_report_work - Report work progress or completion
   server.registerTool(
-    "chorus_report_work",
+    "synapse_report_work",
     {
       description: "Report work progress or completion",
       inputSchema: z.object({
-        taskUuid: z.string().describe("Task UUID"),
+        runUuid: z.string().describe("Experiment Run UUID"),
         report: z.string().describe("Work report content"),
         status: z.enum(["in_progress", "to_verify"]).optional().describe("Optional: update status at the same time"),
         sessionUuid: z.string().optional().describe("Session UUID (for sub-agent identification)"),
       }),
     },
-    async ({ taskUuid, report, status, sessionUuid }) => {
-      const task = await taskService.getTaskByUuid(auth.companyUuid, taskUuid);
-      if (!task) {
-        return { content: [{ type: "text", text: "Task not found" }], isError: true };
+    async ({ runUuid, report, status, sessionUuid }) => {
+      const run = await experimentRunService.getTaskByUuid(auth.companyUuid, runUuid);
+      if (!run) {
+        return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }
 
       // Check if the caller is the assignee (UUID comparison)
       const isAssignee =
-        (task.assigneeType === "agent" && task.assigneeUuid === auth.actorUuid) ||
-        (task.assigneeType === "user" && auth.ownerUuid && task.assigneeUuid === auth.ownerUuid);
+        (run.assigneeType === "agent" && run.assigneeUuid === auth.actorUuid) ||
+        (run.assigneeType === "user" && auth.ownerUuid && run.assigneeUuid === auth.ownerUuid);
 
       if (!isAssignee) {
         return { content: [{ type: "text", text: "Only the assignee can report work" }], isError: true };
@@ -317,15 +317,15 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
       }
 
       // Update status if requested
-      if (status && taskService.isValidTaskStatusTransition(task.status, status)) {
-        await taskService.updateTask(task.uuid, { status });
+      if (status && experimentRunService.isValidTaskStatusTransition(run.status, status)) {
+        await experimentRunService.updateTask(run.uuid, { status });
       }
 
       // Write comment
       await commentService.createComment({
         companyUuid: auth.companyUuid,
-        targetType: "task",
-        targetUuid: task.uuid,
+        targetType: "experiment_run",
+        targetUuid: run.uuid,
         content: report,
         authorType: "agent",
         authorUuid: auth.actorUuid,
@@ -334,9 +334,9 @@ export function registerDeveloperTools(server: McpServer, auth: AgentAuthContext
       // Log activity
       await activityService.createActivity({
         companyUuid: auth.companyUuid,
-        projectUuid: task.projectUuid,
-        targetType: "task",
-        targetUuid: task.uuid,
+        projectUuid: run.projectUuid,
+        targetType: "experiment_run",
+        targetUuid: run.uuid,
         actorType: "agent",
         actorUuid: auth.actorUuid,
         action: "comment_added",
