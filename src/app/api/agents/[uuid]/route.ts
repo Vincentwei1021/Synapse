@@ -112,11 +112,11 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
     }
 
     if (body.roles !== undefined) {
-      const validRoles = ["pm_agent", "developer_agent", "admin_agent"];
+      const validRoles = ["research_lead_agent", "researcher_agent", "pi_agent"];
       for (const role of body.roles) {
         if (!validRoles.includes(role)) {
           return errors.validationError({
-            roles: "Roles must be pm_agent, developer_agent, or admin_agent",
+            roles: "Roles must be research_lead_agent, researcher_agent, or pi_agent",
           });
         }
       }

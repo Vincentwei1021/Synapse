@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { createMcpServer } from "@/mcp/server";
 import { extractApiKey, validateApiKey } from "@/lib/api-key";
-import { getProjectUuidsByGroup } from "@/services/project.service";
+import { getResearchProjectUuidsByGroup } from "@/services/research-project.service";
 import type { AgentAuthContext } from "@/types/auth";
 
 // Store session transport instances with activity tracking
@@ -73,15 +73,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Build auth context (UUID-based)
-    // Priority: X-Chorus-Project-Group > X-Chorus-Project
+    // Priority: X-Synapse-Project-Group > X-Synapse-Project
     let projectUuids: string[] | undefined;
 
-    const projectGroupUuid = request.headers.get("x-chorus-project-group");
-    const projectHeader = request.headers.get("x-chorus-project");
+    const projectGroupUuid = request.headers.get("x-synapse-project-group");
+    const projectHeader = request.headers.get("x-synapse-project");
 
     if (projectGroupUuid) {
       // Query all projects in the group via service layer
-      projectUuids = await getProjectUuidsByGroup(validation.agent.companyUuid, projectGroupUuid);
+      projectUuids = await getResearchProjectUuidsByGroup(validation.agent.companyUuid, projectGroupUuid);
     } else if (projectHeader) {
       // Parse comma-separated project UUIDs
       projectUuids = projectHeader.split(",").map((s) => s.trim()).filter(Boolean);

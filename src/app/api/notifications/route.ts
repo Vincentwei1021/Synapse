@@ -31,7 +31,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     companyUuid: auth.companyUuid,
     recipientType,
     recipientUuid,
-    projectUuid: query.projectUuid || undefined,
+    researchProjectUuid: query.researchProjectUuid || undefined,
     readFilter,
     archived: false,
     skip: offset,

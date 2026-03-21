@@ -87,12 +87,12 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   }
 
   // Validate roles
-  const validRoles = ["pm_agent", "developer_agent", "admin_agent", "pm", "developer", "admin"];
-  const roles = body.roles || ["developer_agent"];
+  const validRoles = ["research_lead_agent", "researcher_agent", "pi_agent", "research_lead", "researcher", "pi"];
+  const roles = body.roles || ["researcher_agent"];
   for (const role of roles) {
     if (!validRoles.includes(role)) {
       return errors.validationError({
-        roles: "Roles must be pm_agent, developer_agent, or admin_agent",
+        roles: "Roles must be research_lead_agent, researcher_agent, or pi_agent",
       });
     }
   }

@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const projectUuid = request.nextUrl.searchParams.get("projectUuid");
+  const researchProjectUuid = request.nextUrl.searchParams.get("researchProjectUuid");
 
   const stream = new ReadableStream({
     start(controller) {
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
         // Filter by company (multi-tenancy)
         if (event.companyUuid !== auth.companyUuid) return;
         // Optionally filter by project
-        if (projectUuid && event.projectUuid !== projectUuid) return;
+        if (researchProjectUuid && event.researchProjectUuid !== researchProjectUuid) return;
 
         send(`data: ${JSON.stringify(event)}\n\n`);
       };

@@ -17,12 +17,12 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const recipientType = isUser(auth) ? "user" : "agent";
   const recipientUuid = auth.actorUuid;
 
-  let projectUuid: string | undefined;
+  let researchProjectUuid: string | undefined;
 
   // Body is optional — try to parse it
   try {
-    const body = await parseBody<{ projectUuid?: string }>(request);
-    projectUuid = body.projectUuid || undefined;
+    const body = await parseBody<{ researchProjectUuid?: string }>(request);
+    researchProjectUuid = body.researchProjectUuid || undefined;
   } catch {
     // No body or invalid JSON is fine — mark all as read
   }
@@ -31,7 +31,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     auth.companyUuid,
     recipientType,
     recipientUuid,
-    projectUuid
+    researchProjectUuid
   );
 
   return success(result);
