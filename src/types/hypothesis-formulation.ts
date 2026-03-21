@@ -1,9 +1,9 @@
-// src/types/elaboration.ts
-// Type definitions for Requirements Elaboration (AI-DLC Stage 3)
+// src/types/hypothesis-formulation.ts
+// Type definitions for Hypothesis Formulation (AI-DLC Stage 3)
 
-export type ElaborationDepth = "minimal" | "standard" | "comprehensive";
+export type HypothesisFormulationDepth = "minimal" | "standard" | "comprehensive";
 
-export type ElaborationStatus = "pending_answers" | "validating" | "resolved";
+export type HypothesisFormulationStatus = "pending_answers" | "validating" | "resolved";
 
 export type RoundStatus = "pending_answers" | "answered" | "validated" | "needs_followup";
 
@@ -45,7 +45,7 @@ export interface ValidationIssueInput {
 
 // Response types
 
-export interface ElaborationQuestionResponse {
+export interface HypothesisFormulationQuestionResponse {
   uuid: string;
   questionId: string;
   text: string;
@@ -64,21 +64,21 @@ export interface ElaborationQuestionResponse {
   } | null;
 }
 
-export interface ElaborationRoundResponse {
+export interface HypothesisFormulationRoundResponse {
   uuid: string;
   roundNumber: number;
   status: string;
   createdBy: { type: string; uuid: string };
   validatedAt: string | null;
-  questions: ElaborationQuestionResponse[];
+  questions: HypothesisFormulationQuestionResponse[];
   createdAt: string;
 }
 
-export interface ElaborationResponse {
-  ideaUuid: string;
+export interface HypothesisFormulationResponse {
+  researchQuestionUuid: string;
   depth: string | null;
   status: string | null;
-  rounds: ElaborationRoundResponse[];
+  rounds: HypothesisFormulationRoundResponse[];
   summary: {
     totalQuestions: number;
     answeredQuestions: number;

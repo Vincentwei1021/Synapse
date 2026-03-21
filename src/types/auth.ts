@@ -3,7 +3,7 @@
 // UUID-Based Architecture: All IDs are UUIDs
 
 export type ActorType = "user" | "agent" | "super_admin";
-export type AgentRole = "pm" | "developer" | "admin" | "pm_agent" | "developer_agent" | "admin_agent";
+export type AgentRole = "research_lead" | "researcher" | "pi" | "research_lead_agent" | "researcher_agent" | "pi_agent";
 
 // Authentication context for the current request (UUID-based)
 export interface AuthContext {
@@ -27,7 +27,7 @@ export interface AgentAuthContext extends AuthContext {
   roles: AgentRole[];
   ownerUuid?: string;
   agentName: string;
-  projectUuids?: string[]; // Default projects from X-Chorus-Project/X-Chorus-Project-Group headers (optional)
+  researchProjectUuids?: string[]; // Default research projects from X-Synapse-Project/X-Synapse-Project-Group headers (optional)
 }
 
 // Super Admin authentication context

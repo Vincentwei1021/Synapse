@@ -26,8 +26,8 @@ export async function getAuthContext(
   if (authHeader?.toLowerCase().startsWith("bearer ")) {
     const token = authHeader.substring(7).trim();
 
-    // 1a. API Key authentication (Agent) - API Key starts with "cho_"
-    if (token.startsWith("cho_")) {
+    // 1a. API Key authentication (Agent) - API Key starts with "syn_"
+    if (token.startsWith("syn_")) {
       const result = await validateApiKey(token);
       if (result.valid && result.agent) {
         const agentContext: AgentAuthContext = {
@@ -50,7 +50,7 @@ export async function getAuthContext(
       }
     }
 
-    // 1c. Chorus JWT Token authentication (SuperAdmin or legacy compatibility)
+    // 1c. Synapse JWT Token authentication (SuperAdmin or legacy compatibility)
     const userSession = await getUserSessionFromRequest(request);
     if (userSession) {
       return userSession;
@@ -91,14 +91,19 @@ export function hasRole(ctx: AuthContext, role: AgentRole): boolean {
   return ctx.roles.includes(role);
 }
 
-// Check if PM Agent
-export function isPmAgent(ctx: AuthContext): boolean {
-  return hasRole(ctx, "pm");
+// Check if Research Lead Agent (supports both "research_lead" and "research_lead_agent" roles)
+export function isResearchLead(ctx: AuthContext): boolean {
+  return hasRole(ctx, "research_lead") || hasRole(ctx, "research_lead_agent");
 }
 
-// Check if Developer Agent
-export function isDeveloperAgent(ctx: AuthContext): boolean {
-  return hasRole(ctx, "developer");
+// Check if Researcher Agent (supports both "researcher" and "researcher_agent" roles)
+export function isResearcher(ctx: AuthContext): boolean {
+  return hasRole(ctx, "researcher") || hasRole(ctx, "researcher_agent");
+}
+
+// Check if PI Agent (supports both "pi" and "pi_agent" roles)
+export function isPi(ctx: AuthContext): boolean {
+  return hasRole(ctx, "pi") || hasRole(ctx, "pi_agent");
 }
 
 // Require authentication decorator factory

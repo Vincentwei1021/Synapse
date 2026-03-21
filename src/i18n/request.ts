@@ -8,7 +8,7 @@ import { locales, defaultLocale, type Locale } from './config';
 export default getRequestConfig(async () => {
   // Read locale from cookie (set by client-side LocaleProvider)
   const cookieStore = await cookies();
-  const cookieLocale = cookieStore.get('chorus-locale')?.value;
+  const cookieLocale = cookieStore.get('synapse-locale')?.value;
   const locale: Locale =
     cookieLocale && locales.includes(cookieLocale as Locale)
       ? (cookieLocale as Locale)

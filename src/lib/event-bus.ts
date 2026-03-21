@@ -7,15 +7,15 @@ import { isRedisEnabled, getRedisPublisher, getRedisSubscriber } from "./redis";
 
 export interface RealtimeEvent {
   companyUuid: string;
-  projectUuid: string;
-  entityType: "task" | "idea" | "proposal" | "document" | "project";
+  researchProjectUuid: string;
+  entityType: "experiment_run" | "research_question" | "experiment_design" | "document" | "research_project";
   entityUuid: string;
   action: "created" | "updated" | "deleted";
   actorUuid?: string;
 }
 
 // Single Redis channel for all events (ElastiCache Serverless doesn't support PSUBSCRIBE)
-const REDIS_CHANNEL = "chorus:events";
+const REDIS_CHANNEL = "synapse:events";
 
 /** Envelope wrapping event data with origin ID for dedup + channel for local dispatch */
 interface RedisEnvelope {
@@ -24,7 +24,7 @@ interface RedisEnvelope {
   data: unknown;
 }
 
-class ChorusEventBus extends EventEmitter {
+class SynapseEventBus extends EventEmitter {
   private _connected = false;
   /** Unique per-process ID to deduplicate own messages from Redis */
   private readonly _instanceId = randomUUID();
@@ -92,10 +92,10 @@ class ChorusEventBus extends EventEmitter {
 // Use globalThis to ensure a true process-level singleton across
 // Next.js Route Handlers and Server Actions (which use separate module graphs)
 const globalForEventBus = globalThis as unknown as {
-  chorusEventBus: ChorusEventBus | undefined;
+  synapseEventBus: SynapseEventBus | undefined;
 };
 
-export const eventBus = (globalForEventBus.chorusEventBus ??= new ChorusEventBus());
+export const eventBus = (globalForEventBus.synapseEventBus ??= new SynapseEventBus());
 
 // Auto-connect on import (non-blocking)
 if (isRedisEnabled()) {

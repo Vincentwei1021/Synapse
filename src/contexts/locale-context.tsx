@@ -19,7 +19,7 @@ import {
   type Locale,
 } from "@/i18n/config";
 
-const LOCALE_STORAGE_KEY = "chorus-locale";
+const LOCALE_STORAGE_KEY = "synapse-locale";
 
 interface LocaleContextType {
   locale: Locale;
@@ -57,7 +57,7 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
     }
     setLocaleState(resolved);
     // Sync to cookie so Server Components can read the locale
-    document.cookie = `chorus-locale=${resolved};path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax`;
+    document.cookie = `synapse-locale=${resolved};path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax`;
     setIsInitialized(true);
   }, []);
 
@@ -82,7 +82,7 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
     setLocaleState(newLocale);
     localStorage.setItem(LOCALE_STORAGE_KEY, newLocale);
     // Sync to cookie so Server Components can read the locale
-    document.cookie = `chorus-locale=${newLocale};path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax`;
+    document.cookie = `synapse-locale=${newLocale};path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax`;
     // Update html lang attribute
     document.documentElement.lang = newLocale;
   }, []);

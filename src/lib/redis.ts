@@ -5,7 +5,7 @@ import Redis from "ioredis";
 /**
  * Build Redis connection URL from environment variables.
  * Supports two modes:
- * - REDIS_URL: Full URL (local dev, e.g. redis://default:chorus-redis@localhost:6379)
+ * - REDIS_URL: Full URL (local dev, e.g. redis://default:synapse-redis@localhost:6379)
  * - REDIS_HOST + REDIS_PORT + REDIS_USERNAME + REDIS_PASSWORD: Individual vars (CDK deployment)
  */
 function getRedisUrl(): string | undefined {

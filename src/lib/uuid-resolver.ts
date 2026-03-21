@@ -4,7 +4,7 @@
 
 import { prisma } from "@/lib/prisma";
 
-export type TargetType = "idea" | "proposal" | "task" | "document";
+export type TargetType = "research_question" | "experiment_design" | "experiment_run" | "document";
 export type ActorType = "user" | "agent";
 
 // Get Actor name by UUID (for display)
@@ -121,7 +121,7 @@ export async function formatAssigneeComplete(
   };
 }
 
-// Format Proposal review info
+// Format ExperimentDesign review info
 export interface ReviewInfo {
   reviewedBy: { type: string; uuid: string; name: string };
   reviewNote: string | null;
@@ -233,12 +233,12 @@ export async function validateTargetExists(
   const where = { uuid: targetUuid, companyUuid };
 
   switch (targetType) {
-    case "idea":
-      return !!(await prisma.idea.findFirst({ where, select: { uuid: true } }));
-    case "proposal":
-      return !!(await prisma.proposal.findFirst({ where, select: { uuid: true } }));
-    case "task":
-      return !!(await prisma.task.findFirst({ where, select: { uuid: true } }));
+    case "research_question":
+      return !!(await prisma.researchQuestion.findFirst({ where, select: { uuid: true } }));
+    case "experiment_design":
+      return !!(await prisma.experimentDesign.findFirst({ where, select: { uuid: true } }));
+    case "experiment_run":
+      return !!(await prisma.experimentRun.findFirst({ where, select: { uuid: true } }));
     case "document":
       return !!(await prisma.document.findFirst({ where, select: { uuid: true } }));
     default:

@@ -7,7 +7,7 @@ import { prisma } from "./prisma";
 import type { ApiKeyValidationResult } from "@/types/auth";
 
 // API Key prefix
-const KEY_PREFIX = "cho_";
+const KEY_PREFIX = "syn_";
 
 // Generate new API Key
 export function generateApiKey(): { key: string; hash: string; prefix: string } {
@@ -18,7 +18,7 @@ export function generateApiKey(): { key: string; hash: string; prefix: string } 
   // Store using SHA-256 hash
   const hash = hashApiKey(key);
 
-  // Prefix for display (e.g. "cho_abc...xyz")
+  // Prefix for display (e.g. "syn_abc...xyz")
   const prefix = `${KEY_PREFIX}${randomPart.slice(0, 4)}...${randomPart.slice(-4)}`;
 
   return { key, hash, prefix };
