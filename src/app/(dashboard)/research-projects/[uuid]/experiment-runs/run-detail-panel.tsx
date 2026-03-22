@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { X, Pencil, CheckCircle, Play, Eye, Bot, User, Send, FileText, Loader2, Check, Trash2, GitBranch, Plus, ArrowRight, Activity as ActivityIcon, CircleCheck, Timer, CircleX, AlertTriangle } from "lucide-react";
+import { X, Pencil, CheckCircle, Play, Eye, Bot, User, Send, FileText, Loader2, Check, Trash2, GitBranch, Plus, ArrowRight, Activity as ActivityIcon, CircleCheck, Timer, CircleX, AlertTriangle, FlaskConical, XCircle, Clock, Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,8 @@ import {
 import { getExperimentRunSessionsAction } from "./session-actions";
 import type { RunSessionInfo } from "@/services/session.service";
 import { useRealtimeEntityEvent } from "@/contexts/realtime-context";
+import { getExperimentRegistryAction } from "./[runUuid]/registry-actions";
+import type { ExperimentRegistry } from "@/generated/prisma/client";
 
 interface DependencyTask {
   uuid: string;
@@ -74,6 +76,12 @@ interface AcceptanceCriterionItem {
   status: string;
   evidence: string | null;
   sortOrder: number;
+  // Research-specific Go/No-Go fields
+  metricName: string | null;
+  operator: string | null;
+  threshold: number | null;
+  isEarlyStop: boolean;
+  actualValue: number | null;
 }
 
 interface AcceptanceSummaryData {
@@ -108,6 +116,10 @@ interface Task {
   } | null;
   dependsOn?: DependencyTask[];
   dependedBy?: DependencyTask[];
+  experimentConfig: Record<string, unknown> | null;
+  experimentResults: Record<string, unknown> | null;
+  baselineRunUuid: string | null;
+  outcome: string | null;
 }
 
 interface TaskDetailPanelProps {
@@ -265,6 +277,9 @@ export function TaskDetailPanel({
   // Active workers (sessions)
   const [activeWorkers, setActiveWorkers] = useState<RunSessionInfo[]>([]);
 
+  // Experiment registry data
+  const [registryData, setRegistryData] = useState<ExperimentRegistry | null>(null);
+
   // Auto-refresh comments when another user adds a comment
   useRealtimeEntityEvent("experiment_run", task?.uuid ?? "", (event) => {
     if (event.actorUuid === currentUserUuid) return;
@@ -337,11 +352,16 @@ export function TaskDetailPanel({
         setActiveWorkers(result.data);
       }
     }
+    async function loadRegistryData() {
+      const result = await getExperimentRegistryAction(task!.uuid);
+      setRegistryData(result);
+    }
     loadComments();
     loadActivities();
     loadSource();
     loadDependencies();
     loadActiveWorkers();
+    loadRegistryData();
   }, [task?.uuid, task?.experimentDesignUuid, projectUuid]);
 
   // Load project tasks for dependency picker in create mode
@@ -539,6 +559,32 @@ export function TaskDetailPanel({
   const availableDepsForCreate = allProjectTasks.filter(
     t => !pendingDeps.some(d => d.uuid === t.uuid)
   );
+
+  // Evaluate Go/No-Go metric operator
+  function evaluateOperator(actual: number, op: string, threshold: number): boolean {
+    switch (op) {
+      case ">=": return actual >= threshold;
+      case "<=": return actual <= threshold;
+      case ">": return actual > threshold;
+      case "<": return actual < threshold;
+      case "==": return actual === threshold;
+      default: return false;
+    }
+  }
+
+  // Inline JSON key-value renderer
+  function JsonKeyValue({ data }: { data: Record<string, unknown> }) {
+    return (
+      <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[13px]">
+        {Object.entries(data).map(([key, value]) => (
+          <Fragment key={key}>
+            <span className="font-medium text-[#6B6B6B]">{key}</span>
+            <span className="text-[#2C2C2C]">{String(value)}</span>
+          </Fragment>
+        ))}
+      </div>
+    );
+  }
 
   // Render the edit/create form
   const renderEditForm = () => (
@@ -988,6 +1034,212 @@ export function TaskDetailPanel({
                     </>
                   )}
                 </div>
+
+                {/* Experiment Configuration Section */}
+                {task.experimentConfig && (
+                  <div className="mt-5">
+                    <Card className="p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <FlaskConical className="h-4 w-4 text-[#C67A52]" />
+                        <span className="text-[13px] font-semibold text-[#2C2C2C]">Experiment Configuration</span>
+                      </div>
+
+                      {/* Configuration table */}
+                      <div className="mb-3">
+                        <label className="text-[10px] font-medium uppercase tracking-wide text-[#9A9A9A] mb-1.5 block">
+                          Configuration
+                        </label>
+                        <JsonKeyValue data={task.experimentConfig} />
+                      </div>
+
+                      {/* Results table */}
+                      {task.experimentResults && (
+                        <div className="mb-3">
+                          <Separator className="my-3 bg-[#F5F2EC]" />
+                          <label className="text-[10px] font-medium uppercase tracking-wide text-[#9A9A9A] mb-1.5 block">
+                            Results
+                          </label>
+                          <JsonKeyValue data={task.experimentResults} />
+                        </div>
+                      )}
+
+                      {/* Outcome badge */}
+                      {task.outcome && (
+                        <>
+                          <Separator className="my-3 bg-[#F5F2EC]" />
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-medium text-[#9A9A9A]">Outcome:</span>
+                            <Badge className={
+                              task.outcome === "accepted" ? "bg-green-50 text-green-700" :
+                              task.outcome === "rejected" ? "bg-red-50 text-red-700" :
+                              "bg-yellow-50 text-yellow-700"
+                            }>
+                              {task.outcome}
+                            </Badge>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Registry info */}
+                      {registryData && (
+                        <>
+                          <Separator className="my-3 bg-[#F5F2EC]" />
+                          <label className="text-[10px] font-medium uppercase tracking-wide text-[#9A9A9A] mb-1.5 block">
+                            Registry
+                          </label>
+
+                          {/* Environment */}
+                          {registryData.environment && typeof registryData.environment === "object" && (
+                            <div className="mb-2">
+                              <span className="text-[11px] font-medium text-[#6B6B6B]">Environment</span>
+                              <div className="mt-1">
+                                <JsonKeyValue data={registryData.environment as Record<string, unknown>} />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Seed */}
+                          {registryData.seed !== null && registryData.seed !== undefined && (
+                            <div className="flex items-center gap-2 mb-2 text-[13px]">
+                              <span className="font-medium text-[#6B6B6B]">Seed</span>
+                              <span className="text-[#2C2C2C]">{registryData.seed}</span>
+                            </div>
+                          )}
+
+                          {/* Reproducibility */}
+                          <div className="flex items-center gap-2 mb-2">
+                            <Shield className="h-3.5 w-3.5 text-[#6B6B6B]" />
+                            <span className="text-[11px] font-medium text-[#6B6B6B]">Reproducibility:</span>
+                            {registryData.reproducible ? (
+                              <Badge className="bg-green-50 text-green-700 text-[10px]">Verified</Badge>
+                            ) : (
+                              <Badge className="bg-[#F5F5F5] text-[#9A9A9A] text-[10px]">Unverified</Badge>
+                            )}
+                          </div>
+
+                          {/* Timestamps */}
+                          <div className="space-y-1 text-[11px] text-[#6B6B6B]">
+                            <div>Started: {new Date(registryData.startedAt).toLocaleString()}</div>
+                            {registryData.completedAt && (
+                              <div>Completed: {new Date(registryData.completedAt).toLocaleString()}</div>
+                            )}
+                            <div>Registered: {new Date(registryData.createdAt).toLocaleString()}</div>
+                          </div>
+                        </>
+                      )}
+                    </Card>
+                  </div>
+                )}
+
+                {/* Go/No-Go Criteria Checklist */}
+                {task.acceptanceCriteriaItems && task.acceptanceCriteriaItems.length > 0 && (() => {
+                  const goNoGoItems = task.acceptanceCriteriaItems!.filter(
+                    (item) => item.metricName !== null && item.metricName !== undefined
+                  );
+
+                  if (goNoGoItems.length === 0) return null;
+
+                  // Evaluate each criterion
+                  const evaluated = goNoGoItems.map((item) => {
+                    let result: "passed" | "failed" | "pending" = "pending";
+                    if (
+                      item.actualValue !== null &&
+                      item.actualValue !== undefined &&
+                      item.operator !== null &&
+                      item.threshold !== null
+                    ) {
+                      result = evaluateOperator(item.actualValue, item.operator, item.threshold)
+                        ? "passed"
+                        : "failed";
+                    }
+                    return { ...item, evalResult: result };
+                  });
+
+                  // Count among required criteria only
+                  const requiredEvaluated = evaluated.filter((e) => e.required);
+                  const passedCount = requiredEvaluated.filter((e) => e.evalResult === "passed").length;
+                  const failedCount = requiredEvaluated.filter((e) => e.evalResult === "failed").length;
+                  const pendingCount = requiredEvaluated.filter((e) => e.evalResult === "pending").length;
+
+                  // Suggested outcome
+                  let suggestedOutcome: "Accepted" | "Rejected" | "Inconclusive" = "Inconclusive";
+                  if (failedCount > 0) {
+                    suggestedOutcome = "Rejected";
+                  } else if (pendingCount === 0 && passedCount > 0) {
+                    suggestedOutcome = "Accepted";
+                  }
+
+                  const outcomeBadgeColor =
+                    suggestedOutcome === "Accepted"
+                      ? "bg-green-50 text-green-700"
+                      : suggestedOutcome === "Rejected"
+                        ? "bg-red-50 text-red-700"
+                        : "bg-yellow-50 text-yellow-700";
+
+                  return (
+                    <div className="mt-5">
+                      <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
+                        Go/No-Go Criteria
+                      </label>
+
+                      {/* Summary bar */}
+                      <div className="mt-2 flex items-center gap-2 flex-wrap rounded-lg bg-[#FAF8F4] p-3">
+                        <span className="text-xs text-[#2C2C2C]">
+                          {passedCount} passed, {failedCount} failed, {pendingCount} pending
+                        </span>
+                        <span className="text-xs text-[#9A9A9A]">&mdash;</span>
+                        <span className="text-xs text-[#6B6B6B]">Suggested:</span>
+                        <Badge className={outcomeBadgeColor}>{suggestedOutcome}</Badge>
+                      </div>
+
+                      {/* Criteria list */}
+                      <div className="mt-2 space-y-2">
+                        {evaluated.map((item) => {
+                          const statusIcon =
+                            item.evalResult === "passed" ? (
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                            ) : item.evalResult === "failed" ? (
+                              <XCircle className="h-4 w-4 text-red-600" />
+                            ) : (
+                              <Clock className="h-4 w-4 text-yellow-600" />
+                            );
+
+                          return (
+                            <Card key={item.uuid} className="p-3">
+                              <div className="flex items-start gap-2">
+                                <div className="mt-0.5 shrink-0">{statusIcon}</div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-xs font-bold text-[#2C2C2C]">
+                                      {item.metricName}
+                                    </span>
+                                    {item.operator && item.threshold !== null && (
+                                      <span className="text-xs text-[#6B6B6B]">
+                                        {item.operator} {item.threshold}
+                                      </span>
+                                    )}
+                                    <span className="text-xs text-[#2C2C2C]">
+                                      Actual: {item.actualValue !== null && item.actualValue !== undefined ? item.actualValue : "\u2014"}
+                                    </span>
+                                    {item.isEarlyStop && (
+                                      <span className="flex items-center gap-1 text-[10px] text-yellow-700">
+                                        <AlertTriangle className="h-3 w-3" />
+                                        Early Stop
+                                      </span>
+                                    )}
+                                    {!item.required && (
+                                      <span className="text-[10px] text-[#9A9A9A]">(optional)</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Structured Acceptance Criteria Section */}
                 {task && task.acceptanceCriteriaItems && task.acceptanceCriteriaItems.length > 0 && (() => {
