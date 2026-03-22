@@ -7,6 +7,13 @@ const mockPrisma = vi.hoisted(() => ({
     findMany: vi.fn(),
     update: vi.fn(),
   },
+  experimentRun: {
+    update: vi.fn(),
+    findUnique: vi.fn(),
+  },
+  notification: {
+    create: vi.fn(),
+  },
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
@@ -292,5 +299,66 @@ describe("evaluateCriteria", () => {
         run: { companyUuid: COMPANY_UUID },
       },
     });
+  });
+
+  it("should set earlyStopTriggered when shouldStop is true", async () => {
+    const criteria = [
+      makeCriterion({ uuid: "c1", metricName: "accuracy", operator: ">=", threshold: 0.9, required: true, isEarlyStop: true }),
+    ];
+    mockPrisma.acceptanceCriterion.findMany.mockResolvedValue(criteria);
+    mockPrisma.acceptanceCriterion.update.mockResolvedValue({});
+    mockPrisma.experimentRun.update.mockResolvedValue({});
+    mockPrisma.experimentRun.findUnique.mockResolvedValue(null);
+
+    await evaluateCriteria(COMPANY_UUID, RUN_UUID, { accuracy: 0.5 });
+
+    expect(mockPrisma.experimentRun.update).toHaveBeenCalledWith({
+      where: { uuid: RUN_UUID },
+      data: { earlyStopTriggered: true },
+    });
+  });
+
+  it("should create notification when early stop triggers", async () => {
+    const criteria = [
+      makeCriterion({ uuid: "c1", metricName: "accuracy", operator: ">=", threshold: 0.9, required: true, isEarlyStop: true }),
+    ];
+    mockPrisma.acceptanceCriterion.findMany.mockResolvedValue(criteria);
+    mockPrisma.acceptanceCriterion.update.mockResolvedValue({});
+    mockPrisma.experimentRun.update.mockResolvedValue({});
+    mockPrisma.experimentRun.findUnique.mockResolvedValue({
+      title: "Test Run",
+      researchProjectUuid: "project-001",
+      assigneeUuid: "assignee-001",
+      assigneeType: "agent",
+    });
+    mockPrisma.notification.create.mockResolvedValue({});
+
+    await evaluateCriteria(COMPANY_UUID, RUN_UUID, { accuracy: 0.5 });
+
+    expect(mockPrisma.notification.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        companyUuid: COMPANY_UUID,
+        entityType: "experiment_run",
+        entityUuid: RUN_UUID,
+        action: "early_stop_triggered",
+        recipientUuid: "assignee-001",
+      }),
+    });
+  });
+
+  it("should not set earlyStopTriggered when early stop criteria pass", async () => {
+    const criteria = [
+      makeCriterion({ uuid: "c1", metricName: "accuracy", operator: ">=", threshold: 0.9, required: true, isEarlyStop: true }),
+    ];
+    mockPrisma.acceptanceCriterion.findMany.mockResolvedValue(criteria);
+    mockPrisma.acceptanceCriterion.update.mockResolvedValue({});
+
+    await evaluateCriteria(COMPANY_UUID, RUN_UUID, { accuracy: 0.95 });
+
+    expect(mockPrisma.experimentRun.update).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { earlyStopTriggered: true },
+      }),
+    );
   });
 });

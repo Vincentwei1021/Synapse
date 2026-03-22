@@ -152,6 +152,44 @@ export async function evaluateCriteria(
     suggestedOutcome = "inconclusive";
   }
 
+  // Early stopping: set flag on the experiment run and create notification
+  if (shouldStop) {
+    // Set earlyStopTriggered flag on the experiment run
+    await prisma.experimentRun.update({
+      where: { uuid: runUuid },
+      data: { earlyStopTriggered: true },
+    });
+
+    // Find run details for notification
+    const run = await prisma.experimentRun.findUnique({
+      where: { uuid: runUuid },
+      select: { title: true, researchProjectUuid: true, assigneeUuid: true, assigneeType: true },
+    });
+
+    if (run && run.assigneeUuid) {
+      const failedEarlyStop = results.find(r => r.isEarlyStop && r.passed === false);
+      await prisma.notification.create({
+        data: {
+          companyUuid,
+          projectUuid: run.researchProjectUuid,
+          recipientType: run.assigneeType || "agent",
+          recipientUuid: run.assigneeUuid,
+          entityType: "experiment_run",
+          entityUuid: runUuid,
+          entityTitle: run.title,
+          projectName: "",
+          action: "early_stop_triggered",
+          message: failedEarlyStop
+            ? `Early stop triggered: ${failedEarlyStop.metricName} ${failedEarlyStop.operator} ${failedEarlyStop.threshold} (actual: ${failedEarlyStop.actualValue})`
+            : "Early stop triggered",
+          actorType: "agent",
+          actorUuid: companyUuid,
+          actorName: "System",
+        },
+      });
+    }
+  }
+
   return {
     results,
     allPassed,
