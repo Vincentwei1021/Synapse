@@ -6,7 +6,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ClipboardList, FileEdit, Palette, BookOpen, FileText, ChevronRight, type LucideIcon } from "lucide-react";
+import { ClipboardList, FileEdit, Palette, BookOpen, FileText, ChevronRight, FlaskConical, Beaker, type LucideIcon } from "lucide-react";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { getDocument } from "@/services/document.service";
 import { researchProjectExists } from "@/services/research-project.service";
@@ -19,6 +19,10 @@ const docTypeConfig: Record<string, { labelKey: string; color: string; icon: Luc
   design: { labelKey: "documents.typeDesign", color: "bg-[#F3E5F5] text-[#7B1FA2]", icon: Palette },
   note: { labelKey: "documents.typeNote", color: "bg-[#FFF3E0] text-[#E65100]", icon: BookOpen },
   other: { labelKey: "documents.typeOther", color: "bg-[#F5F5F5] text-[#6B6B6B]", icon: FileText },
+  literature_review: { labelKey: "documents.typeLiteratureReview", color: "bg-[#E8F5E9] text-[#2E7D32]", icon: BookOpen },
+  methodology: { labelKey: "documents.typeMethodology", color: "bg-[#E3F2FD] text-[#1565C0]", icon: FlaskConical },
+  rdr: { labelKey: "documents.typeRdr", color: "bg-[#FFF8E1] text-[#F57F17]", icon: FileText },
+  results_report: { labelKey: "documents.typeResultsReport", color: "bg-[#F3E5F5] text-[#6A1B9A]", icon: Beaker },
 };
 
 interface PageProps {
