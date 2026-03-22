@@ -248,7 +248,9 @@
     "noRecentExperimentRuns": "No experiment runs yet",
     "noRecentActivity": "No activity yet",
     "viewAll": "View all",
-    "settings": "Settings"
+    "settings": "Settings",
+    "overview": "Overview",
+    "metricsComparison": "Metrics Comparison"
   },
   "researchProjectSettings": {
     "title": "Research project settings",
@@ -594,7 +596,11 @@
     "typeSpec": "Spec",
     "typeDesign": "Design",
     "typeNote": "Note",
-    "typeOther": "Other"
+    "typeOther": "Other",
+    "typeLiteratureReview": "Literature Review",
+    "typeMethodology": "Methodology",
+    "typeRdr": "Research Decision Record",
+    "typeResultsReport": "Results Report"
   },
   "settings": {
     "title": "Settings",
@@ -900,5 +906,45 @@
     "threshold": "Threshold",
     "earlyStop": "Early Stop Condition",
     "actualValue": "Actual Value"
+  },
+  "metricsTable": {
+    "title": "Metrics Comparison",
+    "groupedByDesign": "By Design",
+    "customSelection": "Custom Selection",
+    "selectRuns": "Select runs to compare",
+    "noRuns": "No experiment runs with results",
+    "noBaseline": "No active baseline set",
+    "baseline": "Baseline",
+    "metric": "Metric",
+    "outcome": "Outcome",
+    "improvement": "Improvement",
+    "regression": "Regression",
+    "ungrouped": "Ungrouped"
+  },
+  "goNoGo": {
+    "title": "Go/No-Go Criteria",
+    "noCriteria": "No Go/No-Go criteria",
+    "passed": "Passed",
+    "failed": "Failed",
+    "pending": "Pending",
+    "earlyStop": "Early Stop",
+    "suggestedOutcome": "Suggested Outcome",
+    "accepted": "Accepted",
+    "rejected": "Rejected",
+    "inconclusive": "Inconclusive"
+  },
+  "experimentConfig": {
+    "title": "Experiment Configuration",
+    "configuration": "Configuration",
+    "results": "Results",
+    "outcome": "Outcome",
+    "environment": "Environment",
+    "seed": "Random Seed",
+    "reproducibility": "Reproducibility",
+    "verified": "Verified",
+    "unverified": "Unverified",
+    "startedAt": "Started",
+    "completedAt": "Completed",
+    "noConfig": "No configuration recorded"
   }
 }

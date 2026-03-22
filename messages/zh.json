@@ -248,7 +248,9 @@
     "noRecentExperimentRuns": "暂无实验运行",
     "noRecentActivity": "暂无动态",
     "viewAll": "查看全部",
-    "settings": "设置"
+    "settings": "设置",
+    "overview": "概览",
+    "metricsComparison": "指标对比"
   },
   "researchProjectSettings": {
     "title": "研究项目设置",
@@ -595,7 +597,11 @@
     "typeSpec": "技术规格",
     "typeDesign": "设计文档",
     "typeNote": "笔记",
-    "typeOther": "其他"
+    "typeOther": "其他",
+    "typeLiteratureReview": "文献综述",
+    "typeMethodology": "方法论",
+    "typeRdr": "研究决策记录",
+    "typeResultsReport": "结果报告"
   },
   "settings": {
     "title": "设置",
@@ -901,5 +907,45 @@
     "threshold": "阈值",
     "earlyStop": "提前终止条件",
     "actualValue": "实际值"
+  },
+  "metricsTable": {
+    "title": "指标对比",
+    "groupedByDesign": "按实验设计分组",
+    "customSelection": "自定义选择",
+    "selectRuns": "选择要比较的实验运行",
+    "noRuns": "没有包含结果的实验运行",
+    "noBaseline": "未设置活跃基线",
+    "baseline": "基线",
+    "metric": "指标",
+    "outcome": "结果",
+    "improvement": "提升",
+    "regression": "下降",
+    "ungrouped": "未分组"
+  },
+  "goNoGo": {
+    "title": "通过/不通过标准",
+    "noCriteria": "未定义通过/不通过标准",
+    "passed": "通过",
+    "failed": "未通过",
+    "pending": "待定",
+    "earlyStop": "提前终止",
+    "suggestedOutcome": "建议结果",
+    "accepted": "已接受",
+    "rejected": "已拒绝",
+    "inconclusive": "不确定"
+  },
+  "experimentConfig": {
+    "title": "实验配置",
+    "configuration": "配置",
+    "results": "结果",
+    "outcome": "结果",
+    "environment": "环境",
+    "seed": "随机种子",
+    "reproducibility": "可复现性",
+    "verified": "已验证",
+    "unverified": "未验证",
+    "startedAt": "开始时间",
+    "completedAt": "完成时间",
+    "noConfig": "未记录配置"
   }
 }
