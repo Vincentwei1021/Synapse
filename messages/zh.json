@@ -250,7 +250,8 @@
     "viewAll": "查看全部",
     "settings": "设置",
     "overview": "概览",
-    "metricsComparison": "指标对比"
+    "metricsComparison": "指标对比",
+    "hypothesisBoard": "假设看板"
   },
   "researchProjectSettings": {
     "title": "研究项目设置",
@@ -933,6 +934,24 @@
     "accepted": "已接受",
     "rejected": "已拒绝",
     "inconclusive": "不确定"
+  },
+  "hypothesisBoard": {
+    "title": "假设看板",
+    "researchQuestion": "研究问题",
+    "experimentDesign": "实验设计",
+    "experimentRun": "实验运行",
+    "noData": "没有研究数据可显示"
+  },
+  "earlyStop": {
+    "triggered": "提前终止已触发",
+    "description": "一个或多个提前终止标准未达标。请查看通过/不通过标准，决定是否关闭此运行。",
+    "warningIcon": "提前终止"
+  },
+  "export": {
+    "button": "导出结果",
+    "loading": "导出中...",
+    "success": "导出完成",
+    "noData": "没有可导出的结果"
   },
   "experimentConfig": {
     "title": "实验配置",

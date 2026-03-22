@@ -250,7 +250,8 @@
     "viewAll": "View all",
     "settings": "Settings",
     "overview": "Overview",
-    "metricsComparison": "Metrics Comparison"
+    "metricsComparison": "Metrics Comparison",
+    "hypothesisBoard": "Hypothesis Board"
   },
   "researchProjectSettings": {
     "title": "Research project settings",
@@ -932,6 +933,24 @@
     "accepted": "Accepted",
     "rejected": "Rejected",
     "inconclusive": "Inconclusive"
+  },
+  "hypothesisBoard": {
+    "title": "Hypothesis Board",
+    "researchQuestion": "Research Question",
+    "experimentDesign": "Experiment Design",
+    "experimentRun": "Experiment Run",
+    "noData": "No research data to display"
+  },
+  "earlyStop": {
+    "triggered": "Early Stop Triggered",
+    "description": "One or more early-stop criteria failed. Review the Go/No-Go criteria and decide whether to close this run.",
+    "warningIcon": "Early stop"
+  },
+  "export": {
+    "button": "Export Results",
+    "loading": "Exporting...",
+    "success": "Export complete",
+    "noData": "No results to export"
   },
   "experimentConfig": {
     "title": "Experiment Configuration",
