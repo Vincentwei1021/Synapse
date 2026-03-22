@@ -22,6 +22,8 @@ import { getActiveBaseline } from "@/services/baseline.service";
 import { ProjectSettingsModal } from "./project-settings-modal";
 import { DashboardTabs } from "./dashboard-tabs";
 import { MetricsComparisonTable } from "./metrics-comparison-table";
+import { ExportButton } from "./export-button";
+import { HypothesisBoard } from "./hypothesis-board";
 
 interface PageProps {
   params: Promise<{ uuid: string }>;
@@ -93,6 +95,31 @@ export default async function DashboardPage({ params }: PageProps) {
       },
     }),
     getActiveBaseline(auth.companyUuid, projectUuid),
+  ]);
+
+  // Fetch data for Hypothesis Board tab
+  const [questions, designs, runsForBoard] = await Promise.all([
+    prisma.researchQuestion.findMany({
+      where: { companyUuid: auth.companyUuid, researchProjectUuid: projectUuid },
+      select: { uuid: true, title: true, status: true },
+    }),
+    prisma.experimentDesign.findMany({
+      where: { companyUuid: auth.companyUuid, researchProjectUuid: projectUuid },
+      select: { uuid: true, title: true, status: true, inputUuids: true },
+    }),
+    prisma.experimentRun.findMany({
+      where: { companyUuid: auth.companyUuid, researchProjectUuid: projectUuid },
+      select: {
+        uuid: true,
+        title: true,
+        status: true,
+        outcome: true,
+        experimentDesignUuid: true,
+        acceptanceCriteriaItems: {
+          select: { metricName: true, threshold: true, operator: true, actualValue: true, required: true, isEarlyStop: true },
+        },
+      },
+    }),
   ]);
 
   const metricsRunsData = allExperimentRuns.map((run) => ({
@@ -183,11 +210,14 @@ export default async function DashboardPage({ params }: PageProps) {
             <p className="mt-1.5 text-[13px] text-[#6B6B6B]">{project.description}</p>
           )}
         </div>
-        <ProjectSettingsModal
-          projectUuid={projectUuid}
-          projectName={project.name}
-          projectDescription={project.description ?? null}
-        />
+        <div className="flex items-center gap-2">
+          <ExportButton projectUuid={projectUuid} />
+          <ProjectSettingsModal
+            projectUuid={projectUuid}
+            projectName={project.name}
+            projectDescription={project.description ?? null}
+          />
+        </div>
       </div>
 
       <DashboardTabs
@@ -353,6 +383,28 @@ export default async function DashboardPage({ params }: PageProps) {
               name: activeBaseline.name,
               metrics: activeBaseline.metrics as Record<string, number>,
             } : null}
+          />
+        }
+        hypothesisBoardContent={
+          <HypothesisBoard
+            questions={questions.map((q) => ({ uuid: q.uuid, title: q.title, status: q.status }))}
+            designs={designs.map((d) => ({ uuid: d.uuid, title: d.title, status: d.status, inputUuids: d.inputUuids as string[] }))}
+            runs={runsForBoard.map((r) => ({
+              uuid: r.uuid,
+              title: r.title,
+              status: r.status,
+              outcome: r.outcome,
+              experimentDesignUuid: r.experimentDesignUuid,
+              goNoGoCriteria: r.acceptanceCriteriaItems.map((c) => ({
+                metricName: c.metricName,
+                threshold: c.threshold,
+                operator: c.operator,
+                actualValue: c.actualValue,
+                required: c.required,
+                isEarlyStop: c.isEarlyStop,
+              })),
+            }))}
+            projectUuid={projectUuid}
           />
         }
       />
