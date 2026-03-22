@@ -9,7 +9,7 @@ import {
   Draggable,
   DropResult,
 } from "@hello-pangea/dnd";
-import { Lock, TriangleAlert, Monitor } from "lucide-react";
+import { Lock, TriangleAlert, Monitor, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,7 @@ interface Task {
     required: boolean;
     isEarlyStop: boolean;
   }[];
+  earlyStopTriggered?: boolean;
 }
 
 interface BlockerInfo {
@@ -458,6 +459,9 @@ export function KanbanBoard({ projectUuid, initialTasks, currentUserUuid, select
                                     )}
                                     {task.goNoGoCriteria && task.goNoGoCriteria.some(c => c.metricName) && (
                                       <GoNoGoBadge criteria={task.goNoGoCriteria} size="sm" />
+                                    )}
+                                    {task.earlyStopTriggered && (
+                                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
                                     )}
                                     {task.acceptanceSummary && task.acceptanceSummary.total > 0 && (() => {
                                       const s = task.acceptanceSummary;

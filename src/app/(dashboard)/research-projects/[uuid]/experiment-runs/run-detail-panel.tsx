@@ -120,6 +120,7 @@ interface Task {
   experimentResults?: Record<string, unknown> | null;
   baselineRunUuid?: string | null;
   outcome?: string | null;
+  earlyStopTriggered?: boolean;
 }
 
 interface TaskDetailPanelProps {
@@ -1034,6 +1035,19 @@ export function TaskDetailPanel({
                     </>
                   )}
                 </div>
+
+                {/* Early Stop Warning Banner */}
+                {task.earlyStopTriggered && (
+                  <Card className="border-amber-300 bg-amber-50 p-4 mb-4">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+                      <div>
+                        <p className="font-semibold text-amber-800 text-sm">Early Stop Triggered</p>
+                        <p className="text-amber-700 text-xs mt-0.5">One or more early-stop criteria failed. Review the Go/No-Go criteria and decide whether to close this run.</p>
+                      </div>
+                    </div>
+                  </Card>
+                )}
 
                 {/* Experiment Configuration Section */}
                 {task.experimentConfig && (
