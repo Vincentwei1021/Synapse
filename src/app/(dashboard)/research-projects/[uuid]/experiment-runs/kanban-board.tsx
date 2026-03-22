@@ -25,6 +25,7 @@ import { moveRunToColumnAction, forceMoveTaskToColumnAction } from "./actions";
 import { TaskDetailPanel } from "./run-detail-panel";
 import { getBatchWorkerCountsAction } from "./session-actions";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
+import { GoNoGoBadge } from "@/components/go-no-go-badge";
 
 interface Task {
   uuid: string;
@@ -44,6 +45,14 @@ interface Task {
   dependsOn?: { uuid: string; title: string; status: string }[];
   acceptanceStatus?: string;
   acceptanceSummary?: { total: number; required: number; passed: number; failed: number; pending: number; requiredPassed: number; requiredFailed: number; requiredPending: number };
+  goNoGoCriteria?: {
+    metricName: string | null;
+    threshold: number | null;
+    operator: string | null;
+    actualValue: number | null;
+    required: boolean;
+    isEarlyStop: boolean;
+  }[];
 }
 
 interface BlockerInfo {
@@ -446,6 +455,9 @@ export function KanbanBoard({ projectUuid, initialTasks, currentUserUuid, select
                                         <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500" />
                                         {t("sessions.workerCount", { count: workerCounts[task.uuid] })}
                                       </Badge>
+                                    )}
+                                    {task.goNoGoCriteria && task.goNoGoCriteria.some(c => c.metricName) && (
+                                      <GoNoGoBadge criteria={task.goNoGoCriteria} size="sm" />
                                     )}
                                     {task.acceptanceSummary && task.acceptanceSummary.total > 0 && (() => {
                                       const s = task.acceptanceSummary;
