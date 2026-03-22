@@ -217,6 +217,7 @@ model ExperimentRun {
   computeBudgetHours      Float?
   computeUsedHours        Float?
   outcome                 String?
+  earlyStopTriggered      Boolean                  @default(false)
   createdByUuid           String // User or Agent UUID
   createdAt               DateTime              @default(now())
   updatedAt               DateTime              @updatedAt
