@@ -1,0 +1,108 @@
+<h2>Research Project Dashboard — Where do the new components go?</h2>
+<p class="subtitle">The dashboard currently shows: stats cards, recent activity, and task/idea/proposal counts. Where should Metrics Comparison Table and Compute Budget Tracker live?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Tabs Layout</h3>
+      <p>Add tabs to the dashboard: <strong>Overview</strong> (existing content) | <strong>Metrics</strong> (comparison table) | <strong>Budget</strong> (compute tracker)</p>
+      <div class="mockup" style="margin-top: 12px;">
+        <div class="mockup-header">Research Project Dashboard</div>
+        <div class="mockup-body" style="padding: 0;">
+          <div style="display:flex; gap:0; border-bottom: 2px solid #e2e8f0; padding: 0 16px;">
+            <div style="padding: 10px 20px; border-bottom: 2px solid #3b82f6; color: #3b82f6; font-weight: 600; margin-bottom: -2px;">Overview</div>
+            <div style="padding: 10px 20px; color: #64748b;">Metrics</div>
+            <div style="padding: 10px 20px; color: #64748b;">Budget</div>
+          </div>
+          <div style="padding: 16px;">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">
+              <div class="placeholder" style="height: 60px; font-size: 12px;">Research Questions<br><strong>12</strong></div>
+              <div class="placeholder" style="height: 60px; font-size: 12px;">Experiment Runs<br><strong>24</strong></div>
+              <div class="placeholder" style="height: 60px; font-size: 12px;">Designs<br><strong>3</strong></div>
+              <div class="placeholder" style="height: 60px; font-size: 12px;">Documents<br><strong>8</strong></div>
+            </div>
+            <div class="placeholder" style="height: 120px;">Recent Activity Feed</div>
+          </div>
+        </div>
+      </div>
+      <div class="pros-cons" style="margin-top: 12px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Clean separation</li><li>No page bloat</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Extra clicks to see metrics</li><li>Can't see everything at once</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Stacked Sections</h3>
+      <p>Add new sections below existing content: Stats → <strong>Compute Budget</strong> → <strong>Metrics Comparison</strong> → Activity</p>
+      <div class="mockup" style="margin-top: 12px;">
+        <div class="mockup-header">Research Project Dashboard</div>
+        <div class="mockup-body">
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">
+            <div class="placeholder" style="height: 50px; font-size: 11px;">Questions: 12</div>
+            <div class="placeholder" style="height: 50px; font-size: 11px;">Runs: 24</div>
+            <div class="placeholder" style="height: 50px; font-size: 11px;">Designs: 3</div>
+            <div class="placeholder" style="height: 50px; font-size: 11px;">Docs: 8</div>
+          </div>
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+            <div style="font-weight: 600; font-size: 13px; color: #166534;">Compute Budget</div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
+              <div style="flex: 1; background: #dcfce7; border-radius: 4px; height: 20px; position: relative;">
+                <div style="background: #22c55e; height: 100%; width: 65%; border-radius: 4px;"></div>
+              </div>
+              <span style="font-size: 12px; color: #166534;">156 / 240 GPU hrs</span>
+            </div>
+          </div>
+          <div class="placeholder" style="height: 80px; font-size: 12px; margin-bottom: 12px;">Metrics Comparison Table<br>(grouped by design, with baseline)</div>
+          <div class="placeholder" style="height: 60px; font-size: 12px;">Recent Activity</div>
+        </div>
+      </div>
+      <div class="pros-cons" style="margin-top: 12px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Everything visible on scroll</li><li>Natural top-to-bottom flow</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Long page</li><li>Metrics table can be very wide</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Hybrid: Budget inline + Metrics as tab</h3>
+      <p>Compute Budget is compact → inline on dashboard. Metrics table is complex → gets its own tab.</p>
+      <div class="mockup" style="margin-top: 12px;">
+        <div class="mockup-header">Research Project Dashboard</div>
+        <div class="mockup-body" style="padding: 0;">
+          <div style="display:flex; gap:0; border-bottom: 2px solid #e2e8f0; padding: 0 16px;">
+            <div style="padding: 10px 20px; border-bottom: 2px solid #3b82f6; color: #3b82f6; font-weight: 600; margin-bottom: -2px;">Overview</div>
+            <div style="padding: 10px 20px; color: #64748b;">Metrics Comparison</div>
+          </div>
+          <div style="padding: 16px;">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">
+              <div class="placeholder" style="height: 50px; font-size: 11px;">Questions: 12</div>
+              <div class="placeholder" style="height: 50px; font-size: 11px;">Runs: 24</div>
+              <div class="placeholder" style="height: 50px; font-size: 11px;">Designs: 3</div>
+              <div class="placeholder" style="height: 50px; font-size: 11px;">Docs: 8</div>
+            </div>
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+              <div style="font-weight: 600; font-size: 13px; color: #166534;">Compute Budget</div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
+                <div style="flex: 1; background: #dcfce7; border-radius: 4px; height: 20px; position: relative;">
+                  <div style="background: #22c55e; height: 100%; width: 65%; border-radius: 4px;"></div>
+                </div>
+                <span style="font-size: 12px; color: #166534;">156 / 240 GPU hrs</span>
+              </div>
+            </div>
+            <div class="placeholder" style="height: 80px;">Recent Activity</div>
+          </div>
+        </div>
+      </div>
+      <div class="pros-cons" style="margin-top: 12px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Budget always visible (compact)</li><li>Metrics gets space it needs</li><li>Best of both worlds</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Slightly more complex navigation</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

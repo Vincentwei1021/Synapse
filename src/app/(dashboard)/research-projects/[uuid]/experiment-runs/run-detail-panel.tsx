@@ -116,10 +116,10 @@ interface Task {
   } | null;
   dependsOn?: DependencyTask[];
   dependedBy?: DependencyTask[];
-  experimentConfig: Record<string, unknown> | null;
-  experimentResults: Record<string, unknown> | null;
-  baselineRunUuid: string | null;
-  outcome: string | null;
+  experimentConfig?: Record<string, unknown> | null;
+  experimentResults?: Record<string, unknown> | null;
+  baselineRunUuid?: string | null;
+  outcome?: string | null;
 }
 
 interface TaskDetailPanelProps {

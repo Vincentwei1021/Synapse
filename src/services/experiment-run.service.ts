@@ -1297,7 +1297,7 @@ export async function getProjectRunDependencies(
       status: t.status,
       priority: t.priority,
       experimentDesignUuid: t.experimentDesignUuid ?? null,
-      goNoGoCriteria: t.acceptanceCriteriaItems.map((c) => ({
+      goNoGoCriteria: (t.acceptanceCriteriaItems ?? []).map((c) => ({
         metricName: c.metricName,
         threshold: c.threshold,
         operator: c.operator,
