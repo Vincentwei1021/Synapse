@@ -171,7 +171,7 @@ export async function evaluateCriteria(
       await prisma.notification.create({
         data: {
           companyUuid,
-          projectUuid: run.researchProjectUuid,
+          researchProjectUuid: run.researchProjectUuid,
           recipientType: run.assigneeType || "agent",
           recipientUuid: run.assigneeUuid,
           entityType: "experiment_run",
