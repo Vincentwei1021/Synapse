@@ -19,6 +19,7 @@ import dagre from "dagre";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { GoNoGoBadge } from "@/components/go-no-go-badge";
 import { Loader2 } from "lucide-react";
 import { getProjectDependenciesAction } from "./actions";
 import { addRunDependencyAction } from "./[runUuid]/dependency-actions";
@@ -70,6 +71,14 @@ interface TaskNodeData {
   status: string;
   priority: string;
   experimentDesignUuid: string | null;
+  goNoGoCriteria?: {
+    metricName: string | null;
+    threshold: number | null;
+    operator: string | null;
+    actualValue: number | null;
+    required: boolean;
+    isEarlyStop: boolean;
+  }[];
   [key: string]: unknown;
 }
 
@@ -91,6 +100,9 @@ function TaskNode({ data }: NodeProps<Node<TaskNodeData>>) {
           <div className={`h-1.5 w-1.5 rounded-full ${priorityDotColors[data.priority] || ""}`} />
           <span className="text-[10px] text-[#9A9A9A]">{t(priorityI18nKeys[data.priority] || data.priority)}</span>
         </div>
+        {data.goNoGoCriteria && data.goNoGoCriteria.some(c => c.metricName) && (
+          <GoNoGoBadge criteria={data.goNoGoCriteria} size="sm" />
+        )}
       </div>
       <p className="text-xs font-medium text-[#2C2C2C] leading-snug line-clamp-2">
         {data.title}
@@ -187,7 +199,7 @@ export function DagView({ projectUuid, onTaskSelect, refreshKey }: DagViewProps)
       id: n.uuid,
       type: "taskNode",
       position: { x: 0, y: 0 },
-      data: { title: n.title, status: n.status, priority: n.priority, experimentDesignUuid: n.experimentDesignUuid },
+      data: { title: n.title, status: n.status, priority: n.priority, experimentDesignUuid: n.experimentDesignUuid, goNoGoCriteria: n.goNoGoCriteria },
     }));
 
     // edges: from = runUuid (depends on), to = dependsOnUuid

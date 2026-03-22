@@ -1244,13 +1244,43 @@ export async function getProjectRunDependencies(
   companyUuid: string,
   researchProjectUuid: string
 ): Promise<{
-  nodes: Array<{ uuid: string; title: string; status: string; priority: string; experimentDesignUuid: string | null }>;
+  nodes: Array<{
+    uuid: string;
+    title: string;
+    status: string;
+    priority: string;
+    experimentDesignUuid: string | null;
+    goNoGoCriteria: Array<{
+      metricName: string | null;
+      threshold: number | null;
+      operator: string | null;
+      actualValue: number | null;
+      required: boolean;
+      isEarlyStop: boolean;
+    }>;
+  }>;
   edges: Array<{ from: string; to: string }>;
 }> {
   const [tasks, dependencies] = await Promise.all([
     prisma.experimentRun.findMany({
       where: { companyUuid, researchProjectUuid },
-      select: { uuid: true, title: true, status: true, priority: true, experimentDesignUuid: true },
+      select: {
+        uuid: true,
+        title: true,
+        status: true,
+        priority: true,
+        experimentDesignUuid: true,
+        acceptanceCriteriaItems: {
+          select: {
+            metricName: true,
+            threshold: true,
+            operator: true,
+            actualValue: true,
+            required: true,
+            isEarlyStop: true,
+          },
+        },
+      },
     }),
     prisma.runDependency.findMany({
       where: {
@@ -1267,6 +1297,14 @@ export async function getProjectRunDependencies(
       status: t.status,
       priority: t.priority,
       experimentDesignUuid: t.experimentDesignUuid ?? null,
+      goNoGoCriteria: t.acceptanceCriteriaItems.map((c) => ({
+        metricName: c.metricName,
+        threshold: c.threshold,
+        operator: c.operator,
+        actualValue: c.actualValue,
+        required: c.required,
+        isEarlyStop: c.isEarlyStop,
+      })),
     })),
     edges: dependencies.map((d) => ({
       from: d.runUuid,
