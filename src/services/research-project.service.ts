@@ -2,6 +2,7 @@
 // ResearchProject Service Layer (ARCHITECTURE.md §3.1 Service Layer)
 // UUID-Based Architecture: All operations use UUIDs
 
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export interface ResearchProjectListParams {
@@ -14,12 +15,18 @@ export interface ResearchProjectCreateParams {
   companyUuid: string;
   name: string;
   description?: string | null;
+  goal?: string | null;
+  datasets?: string[] | null;
+  evaluationMethods?: string[] | null;
   groupUuid?: string | null;
 }
 
 export interface ResearchProjectUpdateParams {
   name?: string;
   description?: string | null;
+  goal?: string | null;
+  datasets?: string[] | null;
+  evaluationMethods?: string[] | null;
 }
 
 // List projects query
@@ -34,6 +41,12 @@ export async function listResearchProjects({ companyUuid, skip, take }: Research
         uuid: true,
         name: true,
         description: true,
+        goal: true,
+        datasets: true,
+        evaluationMethods: true,
+        latestSynthesisAt: true,
+        latestSynthesisIdeaCount: true,
+        latestSynthesisSummary: true,
         groupUuid: true,
         createdAt: true,
         updatedAt: true,
@@ -61,6 +74,12 @@ export async function getResearchProject(companyUuid: string, uuid: string) {
       uuid: true,
       name: true,
       description: true,
+      goal: true,
+      datasets: true,
+      evaluationMethods: true,
+      latestSynthesisAt: true,
+      latestSynthesisIdeaCount: true,
+      latestSynthesisSummary: true,
       createdAt: true,
       updatedAt: true,
       _count: {
@@ -89,7 +108,17 @@ export async function researchProjectExists(companyUuid: string, researchProject
 export async function getResearchProjectByUuid(companyUuid: string, uuid: string) {
   return prisma.researchProject.findFirst({
     where: { uuid, companyUuid },
-    select: { uuid: true, name: true },
+    select: {
+      uuid: true,
+      name: true,
+      description: true,
+      goal: true,
+      datasets: true,
+      evaluationMethods: true,
+      latestSynthesisAt: true,
+      latestSynthesisIdeaCount: true,
+      latestSynthesisSummary: true,
+    },
   });
 }
 
@@ -106,13 +135,32 @@ export async function getResearchProjectUuidsByGroup(companyUuid: string, groupU
 }
 
 // Create project
-export async function createResearchProject({ companyUuid, name, description, groupUuid }: ResearchProjectCreateParams) {
+export async function createResearchProject({
+  companyUuid,
+  name,
+  description,
+  goal,
+  datasets,
+  evaluationMethods,
+  groupUuid,
+}: ResearchProjectCreateParams) {
   return prisma.researchProject.create({
-    data: { companyUuid, name, description, groupUuid: groupUuid ?? null },
+    data: {
+      companyUuid,
+      name,
+      description,
+      goal: goal ?? null,
+      datasets: datasets ?? [],
+      evaluationMethods: evaluationMethods ?? [],
+      groupUuid: groupUuid ?? null,
+    },
     select: {
       uuid: true,
       name: true,
       description: true,
+      goal: true,
+      datasets: true,
+      evaluationMethods: true,
       groupUuid: true,
       createdAt: true,
       updatedAt: true,
@@ -122,13 +170,30 @@ export async function createResearchProject({ companyUuid, name, description, gr
 
 // Update project
 export async function updateResearchProject(uuid: string, data: ResearchProjectUpdateParams) {
+  const updateData: Record<string, unknown> = { ...data };
+
+  if (data.datasets !== undefined) {
+    updateData.datasets = data.datasets === null ? Prisma.JsonNull : data.datasets;
+  }
+
+  if (data.evaluationMethods !== undefined) {
+    updateData.evaluationMethods =
+      data.evaluationMethods === null ? Prisma.JsonNull : data.evaluationMethods;
+  }
+
   return prisma.researchProject.update({
     where: { uuid },
-    data,
+    data: updateData,
     select: {
       uuid: true,
       name: true,
       description: true,
+      goal: true,
+      datasets: true,
+      evaluationMethods: true,
+      latestSynthesisAt: true,
+      latestSynthesisIdeaCount: true,
+      latestSynthesisSummary: true,
       createdAt: true,
       updatedAt: true,
     },

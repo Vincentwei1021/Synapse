@@ -30,6 +30,9 @@ export interface ResearchQuestionCreateParams {
   content?: string | null;
   attachments?: unknown;
   createdByUuid: string;
+  sourceType?: string;
+  sourceLabel?: string | null;
+  generatedByAgentUuid?: string | null;
 }
 
 export interface ResearchQuestionClaimParams {
@@ -46,6 +49,13 @@ export interface ResearchQuestionResponse {
   title: string;
   content: string | null;
   attachments: unknown;
+  sourceType: string;
+  sourceLabel: string | null;
+  generatedByAgentUuid: string | null;
+  reviewStatus: string;
+  reviewedByUuid: string | null;
+  reviewNote: string | null;
+  reviewedAt: string | null;
   status: string;
   assignee: {
     type: string;
@@ -101,6 +111,13 @@ async function formatResearchQuestionResponse(
     title: string;
     content: string | null;
     attachments: unknown;
+    sourceType: string;
+    sourceLabel: string | null;
+    generatedByAgentUuid: string | null;
+    reviewStatus: string;
+    reviewedByUuid: string | null;
+    reviewNote: string | null;
+    reviewedAt: Date | null;
     status: string;
     elaborationStatus?: string | null;
     elaborationDepth?: string | null;
@@ -124,6 +141,13 @@ async function formatResearchQuestionResponse(
     title: idea.title,
     content: idea.content,
     attachments: idea.attachments,
+    sourceType: idea.sourceType,
+    sourceLabel: idea.sourceLabel,
+    generatedByAgentUuid: idea.generatedByAgentUuid,
+    reviewStatus: idea.reviewStatus,
+    reviewedByUuid: idea.reviewedByUuid,
+    reviewNote: idea.reviewNote,
+    reviewedAt: idea.reviewedAt?.toISOString() ?? null,
     status: normalizeResearchQuestionStatus(idea.status),
     assignee,
     ...(idea.researchProject && { project: idea.researchProject }),
@@ -177,6 +201,13 @@ export async function listResearchQuestions({
         title: true,
         content: true,
         attachments: true,
+        sourceType: true,
+        sourceLabel: true,
+        generatedByAgentUuid: true,
+        reviewStatus: true,
+        reviewedByUuid: true,
+        reviewNote: true,
+        reviewedAt: true,
         status: true,
         elaborationStatus: true,
         elaborationDepth: true,
@@ -228,6 +259,10 @@ export async function createResearchQuestion(params: ResearchQuestionCreateParam
       title: params.title,
       content: params.content,
       attachments: params.attachments || undefined,
+      sourceType: params.sourceType ?? "human",
+      sourceLabel: params.sourceLabel ?? null,
+      generatedByAgentUuid: params.generatedByAgentUuid ?? null,
+      reviewStatus: "pending",
       status: "open",
       createdByUuid: params.createdByUuid,
     },
@@ -236,6 +271,13 @@ export async function createResearchQuestion(params: ResearchQuestionCreateParam
       title: true,
       content: true,
       attachments: true,
+      sourceType: true,
+      sourceLabel: true,
+      generatedByAgentUuid: true,
+      reviewStatus: true,
+      reviewedByUuid: true,
+      reviewNote: true,
+      reviewedAt: true,
       status: true,
       elaborationStatus: true,
       elaborationDepth: true,
@@ -310,6 +352,12 @@ export async function claimResearchQuestion({
   if (existing.assigneeUuid) {
     throw new AlreadyClaimedError("Idea");
   }
+  if (existing.reviewStatus === "rejected") {
+    throw new Error("Cannot claim a rejected ResearchQuestion");
+  }
+  if (existing.reviewStatus !== "accepted") {
+    throw new Error("ResearchQuestion must be accepted before it can be claimed");
+  }
   if (existing.status === "completed" || existing.status === "closed") {
     throw new Error("Cannot claim a completed or closed ResearchQuestion");
   }
@@ -345,6 +393,12 @@ export async function assignResearchQuestion({
     where: { uuid: researchQuestionUuid, companyUuid },
   });
   if (!existing) throw new Error("ResearchQuestion not found");
+  if (existing.reviewStatus === "rejected") {
+    throw new Error("Cannot assign a rejected ResearchQuestion");
+  }
+  if (existing.reviewStatus !== "accepted") {
+    throw new Error("ResearchQuestion must be accepted before it can be assigned");
+  }
   if (existing.status === "completed" || existing.status === "closed") {
     throw new Error("Cannot assign a completed or closed ResearchQuestion");
   }
@@ -396,6 +450,42 @@ export async function releaseResearchQuestion(uuid: string): Promise<ResearchQue
   });
 
   eventBus.emitChange({ companyUuid: idea.companyUuid, researchProjectUuid: idea.researchProject!.uuid, entityType: "research_question", entityUuid: idea.uuid, action: "updated" });
+
+  return formatResearchQuestionResponse(idea);
+}
+
+export async function reviewResearchQuestion(
+  companyUuid: string,
+  researchQuestionUuid: string,
+  reviewStatus: "accepted" | "rejected",
+  reviewedByUuid: string,
+  reviewNote?: string | null
+): Promise<ResearchQuestionResponse> {
+  const idea = await prisma.researchQuestion.update({
+    where: { uuid: researchQuestionUuid },
+    data: {
+      reviewStatus,
+      reviewedByUuid,
+      reviewNote: reviewNote ?? null,
+      reviewedAt: new Date(),
+      status: reviewStatus === "rejected" ? "closed" : "open",
+      assigneeType: reviewStatus === "rejected" ? null : undefined,
+      assigneeUuid: reviewStatus === "rejected" ? null : undefined,
+      assignedAt: reviewStatus === "rejected" ? null : undefined,
+      assignedByUuid: reviewStatus === "rejected" ? null : undefined,
+    },
+    include: {
+      researchProject: { select: { uuid: true, name: true } },
+    },
+  });
+
+  eventBus.emitChange({
+    companyUuid,
+    researchProjectUuid: idea.researchProject!.uuid,
+    entityType: "research_question",
+    entityUuid: idea.uuid,
+    action: "updated",
+  });
 
   return formatResearchQuestionResponse(idea);
 }

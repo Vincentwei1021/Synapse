@@ -223,6 +223,71 @@ export default async function DashboardPage({ params }: PageProps) {
       <DashboardTabs
         overviewContent={
           <div className="flex flex-col gap-7">
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+              <Card className="rounded-2xl border-0 bg-white p-5 shadow-none">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A39787]">Research Brief</p>
+                    <h2 className="mt-2 text-lg font-semibold text-[#2C2C2C]">Execution context for agents</h2>
+                  </div>
+                  <span className="rounded-full bg-[#F5F2EC] px-3 py-1 text-[11px] text-[#6B6B6B]">
+                    {(project.datasets as string[] | null)?.length ?? 0} datasets · {(project.evaluationMethods as string[] | null)?.length ?? 0} eval methods
+                  </span>
+                </div>
+                <div className="mt-4 grid gap-4 md:grid-cols-3">
+                  <div className="rounded-[18px] bg-[#FBF8F3] p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#A39787]">Goal</p>
+                    <p className="mt-2 text-sm leading-6 text-[#2C2C2C]">
+                      {project.goal || "No explicit research goal recorded yet."}
+                    </p>
+                  </div>
+                  <div className="rounded-[18px] bg-[#FBF8F3] p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#A39787]">Datasets</p>
+                    <div className="mt-2 space-y-1.5 text-sm leading-6 text-[#2C2C2C]">
+                      {Array.isArray(project.datasets) && project.datasets.length > 0 ? (
+                        (project.datasets as string[]).map((dataset) => <p key={dataset}>• {dataset}</p>)
+                      ) : (
+                        <p>No datasets listed yet.</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="rounded-[18px] bg-[#FBF8F3] p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#A39787]">Evaluation</p>
+                    <div className="mt-2 space-y-1.5 text-sm leading-6 text-[#2C2C2C]">
+                      {Array.isArray(project.evaluationMethods) && project.evaluationMethods.length > 0 ? (
+                        (project.evaluationMethods as string[]).map((method) => <p key={method}>• {method}</p>)
+                      ) : (
+                        <p>No evaluation method recorded yet.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="rounded-2xl border-0 bg-white p-5 shadow-none">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A39787]">Rolling Synthesis</p>
+                <h2 className="mt-2 text-lg font-semibold text-[#2C2C2C]">Cross-idea analysis</h2>
+                <div className="mt-4 space-y-3">
+                  <div className="rounded-[18px] bg-[#FBF8F3] p-4">
+                    <p className="text-xs text-[#8E8478]">Last updated</p>
+                    <p className="mt-1 text-sm text-[#2C2C2C]">
+                      {project.latestSynthesisAt ? formatRelativeTime(project.latestSynthesisAt.toISOString()) : "No synthesis has been generated yet."}
+                    </p>
+                  </div>
+                  <div className="rounded-[18px] bg-[#FBF8F3] p-4">
+                    <p className="text-xs text-[#8E8478]">Covered ideas</p>
+                    <p className="mt-1 text-sm text-[#2C2C2C]">{project.latestSynthesisIdeaCount ?? 0}</p>
+                  </div>
+                  <div className="rounded-[18px] bg-[#FBF8F3] p-4">
+                    <p className="text-xs text-[#8E8478]">Latest summary</p>
+                    <p className="mt-1 text-sm leading-6 text-[#2C2C2C]">
+                      {project.latestSynthesisSummary || "Once approved experiment runs finish, Synapse will maintain a rolling synthesis here."}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
             {/* Quick Actions Row */}
             <div className="flex flex-wrap gap-2.5">
               <Link href={`/research-projects/${projectUuid}/research-questions`}>

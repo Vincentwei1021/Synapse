@@ -35,6 +35,10 @@ model Company {
   activities        Activity[]
   comments          Comment[]
   sessions          AgentSession[]
+  computePools      ComputePool[]
+  computeNodes      ComputeNode[]
+  computeGpus       ComputeGpu[]
+  runGpuReservations RunGpuReservation[]
 }
 
 // User (human, OIDC login)
@@ -112,15 +116,21 @@ model ProjectGroup {
 
 // Research Project
 model ResearchProject {
-  id          Int      @id @default(autoincrement())
-  uuid        String   @unique @default(uuid())
-  companyUuid String
-  company     Company  @relation(fields: [companyUuid], references: [uuid])
-  name        String
-  description String?
-  groupUuid   String? // nullable FK -> ProjectGroup.uuid
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                   Int      @id @default(autoincrement())
+  uuid                 String   @unique @default(uuid())
+  companyUuid          String
+  company              Company  @relation(fields: [companyUuid], references: [uuid])
+  name                 String
+  description          String?
+  goal                 String?
+  datasets             Json?
+  evaluationMethods    Json?
+  latestSynthesisAt    DateTime?
+  latestSynthesisIdeaCount Int?
+  latestSynthesisSummary String?
+  groupUuid            String? // nullable FK -> ProjectGroup.uuid
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   researchQuestions ResearchQuestion[]
   documents         Document[]
@@ -144,6 +154,13 @@ model ResearchQuestion {
   title               String
   content             String? // Text content
   attachments         Json? // Attachment list [{type, url, name}]
+  sourceType          String          @default("human") // human | agent
+  sourceLabel         String?
+  generatedByAgentUuid String?
+  reviewStatus        String          @default("pending") // pending | accepted | rejected
+  reviewedByUuid      String?
+  reviewNote          String?
+  reviewedAt          DateTime?
   // Status and assignment
   status              String          @default("open") // open | elaborating | proposal_created | completed | closed
   assigneeType        String? // user | agent
@@ -166,6 +183,7 @@ model ResearchQuestion {
   @@index([researchProjectUuid])
   @@index([status])
   @@index([assigneeUuid])
+  @@index([reviewStatus])
   @@map("Idea")
 }
 
@@ -228,6 +246,7 @@ model ExperimentRun {
   sessionCheckins         SessionRunCheckin[]
   // Structured acceptance criteria (independent table)
   acceptanceCriteriaItems AcceptanceCriterion[]
+  gpuReservations         RunGpuReservation[]
 
   @@index([companyUuid])
   @@index([researchProjectUuid])
@@ -385,6 +404,93 @@ model AgentSession {
   @@index([companyUuid])
   @@index([agentUuid])
   @@index([status])
+}
+
+model ComputePool {
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  companyUuid String
+  company     Company  @relation(fields: [companyUuid], references: [uuid])
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  nodes ComputeNode[]
+
+  @@index([companyUuid])
+}
+
+model ComputeNode {
+  id             Int      @id @default(autoincrement())
+  uuid           String   @unique @default(uuid())
+  companyUuid    String
+  company        Company  @relation(fields: [companyUuid], references: [uuid])
+  poolUuid       String
+  pool           ComputePool @relation(fields: [poolUuid], references: [uuid], onDelete: Cascade)
+  label          String
+  ec2InstanceId  String?
+  instanceType   String?
+  region         String?
+  lifecycle      String   @default("idle") // idle | offline | maintenance
+  sshHost        String?
+  sshUser        String?
+  sshPort        Int?
+  sshKeyPath     String?
+  ssmTarget      String?
+  notes          String?
+  lastReportedAt DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  gpus ComputeGpu[]
+
+  @@index([companyUuid])
+  @@index([poolUuid, lifecycle])
+  @@unique([companyUuid, ec2InstanceId])
+}
+
+model ComputeGpu {
+  id                 Int      @id @default(autoincrement())
+  uuid               String   @unique @default(uuid())
+  companyUuid        String
+  company            Company  @relation(fields: [companyUuid], references: [uuid])
+  nodeUuid           String
+  node               ComputeNode @relation(fields: [nodeUuid], references: [uuid], onDelete: Cascade)
+  slotIndex          Int
+  model              String
+  memoryGb           Int?
+  lifecycle          String   @default("available") // available | offline | maintenance | unhealthy
+  utilizationPercent Int?
+  memoryUsedGb       Float?
+  temperatureC       Int?
+  notes              String?
+  lastReportedAt     DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  reservations RunGpuReservation[]
+
+  @@index([companyUuid])
+  @@index([nodeUuid, lifecycle])
+  @@unique([nodeUuid, slotIndex])
+}
+
+model RunGpuReservation {
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  companyUuid String
+  company     Company  @relation(fields: [companyUuid], references: [uuid])
+  runUuid     String
+  run         ExperimentRun @relation(fields: [runUuid], references: [uuid], onDelete: Cascade)
+  gpuUuid     String
+  gpu         ComputeGpu @relation(fields: [gpuUuid], references: [uuid], onDelete: Cascade)
+  attachedAt  DateTime @default(now())
+  releasedAt  DateTime?
+
+  @@index([companyUuid])
+  @@index([runUuid, releasedAt])
+  @@index([gpuUuid, releasedAt])
 }
 
 // Session-Run checkin relation (many-to-many)

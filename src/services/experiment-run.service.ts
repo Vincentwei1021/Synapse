@@ -2,6 +2,7 @@
 // ExperimentRun Service Layer (ARCHITECTURE.md §3.1 Service Layer)
 // UUID-Based Architecture: All operations use UUIDs
 
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { formatAssigneeComplete, formatCreatedBy, batchGetActorNames, batchFormatCreatedBy } from "@/lib/uuid-resolver";
 import { eventBus } from "@/lib/event-bus";
@@ -9,6 +10,8 @@ import { AlreadyClaimedError, NotClaimedError, isPrismaNotFound } from "@/lib/er
 import { batchCommentCounts } from "@/services/comment.service";
 import * as mentionService from "@/services/mention.service";
 import * as activityService from "@/services/activity.service";
+import { releaseGpuReservationsForRun } from "@/services/compute.service";
+import { refreshProjectSynthesis } from "@/services/project-synthesis.service";
 
 // ===== Type Definitions =====
 
@@ -49,6 +52,8 @@ export interface ExperimentRunUpdateParams {
   priority?: string;
   computeBudgetHours?: number | null;
   acceptanceCriteria?: string | null;  // acceptance criteria
+  outcome?: string | null;
+  experimentResults?: unknown;
 }
 
 // Dependency summary info
@@ -95,6 +100,8 @@ export interface ExperimentRunResponse {
   priority: string;
   computeBudgetHours: number | null;
   acceptanceCriteria: string | null;  // acceptance criteria (Markdown, legacy)
+  outcome: string | null;
+  experimentResults: unknown;
   acceptanceCriteriaItems: AcceptanceCriterionResponse[];
   acceptanceStatus: string;  // not_started | in_progress | passed | failed
   acceptanceSummary: AcceptanceSummary;
@@ -199,6 +206,8 @@ async function formatExperimentRunResponse(
     priority: string;
     computeBudgetHours: number | null;
     acceptanceCriteria: string | null;
+    outcome?: string | null;
+    experimentResults?: unknown;
     assigneeType: string | null;
     assigneeUuid: string | null;
     assignedAt: Date | null;
@@ -244,6 +253,8 @@ async function formatExperimentRunResponse(
     priority: task.priority,
     computeBudgetHours: task.computeBudgetHours,
     acceptanceCriteria: task.acceptanceCriteria,
+    outcome: task.outcome ?? null,
+    experimentResults: task.experimentResults ?? null,
     acceptanceCriteriaItems: criteriaItems,
     acceptanceStatus,
     acceptanceSummary,
@@ -268,6 +279,8 @@ type RawExperimentRunForBatch = {
   priority: string;
   computeBudgetHours: number | null;
   acceptanceCriteria: string | null;
+  outcome?: string | null;
+  experimentResults?: unknown;
   assigneeType: string | null;
   assigneeUuid: string | null;
   assignedAt: Date | null;
@@ -358,6 +371,8 @@ async function formatExperimentRunResponsesBatch(
       priority: task.priority,
       computeBudgetHours: task.computeBudgetHours,
       acceptanceCriteria: task.acceptanceCriteria,
+      outcome: task.outcome ?? null,
+      experimentResults: task.experimentResults ?? null,
       acceptanceCriteriaItems: criteriaItems,
       acceptanceStatus,
       acceptanceSummary,
@@ -426,6 +441,8 @@ export async function listExperimentRuns({
         priority: true,
         computeBudgetHours: true,
         acceptanceCriteria: true,
+        outcome: true,
+        experimentResults: true,
         assigneeType: true,
         assigneeUuid: true,
         assignedAt: true,
@@ -493,6 +510,7 @@ export async function createExperimentRun(params: ExperimentRunCreateParams): Pr
       priority: params.priority || "medium",
       computeBudgetHours: params.computeBudgetHours,
       acceptanceCriteria: params.acceptanceCriteria,
+      outcome: null,
       experimentDesignUuid: params.experimentDesignUuid,
       createdByUuid: params.createdByUuid,
     },
@@ -504,6 +522,8 @@ export async function createExperimentRun(params: ExperimentRunCreateParams): Pr
       priority: true,
       computeBudgetHours: true,
       acceptanceCriteria: true,
+      outcome: true,
+      experimentResults: true,
       assigneeType: true,
       assigneeUuid: true,
       assignedAt: true,
@@ -535,6 +555,14 @@ export async function updateExperimentRun(
 
   // If moving FROM to_verify to any status EXCEPT done, reset acceptance criteria
   // Wrapped in transaction to prevent TOCTOU race condition
+  const updateData: Record<string, unknown> = { ...data };
+  if (data.experimentResults !== undefined) {
+    updateData.experimentResults =
+      data.experimentResults === null
+        ? Prisma.JsonNull
+        : (data.experimentResults as Prisma.InputJsonValue);
+  }
+
   const task = await prisma.$transaction(async (tx) => {
     if (data.status && data.status !== "done") {
       const current = await tx.experimentRun.findUnique({ where: { uuid }, select: { status: true } });
@@ -559,7 +587,7 @@ export async function updateExperimentRun(
 
     return tx.experimentRun.update({
       where: { uuid },
-      data,
+      data: updateData,
       include: {
         researchProject: { select: { uuid: true, name: true } },
       },
@@ -567,6 +595,15 @@ export async function updateExperimentRun(
   });
 
   eventBus.emitChange({ companyUuid: task.companyUuid, researchProjectUuid: task.researchProject.uuid, entityType: "experiment_run", entityUuid: task.uuid, action: "updated" });
+
+  if (task.status === "done" || task.status === "closed") {
+    await releaseGpuReservationsForRun(task.companyUuid, task.uuid);
+    await refreshProjectSynthesis(
+      task.companyUuid,
+      task.researchProject.uuid,
+      actorContext?.actorUuid ?? task.createdByUuid,
+    );
+  }
 
   // Process new @mentions in description (append-only: only new mentions)
   if (data.description !== undefined && actorContext && data.description) {
@@ -584,6 +621,29 @@ export async function updateExperimentRun(
   }
 
   return formatExperimentRunResponse(task);
+}
+
+export async function submitExperimentRunResults(
+  companyUuid: string,
+  runUuid: string,
+  input: {
+    outcome?: string | null;
+    experimentResults?: unknown;
+  },
+  actorContext?: { actorType: string; actorUuid: string }
+): Promise<ExperimentRunResponse> {
+  const updated = await updateExperimentRun(
+    runUuid,
+    {
+      status: "to_verify",
+      outcome: input.outcome ?? null,
+      experimentResults: input.experimentResults ?? null,
+    },
+    actorContext,
+  );
+
+  await releaseGpuReservationsForRun(companyUuid, runUuid);
+  return updated;
 }
 
 // Claim ExperimentRun (atomic: only succeeds if status is "open")
@@ -677,6 +737,7 @@ export async function createExperimentRunsFromDesign(
         priority: task.priority || "medium",
         computeBudgetHours: task.computeBudgetHours || null,
         acceptanceCriteria: task.acceptanceCriteria || null,
+        outcome: null,
         experimentDesignUuid,
         createdByUuid,
       },
@@ -688,6 +749,8 @@ export async function createExperimentRunsFromDesign(
         priority: true,
         computeBudgetHours: true,
         acceptanceCriteria: true,
+        outcome: true,
+        experimentResults: true,
         assigneeType: true,
         assigneeUuid: true,
         assignedAt: true,
@@ -1124,6 +1187,8 @@ export async function getUnblockedExperimentRuns({
         priority: true,
         computeBudgetHours: true,
         acceptanceCriteria: true,
+        outcome: true,
+        experimentResults: true,
         assigneeType: true,
         assigneeUuid: true,
         assignedAt: true,

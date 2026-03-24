@@ -16,6 +16,7 @@ import {
   CheckSquare,
   Activity,
   FolderKanban,
+  Cpu,
   Settings,
   LogOut,
   Menu,
@@ -72,6 +73,7 @@ export default function DashboardLayout({
   const isGlobalPage =
     pathname === "/research-projects" ||
     pathname === "/research-projects/new" ||
+    pathname === "/compute" ||
     pathname === "/settings" ||
     pathname.startsWith("/project-groups");
   const isProjectContext = currentProjectUuid && !isGlobalPage;
@@ -168,16 +170,17 @@ export default function DashboardLayout({
   // Project navigation items - build URLs using UUIDs
   const getProjectNavItems = (projectUuid: string) => [
     { href: `/research-projects/${projectUuid}/dashboard`, label: t("nav.overview"), icon: LayoutDashboard },
-    { href: `/research-projects/${projectUuid}/research-questions`, label: t("nav.ideas"), icon: Lightbulb },
+    { href: `/research-projects/${projectUuid}/research-questions`, label: t("nav.researchQuestions"), icon: Lightbulb },
     { href: `/research-projects/${projectUuid}/documents`, label: t("nav.documents"), icon: FileText },
-    { href: `/research-projects/${projectUuid}/experiment-designs`, label: t("nav.proposals"), icon: Tags },
-    { href: `/research-projects/${projectUuid}/experiment-runs`, label: t("nav.tasks"), icon: CheckSquare },
+    { href: `/research-projects/${projectUuid}/experiment-designs`, label: t("nav.experimentDesigns"), icon: Tags },
+    { href: `/research-projects/${projectUuid}/experiment-runs`, label: t("nav.experimentRuns"), icon: CheckSquare },
     { href: `/research-projects/${projectUuid}/activity`, label: t("nav.activity"), icon: Activity },
   ];
 
   // Global navigation items
   const globalNavItems = [
-    { href: "/research-projects", label: t("nav.projects"), icon: FolderKanban },
+    { href: "/research-projects", label: t("nav.researchProjects"), icon: FolderKanban },
+    { href: "/compute", label: "Compute", icon: Cpu },
     { href: "/settings", label: t("nav.settings"), icon: Settings },
   ];
 
@@ -232,7 +235,7 @@ export default function DashboardLayout({
                   className={`w-full justify-start gap-2.5 text-muted-foreground hover:text-foreground ${navTextSize} ${navItemPy}`}
                 >
                   <ArrowLeft className={mobile ? "h-4 w-4" : "h-3 w-3"} />
-                  {t("nav.backToProjects")}
+                  {t("nav.backToResearchProjects")}
                 </Button>
               </Link>
 
@@ -280,7 +283,7 @@ export default function DashboardLayout({
                           className={`w-full justify-start gap-2 px-3 py-2 ${navTextSize} text-primary`}
                         >
                           <Plus className="h-3 w-3" />
-                          {t("nav.newProject")}
+                          {t("nav.newResearchProject")}
                         </Button>
                       </Link>
                     </div>

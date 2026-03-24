@@ -7,6 +7,7 @@ import { registerResearchLeadTools } from "./tools/research-lead";
 import { registerResearcherTools } from "./tools/researcher";
 import { registerPiTools } from "./tools/pi";
 import { registerSessionTools } from "./tools/session";
+import { registerComputeTools } from "./tools/compute";
 import type { AgentAuthContext } from "@/types/auth";
 
 // MCP Server factory function
@@ -21,6 +22,7 @@ export function createMcpServer(auth: AgentAuthContext): McpServer {
 
   // Register Session tools (available to all Agents)
   registerSessionTools(server, auth);
+  registerComputeTools(server, auth);
 
   // Register role-specific tools based on agent roles
   const roles = auth.roles || [];

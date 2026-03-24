@@ -37,6 +37,9 @@ export default function NewProjectPage() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    goal: "",
+    datasets: "",
+    evaluationMethods: "",
   });
   const [ideas, setIdeas] = useState<string[]>([""]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -132,6 +135,15 @@ export default function NewProjectPage() {
       const result = await createResearchProjectAction({
         name: formData.name,
         description: formData.description,
+        goal: formData.goal,
+        datasets: formData.datasets
+          .split(/\r?\n/)
+          .map((item) => item.trim())
+          .filter(Boolean),
+        evaluationMethods: formData.evaluationMethods
+          .split(/\r?\n/)
+          .map((item) => item.trim())
+          .filter(Boolean),
         ideas: ideas,
         documents,
       });
@@ -243,6 +255,51 @@ export default function NewProjectPage() {
                   placeholder={t("projects.createNew.descriptionPlaceholder")}
                   rows={3}
                 />
+              </div>
+
+              <div className="pl-12">
+                <Separator className="bg-[#E5E2DC]" />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="goal">Research goal</Label>
+                <Textarea
+                  id="goal"
+                  value={formData.goal}
+                  onChange={(e) =>
+                    setFormData({ ...formData, goal: e.target.value })
+                  }
+                  placeholder="Summarize the objective, expected contribution, or decision this project should drive."
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="datasets">Datasets</Label>
+                  <Textarea
+                    id="datasets"
+                    value={formData.datasets}
+                    onChange={(e) =>
+                      setFormData({ ...formData, datasets: e.target.value })
+                    }
+                    placeholder="One dataset per line"
+                    rows={4}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="evaluationMethods">Evaluation methods</Label>
+                  <Textarea
+                    id="evaluationMethods"
+                    value={formData.evaluationMethods}
+                    onChange={(e) =>
+                      setFormData({ ...formData, evaluationMethods: e.target.value })
+                    }
+                    placeholder="One metric, benchmark, or review protocol per line"
+                    rows={4}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

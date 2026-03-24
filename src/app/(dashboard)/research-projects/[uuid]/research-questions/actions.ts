@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { createResearchQuestion, updateResearchQuestion, deleteResearchQuestion } from "@/services/research-question.service";
+import {
+  createResearchQuestion,
+  updateResearchQuestion,
+  deleteResearchQuestion,
+  reviewResearchQuestion,
+} from "@/services/research-question.service";
 
 interface Attachment {
   type: string;
@@ -32,6 +37,8 @@ export async function createResearchQuestionAction(input: CreateIdeaInput) {
       content: input.content || null,
       attachments: input.attachments || null,
       createdByUuid: auth.actorUuid,
+      sourceType: "human",
+      sourceLabel: "Created from dashboard",
     });
 
     revalidatePath(`/research-projects/${input.projectUuid}/research-questions`);
@@ -82,5 +89,38 @@ export async function deleteResearchQuestionAction(questionUuid: string, project
   } catch (error) {
     console.error("Failed to delete idea:", error);
     return { success: false, error: "Failed to delete idea" };
+  }
+}
+
+export async function reviewResearchQuestionAction(input: {
+  projectUuid: string;
+  questionUuid: string;
+  reviewStatus: "accepted" | "rejected";
+  reviewNote?: string;
+}) {
+  const auth = await getServerAuthContext();
+  if (!auth) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  if (auth.type !== "user") {
+    return { success: false, error: "Only users can review ideas" };
+  }
+
+  try {
+    const idea = await reviewResearchQuestion(
+      auth.companyUuid,
+      input.questionUuid,
+      input.reviewStatus,
+      auth.actorUuid,
+      input.reviewNote || null,
+    );
+
+    revalidatePath(`/research-projects/${input.projectUuid}/research-questions`);
+    revalidatePath(`/research-projects/${input.projectUuid}/dashboard`);
+    return { success: true, idea };
+  } catch (error) {
+    console.error("Failed to review idea:", error);
+    return { success: false, error: "Failed to review idea" };
   }
 }

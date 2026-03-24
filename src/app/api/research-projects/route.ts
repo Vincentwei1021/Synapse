@@ -8,6 +8,23 @@ import { withErrorHandler, parseBody, parsePagination } from "@/lib/api-handler"
 import { success, paginated, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
 
+function normalizeStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item).trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(/\r?\n|,/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
 // GET /api/research-projects - List Research Projects
 export const GET = withErrorHandler(async (request: NextRequest) => {
   const auth = await getAuthContext(request);
@@ -27,6 +44,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         uuid: true,
         name: true,
         description: true,
+        goal: true,
+        datasets: true,
+        evaluationMethods: true,
+        latestSynthesisAt: true,
+        latestSynthesisIdeaCount: true,
+        latestSynthesisSummary: true,
         groupUuid: true,
         createdAt: true,
         updatedAt: true,
@@ -54,6 +77,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     uuid: p.uuid,
     name: p.name,
     description: p.description,
+    goal: p.goal,
+    datasets: p.datasets,
+    evaluationMethods: p.evaluationMethods,
+    latestSynthesisAt: p.latestSynthesisAt?.toISOString() ?? null,
+    latestSynthesisIdeaCount: p.latestSynthesisIdeaCount ?? 0,
+    latestSynthesisSummary: p.latestSynthesisSummary,
     groupUuid: p.groupUuid,
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
@@ -84,6 +113,9 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const body = await parseBody<{
     name: string;
     description?: string;
+    goal?: string;
+    datasets?: string[] | string;
+    evaluationMethods?: string[] | string;
     groupUuid?: string;
   }>(request);
 
@@ -107,12 +139,18 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       companyUuid: auth.companyUuid,
       name: body.name.trim(),
       description: body.description?.trim() || null,
+      goal: body.goal?.trim() || null,
+      datasets: normalizeStringArray(body.datasets),
+      evaluationMethods: normalizeStringArray(body.evaluationMethods),
       groupUuid: body.groupUuid || null,
     },
     select: {
       uuid: true,
       name: true,
       description: true,
+      goal: true,
+      datasets: true,
+      evaluationMethods: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -122,6 +160,9 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     uuid: researchProject.uuid,
     name: researchProject.name,
     description: researchProject.description,
+    goal: researchProject.goal,
+    datasets: researchProject.datasets,
+    evaluationMethods: researchProject.evaluationMethods,
     createdAt: researchProject.createdAt.toISOString(),
     updatedAt: researchProject.updatedAt.toISOString(),
   });
