@@ -98,6 +98,25 @@ span[style*="--sdm-tbg"] {
   }
 }
 
+.synapse-flow-controls {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.synapse-flow-controls .react-flow__controls-button {
+  border-color: hsl(var(--border));
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.synapse-flow-controls .react-flow__controls-button:hover {
+  background: hsl(var(--accent));
+}
+
+.synapse-flow-controls .react-flow__controls-button svg {
+  stroke: currentColor;
+  fill: none;
+}
+
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));

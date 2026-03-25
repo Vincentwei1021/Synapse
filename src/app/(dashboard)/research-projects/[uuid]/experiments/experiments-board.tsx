@@ -67,36 +67,36 @@ export function ExperimentsBoard({
         {columns.map((column) => (
           <section
             key={column.id}
-            className="flex min-h-[calc(100vh-260px)] flex-col rounded-3xl bg-[#F7F2EB] p-5"
+            className="flex min-h-[calc(100vh-260px)] flex-col rounded-3xl border border-border bg-secondary/50 p-5"
           >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-semibold text-[#2C2C2C]">{t(`experiments.columns.${column.labelKey}`)}</h2>
-                <span className="rounded-full bg-white px-2 py-0.5 text-xs text-[#6B6B6B]">{grouped[column.id].length}</span>
+                <h2 className="text-sm font-semibold text-foreground">{t(`experiments.columns.${column.labelKey}`)}</h2>
+                <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">{grouped[column.id].length}</span>
               </div>
             </div>
 
             <div className="flex-1 space-y-3">
               {grouped[column.id].length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[#DCCFBE] bg-white/70 px-4 py-8 text-center text-sm text-[#9A8F81]">
+                <div className="rounded-2xl border border-dashed border-border bg-background/70 px-4 py-8 text-center text-sm text-muted-foreground">
                   {t("experiments.empty")}
                 </div>
               ) : (
                 grouped[column.id].map((experiment) => (
-                  <Card key={experiment.uuid} className="space-y-4 rounded-2xl border-[#E5DED3] p-4 shadow-none">
+                  <Card key={experiment.uuid} className="space-y-4 rounded-2xl border-border bg-card p-4 shadow-none">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-2">
-                        <h3 className="text-sm font-semibold text-[#2C2C2C]">{experiment.title}</h3>
-                        <Badge variant="outline" className="border-[#E8DDCF] bg-[#FBF8F3] text-[#7B7063]">
+                        <h3 className="text-sm font-semibold text-foreground">{experiment.title}</h3>
+                        <Badge variant="outline" className="border-border bg-secondary/60 text-muted-foreground">
                           {experiment.priority}
                         </Badge>
                       </div>
                       {experiment.description ? (
-                        <p className="line-clamp-3 text-xs leading-5 text-[#6B6B6B]">{experiment.description}</p>
+                        <p className="line-clamp-3 text-xs leading-5 text-muted-foreground">{experiment.description}</p>
                       ) : null}
                     </div>
 
-                    <div className="space-y-1 text-xs text-[#7C7368]">
+                    <div className="space-y-1 text-xs text-muted-foreground">
                       <p>
                         {t("experiments.card.question")}:{" "}
                         {experiment.researchQuestion?.title || t("experiments.card.unlinked")}
@@ -116,7 +116,7 @@ export function ExperimentsBoard({
                       {experiment.status === "draft" ? (
                         <Button
                           size="sm"
-                          className="w-full bg-[#C67A52] text-white hover:bg-[#B56A42]"
+                          className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                           disabled={isPending}
                           onClick={() =>
                             startTransition(() => {
@@ -140,7 +140,7 @@ export function ExperimentsBoard({
                         <div className="grid grid-cols-2 gap-2">
                           <Button
                             size="sm"
-                            className="bg-[#C67A52] text-white hover:bg-[#B56A42]"
+                            className="bg-primary text-primary-foreground hover:bg-primary/90"
                             disabled={isPending}
                             onClick={() =>
                               startTransition(() => { void postAction(experiment.uuid, "review", { approved: true }); })
@@ -169,7 +169,7 @@ export function ExperimentsBoard({
                             onChange={(event) =>
                               setAssignments((current) => ({ ...current, [experiment.uuid]: event.target.value }))
                             }
-                            className="w-full rounded-xl border border-[#E5DED3] bg-[#FBF8F3] px-3 py-2 text-sm text-[#2C2C2C]"
+                            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
                           >
                             <option value="">{t("experiments.actions.selectAgent")}</option>
                             {agents.map((agent) => (
@@ -189,7 +189,7 @@ export function ExperimentsBoard({
                             </Button>
                             <Button
                               size="sm"
-                              className="bg-[#2F7D5D] text-white hover:bg-[#27674d]"
+                              className="bg-emerald-700 text-white hover:bg-emerald-600"
                               disabled={isPending}
                               onClick={() => startTransition(() => { void postAction(experiment.uuid, "start", {}); })}
                             >
@@ -203,7 +203,7 @@ export function ExperimentsBoard({
                       {experiment.status === "in_progress" ? (
                         <Button
                           size="sm"
-                          className="w-full bg-[#2F7D5D] text-white hover:bg-[#27674d]"
+                          className="w-full bg-emerald-700 text-white hover:bg-emerald-600"
                           disabled={isPending}
                           onClick={() =>
                             startTransition(() => {

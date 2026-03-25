@@ -63,8 +63,8 @@ export default async function DashboardPage({ params }: PageProps) {
       helper: t("dashboard.questionsHelper", { count: stats.researchQuestions.open }),
       href: `/research-projects/${projectUuid}/research-questions`,
       icon: Lightbulb,
-      iconBg: "bg-[#FFF3E0]",
-      iconColor: "text-[#E65100]",
+      iconBg: "bg-orange-100 dark:bg-orange-500/15",
+      iconColor: "text-orange-700 dark:text-orange-300",
     },
     {
       title: t("dashboard.experiments"),
@@ -72,8 +72,8 @@ export default async function DashboardPage({ params }: PageProps) {
       helper: t("dashboard.experimentsHelper", { count: stats.experiments.inProgress }),
       href: `/research-projects/${projectUuid}/experiments`,
       icon: FlaskConical,
-      iconBg: "bg-[#EEF7F1]",
-      iconColor: "text-[#2F7D5D]",
+      iconBg: "bg-emerald-100 dark:bg-emerald-500/15",
+      iconColor: "text-emerald-700 dark:text-emerald-300",
     },
     {
       title: t("dashboard.insights"),
@@ -81,8 +81,8 @@ export default async function DashboardPage({ params }: PageProps) {
       helper: project.latestSynthesisSummary || t("dashboard.insightsHelper"),
       href: `/research-projects/${projectUuid}/insights`,
       icon: Sparkles,
-      iconBg: "bg-[#F7F0FF]",
-      iconColor: "text-[#8E6BBF]",
+      iconBg: "bg-violet-100 dark:bg-violet-500/15",
+      iconColor: "text-violet-700 dark:text-violet-300",
     },
     {
       title: t("dashboard.documents"),
@@ -90,30 +90,30 @@ export default async function DashboardPage({ params }: PageProps) {
       helper: t("dashboard.documentsHelper"),
       href: `/research-projects/${projectUuid}/documents`,
       icon: FileText,
-      iconBg: "bg-[#EDF5FF]",
-      iconColor: "text-[#1976D2]",
+      iconBg: "bg-sky-100 dark:bg-sky-500/15",
+      iconColor: "text-sky-700 dark:text-sky-300",
     },
   ];
 
   return (
     <div className="space-y-6 p-4 md:p-8">
-      <div className="rounded-[32px] border border-[#E4DBD0] bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(248,244,238,0.96))] p-7 shadow-sm">
+      <div className="rounded-[32px] border border-border bg-card p-7 shadow-sm">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-3xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A39787]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               {t("dashboard.brief")}
             </p>
-            <h1 className="mt-3 text-[28px] font-semibold tracking-tight text-[#2C2C2C]">{project.name}</h1>
-            <p className="mt-2 text-sm leading-6 text-[#6B6B6B]">
+            <h1 className="mt-3 text-[28px] font-semibold tracking-tight text-foreground">{project.name}</h1>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {project.description || t("dashboard.noDescription")}
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Button asChild className="bg-[#C67A52] text-white hover:bg-[#B56A42]">
+            <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90">
               <Link href={`/research-projects/${projectUuid}/experiments/new`}>{t("dashboard.newExperiment")}</Link>
             </Button>
-            <Button asChild variant="outline" className="border-[#D7CCBE] bg-white">
+            <Button asChild variant="outline" className="border-border bg-background">
               <Link href={`/research-projects/${projectUuid}/insights`}>{t("nav.insights")}</Link>
             </Button>
           </div>
@@ -139,12 +139,12 @@ export default async function DashboardPage({ params }: PageProps) {
           const Icon = card.icon;
           return (
             <Link key={card.title} href={card.href}>
-              <Card className="h-full rounded-[28px] border-[#E7DFD2] p-5 transition hover:border-[#D6C9B8] hover:shadow-sm">
+              <Card className="h-full rounded-[28px] border-border bg-card p-5 transition hover:border-primary/30 hover:shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-medium text-[#6B6B6B]">{card.title}</p>
-                    <p className="mt-3 text-[30px] font-semibold leading-none text-[#2C2C2C]">{card.value}</p>
-                    <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#6B6B6B]">{card.helper}</p>
+                    <p className="text-sm font-medium text-muted-foreground">{card.title}</p>
+                    <p className="mt-3 text-[30px] font-semibold leading-none text-foreground">{card.value}</p>
+                    <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">{card.helper}</p>
                   </div>
                   <div className={`rounded-2xl p-3 ${card.iconBg}`}>
                     <Icon className={`h-5 w-5 ${card.iconColor}`} />
@@ -157,13 +157,13 @@ export default async function DashboardPage({ params }: PageProps) {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
-        <Card className="rounded-[28px] border-[#E7DFD2] p-6">
+        <Card className="rounded-[28px] border-border bg-card p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-[#2C2C2C]">{t("dashboard.pipelineTitle")}</h2>
-              <p className="mt-1 text-sm text-[#6B6B6B]">{t("dashboard.pipelineSubtitle")}</p>
+              <h2 className="text-lg font-semibold text-foreground">{t("dashboard.pipelineTitle")}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{t("dashboard.pipelineSubtitle")}</p>
             </div>
-            <Link href={`/research-projects/${projectUuid}/experiments`} className="text-sm text-[#C67A52]">
+            <Link href={`/research-projects/${projectUuid}/experiments`} className="text-sm text-primary">
               {t("common.viewAll")}
             </Link>
           </div>
@@ -178,17 +178,17 @@ export default async function DashboardPage({ params }: PageProps) {
 
           <div className="mt-5 space-y-3">
             {recentExperiments.length === 0 ? (
-              <p className="text-sm text-[#6B6B6B]">{t("dashboard.noExperiments")}</p>
+              <p className="text-sm text-muted-foreground">{t("dashboard.noExperiments")}</p>
             ) : (
               recentExperiments.map((experiment) => (
-                <div key={experiment.uuid} className="flex items-center justify-between rounded-2xl bg-[#FBF8F3] px-4 py-3">
+                <div key={experiment.uuid} className="flex items-center justify-between rounded-2xl bg-secondary/60 px-4 py-3">
                   <div>
-                    <p className="text-sm font-medium text-[#2C2C2C]">{experiment.title}</p>
+                    <p className="text-sm font-medium text-foreground">{experiment.title}</p>
                     {experiment.outcome ? (
-                      <p className="mt-1 text-xs text-[#7C7368]">{experiment.outcome}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{experiment.outcome}</p>
                     ) : null}
                   </div>
-                  <span className="rounded-full bg-white px-2.5 py-1 text-xs text-[#6B6B6B]">
+                  <span className="rounded-full bg-background px-2.5 py-1 text-xs text-muted-foreground">
                     {t(`experiments.columns.${statusKey(experiment.status)}`)}
                   </span>
                 </div>
@@ -197,26 +197,26 @@ export default async function DashboardPage({ params }: PageProps) {
           </div>
         </Card>
 
-        <Card className="rounded-[28px] border-[#E7DFD2] p-6">
+        <Card className="rounded-[28px] border-border bg-card p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-[#2C2C2C]">{t("dashboard.researchQuestionsTitle")}</h2>
-              <p className="mt-1 text-sm text-[#6B6B6B]">{t("dashboard.researchQuestionsSubtitle")}</p>
+              <h2 className="text-lg font-semibold text-foreground">{t("dashboard.researchQuestionsTitle")}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{t("dashboard.researchQuestionsSubtitle")}</p>
             </div>
-            <Link href={`/research-projects/${projectUuid}/research-questions`} className="text-sm text-[#C67A52]">
+            <Link href={`/research-projects/${projectUuid}/research-questions`} className="text-sm text-primary">
               {t("common.viewAll")}
             </Link>
           </div>
 
           <div className="mt-5 space-y-3">
             {recentQuestions.length === 0 ? (
-              <p className="text-sm text-[#6B6B6B]">{t("dashboard.noQuestions")}</p>
+              <p className="text-sm text-muted-foreground">{t("dashboard.noQuestions")}</p>
             ) : (
               recentQuestions.map((question) => (
-                <div key={question.uuid} className="rounded-2xl bg-[#FBF8F3] px-4 py-4">
+                <div key={question.uuid} className="rounded-2xl bg-secondary/60 px-4 py-4">
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-medium text-[#2C2C2C]">{question.title}</p>
-                    <span className="rounded-full bg-white px-2.5 py-1 text-xs text-[#6B6B6B]">
+                    <p className="text-sm font-medium text-foreground">{question.title}</p>
+                    <span className="rounded-full bg-background px-2.5 py-1 text-xs text-muted-foreground">
                       {question.reviewStatus === "pending" ? t("ideas.pendingReview") : t(`ideas.columns.${questionStatusKey(question.status)}`)}
                     </span>
                   </div>
@@ -225,17 +225,17 @@ export default async function DashboardPage({ params }: PageProps) {
             )}
           </div>
 
-          <Link
+            <Link
             href={`/research-projects/${projectUuid}/insights`}
-            className="mt-6 flex items-center justify-between rounded-2xl border border-[#E7DFD2] bg-white px-4 py-4 transition hover:border-[#D6C9B8]"
+            className="mt-6 flex items-center justify-between rounded-2xl border border-border bg-background px-4 py-4 transition hover:border-primary/30"
           >
             <div>
-              <p className="text-sm font-medium text-[#2C2C2C]">{t("dashboard.latestInsight")}</p>
-              <p className="mt-1 text-sm text-[#6B6B6B]">
+              <p className="text-sm font-medium text-foreground">{t("dashboard.latestInsight")}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
                 {project.latestSynthesisSummary || t("dashboard.insightsHelper")}
               </p>
             </div>
-            <ArrowRight className="h-4 w-4 text-[#C67A52]" />
+            <ArrowRight className="h-4 w-4 text-primary" />
           </Link>
         </Card>
       </div>
@@ -245,9 +245,9 @@ export default async function DashboardPage({ params }: PageProps) {
 
 function BriefCard({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-[20px] bg-[#FBF8F3] p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#A39787]">{title}</p>
-      <p className="mt-2 text-sm leading-6 text-[#2C2C2C]">{body}</p>
+    <div className="rounded-[20px] bg-secondary/60 p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-foreground">{body}</p>
     </div>
   );
 }
@@ -262,9 +262,9 @@ function ListBriefCard({
   empty: string;
 }) {
   return (
-    <div className="rounded-[20px] bg-[#FBF8F3] p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#A39787]">{title}</p>
-      <div className="mt-2 space-y-1.5 text-sm leading-6 text-[#2C2C2C]">
+    <div className="rounded-[20px] bg-secondary/60 p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</p>
+      <div className="mt-2 space-y-1.5 text-sm leading-6 text-foreground">
         {items.length > 0 ? items.map((item) => <p key={item}>• {item}</p>) : <p>{empty}</p>}
       </div>
     </div>
@@ -273,9 +273,9 @@ function ListBriefCard({
 
 function PipelineCell({ title, value }: { title: string; value: number }) {
   return (
-    <div className="rounded-[20px] bg-[#FBF8F3] p-4 text-center">
-      <p className="text-sm text-[#6B6B6B]">{title}</p>
-      <p className="mt-2 text-2xl font-semibold text-[#2C2C2C]">{value}</p>
+    <div className="rounded-[20px] bg-secondary/60 p-4 text-center">
+      <p className="text-sm text-muted-foreground">{title}</p>
+      <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
     </div>
   );
 }

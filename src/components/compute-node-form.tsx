@@ -149,11 +149,11 @@ export function ComputeNodeForm({
   return (
     <form
       action={(formData) => startTransition(() => { void handleSubmit(formData); })}
-      className="space-y-5 rounded-[28px] border border-[#E7DECF] bg-white p-6 shadow-sm"
+      className="space-y-5 rounded-[28px] border border-border bg-card p-6 shadow-sm"
     >
       <div className="space-y-1">
-        <p className="text-base font-semibold text-[#2C2C2C]">{t("compute.register.title")}</p>
-        <p className="text-sm leading-6 text-[#7E7469]">{t("compute.register.description")}</p>
+        <p className="text-base font-semibold text-foreground">{t("compute.register.title")}</p>
+        <p className="text-sm leading-6 text-muted-foreground">{t("compute.register.description")}</p>
       </div>
 
       <div className="grid gap-3">
@@ -169,17 +169,17 @@ export function ComputeNodeForm({
               onClick={() => setSourceMode(card.mode)}
               className={`rounded-2xl border px-4 py-4 text-left transition ${
                 active
-                  ? "border-[#C67A52] bg-[#FFF7F1]"
-                  : "border-[#E7DECF] bg-[#FBF8F3]"
+                  ? "border-primary bg-primary/10"
+                  : "border-border bg-secondary/40"
               } ${card.disabled ? "cursor-not-allowed opacity-50" : ""}`}
             >
               <div className="flex items-start gap-3">
-                <div className="rounded-2xl bg-white p-2 shadow-sm">
-                  <Icon className="h-4 w-4 text-[#C67A52]" />
+                <div className="rounded-2xl bg-background p-2 shadow-sm">
+                  <Icon className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-[#2C2C2C]">{card.title}</p>
-                  <p className="mt-1 text-xs leading-5 text-[#7E7469]">{card.description}</p>
+                  <p className="text-sm font-medium text-foreground">{card.title}</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{card.description}</p>
                 </div>
               </div>
             </button>
@@ -189,12 +189,12 @@ export function ComputeNodeForm({
 
       <div className="grid gap-4 md:grid-cols-2">
         <label className="space-y-2 text-sm">
-          <span className="text-[#5F564B]">{t("compute.register.pool")}</span>
+          <span className="text-muted-foreground">{t("compute.register.pool")}</span>
           <select
             name="poolUuid"
             required
             defaultValue={pools[0]?.uuid}
-            className="w-full rounded-2xl border border-[#E7DECF] bg-[#FBF8F3] px-3 py-2.5 text-sm text-[#2C2C2C] outline-none"
+            className="w-full rounded-2xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none"
           >
             {pools.map((pool) => (
               <option key={pool.uuid} value={pool.uuid}>
@@ -205,18 +205,18 @@ export function ComputeNodeForm({
         </label>
 
         <label className="space-y-2 text-sm">
-          <span className="text-[#5F564B]">{t("compute.register.label")}</span>
+          <span className="text-muted-foreground">{t("compute.register.label")}</span>
           <input
             name="label"
             placeholder={t("compute.register.labelPlaceholder")}
-            className="w-full rounded-2xl border border-[#E7DECF] bg-[#FBF8F3] px-3 py-2.5 text-sm text-[#2C2C2C] outline-none placeholder:text-[#A49B90]"
+            className="w-full rounded-2xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
           />
         </label>
       </div>
 
       {sourceMode === "ssh_config" && selectedHost ? (
-        <div className="rounded-2xl border border-[#E7DECF] bg-[#FBF8F3] p-4 text-sm leading-6 text-[#5F564B]">
-          <p className="font-medium text-[#2C2C2C]">{selectedHost.alias}</p>
+        <div className="rounded-2xl border border-border bg-secondary/40 p-4 text-sm leading-6 text-muted-foreground">
+          <p className="font-medium text-foreground">{selectedHost.alias}</p>
           <div className="mt-2 grid gap-x-6 gap-y-1 md:grid-cols-2">
             <p>{t("compute.register.host")}: {selectedHost.hostName || "-"}</p>
             <p>{t("compute.register.user")}: {selectedHost.user || "ubuntu"}</p>
@@ -224,11 +224,11 @@ export function ComputeNodeForm({
             <p>{t("compute.register.key")}: {selectedHost.identityFile || t("compute.register.noKeyInConfig")}</p>
           </div>
           <label className="mt-3 block space-y-2">
-            <span className="text-sm text-[#5F564B]">{t("compute.register.configAlias")}</span>
+            <span className="text-sm text-muted-foreground">{t("compute.register.configAlias")}</span>
             <select
               value={selectedAlias}
               onChange={(event) => setSelectedAlias(event.target.value)}
-              className="w-full rounded-2xl border border-[#E7DECF] bg-white px-3 py-2.5 text-sm text-[#2C2C2C] outline-none"
+              className="w-full rounded-2xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none"
             >
               {sshHosts.map((host) => (
                 <option key={host.alias} value={host.alias}>
@@ -243,55 +243,55 @@ export function ComputeNodeForm({
       {(sourceMode === "upload" || sourceMode === "manual_path") ? (
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-2 text-sm">
-            <span className="text-[#5F564B]">{t("compute.register.host")}</span>
+            <span className="text-muted-foreground">{t("compute.register.host")}</span>
             <input
               value={manualHost}
               onChange={(event) => setManualHost(event.target.value)}
               placeholder={t("compute.register.hostPlaceholder")}
-              className="w-full rounded-2xl border border-[#E7DECF] bg-[#FBF8F3] px-3 py-2.5 text-sm text-[#2C2C2C] outline-none placeholder:text-[#A49B90]"
+              className="w-full rounded-2xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
           </label>
           <label className="space-y-2 text-sm">
-            <span className="text-[#5F564B]">{t("compute.register.user")}</span>
+            <span className="text-muted-foreground">{t("compute.register.user")}</span>
             <input
               value={manualUser}
               onChange={(event) => setManualUser(event.target.value)}
               placeholder="ubuntu"
-              className="w-full rounded-2xl border border-[#E7DECF] bg-[#FBF8F3] px-3 py-2.5 text-sm text-[#2C2C2C] outline-none placeholder:text-[#A49B90]"
+              className="w-full rounded-2xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
           </label>
           <label className="space-y-2 text-sm">
-            <span className="text-[#5F564B]">{t("compute.register.port")}</span>
+            <span className="text-muted-foreground">{t("compute.register.port")}</span>
             <input
               value={manualPort}
               onChange={(event) => setManualPort(event.target.value)}
               placeholder="22"
-              className="w-full rounded-2xl border border-[#E7DECF] bg-[#FBF8F3] px-3 py-2.5 text-sm text-[#2C2C2C] outline-none placeholder:text-[#A49B90]"
+              className="w-full rounded-2xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
           </label>
 
           {sourceMode === "manual_path" ? (
             <label className="space-y-2 text-sm">
-              <span className="text-[#5F564B]">{t("compute.register.keyPath")}</span>
+              <span className="text-muted-foreground">{t("compute.register.keyPath")}</span>
               <input
                 value={manualKeyPath}
                 onChange={(event) => setManualKeyPath(event.target.value)}
                 placeholder="~/.ssh/id_rsa"
-                className="w-full rounded-2xl border border-[#E7DECF] bg-[#FBF8F3] px-3 py-2.5 text-sm text-[#2C2C2C] outline-none placeholder:text-[#A49B90]"
+                className="w-full rounded-2xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
             </label>
           ) : (
             <div className="space-y-2 text-sm md:col-span-1">
-              <span className="block text-[#5F564B]">{t("compute.register.pemFile")}</span>
+              <span className="block text-muted-foreground">{t("compute.register.pemFile")}</span>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex w-full items-center justify-between rounded-2xl border border-dashed border-[#D8CEBF] bg-[#FBF8F3] px-4 py-3 text-left"
+                className="flex w-full items-center justify-between rounded-2xl border border-dashed border-border bg-background px-4 py-3 text-left"
               >
-                <span className="text-sm text-[#2C2C2C]">
+                <span className="text-sm text-foreground">
                   {selectedPem?.name || t("compute.register.choosePem")}
                 </span>
-                <Upload className="h-4 w-4 text-[#8E8478]" />
+                <Upload className="h-4 w-4 text-muted-foreground" />
               </button>
               <input
                 ref={fileInputRef}
@@ -307,20 +307,20 @@ export function ComputeNodeForm({
 
       <div className="grid gap-4 md:grid-cols-2">
         <label className="space-y-2 text-sm">
-          <span className="text-[#5F564B]">{t("compute.register.ssmTarget")}</span>
+          <span className="text-muted-foreground">{t("compute.register.ssmTarget")}</span>
           <input
             name="ssmTarget"
             placeholder={t("compute.register.ssmTargetPlaceholder")}
-            className="w-full rounded-2xl border border-[#E7DECF] bg-[#FBF8F3] px-3 py-2.5 text-sm text-[#2C2C2C] outline-none placeholder:text-[#A49B90]"
+            className="w-full rounded-2xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
           />
         </label>
 
         <label className="space-y-2 text-sm">
-          <span className="text-[#5F564B]">{t("compute.register.lifecycle")}</span>
+          <span className="text-muted-foreground">{t("compute.register.lifecycle")}</span>
           <select
             name="lifecycle"
             defaultValue="idle"
-            className="w-full rounded-2xl border border-[#E7DECF] bg-[#FBF8F3] px-3 py-2.5 text-sm text-[#2C2C2C] outline-none"
+            className="w-full rounded-2xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none"
           >
             <option value="idle">{t("compute.lifecycle.idle")}</option>
             <option value="offline">{t("compute.lifecycle.offline")}</option>
@@ -330,21 +330,21 @@ export function ComputeNodeForm({
       </div>
 
       <label className="space-y-2 text-sm">
-        <span className="text-[#5F564B]">{t("compute.register.notes")}</span>
+        <span className="text-muted-foreground">{t("compute.register.notes")}</span>
         <textarea
           name="notes"
           rows={3}
           placeholder={t("compute.register.notesPlaceholder")}
-          className="w-full rounded-2xl border border-[#E7DECF] bg-[#FBF8F3] px-3 py-2.5 text-sm text-[#2C2C2C] outline-none placeholder:text-[#A49B90]"
+          className="w-full rounded-2xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
         />
       </label>
 
-      {error ? <p className="text-sm text-[#B94C4C]">{error}</p> : null}
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
       <button
         type="submit"
         disabled={isPending || pools.length === 0}
-        className="rounded-full bg-[#C67A52] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#B56A42] disabled:opacity-60"
+        className="rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:opacity-60"
       >
         {isPending ? t("compute.register.creating") : t("compute.register.submit")}
       </button>

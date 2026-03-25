@@ -63,16 +63,16 @@ export default async function ComputePage() {
     <div className="space-y-6 p-4 md:p-8">
       <LiveDataRefresher intervalMs={10_000} />
 
-      <div className="rounded-[32px] border border-[#E4DBD0] bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(248,244,238,0.96))] p-7 shadow-sm">
+      <div className="rounded-[32px] border border-border bg-card p-7 shadow-sm">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#A39787]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               {t("compute.header.eyebrow")}
             </p>
-            <h1 className="mt-3 text-[28px] font-semibold tracking-tight text-[#2C2C2C]">
+            <h1 className="mt-3 text-[28px] font-semibold tracking-tight text-foreground">
               {t("compute.header.title")}
             </h1>
-            <p className="mt-2 text-sm leading-6 text-[#6B6B6B]">{t("compute.header.description")}</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">{t("compute.header.description")}</p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Metric label={t("compute.metrics.pools")} value={pools.length} />
@@ -91,22 +91,22 @@ export default async function ComputePage() {
 
         <section className="space-y-4">
           {pools.length === 0 ? (
-            <div className="rounded-[28px] border border-dashed border-[#D8CEBF] bg-white px-6 py-8 text-sm leading-7 text-[#6B6B6B]">
+            <div className="rounded-[28px] border border-dashed border-border bg-card px-6 py-8 text-sm leading-7 text-muted-foreground">
               {t("compute.empty")}
             </div>
           ) : (
             pools.map((pool) => (
-              <article key={pool.uuid} className="rounded-[28px] border border-[#E5DED3] bg-white p-6 shadow-sm">
-                <div className="flex flex-col gap-3 border-b border-[#EEE5DA] pb-4 md:flex-row md:items-end md:justify-between">
+              <article key={pool.uuid} className="rounded-[28px] border border-border bg-card p-6 shadow-sm">
+                <div className="flex flex-col gap-3 border-b border-border pb-4 md:flex-row md:items-end md:justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-[#2C2C2C]">{pool.name}</h2>
+                    <h2 className="text-lg font-semibold text-foreground">{pool.name}</h2>
                     {pool.description ? (
-                      <p className="mt-1 text-sm text-[#6B6B6B]">{pool.description}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{pool.description}</p>
                     ) : (
-                      <p className="mt-1 text-sm text-[#8E8478]">{t("compute.pool.noDescription")}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{t("compute.pool.noDescription")}</p>
                     )}
                   </div>
-                  <div className="rounded-full bg-[#F5F2EC] px-3 py-1 text-xs text-[#6B6B6B]">
+                  <div className="rounded-full bg-secondary px-3 py-1 text-xs text-muted-foreground">
                     {pool.nodes.length} {t("compute.metrics.machines")} ·{" "}
                     {pool.nodes.reduce((sum, node) => sum + node.gpuCount, 0)} GPUs
                   </div>
@@ -114,44 +114,44 @@ export default async function ComputePage() {
 
                 <div className="mt-5 space-y-4">
                   {pool.nodes.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-[#D8CEBF] bg-[#FBF8F3] px-4 py-5 text-sm text-[#6B6B6B]">
+                    <div className="rounded-2xl border border-dashed border-border bg-secondary/40 px-4 py-5 text-sm text-muted-foreground">
                       {t("compute.pool.emptyMachines")}
                     </div>
                   ) : (
                     pool.nodes.map((node) => (
-                      <div key={node.uuid} className="rounded-[24px] border border-[#ECE3D8] bg-[#FCFAF6] p-5">
+                      <div key={node.uuid} className="rounded-[24px] border border-border bg-secondary/40 p-5">
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                           <div className="space-y-2">
                             <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-base font-semibold text-[#2C2C2C]">{node.label}</p>
-                              <span className="rounded-full bg-white px-2.5 py-1 text-[11px] text-[#7D7468]">
+                              <p className="text-base font-semibold text-foreground">{node.label}</p>
+                              <span className="rounded-full bg-background px-2.5 py-1 text-[11px] text-muted-foreground">
                                 {t(`compute.lifecycle.${node.lifecycle}`)}
                               </span>
                             </div>
-                            <div className="grid gap-x-6 gap-y-1 text-sm text-[#6B6B6B] md:grid-cols-2">
+                            <div className="grid gap-x-6 gap-y-1 text-sm text-muted-foreground md:grid-cols-2">
                               <p>{t("compute.machine.instanceType")}: {node.instanceType ?? t("compute.machine.pending")}</p>
                               <p>{t("compute.machine.region")}: {node.region ?? t("compute.machine.pending")}</p>
                               <p>{t("compute.machine.lastProbe")}: {formatTimestamp(node.lastReportedAt, locale, t("compute.machine.waitingProbe"))}</p>
                               <p>{t("compute.machine.connection")}: {formatAccess(node) || t("compute.machine.noAccess")}</p>
                             </div>
                           </div>
-                          <div className="rounded-2xl bg-white px-4 py-3 text-sm text-[#6B6B6B] shadow-sm">
-                            <p className="font-medium text-[#2C2C2C]">
+                          <div className="rounded-2xl bg-background px-4 py-3 text-sm text-muted-foreground shadow-sm">
+                            <p className="font-medium text-foreground">
                               {node.gpuCount > 0
                                 ? `${node.availableGpuCount}/${node.gpuCount} ${t("compute.machine.idleNow")}`
                                 : t("compute.machine.inventoryPending")}
                             </p>
-                            {node.notes ? <p className="mt-1 text-xs leading-5 text-[#8E8478]">{node.notes}</p> : null}
+                            {node.notes ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{node.notes}</p> : null}
                           </div>
                         </div>
 
                         {node.gpuCount === 0 ? (
-                          <div className="mt-4 rounded-2xl border border-dashed border-[#D8CEBF] bg-white px-4 py-4 text-sm leading-6 text-[#6B6B6B]">
+                          <div className="mt-4 rounded-2xl border border-dashed border-border bg-background px-4 py-4 text-sm leading-6 text-muted-foreground">
                             {t("compute.machine.inventoryHint")}
                           </div>
                         ) : (
-                          <div className="mt-4 overflow-hidden rounded-2xl border border-[#E8DFD3] bg-white">
-                            <div className="grid grid-cols-[92px_minmax(180px,1.1fr)_130px_130px_120px_170px] border-b border-[#F0E8DE] bg-[#FBF8F3] px-4 py-3 text-xs font-medium uppercase tracking-[0.12em] text-[#9A8F81]">
+                          <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-background">
+                            <div className="grid grid-cols-[92px_minmax(180px,1.1fr)_130px_130px_120px_170px] border-b border-border bg-secondary/50 px-4 py-3 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                               <span>{t("compute.table.gpu")}</span>
                               <span>{t("compute.table.model")}</span>
                               <span>{t("compute.table.memory")}</span>
@@ -162,12 +162,12 @@ export default async function ComputePage() {
                             {node.gpus.map((gpu) => (
                               <div
                                 key={gpu.uuid}
-                                className="grid grid-cols-[92px_minmax(180px,1.1fr)_130px_130px_120px_170px] items-center px-4 py-3 text-sm text-[#2C2C2C] [&:not(:last-child)]:border-b [&:not(:last-child)]:border-[#F5EEE6]"
+                                className="grid grid-cols-[92px_minmax(180px,1.1fr)_130px_130px_120px_170px] items-center px-4 py-3 text-sm text-foreground [&:not(:last-child)]:border-b [&:not(:last-child)]:border-border"
                               >
                                 <span className="font-medium">GPU {gpu.slotIndex}</span>
                                 <div>
                                   <p>{gpu.model}</p>
-                                  {gpu.notes ? <p className="text-xs text-[#8E8478]">{gpu.notes}</p> : null}
+                                  {gpu.notes ? <p className="text-xs text-muted-foreground">{gpu.notes}</p> : null}
                                 </div>
                                 <span>
                                   {gpu.memoryGb
@@ -188,17 +188,17 @@ export default async function ComputePage() {
                                   <span
                                     className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                                       gpu.activeReservation
-                                        ? "bg-[#FFF3E0] text-[#E65100]"
+                                        ? "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300"
                                         : gpu.computedStatus === "available"
-                                          ? "bg-[#E8F5E9] text-[#5A9E6F]"
-                                          : "bg-[#F0ECE6] text-[#7D7468]"
+                                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+                                          : "bg-secondary text-muted-foreground"
                                     }`}
                                   >
                                     {gpu.activeReservation
                                       ? t("compute.status.occupied")
                                       : t(`compute.status.${gpu.computedStatus}`)}
                                   </span>
-                                  <span className="text-xs text-[#6B6B6B]">
+                                  <span className="text-xs text-muted-foreground">
                                     {gpu.activeReservation?.itemTitle || t("compute.status.idleLabel")}
                                   </span>
                                 </div>
@@ -221,9 +221,9 @@ export default async function ComputePage() {
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="min-w-[118px] rounded-[22px] border border-[#E7E0D5] bg-white/90 px-4 py-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#A39787]">{label}</p>
-      <p className="mt-2 text-[28px] font-semibold leading-none text-[#2C2C2C]">{value}</p>
+    <div className="min-w-[118px] rounded-[22px] border border-border bg-background px-4 py-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+      <p className="mt-2 text-[28px] font-semibold leading-none text-foreground">{value}</p>
     </div>
   );
 }

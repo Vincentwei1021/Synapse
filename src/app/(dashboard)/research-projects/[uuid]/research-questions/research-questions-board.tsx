@@ -62,15 +62,15 @@ function QuestionNode({ data }: NodeProps<Node<QuestionNodeData>>) {
       className={[
         "w-[280px] rounded-[28px] border bg-card p-4 shadow-sm transition-all",
         data.selected
-          ? "border-[#C67A52] ring-4 ring-[#C67A5218]"
-          : "border-border hover:border-[#D7C8B6]",
+          ? "border-primary ring-4 ring-primary/20"
+          : "border-border hover:border-primary/30",
       ].join(" ")}
     >
-      <Handle id="parent-target" type="target" position={Position.Top} className="!h-2 !w-2 !border-0 !bg-[#C67A52] opacity-0" />
-      <Handle id="peer-target" type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-[#C67A52] opacity-0" />
-      <Handle id="peer-source" type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-[#C67A52] opacity-0" />
-      <Handle id="child-source" type="source" position={Position.Bottom} className="!h-2 !w-2 !border-0 !bg-[#C67A52] opacity-0" />
-      <Handle id="experiment-source" type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-[#C67A52] opacity-0" />
+      <Handle id="parent-target" type="target" position={Position.Top} className="!h-2 !w-2 !border-0 !bg-primary opacity-0" />
+      <Handle id="peer-target" type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-primary opacity-0" />
+      <Handle id="peer-source" type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-primary opacity-0" />
+      <Handle id="child-source" type="source" position={Position.Bottom} className="!h-2 !w-2 !border-0 !bg-primary opacity-0" />
+      <Handle id="experiment-source" type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-primary opacity-0" />
 
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-3">
@@ -101,8 +101,8 @@ function QuestionNode({ data }: NodeProps<Node<QuestionNodeData>>) {
 
 function ExperimentNode({ data }: NodeProps<Node<ExperimentNodeData>>) {
   return (
-    <div className="w-[260px] rounded-[24px] border border-[#E5DED3] bg-white/95 p-4 shadow-sm dark:border-border dark:bg-card">
-      <Handle id="question-target" type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-[#2F7D5D] opacity-0" />
+    <div className="w-[260px] rounded-[24px] border border-border bg-card p-4 shadow-sm">
+      <Handle id="question-target" type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-emerald-600 opacity-0" />
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-3">
           <h3 className="line-clamp-2 text-sm font-semibold leading-6 text-foreground">{data.title}</h3>
@@ -397,7 +397,7 @@ export function ResearchQuestionsBoard({
 
   return (
     <div className="space-y-5">
-      <div className="relative min-h-[680px] overflow-hidden rounded-[32px] border border-border bg-[#FCFBF8] dark:bg-[#111111]">
+      <div className="relative min-h-[680px] overflow-hidden rounded-[32px] border border-border bg-background">
         {researchQuestions.length > 0 ? (
           <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-end p-4">
             <div className="pointer-events-auto">
@@ -414,8 +414,8 @@ export function ResearchQuestionsBoard({
 
         {researchQuestions.length === 0 ? (
           <div className="absolute inset-0 flex items-center justify-center p-6">
-            <Card className="w-full max-w-xl rounded-[32px] border-[#E5DED3] bg-white/95 p-8 text-center shadow-sm dark:border-border dark:bg-card">
-              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[#C67A5214] text-[#C67A52]">
+            <Card className="w-full max-w-xl rounded-[32px] border-border bg-card p-8 text-center shadow-sm">
+              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <Plus className="h-6 w-6" />
               </div>
               <h2 className="text-xl font-semibold text-foreground">{t("ideas.emptyTitle")}</h2>
@@ -444,14 +444,14 @@ export function ResearchQuestionsBoard({
             className="min-h-[680px]"
           >
             <Background color="rgba(198, 122, 82, 0.12)" gap={24} />
-            <Controls className="[&>button]:border-border [&>button]:bg-background [&>button]:text-foreground [&>button:hover]:bg-accent" />
+            <Controls className="synapse-flow-controls" />
           </ReactFlow>
         )}
       </div>
 
       {selectedQuestion ? (
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.95fr)]">
-          <Card className="rounded-[28px] border-[#E5DED3] p-6 shadow-none dark:border-border">
+          <Card className="rounded-[28px] border-border bg-card p-6 shadow-none">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
@@ -509,7 +509,7 @@ export function ResearchQuestionsBoard({
             ) : null}
           </Card>
 
-          <Card className="rounded-[28px] border-[#E5DED3] p-6 shadow-none dark:border-border">
+          <Card className="rounded-[28px] border-border bg-card p-6 shadow-none">
             <div className="space-y-4">
               <div>
                 <h2 className="text-base font-semibold text-foreground">{t("ideas.inspectorTitle")}</h2>
@@ -519,7 +519,7 @@ export function ResearchQuestionsBoard({
               {selectedQuestion.reviewStatus === "pending" ? (
                 <div className="grid gap-2 sm:grid-cols-2">
                   <Button
-                    className="bg-[#C67A52] text-white hover:bg-[#B56A42]"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
                     disabled={isPending}
                     onClick={() =>
                       startTransition(() => {
@@ -554,7 +554,7 @@ export function ResearchQuestionsBoard({
 
               {selectedQuestion.reviewStatus === "accepted" && selectedQuestion.status === "open" ? (
                 <Button
-                  className="w-full bg-[#C67A52] text-white hover:bg-[#B56A42]"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                   disabled={isPending}
                   onClick={() => runStatusAction("elaborating")}
                 >
@@ -565,7 +565,7 @@ export function ResearchQuestionsBoard({
 
               {selectedQuestion.reviewStatus === "accepted" && selectedQuestion.status === "elaborating" ? (
                 <Button
-                  className="w-full bg-[#2F7D5D] text-white hover:bg-[#27674D]"
+                  className="w-full bg-emerald-700 text-white hover:bg-emerald-600"
                   disabled={isPending}
                   onClick={() => runStatusAction("experiment_created")}
                 >
@@ -581,7 +581,7 @@ export function ResearchQuestionsBoard({
                     {t("ideas.actions.backToElaboration")}
                   </Button>
                   <Button
-                    className="bg-[#2F7D5D] text-white hover:bg-[#27674D]"
+                    className="bg-emerald-700 text-white hover:bg-emerald-600"
                     disabled={isPending}
                     onClick={() => runStatusAction("completed")}
                   >

@@ -42,8 +42,8 @@ export default async function ResearchQuestionsPage({ params }: PageProps) {
     <div className="space-y-6 p-4 md:p-8">
       <div>
         <div>
-          <h1 className="text-2xl font-semibold text-[#2C2C2C]">{t("ideas.title")}</h1>
-          <p className="mt-1 text-sm text-[#6B6B6B]">{t("ideas.subtitle")}</p>
+          <h1 className="text-2xl font-semibold text-foreground">{t("ideas.title")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("ideas.subtitle")}</p>
           <p className="mt-2 text-xs leading-5 text-muted-foreground">{t("ideas.canvasHint")}</p>
         </div>
       </div>
