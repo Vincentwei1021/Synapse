@@ -21,6 +21,7 @@ interface CreateIdeaInput {
   title: string;
   content?: string;
   attachments?: Attachment[];
+  parentQuestionUuid?: string | null;
 }
 
 export async function createResearchQuestionAction(input: CreateIdeaInput) {
@@ -36,6 +37,7 @@ export async function createResearchQuestionAction(input: CreateIdeaInput) {
       title: input.title,
       content: input.content || null,
       attachments: input.attachments || null,
+      parentQuestionUuid: input.parentQuestionUuid ?? null,
       createdByUuid: auth.actorUuid,
       sourceType: "human",
       sourceLabel: "Created from dashboard",

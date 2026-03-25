@@ -1,23 +1,10 @@
-// src/app/(dashboard)/research-projects/[uuid]/research-questions/[questionUuid]/page.tsx
-// Server Component — renders list + panel for the selected idea
-
-import { IdeasPageContent } from "../questions-page-content";
+import { redirect } from "next/navigation";
 
 interface PageProps {
-  params: Promise<{ uuid: string; questionUuid: string }>;
-  searchParams: Promise<{ status?: string; assignedToMe?: string }>;
+  params: Promise<{ uuid: string }>;
 }
 
-export default async function IdeaDetailPage({ params, searchParams }: PageProps) {
-  const { uuid: projectUuid, questionUuid } = await params;
-  const { status: filter = "all", assignedToMe } = await searchParams;
-
-  return (
-    <IdeasPageContent
-      projectUuid={projectUuid}
-      filter={filter}
-      isAssignedToMeFilter={assignedToMe === "true"}
-      initialSelectedIdeaUuid={questionUuid}
-    />
-  );
+export default async function ResearchQuestionRedirectPage({ params }: PageProps) {
+  const { uuid } = await params;
+  redirect(`/research-projects/${uuid}/research-questions`);
 }

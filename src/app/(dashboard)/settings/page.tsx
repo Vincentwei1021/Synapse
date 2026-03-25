@@ -17,9 +17,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Key, Check, X, Globe, AlertTriangle, ShieldAlert, ChevronDown, ChevronRight, Activity, Bell, Pencil } from "lucide-react";
+import { Plus, Key, Check, X, Globe, AlertTriangle, ShieldAlert, ChevronDown, ChevronRight, Activity, Bell, Pencil, Moon, Sun, Monitor } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useLocale } from "@/contexts/locale-context";
+import { useTheme } from "@/contexts/theme-context";
 import { getApiKeysAction, createAgentAndKeyAction, deleteApiKeyAction, getAgentSessionsAction, closeSessionAction, reopenSessionAction, updateAgentAction } from "./actions";
 import type { SessionResponse } from "@/services/session.service";
 import { locales, localeNames, type Locale } from "@/i18n/config";
@@ -61,6 +62,7 @@ const ADMIN_PERSONAS = [
 export default function SettingsPage() {
   const t = useTranslations();
   const { locale, setLocale } = useLocale();
+  const { theme, setTheme } = useTheme();
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -369,6 +371,45 @@ export default function SettingsPage() {
               {localeNames[loc]}
             </Button>
           ))}
+        </div>
+      </div>
+
+      <div className="mb-8 space-y-4">
+        <div className="flex items-center gap-2">
+          <Moon className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-base font-semibold text-foreground">{t("settings.theme")}</h2>
+        </div>
+        <p className="text-[13px] text-muted-foreground">
+          {t("settings.themeDesc")}
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <Button
+            variant={theme === "light" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setTheme("light")}
+            className="min-w-[100px]"
+          >
+            <Sun className="mr-2 h-4 w-4" />
+            {t("settings.light")}
+          </Button>
+          <Button
+            variant={theme === "dark" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setTheme("dark")}
+            className="min-w-[100px]"
+          >
+            <Moon className="mr-2 h-4 w-4" />
+            {t("settings.dark")}
+          </Button>
+          <Button
+            variant={theme === "system" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setTheme("system")}
+            className="min-w-[100px]"
+          >
+            <Monitor className="mr-2 h-4 w-4" />
+            {t("settings.systemTheme")}
+          </Button>
         </div>
       </div>
 

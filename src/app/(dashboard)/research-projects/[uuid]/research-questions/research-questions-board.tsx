@@ -1,213 +1,627 @@
 "use client";
 
-import { useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
-import { Check, CornerUpLeft, FlaskConical, PlayCircle } from "lucide-react";
+import {
+  Background,
+  Controls,
+  Handle,
+  Position,
+  ReactFlow,
+  type Edge,
+  type Node,
+  type NodeProps,
+  useEdgesState,
+  useNodesState,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+import { Check, CornerUpLeft, FlaskConical, PlayCircle, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
+import type { ExperimentResponse } from "@/services/experiment.service";
 import type { ResearchQuestionResponse } from "@/services/research-question.service";
+import { IdeaCreateForm } from "./question-create-form";
 import {
   reviewResearchQuestionAction,
   setResearchQuestionStatusAction,
 } from "./actions";
 
-const columns = [
-  { id: "open", labelKey: "open" },
-  { id: "elaborating", labelKey: "elaborating" },
-  { id: "experiment_created", labelKey: "experimentCreated" },
-  { id: "completed", labelKey: "completed" },
-] as const;
+const COLUMN_GAP = 360;
+const ROW_GAP = 220;
+
+type QuestionNodeData = {
+  nodeKind: "question";
+  title: string;
+  summary: string | null;
+  statusLabel: string;
+  reviewLabel: string;
+  sourceLabel: string;
+  experimentCountLabel: string;
+  childCountLabel: string;
+  selected: boolean;
+};
+
+type ExperimentNodeData = {
+  nodeKind: "experiment";
+  title: string;
+  statusLabel: string;
+  outcome: string | null;
+  updatedLabel: string;
+  parentContextLabel: string | null;
+};
+
+type CanvasNodeData = QuestionNodeData | ExperimentNodeData;
+
+function QuestionNode({ data }: NodeProps<Node<QuestionNodeData>>) {
+  return (
+    <div
+      className={[
+        "w-[280px] rounded-[28px] border bg-card p-4 shadow-sm transition-all",
+        data.selected
+          ? "border-[#C67A52] ring-4 ring-[#C67A5218]"
+          : "border-border hover:border-[#D7C8B6]",
+      ].join(" ")}
+    >
+      <Handle id="parent-target" type="target" position={Position.Top} className="!h-2 !w-2 !border-0 !bg-[#C67A52] opacity-0" />
+      <Handle id="peer-target" type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-[#C67A52] opacity-0" />
+      <Handle id="peer-source" type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-[#C67A52] opacity-0" />
+      <Handle id="child-source" type="source" position={Position.Bottom} className="!h-2 !w-2 !border-0 !bg-[#C67A52] opacity-0" />
+      <Handle id="experiment-source" type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-[#C67A52] opacity-0" />
+
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-2">
+            <Badge variant={data.selected ? "default" : "outline"} className="rounded-full">
+              {data.statusLabel}
+            </Badge>
+            <h3 className="line-clamp-2 text-sm font-semibold leading-6 text-foreground">{data.title}</h3>
+          </div>
+          <Badge variant="secondary" className="rounded-full">
+            {data.sourceLabel}
+          </Badge>
+        </div>
+
+        {data.summary ? (
+          <p className="line-clamp-3 text-xs leading-5 text-muted-foreground">{data.summary}</p>
+        ) : null}
+
+        <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+          <span className="rounded-full bg-secondary px-2.5 py-1">{data.reviewLabel}</span>
+          <span className="rounded-full bg-secondary px-2.5 py-1">{data.experimentCountLabel}</span>
+          <span className="rounded-full bg-secondary px-2.5 py-1">{data.childCountLabel}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ExperimentNode({ data }: NodeProps<Node<ExperimentNodeData>>) {
+  return (
+    <div className="w-[260px] rounded-[24px] border border-[#E5DED3] bg-white/95 p-4 shadow-sm dark:border-border dark:bg-card">
+      <Handle id="question-target" type="target" position={Position.Left} className="!h-2 !w-2 !border-0 !bg-[#2F7D5D] opacity-0" />
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="line-clamp-2 text-sm font-semibold leading-6 text-foreground">{data.title}</h3>
+          <Badge variant="outline" className="rounded-full">
+            {data.statusLabel}
+          </Badge>
+        </div>
+        {data.outcome ? (
+          <p className="text-xs leading-5 text-muted-foreground">{data.outcome}</p>
+        ) : null}
+        <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+          <span className="rounded-full bg-secondary px-2.5 py-1">{data.updatedLabel}</span>
+          {data.parentContextLabel ? (
+            <span className="rounded-full bg-[#EAF4EF] px-2.5 py-1 text-[#2F7D5D] dark:bg-[#143125] dark:text-[#C3E9D4]">
+              {data.parentContextLabel}
+            </span>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const nodeTypes = {
+  question: QuestionNode,
+  experiment: ExperimentNode,
+};
+
+function reviewLabelForQuestion(t: ReturnType<typeof useTranslations>, question: ResearchQuestionResponse) {
+  if (question.reviewStatus === "pending") return t("ideas.pendingReview");
+  if (question.reviewStatus === "accepted") return t("ideas.accepted");
+  return t("ideas.rejected");
+}
+
+function sourceLabelForQuestion(t: ReturnType<typeof useTranslations>, question: ResearchQuestionResponse) {
+  return question.sourceType === "agent" ? t("ideas.agentGenerated") : t("ideas.humanCreated");
+}
+
+function statusLabelForQuestion(t: ReturnType<typeof useTranslations>, question: ResearchQuestionResponse) {
+  const statusKey =
+    question.status === "experiment_created"
+      ? "experimentCreated"
+      : question.status === "elaborating"
+        ? "elaborating"
+        : question.status === "completed"
+          ? "completed"
+          : "open";
+  return t(`ideas.columns.${statusKey}`);
+}
+
+function statusLabelForExperiment(t: ReturnType<typeof useTranslations>, experiment: ExperimentResponse) {
+  const key =
+    experiment.status === "pending_review"
+      ? "pendingReview"
+      : experiment.status === "pending_start"
+        ? "pendingStart"
+        : experiment.status === "in_progress"
+          ? "inProgress"
+          : experiment.status === "completed"
+            ? "completed"
+            : "draft";
+  return t(`experiments.columns.${key}`);
+}
+
+function buildQuestionLayout(questions: ResearchQuestionResponse[]) {
+  const byParent = new Map<string | null, ResearchQuestionResponse[]>();
+  const widths = new Map<string, number>();
+  const positions = new Map<string, { x: number; y: number }>();
+
+  for (const question of questions) {
+    const key = question.parentQuestionUuid ?? null;
+    const current = byParent.get(key) ?? [];
+    current.push(question);
+    byParent.set(key, current);
+  }
+
+  const sortQuestions = (items: ResearchQuestionResponse[]) =>
+    [...items].sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+
+  const subtreeWidth = (question: ResearchQuestionResponse): number => {
+    if (widths.has(question.uuid)) {
+      return widths.get(question.uuid) ?? 1;
+    }
+
+    const children = sortQuestions(byParent.get(question.uuid) ?? []);
+    const width =
+      children.length === 0 ? 1 : Math.max(1, children.reduce((sum, child) => sum + subtreeWidth(child), 0));
+    widths.set(question.uuid, width);
+    return width;
+  };
+
+  const placeSubtree = (question: ResearchQuestionResponse, startUnit: number, depth: number) => {
+    const width = subtreeWidth(question);
+    const children = sortQuestions(byParent.get(question.uuid) ?? []);
+    const centerUnit = startUnit + width / 2;
+    positions.set(question.uuid, {
+      x: centerUnit * COLUMN_GAP,
+      y: depth * ROW_GAP,
+    });
+
+    let cursor = startUnit;
+    for (const child of children) {
+      const childWidth = subtreeWidth(child);
+      placeSubtree(child, cursor, depth + 1);
+      cursor += childWidth;
+    }
+  };
+
+  const roots = sortQuestions(byParent.get(null) ?? []);
+  let rootCursor = 0;
+  for (const root of roots) {
+    const width = subtreeWidth(root);
+    placeSubtree(root, rootCursor, 0);
+    rootCursor += width + 0.2;
+  }
+
+  return { positions, byParent, roots };
+}
 
 export function ResearchQuestionsBoard({
   projectUuid,
   researchQuestions,
+  experiments,
 }: {
   projectUuid: string;
   researchQuestions: ResearchQuestionResponse[];
+  experiments: ExperimentResponse[];
 }) {
   const t = useTranslations();
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [selectedQuestionUuid, setSelectedQuestionUuid] = useState<string | null>(researchQuestions[0]?.uuid ?? null);
   useRealtimeRefresh();
 
-  const grouped = Object.fromEntries(
-    columns.map((column) => [
-      column.id,
-      researchQuestions.filter((question) => question.status === column.id),
-    ]),
-  ) as Record<(typeof columns)[number]["id"], ResearchQuestionResponse[]>;
+  useEffect(() => {
+    if (researchQuestions.length === 0) {
+      setSelectedQuestionUuid(null);
+      return;
+    }
+
+    if (!selectedQuestionUuid || !researchQuestions.some((question) => question.uuid === selectedQuestionUuid)) {
+      setSelectedQuestionUuid(researchQuestions[0]?.uuid ?? null);
+    }
+  }, [researchQuestions, selectedQuestionUuid]);
+
+  const selectedQuestion = useMemo(
+    () => researchQuestions.find((question) => question.uuid === selectedQuestionUuid) ?? null,
+    [researchQuestions, selectedQuestionUuid],
+  );
+
+  const selectedExperiments = useMemo(
+    () =>
+      experiments
+        .filter((experiment) => experiment.researchQuestionUuid === selectedQuestionUuid)
+        .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
+    [experiments, selectedQuestionUuid],
+  );
+
+  const flow = useMemo(() => {
+    const { positions, byParent, roots } = buildQuestionLayout(researchQuestions);
+    const nodes: Node<CanvasNodeData>[] = researchQuestions.map((question) => {
+      const position = positions.get(question.uuid) ?? { x: 0, y: 0 };
+      return {
+        id: `q-${question.uuid}`,
+        type: "question",
+        position,
+        draggable: false,
+        data: {
+          nodeKind: "question",
+          title: question.title,
+          summary: question.content,
+          statusLabel: statusLabelForQuestion(t, question),
+          reviewLabel: reviewLabelForQuestion(t, question),
+          sourceLabel: sourceLabelForQuestion(t, question),
+          experimentCountLabel: t("ideas.experimentCount", { count: question.experimentCount }),
+          childCountLabel: t("ideas.childCount", { count: question.childQuestionUuids.length }),
+          selected: question.uuid === selectedQuestionUuid,
+        },
+      };
+    });
+
+    const edges: Edge[] = [];
+
+    for (const question of researchQuestions) {
+      if (question.parentQuestionUuid) {
+        edges.push({
+          id: `parent-${question.parentQuestionUuid}-${question.uuid}`,
+          source: `q-${question.parentQuestionUuid}`,
+          target: `q-${question.uuid}`,
+          sourceHandle: "child-source",
+          targetHandle: "parent-target",
+          type: "smoothstep",
+          style: { stroke: "#C67A52", strokeWidth: 2.2 },
+        });
+      }
+    }
+
+    const siblingGroups = [roots, ...researchQuestions.map((question) => byParent.get(question.uuid) ?? [])].filter(
+      (group) => group.length > 1,
+    );
+
+    for (const group of siblingGroups) {
+      for (let index = 0; index < group.length - 1; index += 1) {
+        edges.push({
+          id: `peer-${group[index].uuid}-${group[index + 1].uuid}`,
+          source: `q-${group[index].uuid}`,
+          target: `q-${group[index + 1].uuid}`,
+          sourceHandle: "peer-source",
+          targetHandle: "peer-target",
+          type: "straight",
+          selectable: false,
+          style: {
+            stroke: "#D0C3B5",
+            strokeWidth: 1.6,
+            strokeDasharray: "8 6",
+          },
+        });
+      }
+    }
+
+    if (selectedQuestionUuid) {
+      const selectedPosition = positions.get(selectedQuestionUuid);
+      if (selectedPosition) {
+        const count = selectedExperiments.length;
+        selectedExperiments.forEach((experiment, index) => {
+          nodes.push({
+            id: `e-${experiment.uuid}`,
+            type: "experiment",
+            position: {
+              x: selectedPosition.x + COLUMN_GAP,
+              y: selectedPosition.y - ((count - 1) * 164) / 2 + index * 164,
+            },
+            draggable: false,
+            data: {
+              nodeKind: "experiment",
+              title: experiment.title,
+              statusLabel: statusLabelForExperiment(t, experiment),
+              outcome: experiment.outcome,
+              updatedLabel: `${t("experiments.card.updatedAt")} ${new Date(experiment.updatedAt).toLocaleDateString()}`,
+              parentContextLabel:
+                experiment.parentQuestionExperiments.length > 0
+                  ? `${t("experiments.card.parentContext")} ${experiment.parentQuestionExperiments.length}`
+                  : null,
+            },
+          });
+
+          edges.push({
+            id: `question-experiment-${selectedQuestionUuid}-${experiment.uuid}`,
+            source: `q-${selectedQuestionUuid}`,
+            target: `e-${experiment.uuid}`,
+            sourceHandle: "experiment-source",
+            targetHandle: "question-target",
+            type: "smoothstep",
+            animated: true,
+            style: { stroke: "#2F7D5D", strokeWidth: 1.8 },
+          });
+        });
+      }
+    }
+
+    return { nodes, edges };
+  }, [researchQuestions, selectedExperiments, selectedQuestionUuid, t]);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node<CanvasNodeData>>(flow.nodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(flow.edges);
+
+  useEffect(() => {
+    setNodes(flow.nodes);
+    setEdges(flow.edges);
+  }, [flow, setEdges, setNodes]);
+
+  const handleNodeClick = (_event: React.MouseEvent, node: Node<CanvasNodeData>) => {
+    if (node.data.nodeKind === "question") {
+      setSelectedQuestionUuid(node.id.replace("q-", ""));
+      return;
+    }
+
+    router.push(`/research-projects/${projectUuid}/experiments`);
+  };
+
+  const runStatusAction = (status: "elaborating" | "experiment_created" | "completed") => {
+    if (!selectedQuestion) return;
+
+    startTransition(() => {
+      void setResearchQuestionStatusAction({
+        projectUuid,
+        questionUuid: selectedQuestion.uuid,
+        status,
+      });
+    });
+  };
 
   return (
-    <div className="flex gap-4 overflow-x-auto pb-4">
-      {columns.map((column) => (
-        <section
-          key={column.id}
-          className="flex w-[320px] flex-shrink-0 flex-col rounded-3xl bg-[#F7F2EB] p-4"
-        >
-          <div className="mb-4 flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-[#2C2C2C]">{t(`ideas.columns.${column.labelKey}`)}</h2>
-            <span className="rounded-full bg-white px-2 py-0.5 text-xs text-[#6B6B6B]">
-              {grouped[column.id].length}
-            </span>
+    <div className="space-y-5">
+      <div className="relative min-h-[680px] overflow-hidden rounded-[32px] border border-border bg-[#FCFBF8] dark:bg-[#111111]">
+        {researchQuestions.length > 0 ? (
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-end p-4">
+            <div className="pointer-events-auto">
+              <IdeaCreateForm
+                projectUuid={projectUuid}
+                researchQuestions={researchQuestions.map((question) => ({
+                  uuid: question.uuid,
+                  title: question.title,
+                }))}
+              />
+            </div>
           </div>
+        ) : null}
 
-          <div className="space-y-3">
-            {grouped[column.id].length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#DCCFBE] bg-white/70 px-4 py-6 text-center text-sm text-[#9A8F81]">
-                {t("ideas.emptyColumn")}
+        {researchQuestions.length === 0 ? (
+          <div className="absolute inset-0 flex items-center justify-center p-6">
+            <Card className="w-full max-w-xl rounded-[32px] border-[#E5DED3] bg-white/95 p-8 text-center shadow-sm dark:border-border dark:bg-card">
+              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[#C67A5214] text-[#C67A52]">
+                <Plus className="h-6 w-6" />
               </div>
-            ) : (
-              grouped[column.id].map((question) => (
-                <Card key={question.uuid} className="space-y-3 rounded-2xl border-[#E5DED3] p-4">
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="text-sm font-semibold text-[#2C2C2C]">{question.title}</h3>
-                      <Badge variant="outline" className="border-[#E8DDCF] bg-[#FBF8F3] text-[#7B7063]">
-                        {question.sourceType === "agent" ? t("ideas.agentGenerated") : t("ideas.humanCreated")}
-                      </Badge>
-                    </div>
-                    {question.content ? (
-                      <p className="line-clamp-4 text-xs leading-5 text-[#6B6B6B]">{question.content}</p>
-                    ) : null}
-                  </div>
-
-                  <div className="space-y-1 text-xs text-[#7C7368]">
-                    <p>
-                      {t("ideas.card.review")}:{" "}
-                      {question.reviewStatus === "pending"
-                        ? t("ideas.pendingReview")
-                        : question.reviewStatus === "accepted"
-                          ? t("ideas.accepted")
-                          : t("ideas.rejected")}
-                    </p>
-                    <p>
-                      {t("common.assignee")}: {question.assignee?.name || t("common.unassigned")}
-                    </p>
-                  </div>
-
-                  {question.reviewStatus === "pending" ? (
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        size="sm"
-                        className="bg-[#C67A52] text-white hover:bg-[#B56A42]"
-                        disabled={isPending}
-                        onClick={() =>
-                          startTransition(() => {
-                            void reviewResearchQuestionAction({
-                              projectUuid,
-                              questionUuid: question.uuid,
-                              reviewStatus: "accepted",
-                            });
-                          })
-                        }
-                      >
-                        <Check className="mr-2 h-4 w-4" />
-                        {t("common.approve")}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={isPending}
-                        onClick={() =>
-                          startTransition(() => {
-                            void reviewResearchQuestionAction({
-                              projectUuid,
-                              questionUuid: question.uuid,
-                              reviewStatus: "rejected",
-                            });
-                          })
-                        }
-                      >
-                        {t("common.reject")}
-                      </Button>
-                    </div>
-                  ) : null}
-
-                  {question.reviewStatus === "accepted" && question.status === "open" ? (
-                    <Button
-                      size="sm"
-                      className="w-full bg-[#C67A52] text-white hover:bg-[#B56A42]"
-                      disabled={isPending}
-                      onClick={() =>
-                        startTransition(() => {
-                          void setResearchQuestionStatusAction({
-                            projectUuid,
-                            questionUuid: question.uuid,
-                            status: "elaborating",
-                          });
-                        })
-                      }
-                    >
-                      <PlayCircle className="mr-2 h-4 w-4" />
-                      {t("ideas.actions.startElaboration")}
-                    </Button>
-                  ) : null}
-
-                  {question.reviewStatus === "accepted" && question.status === "elaborating" ? (
-                    <Button
-                      size="sm"
-                      className="w-full bg-[#2F7D5D] text-white hover:bg-[#27674d]"
-                      disabled={isPending}
-                      onClick={() =>
-                        startTransition(() => {
-                          void setResearchQuestionStatusAction({
-                            projectUuid,
-                            questionUuid: question.uuid,
-                            status: "experiment_created",
-                          });
-                        })
-                      }
-                    >
-                      <FlaskConical className="mr-2 h-4 w-4" />
-                      {t("ideas.actions.markExperimentCreated")}
-                    </Button>
-                  ) : null}
-
-                  {question.reviewStatus === "accepted" && question.status === "experiment_created" ? (
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={isPending}
-                        onClick={() =>
-                          startTransition(() => {
-                            void setResearchQuestionStatusAction({
-                              projectUuid,
-                              questionUuid: question.uuid,
-                              status: "elaborating",
-                            });
-                          })
-                        }
-                      >
-                        <CornerUpLeft className="mr-2 h-4 w-4" />
-                        {t("ideas.actions.backToElaboration")}
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="bg-[#2F7D5D] text-white hover:bg-[#27674d]"
-                        disabled={isPending}
-                        onClick={() =>
-                          startTransition(() => {
-                            void setResearchQuestionStatusAction({
-                              projectUuid,
-                              questionUuid: question.uuid,
-                              status: "completed",
-                            });
-                          })
-                        }
-                      >
-                        <Check className="mr-2 h-4 w-4" />
-                        {t("ideas.actions.markCompleted")}
-                      </Button>
-                    </div>
-                  ) : null}
-                </Card>
-              ))
-            )}
+              <h2 className="text-xl font-semibold text-foreground">{t("ideas.emptyTitle")}</h2>
+              <p className="mt-3 text-sm leading-7 text-muted-foreground">{t("ideas.emptyDesc")}</p>
+              <div className="mt-6 flex justify-center">
+                <IdeaCreateForm projectUuid={projectUuid} buttonLabel={t("ideas.createRoot")} />
+              </div>
+            </Card>
           </div>
-        </section>
-      ))}
+        ) : (
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onNodeClick={handleNodeClick}
+            fitView
+            fitViewOptions={{ padding: 0.18, minZoom: 0.65 }}
+            minZoom={0.35}
+            maxZoom={1.5}
+            panOnDrag
+            selectionOnDrag
+            nodesDraggable={false}
+            proOptions={{ hideAttribution: true }}
+            className="min-h-[680px]"
+          >
+            <Background color="rgba(198, 122, 82, 0.12)" gap={24} />
+            <Controls className="[&>button]:border-border [&>button]:bg-background [&>button]:text-foreground [&>button:hover]:bg-accent" />
+          </ReactFlow>
+        )}
+      </div>
+
+      {selectedQuestion ? (
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.95fr)]">
+          <Card className="rounded-[28px] border-[#E5DED3] p-6 shadow-none dark:border-border">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge>{t("ideas.selected")}</Badge>
+                  <Badge variant="outline">{statusLabelForQuestion(t, selectedQuestion)}</Badge>
+                  <Badge variant="secondary">{reviewLabelForQuestion(t, selectedQuestion)}</Badge>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">{selectedQuestion.title}</h2>
+                  <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                    {selectedQuestion.content || t("common.noDescription")}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <IdeaCreateForm
+                  projectUuid={projectUuid}
+                  researchQuestions={researchQuestions.map((question) => ({
+                    uuid: question.uuid,
+                    title: question.title,
+                  }))}
+                  buttonLabel={t("ideas.createChild")}
+                  defaultParentQuestionUuid={selectedQuestion.uuid}
+                />
+                <Button asChild variant="outline">
+                  <Link href={`/research-projects/${projectUuid}/experiments`}>{t("ideas.viewExperiments")}</Link>
+                </Button>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              <div className="rounded-2xl bg-secondary/80 px-4 py-3">
+                <p className="text-xs text-muted-foreground">{t("ideas.card.parent")}</p>
+                <p className="mt-1 text-sm font-medium text-foreground">
+                  {researchQuestions.find((question) => question.uuid === selectedQuestion.parentQuestionUuid)?.title ||
+                    t("ideas.noParent")}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-secondary/80 px-4 py-3">
+                <p className="text-xs text-muted-foreground">{t("ideas.card.children")}</p>
+                <p className="mt-1 text-sm font-medium text-foreground">
+                  {t("ideas.childCount", { count: selectedQuestion.childQuestionUuids.length })}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-secondary/80 px-4 py-3">
+                <p className="text-xs text-muted-foreground">{t("ideas.card.experiments")}</p>
+                <p className="mt-1 text-sm font-medium text-foreground">
+                  {t("ideas.experimentCount", { count: selectedQuestion.experimentCount })}
+                </p>
+              </div>
+            </div>
+
+            {selectedQuestion.experimentCount > 0 ? (
+              <p className="mt-4 text-xs leading-6 text-muted-foreground">{t("ideas.inheritsParentExperiments")}</p>
+            ) : null}
+          </Card>
+
+          <Card className="rounded-[28px] border-[#E5DED3] p-6 shadow-none dark:border-border">
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-base font-semibold text-foreground">{t("ideas.inspectorTitle")}</h2>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">{t("ideas.parallelHint")}</p>
+              </div>
+
+              {selectedQuestion.reviewStatus === "pending" ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button
+                    className="bg-[#C67A52] text-white hover:bg-[#B56A42]"
+                    disabled={isPending}
+                    onClick={() =>
+                      startTransition(() => {
+                        void reviewResearchQuestionAction({
+                          projectUuid,
+                          questionUuid: selectedQuestion.uuid,
+                          reviewStatus: "accepted",
+                        });
+                      })
+                    }
+                  >
+                    <Check className="mr-2 h-4 w-4" />
+                    {t("common.approve")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={isPending}
+                    onClick={() =>
+                      startTransition(() => {
+                        void reviewResearchQuestionAction({
+                          projectUuid,
+                          questionUuid: selectedQuestion.uuid,
+                          reviewStatus: "rejected",
+                        });
+                      })
+                    }
+                  >
+                    {t("common.reject")}
+                  </Button>
+                </div>
+              ) : null}
+
+              {selectedQuestion.reviewStatus === "accepted" && selectedQuestion.status === "open" ? (
+                <Button
+                  className="w-full bg-[#C67A52] text-white hover:bg-[#B56A42]"
+                  disabled={isPending}
+                  onClick={() => runStatusAction("elaborating")}
+                >
+                  <PlayCircle className="mr-2 h-4 w-4" />
+                  {t("ideas.actions.startElaboration")}
+                </Button>
+              ) : null}
+
+              {selectedQuestion.reviewStatus === "accepted" && selectedQuestion.status === "elaborating" ? (
+                <Button
+                  className="w-full bg-[#2F7D5D] text-white hover:bg-[#27674D]"
+                  disabled={isPending}
+                  onClick={() => runStatusAction("experiment_created")}
+                >
+                  <FlaskConical className="mr-2 h-4 w-4" />
+                  {t("ideas.actions.markExperimentCreated")}
+                </Button>
+              ) : null}
+
+              {selectedQuestion.reviewStatus === "accepted" && selectedQuestion.status === "experiment_created" ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button variant="outline" disabled={isPending} onClick={() => runStatusAction("elaborating")}>
+                    <CornerUpLeft className="mr-2 h-4 w-4" />
+                    {t("ideas.actions.backToElaboration")}
+                  </Button>
+                  <Button
+                    className="bg-[#2F7D5D] text-white hover:bg-[#27674D]"
+                    disabled={isPending}
+                    onClick={() => runStatusAction("completed")}
+                  >
+                    <Check className="mr-2 h-4 w-4" />
+                    {t("ideas.actions.markCompleted")}
+                  </Button>
+                </div>
+              ) : null}
+
+              <div className="space-y-3 border-t border-border pt-4">
+                <h3 className="text-sm font-semibold text-foreground">{t("ideas.linkedExperiments")}</h3>
+                {selectedExperiments.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-border bg-secondary/40 px-4 py-6 text-sm text-muted-foreground">
+                    {t("ideas.noLinkedExperiments")}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {selectedExperiments.map((experiment) => (
+                      <div
+                        key={experiment.uuid}
+                        className="rounded-2xl border border-border bg-background px-4 py-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{experiment.title}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {statusLabelForExperiment(t, experiment)}
+                            </p>
+                          </div>
+                          {experiment.outcome ? <Badge variant="outline">{experiment.outcome}</Badge> : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
-import { Plus, Play, Send, CheckCircle2, CornerUpLeft } from "lucide-react";
+import { Play, Send, CheckCircle2, CornerUpLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,11 +19,9 @@ const columns = [
 ] as const;
 
 export function ExperimentsBoard({
-  projectUuid,
   experiments,
   agents,
 }: {
-  projectUuid: string;
   experiments: ExperimentResponse[];
   agents: Array<{ uuid: string; name: string }>;
 }) {
@@ -65,19 +62,13 @@ export function ExperimentsBoard({
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex justify-end">
-        <Button asChild className="bg-[#C67A52] text-white hover:bg-[#B56A42]">
-          <Link href={`/research-projects/${projectUuid}/experiments/new`}>
-            <Plus className="mr-2 h-4 w-4" />
-            {t("experiments.create")}
-          </Link>
-        </Button>
-      </div>
-
-      <div className="flex gap-4 overflow-x-auto pb-4">
+    <div className="overflow-x-auto pb-4">
+      <div className="grid min-w-max grid-flow-col auto-cols-[minmax(360px,1fr)] gap-5">
         {columns.map((column) => (
-          <section key={column.id} className="flex w-[300px] flex-shrink-0 flex-col rounded-3xl bg-[#F7F2EB] p-4">
+          <section
+            key={column.id}
+            className="flex min-h-[calc(100vh-260px)] flex-col rounded-3xl bg-[#F7F2EB] p-5"
+          >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-semibold text-[#2C2C2C]">{t(`experiments.columns.${column.labelKey}`)}</h2>
@@ -85,14 +76,14 @@ export function ExperimentsBoard({
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="flex-1 space-y-3">
               {grouped[column.id].length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[#DCCFBE] bg-white/70 px-4 py-6 text-center text-sm text-[#9A8F81]">
+                <div className="rounded-2xl border border-dashed border-[#DCCFBE] bg-white/70 px-4 py-8 text-center text-sm text-[#9A8F81]">
                   {t("experiments.empty")}
                 </div>
               ) : (
                 grouped[column.id].map((experiment) => (
-                  <Card key={experiment.uuid} className="space-y-3 rounded-2xl border-[#E5DED3] p-4">
+                  <Card key={experiment.uuid} className="space-y-4 rounded-2xl border-[#E5DED3] p-4 shadow-none">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <h3 className="text-sm font-semibold text-[#2C2C2C]">{experiment.title}</h3>

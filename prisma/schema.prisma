@@ -160,6 +160,9 @@ model ResearchQuestion {
   sourceType          String          @default("human") // human | agent
   sourceLabel         String?
   generatedByAgentUuid String?
+  parentQuestionUuid   String?
+  parentQuestion       ResearchQuestion?  @relation("ResearchQuestionHierarchy", fields: [parentQuestionUuid], references: [uuid], onDelete: Restrict, onUpdate: Restrict)
+  childQuestions       ResearchQuestion[] @relation("ResearchQuestionHierarchy")
   reviewStatus        String          @default("pending") // pending | accepted | rejected
   reviewedByUuid      String?
   reviewNote          String?
@@ -188,6 +191,7 @@ model ResearchQuestion {
   @@index([status])
   @@index([assigneeUuid])
   @@index([reviewStatus])
+  @@index([parentQuestionUuid])
   @@map("Idea")
 }
 
@@ -221,7 +225,7 @@ model Experiment {
   researchProjectUuid String          @map("projectUuid")
   researchProject     ResearchProject @relation(fields: [researchProjectUuid], references: [uuid], onDelete: Cascade)
   researchQuestionUuid String?
-  researchQuestion    ResearchQuestion? @relation(fields: [researchQuestionUuid], references: [uuid], onDelete: SetNull)
+  researchQuestion    ResearchQuestion? @relation(fields: [researchQuestionUuid], references: [uuid], onDelete: SetNull, onUpdate: Restrict)
   title               String
   description         String?
   status              String          @default("draft") // draft | pending_review | pending_start | in_progress | completed
@@ -549,7 +553,7 @@ model ExperimentGpuReservation {
   companyUuid   String
   company       Company    @relation(fields: [companyUuid], references: [uuid])
   experimentUuid String
-  experiment    Experiment @relation(fields: [experimentUuid], references: [uuid], onDelete: Cascade)
+  experiment    Experiment @relation(fields: [experimentUuid], references: [uuid], onDelete: Cascade, onUpdate: Restrict)
   gpuUuid       String
   gpu           ComputeGpu @relation(fields: [gpuUuid], references: [uuid], onDelete: Cascade)
   attachedAt    DateTime   @default(now())

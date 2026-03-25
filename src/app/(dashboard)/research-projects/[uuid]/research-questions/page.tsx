@@ -2,8 +2,8 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { listResearchQuestions } from "@/services/research-question.service";
+import { listExperiments } from "@/services/experiment.service";
 import { researchProjectExists } from "@/services/research-project.service";
-import { IdeaCreateForm } from "./question-create-form";
 import { ResearchQuestionsBoard } from "./research-questions-board";
 
 interface PageProps {
@@ -23,26 +23,36 @@ export default async function ResearchQuestionsPage({ params }: PageProps) {
   }
 
   const t = await getTranslations();
-  const { researchQuestions } = await listResearchQuestions({
-    companyUuid: auth.companyUuid,
-    researchProjectUuid: projectUuid,
-    skip: 0,
-    take: 1000,
-  });
+  const [{ researchQuestions }, { experiments }] = await Promise.all([
+    listResearchQuestions({
+      companyUuid: auth.companyUuid,
+      researchProjectUuid: projectUuid,
+      skip: 0,
+      take: 1000,
+    }),
+    listExperiments({
+      companyUuid: auth.companyUuid,
+      researchProjectUuid: projectUuid,
+      skip: 0,
+      take: 1000,
+    }),
+  ]);
 
   return (
     <div className="space-y-6 p-4 md:p-8">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div>
         <div>
           <h1 className="text-2xl font-semibold text-[#2C2C2C]">{t("ideas.title")}</h1>
           <p className="mt-1 text-sm text-[#6B6B6B]">{t("ideas.subtitle")}</p>
-        </div>
-        <div className="w-full max-w-xl">
-          <IdeaCreateForm projectUuid={projectUuid} />
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">{t("ideas.canvasHint")}</p>
         </div>
       </div>
 
-      <ResearchQuestionsBoard projectUuid={projectUuid} researchQuestions={researchQuestions} />
+      <ResearchQuestionsBoard
+        projectUuid={projectUuid}
+        researchQuestions={researchQuestions}
+        experiments={experiments}
+      />
     </div>
   );
 }

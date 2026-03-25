@@ -52,7 +52,15 @@ export interface ExperimentResponse {
   researchQuestion?: {
     uuid: string;
     title: string;
+    parentQuestionUuid?: string | null;
   } | null;
+  parentQuestionExperiments: Array<{
+    uuid: string;
+    title: string;
+    status: ExperimentStatus;
+    outcome: string | null;
+    updatedAt: string;
+  }>;
 }
 
 export interface ExperimentListParams {
@@ -97,6 +105,7 @@ function assertTransition(from: ExperimentStatus, to: ExperimentStatus) {
 }
 
 async function formatExperiment(
+  companyUuid: string,
   experiment: {
     uuid: string;
     researchProjectUuid: string;
@@ -123,7 +132,7 @@ async function formatExperiment(
     completedAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
-    researchQuestion?: { uuid: string; title: string } | null;
+    researchQuestion?: { uuid: string; title: string; parentQuestionUuid?: string | null } | null;
   }
 ): Promise<ExperimentResponse> {
   const [assignee, createdBy] = await Promise.all([
@@ -135,6 +144,24 @@ async function formatExperiment(
     ),
     formatCreatedBy(experiment.createdByUuid, experiment.createdByType === "agent" ? "agent" : "user"),
   ]);
+
+  const parentQuestionExperiments =
+    experiment.researchQuestion?.parentQuestionUuid
+      ? await prisma.experiment.findMany({
+          where: {
+            companyUuid,
+            researchQuestionUuid: experiment.researchQuestion.parentQuestionUuid,
+          },
+          select: {
+            uuid: true,
+            title: true,
+            status: true,
+            outcome: true,
+            updatedAt: true,
+          },
+          orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+        })
+      : [];
 
   return {
     uuid: experiment.uuid,
@@ -159,6 +186,13 @@ async function formatExperiment(
     createdAt: experiment.createdAt.toISOString(),
     updatedAt: experiment.updatedAt.toISOString(),
     researchQuestion: experiment.researchQuestion ?? null,
+    parentQuestionExperiments: parentQuestionExperiments.map((item) => ({
+      uuid: item.uuid,
+      title: item.title,
+      status: item.status as ExperimentStatus,
+      outcome: item.outcome,
+      updatedAt: item.updatedAt.toISOString(),
+    })),
   };
 }
 
@@ -183,7 +217,7 @@ export async function listExperiments({
       orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
       include: {
         researchQuestion: {
-          select: { uuid: true, title: true },
+          select: { uuid: true, title: true, parentQuestionUuid: true },
         },
       },
     }),
@@ -191,7 +225,7 @@ export async function listExperiments({
   ]);
 
   return {
-    experiments: await Promise.all(experiments.map(formatExperiment)),
+    experiments: await Promise.all(experiments.map((experiment) => formatExperiment(companyUuid, experiment))),
     total,
   };
 }
@@ -201,7 +235,7 @@ export async function getExperiment(companyUuid: string, uuid: string) {
     where: { companyUuid, uuid },
     include: {
       researchQuestion: {
-        select: { uuid: true, title: true },
+        select: { uuid: true, title: true, parentQuestionUuid: true },
       },
     },
   });
@@ -210,7 +244,7 @@ export async function getExperiment(companyUuid: string, uuid: string) {
     return null;
   }
 
-  return formatExperiment(experiment);
+  return formatExperiment(companyUuid, experiment);
 }
 
 export async function createExperiment(params: ExperimentCreateParams) {
@@ -229,7 +263,7 @@ export async function createExperiment(params: ExperimentCreateParams) {
     },
     include: {
       researchQuestion: {
-        select: { uuid: true, title: true },
+        select: { uuid: true, title: true, parentQuestionUuid: true },
       },
     },
   });
@@ -260,7 +294,7 @@ export async function createExperiment(params: ExperimentCreateParams) {
     actorUuid: params.createdByUuid,
   });
 
-  return formatExperiment(experiment);
+  return formatExperiment(params.companyUuid, experiment);
 }
 
 export async function updateExperiment(
@@ -307,7 +341,7 @@ export async function updateExperiment(
     },
     include: {
       researchQuestion: {
-        select: { uuid: true, title: true },
+        select: { uuid: true, title: true, parentQuestionUuid: true },
       },
     },
   });
@@ -333,7 +367,7 @@ export async function updateExperiment(
     actorUuid: actor?.actorUuid,
   });
 
-  return formatExperiment(experiment);
+  return formatExperiment(companyUuid, experiment);
 }
 
 export async function reviewExperiment(input: {
@@ -364,7 +398,7 @@ export async function reviewExperiment(input: {
     },
     include: {
       researchQuestion: {
-        select: { uuid: true, title: true },
+        select: { uuid: true, title: true, parentQuestionUuid: true },
       },
     },
   });
@@ -389,7 +423,7 @@ export async function reviewExperiment(input: {
     actorUuid: input.actorUuid,
   });
 
-  return formatExperiment(updated);
+  return formatExperiment(input.companyUuid, updated);
 }
 
 export async function assignExperiment(input: {
@@ -420,7 +454,7 @@ export async function assignExperiment(input: {
     },
     include: {
       researchQuestion: {
-        select: { uuid: true, title: true },
+        select: { uuid: true, title: true, parentQuestionUuid: true },
       },
     },
   });
@@ -463,7 +497,7 @@ export async function assignExperiment(input: {
     actorUuid: input.assignedByUuid,
   });
 
-  return formatExperiment(updated);
+  return formatExperiment(input.companyUuid, updated);
 }
 
 export async function startExperiment(input: {
@@ -496,7 +530,7 @@ export async function startExperiment(input: {
     },
     include: {
       researchQuestion: {
-        select: { uuid: true, title: true },
+        select: { uuid: true, title: true, parentQuestionUuid: true },
       },
     },
   });
@@ -521,7 +555,7 @@ export async function startExperiment(input: {
     actorUuid: input.actorUuid,
   });
 
-  return formatExperiment(updated);
+  return formatExperiment(input.companyUuid, updated);
 }
 
 export async function completeExperiment(input: {
@@ -537,7 +571,7 @@ export async function completeExperiment(input: {
     where: { uuid: input.experimentUuid, companyUuid: input.companyUuid },
     include: {
       researchQuestion: {
-        select: { uuid: true, title: true },
+        select: { uuid: true, title: true, parentQuestionUuid: true },
       },
     },
   });
@@ -559,7 +593,7 @@ export async function completeExperiment(input: {
     },
     include: {
       researchQuestion: {
-        select: { uuid: true, title: true },
+        select: { uuid: true, title: true, parentQuestionUuid: true },
       },
     },
   });
@@ -586,7 +620,7 @@ export async function completeExperiment(input: {
     actorUuid: input.actorUuid,
   });
 
-  return formatExperiment(updated);
+  return formatExperiment(input.companyUuid, updated);
 }
 
 export async function deleteExperiment(companyUuid: string, experimentUuid: string) {

@@ -295,6 +295,9 @@ export default function NewProjectPage() {
                     placeholder={t("projects.createNew.datasetsPlaceholder")}
                     rows={4}
                   />
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    {t("projects.createNew.datasetsHelp")}
+                  </p>
                 </div>
 
                 <div className="space-y-2">

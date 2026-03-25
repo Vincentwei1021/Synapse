@@ -29,6 +29,7 @@ export interface ResearchQuestionCreateParams {
   title: string;
   content?: string | null;
   attachments?: unknown;
+  parentQuestionUuid?: string | null;
   createdByUuid: string;
   sourceType?: string;
   sourceLabel?: string | null;
@@ -49,6 +50,9 @@ export interface ResearchQuestionResponse {
   title: string;
   content: string | null;
   attachments: unknown;
+  parentQuestionUuid: string | null;
+  childQuestionUuids: string[];
+  experimentCount: number;
   sourceType: string;
   sourceLabel: string | null;
   generatedByAgentUuid: string | null;
@@ -111,6 +115,9 @@ async function formatResearchQuestionResponse(
     title: string;
     content: string | null;
     attachments: unknown;
+    parentQuestionUuid: string | null;
+    childQuestions?: Array<{ uuid: string }>;
+    _count?: { experiments: number };
     sourceType: string;
     sourceLabel: string | null;
     generatedByAgentUuid: string | null;
@@ -141,6 +148,9 @@ async function formatResearchQuestionResponse(
     title: idea.title,
     content: idea.content,
     attachments: idea.attachments,
+    parentQuestionUuid: idea.parentQuestionUuid,
+    childQuestionUuids: idea.childQuestions?.map((child) => child.uuid) ?? [],
+    experimentCount: idea._count?.experiments ?? 0,
     sourceType: idea.sourceType,
     sourceLabel: idea.sourceLabel,
     generatedByAgentUuid: idea.generatedByAgentUuid,
@@ -201,6 +211,14 @@ export async function listResearchQuestions({
         title: true,
         content: true,
         attachments: true,
+        parentQuestionUuid: true,
+        childQuestions: {
+          select: { uuid: true },
+          orderBy: { createdAt: "asc" },
+        },
+        _count: {
+          select: { experiments: true },
+        },
         sourceType: true,
         sourceLabel: true,
         generatedByAgentUuid: true,
@@ -236,6 +254,13 @@ export async function getResearchQuestion(
     where: { uuid, companyUuid },
     include: {
       researchProject: { select: { uuid: true, name: true } },
+      childQuestions: {
+        select: { uuid: true },
+        orderBy: { createdAt: "asc" },
+      },
+      _count: {
+        select: { experiments: true },
+      },
     },
   });
 
@@ -247,11 +272,38 @@ export async function getResearchQuestion(
 export async function getResearchQuestionByUuid(companyUuid: string, uuid: string) {
   return prisma.researchQuestion.findFirst({
     where: { uuid, companyUuid },
+    include: {
+      parentQuestion: {
+        select: { uuid: true, researchProjectUuid: true },
+      },
+      childQuestions: {
+        select: { uuid: true },
+        orderBy: { createdAt: "asc" },
+      },
+      _count: {
+        select: { experiments: true },
+      },
+    },
   });
 }
 
 // Create Idea
 export async function createResearchQuestion(params: ResearchQuestionCreateParams): Promise<ResearchQuestionResponse> {
+  if (params.parentQuestionUuid) {
+    const parentQuestion = await prisma.researchQuestion.findFirst({
+      where: {
+        uuid: params.parentQuestionUuid,
+        companyUuid: params.companyUuid,
+        researchProjectUuid: params.researchProjectUuid,
+      },
+      select: { uuid: true },
+    });
+
+    if (!parentQuestion) {
+      throw new Error("Parent research question not found");
+    }
+  }
+
   const idea = await prisma.researchQuestion.create({
     data: {
       companyUuid: params.companyUuid,
@@ -259,6 +311,7 @@ export async function createResearchQuestion(params: ResearchQuestionCreateParam
       title: params.title,
       content: params.content,
       attachments: params.attachments || undefined,
+      parentQuestionUuid: params.parentQuestionUuid ?? null,
       sourceType: params.sourceType ?? "human",
       sourceLabel: params.sourceLabel ?? null,
       generatedByAgentUuid: params.generatedByAgentUuid ?? null,
@@ -271,6 +324,14 @@ export async function createResearchQuestion(params: ResearchQuestionCreateParam
       title: true,
       content: true,
       attachments: true,
+      parentQuestionUuid: true,
+      childQuestions: {
+        select: { uuid: true },
+        orderBy: { createdAt: "asc" },
+      },
+      _count: {
+        select: { experiments: true },
+      },
       sourceType: true,
       sourceLabel: true,
       generatedByAgentUuid: true,
@@ -300,7 +361,7 @@ export async function createResearchQuestion(params: ResearchQuestionCreateParam
 export async function updateResearchQuestion(
   uuid: string,
   companyUuid: string,
-  data: { title?: string; content?: string | null; status?: string },
+  data: { title?: string; content?: string | null; status?: string; parentQuestionUuid?: string | null },
   actorContext?: { actorType: string; actorUuid: string }
 ): Promise<ResearchQuestionResponse> {
   // If content is being updated and we have actor context, capture old content for mention diffing
@@ -315,6 +376,13 @@ export async function updateResearchQuestion(
     data,
     include: {
       researchProject: { select: { uuid: true, name: true } },
+      childQuestions: {
+        select: { uuid: true },
+        orderBy: { createdAt: "asc" },
+      },
+      _count: {
+        select: { experiments: true },
+      },
     },
   });
 

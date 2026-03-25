@@ -67,6 +67,7 @@ export const POST = withErrorHandler<{ uuid: string }>(
       title: string;
       content?: string;
       attachments?: unknown;
+      parentQuestionUuid?: string | null;
     }>(request);
 
     // Validate required fields
@@ -80,6 +81,7 @@ export const POST = withErrorHandler<{ uuid: string }>(
       title: body.title.trim(),
       content: body.content?.trim() || null,
       attachments: body.attachments,
+      parentQuestionUuid: body.parentQuestionUuid || null,
       createdByUuid: auth.actorUuid,
     });
 
