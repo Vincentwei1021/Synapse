@@ -137,12 +137,12 @@ export function CreateProjectDialog({
 
           <div className="flex flex-col gap-1.5">
             <Label className="text-[13px] font-medium text-[#2C2C2C]">
-              Research Goal
+              {t("projectGroups.researchGoal")}
             </Label>
             <Textarea
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
-              placeholder="What should the agent optimize for or prove?"
+              placeholder={t("projectGroups.researchGoalPlaceholder")}
               className="min-h-[72px] rounded-lg border-[#E5E2DC]"
             />
           </div>
@@ -150,24 +150,24 @@ export function CreateProjectDialog({
           <div className="grid gap-5 md:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label className="text-[13px] font-medium text-[#2C2C2C]">
-                Datasets
+                {t("projectGroups.datasets")}
               </Label>
               <Textarea
                 value={datasets}
                 onChange={(e) => setDatasets(e.target.value)}
-                placeholder="One dataset per line"
+                placeholder={t("projectGroups.datasetsPlaceholder")}
                 className="min-h-[96px] rounded-lg border-[#E5E2DC]"
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
               <Label className="text-[13px] font-medium text-[#2C2C2C]">
-                Evaluation Methods
+                {t("projectGroups.evaluationMethods")}
               </Label>
               <Textarea
                 value={evaluationMethods}
                 onChange={(e) => setEvaluationMethods(e.target.value)}
-                placeholder="One metric or protocol per line"
+                placeholder={t("projectGroups.evaluationMethodsPlaceholder")}
                 className="min-h-[96px] rounded-lg border-[#E5E2DC]"
               />
             </div>

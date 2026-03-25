@@ -262,41 +262,41 @@ export default function NewProjectPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="goal">Research goal</Label>
+                <Label htmlFor="goal">{t("projects.createNew.goalLabel")}</Label>
                 <Textarea
                   id="goal"
                   value={formData.goal}
                   onChange={(e) =>
                     setFormData({ ...formData, goal: e.target.value })
                   }
-                  placeholder="Summarize the objective, expected contribution, or decision this project should drive."
+                  placeholder={t("projects.createNew.goalPlaceholder")}
                   rows={3}
                 />
               </div>
 
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="datasets">Datasets</Label>
+                  <Label htmlFor="datasets">{t("projects.createNew.datasetsLabel")}</Label>
                   <Textarea
                     id="datasets"
                     value={formData.datasets}
                     onChange={(e) =>
                       setFormData({ ...formData, datasets: e.target.value })
                     }
-                    placeholder="One dataset per line"
+                    placeholder={t("projects.createNew.datasetsPlaceholder")}
                     rows={4}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="evaluationMethods">Evaluation methods</Label>
+                  <Label htmlFor="evaluationMethods">{t("projects.createNew.evaluationLabel")}</Label>
                   <Textarea
                     id="evaluationMethods"
                     value={formData.evaluationMethods}
                     onChange={(e) =>
                       setFormData({ ...formData, evaluationMethods: e.target.value })
                     }
-                    placeholder="One metric, benchmark, or review protocol per line"
+                    placeholder={t("projects.createNew.evaluationPlaceholder")}
                     rows={4}
                   />
                 </div>
