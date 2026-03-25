@@ -117,7 +117,7 @@ function ProjectCardContent({ project }: { project: ProjectData }) {
     : 0;
 
   return (
-    <Card className="group cursor-pointer rounded-2xl border-[#E5E2DC] p-6 shadow-none transition-all hover:border-[#C67A52] hover:shadow-md">
+    <Card className="group cursor-pointer rounded-2xl border-border bg-card p-6 shadow-none transition-all hover:border-primary/50 hover:shadow-md">
       {/* Header: Avatar + Name + Badge */}
       <div className="mb-3 flex items-start gap-3">
         <div
@@ -128,19 +128,19 @@ function ProjectCardContent({ project }: { project: ProjectData }) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="truncate font-semibold text-[#2C2C2C] group-hover:text-[#C67A52]">
+            <h3 className="truncate font-semibold text-foreground group-hover:text-primary">
               {project.name}
             </h3>
             <Badge
               variant="success"
-              className="gap-1 border-0 bg-[#5A9E6F15] text-[10px] text-[#5A9E6F]"
+              className="gap-1 border-0 bg-emerald-500/15 text-[10px] text-emerald-600 dark:text-emerald-400"
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-[#5A9E6F]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               {t("status.active")}
             </Badge>
           </div>
           {project.description && (
-            <p className="mt-0.5 line-clamp-1 text-xs text-[#6B6B6B]">
+            <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
               {project.description}
             </p>
           )}
@@ -150,10 +150,10 @@ function ProjectCardContent({ project }: { project: ProjectData }) {
       {/* Progress Bar */}
       <div className="mb-3">
         <div className="mb-1 flex items-center justify-between">
-          <span className="text-[11px] text-[#9A9A9A]">
+          <span className="text-[11px] text-muted-foreground">
             {t("projects.taskProgress")}
           </span>
-          <span className="text-[11px] font-medium text-[#2C2C2C]">
+          <span className="text-[11px] font-medium text-foreground">
             {progress}%
           </span>
         </div>
@@ -161,7 +161,7 @@ function ProjectCardContent({ project }: { project: ProjectData }) {
       </div>
 
       {/* Stats Row */}
-      <div className="flex items-center justify-between text-[11px] text-[#9A9A9A]">
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
         <div className="flex flex-wrap gap-3">
           <span className="flex items-center gap-1">
             <ClipboardList className="h-3 w-3" />
@@ -208,31 +208,31 @@ function GroupSection({
         <div ref={provided.innerRef} {...provided.droppableProps}>
           <Collapsible open={isOpen} onOpenChange={setIsOpen}>
             <Card
-              className={`rounded-2xl border-[#E5E2DC] p-0 shadow-none transition-colors hover:border-[#C67A52]/40 ${
+              className={`rounded-2xl border-border bg-card p-0 shadow-none transition-colors hover:border-primary/40 ${
                 snapshot.isDraggingOver
-                  ? "border-[#C67A52] bg-[#C67A5208]"
+                  ? "border-primary bg-primary/5"
                   : ""
               }`}
             >
               {/* Group Header */}
               <div className="flex flex-col gap-2 px-4 py-3 md:flex-row md:items-center md:justify-between md:px-6 md:py-4">
                 <CollapsibleTrigger className="flex flex-1 cursor-pointer items-center gap-3 text-left">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#C67A5215]">
-                    <Folder className="h-4 w-4 text-[#C67A52]" />
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15">
+                    <Folder className="h-4 w-4 text-primary" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <h2 className="truncate text-base font-semibold text-[#2C2C2C]">
+                      <h2 className="truncate text-base font-semibold text-foreground">
                         {group.name}
                       </h2>
                       <Badge
                         variant="secondary"
-                        className="shrink-0 border-0 bg-[#F0EDE8] text-[11px] font-medium text-[#6B6B6B]"
+                        className="shrink-0 border-0 bg-secondary text-[11px] font-medium text-muted-foreground"
                       >
                         {projects.length} {t("projectGroups.projectCount")}
                       </Badge>
                     </div>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-[#9A9A9A]">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
                       <span>
                         {stats.totalTasks} {t("projects.tasks")} &middot;{" "}
                         {completionRate}% {t("projectGroups.complete")}
@@ -243,9 +243,9 @@ function GroupSection({
                     </div>
                   </div>
                   {isOpen ? (
-                    <ChevronDown className="ml-auto h-4 w-4 shrink-0 text-[#9A9A9A]" />
+                    <ChevronDown className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
                   ) : (
-                    <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-[#9A9A9A]" />
+                    <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
                   )}
                 </CollapsibleTrigger>
                 <div className={`grid grid-cols-2 gap-2 md:flex md:items-center ${isOpen ? "grid" : "hidden md:flex"}`}>
@@ -253,7 +253,7 @@ function GroupSection({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="w-full text-xs text-[#C67A52] hover:text-[#B56A42]"
+                      className="w-full text-xs text-primary hover:text-primary/80"
                     >
                       {t("projectGroups.viewDashboard")}
                       <ArrowRight className="ml-1 h-3 w-3" />
@@ -262,7 +262,7 @@ function GroupSection({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full border-[#E5E2DC] text-xs md:w-auto"
+                    className="w-full border-border text-xs md:w-auto"
                     onClick={onNewProject}
                   >
                     <Plus className="mr-1 h-3 w-3" />
@@ -273,9 +273,9 @@ function GroupSection({
 
               {/* Projects Grid */}
               <CollapsibleContent>
-                <div className="border-t border-[#E5E2DC] px-4 pb-4 pt-3 md:px-6 md:pb-5 md:pt-4">
+                <div className="border-t border-border px-4 pb-4 pt-3 md:px-6 md:pb-5 md:pt-4">
                   {projects.length === 0 && !snapshot.isDraggingOver ? (
-                    <p className="py-4 text-center text-sm text-[#9A9A9A]">
+                    <p className="py-4 text-center text-sm text-muted-foreground">
                       {t("projectGroups.noProjectsInGroup")}
                     </p>
                   ) : (
@@ -345,39 +345,39 @@ function UngroupedSection({ projects, onNewProject }: { projects: ProjectData[];
           <div ref={provided.innerRef} {...provided.droppableProps}>
             <Collapsible open={isOpen} onOpenChange={setIsOpen}>
               <Card
-                className={`rounded-2xl border-[#E5E2DC] p-0 shadow-none transition-colors hover:border-[#C67A52]/40 ${
+                className={`rounded-2xl border-border bg-card p-0 shadow-none transition-colors hover:border-primary/40 ${
                   snapshot.isDraggingOver
-                    ? "border-[#C67A52] bg-[#C67A5208]"
+                    ? "border-primary bg-primary/5"
                     : ""
                 }`}
               >
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4">
                   <CollapsibleTrigger className="flex flex-1 cursor-pointer items-center gap-3 text-left">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F0EDE8]">
-                      <FolderOpen className="h-4 w-4 text-[#9A9A9A]" />
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary">
+                      <FolderOpen className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="flex items-center gap-2">
-                      <h2 className="text-base font-semibold text-[#6B6B6B]">
+                      <h2 className="text-base font-semibold text-foreground">
                         {t("projectGroups.ungrouped")}
                       </h2>
                       <Badge
                         variant="secondary"
-                        className="shrink-0 border-0 bg-[#F0EDE8] text-[11px] font-medium text-[#6B6B6B]"
+                        className="shrink-0 border-0 bg-secondary text-[11px] font-medium text-muted-foreground"
                       >
                         {projects.length} {t("projectGroups.projectCount")}
                       </Badge>
                     </div>
                     {isOpen ? (
-                      <ChevronDown className="ml-auto h-4 w-4 shrink-0 text-[#9A9A9A]" />
+                      <ChevronDown className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
                     ) : (
-                      <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-[#9A9A9A]" />
+                      <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
                     )}
                   </CollapsibleTrigger>
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`ml-2 shrink-0 border-[#E5E2DC] text-xs md:inline-flex ${isOpen ? "inline-flex" : "hidden"}`}
+                    className={`ml-2 shrink-0 border-border text-xs md:inline-flex ${isOpen ? "inline-flex" : "hidden"}`}
                     onClick={onNewProject}
                   >
                     <Plus className="mr-1 h-3 w-3" />
@@ -387,9 +387,9 @@ function UngroupedSection({ projects, onNewProject }: { projects: ProjectData[];
 
                 {/* Projects Grid */}
                 <CollapsibleContent>
-                  <div className="border-t border-[#E5E2DC] px-4 pb-4 pt-3 md:px-6 md:pb-5 md:pt-4">
+                  <div className="border-t border-border px-4 pb-4 pt-3 md:px-6 md:pb-5 md:pt-4">
                     {projects.length === 0 ? (
-                      <p className="py-4 text-center text-sm text-[#9A9A9A]">
+                      <p className="py-4 text-center text-sm text-muted-foreground">
                         {t("projectGroups.noProjectsInGroup")}
                       </p>
                     ) : (
@@ -561,8 +561,8 @@ export default function ProjectsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-full bg-[#FAF8F4] p-4 md:p-8">
-        <p className="text-sm text-[#6B6B6B]">
+      <div className="min-h-full bg-background p-4 md:p-8">
+        <p className="text-sm text-muted-foreground">
           {t("projects.loadingProjects")}
         </p>
       </div>
@@ -572,19 +572,19 @@ export default function ProjectsPage() {
   return (
     <>
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="min-h-full bg-[#FAF8F4] p-4 md:p-8">
+        <div className="min-h-full bg-background p-4 md:p-8">
           {/* Header */}
           <div className="mb-6 flex flex-col gap-3 md:mb-8 md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-[#2C2C2C]">
+              <h1 className="text-2xl font-semibold text-foreground">
                 {t("projects.title")}
               </h1>
-              <p className="mt-1 text-sm text-[#6B6B6B]">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {t("projects.subtitle")}
               </p>
             </div>
             <Button
-              className="rounded-xl bg-[#C67A52] px-5 text-white hover:bg-[#B56A42]"
+              className="rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90"
               onClick={() => setShowCreateGroup(true)}
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -593,18 +593,18 @@ export default function ProjectsPage() {
           </div>
 
           {projects.length === 0 && groups.length === 0 ? (
-            <Card className="flex flex-col items-center justify-center border-[#E5E0D8] p-12 text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#F5F2EC]">
-                <FolderOpen className="h-8 w-8 text-[#C67A52]" />
+            <Card className="flex flex-col items-center justify-center border-border bg-card p-12 text-center">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary">
+                <FolderOpen className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="mb-2 text-lg font-medium text-[#2C2C2C]">
+              <h3 className="mb-2 text-lg font-medium text-foreground">
                 {t("projects.noProjects")}
               </h3>
-              <p className="mb-6 max-w-sm text-sm text-[#6B6B6B]">
+              <p className="mb-6 max-w-sm text-sm text-muted-foreground">
                 {t("projects.noProjectsDesc")}
               </p>
               <Link href="/research-projects/new">
-                <Button className="bg-[#C67A52] text-white hover:bg-[#B56A42]">
+                <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
                   {t("projects.createFirst")}
                 </Button>
               </Link>
