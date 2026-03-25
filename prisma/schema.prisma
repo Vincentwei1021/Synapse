@@ -30,6 +30,7 @@ model Company {
   researchProjects  ResearchProject[]
   researchQuestions ResearchQuestion[]
   documents         Document[]
+  experiments       Experiment[]
   experimentRuns    ExperimentRun[]
   experimentDesigns ExperimentDesign[]
   activities        Activity[]
@@ -39,6 +40,7 @@ model Company {
   computeNodes      ComputeNode[]
   computeGpus       ComputeGpu[]
   runGpuReservations RunGpuReservation[]
+  experimentGpuReservations ExperimentGpuReservation[]
 }
 
 // User (human, OIDC login)
@@ -134,6 +136,7 @@ model ResearchProject {
 
   researchQuestions ResearchQuestion[]
   documents         Document[]
+  experiments       Experiment[]
   experimentRuns    ExperimentRun[]
   experimentDesigns ExperimentDesign[]
   activities        Activity[]
@@ -178,6 +181,7 @@ model ResearchQuestion {
   createdByUuid       String // User UUID
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
+  experiments         Experiment[]
 
   @@index([companyUuid])
   @@index([researchProjectUuid])
@@ -207,6 +211,48 @@ model Document {
   @@index([companyUuid])
   @@index([researchProjectUuid])
   @@index([experimentDesignUuid])
+}
+
+model Experiment {
+  id                  Int             @id @default(autoincrement())
+  uuid                String          @unique @default(uuid())
+  companyUuid         String
+  company             Company         @relation(fields: [companyUuid], references: [uuid])
+  researchProjectUuid String          @map("projectUuid")
+  researchProject     ResearchProject @relation(fields: [researchProjectUuid], references: [uuid], onDelete: Cascade)
+  researchQuestionUuid String?
+  researchQuestion    ResearchQuestion? @relation(fields: [researchQuestionUuid], references: [uuid], onDelete: SetNull)
+  title               String
+  description         String?
+  status              String          @default("draft") // draft | pending_review | pending_start | in_progress | completed
+  priority            String          @default("medium")
+  computeBudgetHours  Float?
+  computeUsedHours    Float?
+  attachments         Json?
+  results             Json?
+  outcome             String?
+  assigneeType        String?
+  assigneeUuid        String?
+  assignedAt          DateTime?
+  assignedByUuid      String?
+  createdByUuid       String
+  createdByType       String          @default("user") // user | agent
+  reviewedByUuid      String?
+  reviewNote          String?
+  reviewedAt          DateTime?
+  startedAt           DateTime?
+  completedAt         DateTime?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  gpuReservations ExperimentGpuReservation[]
+
+  @@index([companyUuid])
+  @@index([researchProjectUuid])
+  @@index([researchQuestionUuid])
+  @@index([status])
+  @@index([assigneeUuid])
+  @@map("Experiment")
 }
 
 // Experiment Run (ExperimentDesign output or manually created)
@@ -437,6 +483,9 @@ model ComputeNode {
   sshUser        String?
   sshPort        Int?
   sshKeyPath     String?
+  sshKeyName     String?
+  sshKeyFingerprint String?
+  sshKeySource   String?
   ssmTarget      String?
   notes          String?
   lastReportedAt DateTime?
@@ -470,6 +519,7 @@ model ComputeGpu {
   updatedAt          DateTime @updatedAt
 
   reservations RunGpuReservation[]
+  experimentReservations ExperimentGpuReservation[]
 
   @@index([companyUuid])
   @@index([nodeUuid, lifecycle])
@@ -490,6 +540,23 @@ model RunGpuReservation {
 
   @@index([companyUuid])
   @@index([runUuid, releasedAt])
+  @@index([gpuUuid, releasedAt])
+}
+
+model ExperimentGpuReservation {
+  id            Int        @id @default(autoincrement())
+  uuid          String     @unique @default(uuid())
+  companyUuid   String
+  company       Company    @relation(fields: [companyUuid], references: [uuid])
+  experimentUuid String
+  experiment    Experiment @relation(fields: [experimentUuid], references: [uuid], onDelete: Cascade)
+  gpuUuid       String
+  gpu           ComputeGpu @relation(fields: [gpuUuid], references: [uuid], onDelete: Cascade)
+  attachedAt    DateTime   @default(now())
+  releasedAt    DateTime?
+
+  @@index([companyUuid])
+  @@index([experimentUuid, releasedAt])
   @@index([gpuUuid, releasedAt])
 }
 

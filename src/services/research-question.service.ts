@@ -76,8 +76,8 @@ export interface ResearchQuestionResponse {
 // open → elaborating → proposal_created → completed → closed
 export const RESEARCH_QUESTION_STATUS_TRANSITIONS: Record<string, string[]> = {
   open: ["elaborating", "closed"],
-  elaborating: ["proposal_created", "closed"],
-  proposal_created: ["completed", "elaborating", "closed"],
+  elaborating: ["experiment_created", "closed"],
+  experiment_created: ["completed", "elaborating", "closed"],
   completed: ["closed"],
   closed: [],
 };
@@ -89,7 +89,7 @@ export function normalizeResearchQuestionStatus(status: string): string {
     case "in_progress":
       return "elaborating";
     case "pending_review":
-      return "proposal_created";
+      return "experiment_created";
     default:
       return status;
   }
@@ -262,7 +262,7 @@ export async function createResearchQuestion(params: ResearchQuestionCreateParam
       sourceType: params.sourceType ?? "human",
       sourceLabel: params.sourceLabel ?? null,
       generatedByAgentUuid: params.generatedByAgentUuid ?? null,
-      reviewStatus: "pending",
+      reviewStatus: params.sourceType === "agent" ? "pending" : "accepted",
       status: "open",
       createdByUuid: params.createdByUuid,
     },

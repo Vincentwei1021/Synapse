@@ -32,24 +32,26 @@ export function IdeaCreateForm({ projectUuid }: IdeaCreateFormProps) {
       return;
     }
 
-    startTransition(async () => {
-      try {
-        const result = await createResearchQuestionAction({
-          projectUuid,
-          title: title.trim(),
-          content: content.trim() || undefined,
-        });
+    startTransition(() => {
+      void (async () => {
+        try {
+          const result = await createResearchQuestionAction({
+            projectUuid,
+            title: title.trim(),
+            content: content.trim() || undefined,
+          });
 
-        if (result.success) {
-          setTitle("");
-          setContent("");
-          router.refresh();
-        } else {
-          setError(result.error || t("ideas.createFailed"));
+          if (result.success) {
+            setTitle("");
+            setContent("");
+            router.refresh();
+          } else {
+            setError(result.error || t("ideas.createFailed"));
+          }
+        } catch {
+          setError(t("common.genericError"));
         }
-      } catch {
-        setError(t("common.genericError"));
-      }
+      })();
     });
   };
 

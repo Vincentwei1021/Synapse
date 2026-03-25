@@ -29,7 +29,6 @@ export interface ResearchProjectUpdateParams {
   evaluationMethods?: string[] | null;
 }
 
-// List projects query
 export async function listResearchProjects({ companyUuid, skip, take }: ResearchProjectListParams) {
   const [projects, total] = await Promise.all([
     prisma.researchProject.findMany({
@@ -54,8 +53,8 @@ export async function listResearchProjects({ companyUuid, skip, take }: Research
           select: {
             researchQuestions: true,
             documents: true,
-            experimentRuns: true,
-            experimentDesigns: true,
+            experiments: true,
+            activities: true,
           },
         },
       },
@@ -66,7 +65,6 @@ export async function listResearchProjects({ companyUuid, skip, take }: Research
   return { projects, total };
 }
 
-// Get project details
 export async function getResearchProject(companyUuid: string, uuid: string) {
   return prisma.researchProject.findFirst({
     where: { uuid, companyUuid },
@@ -86,8 +84,7 @@ export async function getResearchProject(companyUuid: string, uuid: string) {
         select: {
           researchQuestions: true,
           documents: true,
-          experimentRuns: true,
-          experimentDesigns: true,
+          experiments: true,
           activities: true,
         },
       },
@@ -95,7 +92,6 @@ export async function getResearchProject(companyUuid: string, uuid: string) {
   });
 }
 
-// Verify if project exists
 export async function researchProjectExists(companyUuid: string, researchProjectUuid: string): Promise<boolean> {
   const project = await prisma.researchProject.findFirst({
     where: { uuid: researchProjectUuid, companyUuid },
@@ -104,7 +100,6 @@ export async function researchProjectExists(companyUuid: string, researchProject
   return !!project;
 }
 
-// Get basic project info by UUID
 export async function getResearchProjectByUuid(companyUuid: string, uuid: string) {
   return prisma.researchProject.findFirst({
     where: { uuid, companyUuid },
@@ -122,7 +117,6 @@ export async function getResearchProjectByUuid(companyUuid: string, uuid: string
   });
 }
 
-// Get project UUIDs by group UUID
 export async function getResearchProjectUuidsByGroup(companyUuid: string, groupUuid: string): Promise<string[]> {
   const projects = await prisma.researchProject.findMany({
     where: {
@@ -131,10 +125,9 @@ export async function getResearchProjectUuidsByGroup(companyUuid: string, groupU
     },
     select: { uuid: true },
   });
-  return projects.map((p) => p.uuid);
+  return projects.map((project) => project.uuid);
 }
 
-// Create project
 export async function createResearchProject({
   companyUuid,
   name,
@@ -168,7 +161,6 @@ export async function createResearchProject({
   });
 }
 
-// Update project
 export async function updateResearchProject(uuid: string, data: ResearchProjectUpdateParams) {
   const updateData: Record<string, unknown> = { ...data };
 
@@ -200,99 +192,106 @@ export async function updateResearchProject(uuid: string, data: ResearchProjectU
   });
 }
 
-// Delete project
 export async function deleteResearchProject(uuid: string) {
   return prisma.researchProject.delete({ where: { uuid } });
 }
 
-// Get company-level overview stats (for Projects list page)
 export async function getCompanyOverviewStats(companyUuid: string) {
-  const [researchProjectCount, experimentRunCount, openExperimentDesignCount, researchQuestionCount] = await Promise.all([
+  const [researchProjectCount, experimentCount, pendingReviewCount, researchQuestionCount] = await Promise.all([
     prisma.researchProject.count({ where: { companyUuid } }),
-    prisma.experimentRun.count({ where: { companyUuid } }),
-    prisma.experimentDesign.count({ where: { companyUuid, status: "pending" } }),
+    prisma.experiment.count({ where: { companyUuid } }),
+    prisma.experiment.count({ where: { companyUuid, status: "pending_review" } }),
     prisma.researchQuestion.count({ where: { companyUuid } }),
   ]);
 
   return {
     researchProjects: researchProjectCount,
-    experimentRuns: experimentRunCount,
-    openExperimentDesigns: openExperimentDesignCount,
+    experimentRuns: experimentCount,
+    openExperimentDesigns: pendingReviewCount,
     researchQuestions: researchQuestionCount,
   };
 }
 
-// Get project list with task completion stats (for Projects list page)
 export async function listResearchProjectsWithStats({ companyUuid, skip, take }: ResearchProjectListParams) {
   const { projects, total } = await listResearchProjects({ companyUuid, skip, take });
 
-  // Batch query completed task count for each project
-  const researchProjectUuids = projects.map((p) => p.uuid);
-  const doneCounts = await prisma.experimentRun.groupBy({
-    by: ["researchProjectUuid"],
-    where: { companyUuid, researchProjectUuid: { in: researchProjectUuids }, status: "done" },
-    _count: true,
-  });
-  const doneMap = new Map(doneCounts.map((d) => [d.researchProjectUuid, d._count]));
+  const researchProjectUuids = projects.map((project) => project.uuid);
+  const doneCounts = researchProjectUuids.length
+    ? await prisma.experiment.groupBy({
+        by: ["researchProjectUuid"],
+        where: { companyUuid, researchProjectUuid: { in: researchProjectUuids }, status: "completed" },
+        _count: true,
+      })
+    : [];
+  const doneMap = new Map(doneCounts.map((count) => [count.researchProjectUuid, count._count]));
 
   return {
-    projects: projects.map((p) => ({
-      ...p,
-      experimentRunsDone: doneMap.get(p.uuid) || 0,
+    projects: projects.map((project) => ({
+      ...project,
+      experimentRunsDone: doneMap.get(project.uuid) || 0,
     })),
     total,
   };
 }
 
-// Get project statistics (for Dashboard)
 export async function getResearchProjectStats(companyUuid: string, researchProjectUuid: string) {
-  const [researchQuestionsStats, experimentRunsStats, experimentDesignsStats, documentsCount] = await Promise.all([
-    // Ideas stats
+  const [researchQuestionStats, experimentStats, documentsCount] = await Promise.all([
     prisma.researchQuestion.groupBy({
       by: ["status"],
       where: { researchProjectUuid, companyUuid },
       _count: true,
     }),
-    // Tasks stats
-    prisma.experimentRun.groupBy({
+    prisma.experiment.groupBy({
       by: ["status"],
       where: { researchProjectUuid, companyUuid },
       _count: true,
     }),
-    // Proposals stats
-    prisma.experimentDesign.groupBy({
-      by: ["status"],
-      where: { researchProjectUuid, companyUuid },
-      _count: true,
-    }),
-    // Documents total count
     prisma.document.count({
       where: { researchProjectUuid, companyUuid },
     }),
   ]);
 
-  // Parse Ideas stats
-  const researchQuestionStatusMap = new Map(researchQuestionsStats.map((s) => [s.status, s._count]));
-  const researchQuestionsTotal = researchQuestionsStats.reduce((sum, s) => sum + s._count, 0);
-  const researchQuestionsOpen = researchQuestionStatusMap.get("open") || 0;
+  const researchQuestionStatusMap = new Map(researchQuestionStats.map((stat) => [stat.status, stat._count]));
+  const experimentStatusMap = new Map(experimentStats.map((stat) => [stat.status, stat._count]));
 
-  // Parse Tasks stats (per-status for pipeline visualization)
-  const experimentRunStatusMap = new Map(experimentRunsStats.map((s) => [s.status, s._count]));
-  const experimentRunsTotal = experimentRunsStats.reduce((sum, s) => sum + s._count, 0);
-  const experimentRunsInProgress = experimentRunStatusMap.get("in_progress") || 0;
-  const experimentRunsTodo = (experimentRunStatusMap.get("open") || 0) + (experimentRunStatusMap.get("assigned") || 0);
-  const experimentRunsToVerify = experimentRunStatusMap.get("to_verify") || 0;
-  const experimentRunsDone = (experimentRunStatusMap.get("done") || 0) + (experimentRunStatusMap.get("closed") || 0);
+  const researchQuestionsTotal = researchQuestionStats.reduce((sum, stat) => sum + stat._count, 0);
+  const researchQuestionsOpen =
+    (researchQuestionStatusMap.get("open") || 0) + (researchQuestionStatusMap.get("elaborating") || 0);
 
-  // Parse Proposals stats
-  const experimentDesignStatusMap = new Map(experimentDesignsStats.map((s) => [s.status, s._count]));
-  const experimentDesignsTotal = experimentDesignsStats.reduce((sum, s) => sum + s._count, 0);
-  const experimentDesignsPending = experimentDesignStatusMap.get("pending") || 0;
+  const experimentsTotal = experimentStats.reduce((sum, stat) => sum + stat._count, 0);
+  const experimentsDraft = experimentStatusMap.get("draft") || 0;
+  const experimentsPendingReview = experimentStatusMap.get("pending_review") || 0;
+  const experimentsPendingStart = experimentStatusMap.get("pending_start") || 0;
+  const experimentsInProgress = experimentStatusMap.get("in_progress") || 0;
+  const experimentsDone = experimentStatusMap.get("completed") || 0;
 
   return {
-    researchQuestions: { total: researchQuestionsTotal, open: researchQuestionsOpen },
-    experimentRuns: { total: experimentRunsTotal, inProgress: experimentRunsInProgress, todo: experimentRunsTodo, toVerify: experimentRunsToVerify, done: experimentRunsDone },
-    experimentDesigns: { total: experimentDesignsTotal, pending: experimentDesignsPending },
+    researchQuestions: {
+      total: researchQuestionsTotal,
+      open: researchQuestionsOpen,
+      elaborating: researchQuestionStatusMap.get("elaborating") || 0,
+      experimentCreated: researchQuestionStatusMap.get("experiment_created") || 0,
+      completed: researchQuestionStatusMap.get("completed") || 0,
+    },
+    experimentRuns: {
+      total: experimentsTotal,
+      inProgress: experimentsInProgress,
+      todo: experimentsDraft,
+      toVerify: experimentsPendingReview + experimentsPendingStart,
+      done: experimentsDone,
+    },
+    experimentDesigns: {
+      total: experimentsTotal,
+      pending: experimentsPendingReview,
+    },
+    experiments: {
+      total: experimentsTotal,
+      draft: experimentsDraft,
+      pendingReview: experimentsPendingReview,
+      pendingStart: experimentsPendingStart,
+      inProgress: experimentsInProgress,
+      completed: experimentsDone,
+    },
     documents: { total: documentsCount },
   };
 }

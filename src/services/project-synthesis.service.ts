@@ -10,75 +10,54 @@ function stringifyMetricBlock(results: unknown): string[] {
     .map(([key, value]) => `- ${key}: ${String(value)}`);
 }
 
-function summarizeRuns(
+function summarizeExperiments(
   completedIdeas: Array<{
     title: string;
-    designs: Array<{
+    experiments: Array<{
       title: string;
-      runs: Array<{
-        title: string;
-        status: string;
-        outcome: string | null;
-        experimentResults: unknown;
-      }>;
+      outcome: string | null;
+      results: unknown;
     }>;
-  }>
+  }>,
 ) {
-  const runs = completedIdeas.flatMap((idea) =>
-    idea.designs.flatMap((design) =>
-      design.runs.map((run) => ({
-        ideaTitle: idea.title,
-        designTitle: design.title,
-        ...run,
-      }))
-    )
+  const experiments = completedIdeas.flatMap((idea) =>
+    idea.experiments.map((experiment) => ({
+      ideaTitle: idea.title,
+      ...experiment,
+    })),
   );
 
-  const successCount = runs.filter((run) => run.outcome?.toLowerCase().includes("success")).length;
-  const failedCount = runs.filter((run) => run.outcome?.toLowerCase().includes("fail")).length;
-  const summary = `${completedIdeas.length} idea(s), ${runs.length} completed run(s), ${successCount} marked as successes, ${failedCount} marked as failures or regressions.`;
+  const successCount = experiments.filter((experiment) => experiment.outcome?.toLowerCase().includes("success")).length;
+  const failedCount = experiments.filter((experiment) => experiment.outcome?.toLowerCase().includes("fail")).length;
+  const summary = `${completedIdeas.length} idea(s), ${experiments.length} completed experiment(s), ${successCount} marked as successes, ${failedCount} marked as failures or regressions.`;
 
-  return { runs, summary };
+  return { experiments, summary };
 }
 
-function buildMarkdown(projectName: string, completedIdeas: Array<{
-  title: string;
-  content: string | null;
-  sourceType: string;
-  designs: Array<{
+function buildMarkdown(
+  projectName: string,
+  completedIdeas: Array<{
     title: string;
-    description: string | null;
-    runs: Array<{
+    content: string | null;
+    sourceType: string;
+    experiments: Array<{
       title: string;
-      status: string;
       outcome: string | null;
-      experimentResults: unknown;
+      results: unknown;
     }>;
-  }>;
-}>) {
-  const { summary } = summarizeRuns(completedIdeas);
+  }>,
+) {
+  const { summary } = summarizeExperiments(completedIdeas);
 
   const sections = completedIdeas.map((idea) => {
-    const designSections = idea.designs
-      .map((design) => {
-        const runSections = design.runs
-          .map((run) => {
-            const metrics = stringifyMetricBlock(run.experimentResults);
-            return [
-              `#### ${run.title}`,
-              run.outcome ? `Outcome: ${run.outcome}` : "Outcome: pending explicit write-up",
-              ...(metrics.length > 0 ? ["Metrics:", ...metrics] : []),
-            ].join("\n");
-          })
-          .join("\n\n");
-
+    const experimentSections = idea.experiments
+      .map((experiment) => {
+        const metrics = stringifyMetricBlock(experiment.results);
         return [
-          `### ${design.title}`,
-          design.description || "",
-          runSections,
-        ]
-          .filter(Boolean)
-          .join("\n\n");
+          `### ${experiment.title}`,
+          experiment.outcome ? `Outcome: ${experiment.outcome}` : "Outcome: pending explicit write-up",
+          ...(metrics.length > 0 ? ["Metrics:", ...metrics] : []),
+        ].join("\n");
       })
       .join("\n\n");
 
@@ -86,7 +65,7 @@ function buildMarkdown(projectName: string, completedIdeas: Array<{
       `## ${idea.title}`,
       `Source: ${idea.sourceType}`,
       idea.content || "",
-      designSections,
+      experimentSections,
     ]
       .filter(Boolean)
       .join("\n\n");
@@ -105,10 +84,21 @@ function buildMarkdown(projectName: string, completedIdeas: Array<{
   ].join("\n");
 }
 
+export async function getLatestProjectSynthesisDocument(companyUuid: string, researchProjectUuid: string) {
+  return prisma.document.findFirst({
+    where: {
+      companyUuid,
+      researchProjectUuid,
+      type: "project_synthesis",
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+}
+
 export async function refreshProjectSynthesis(
   companyUuid: string,
   researchProjectUuid: string,
-  actorUuid: string
+  actorUuid: string,
 ) {
   const project = await prisma.researchProject.findFirst({
     where: { uuid: researchProjectUuid, companyUuid },
@@ -126,26 +116,16 @@ export async function refreshProjectSynthesis(
           sourceType: true,
         },
       },
-      experimentDesigns: {
+      experiments: {
         where: {
-          status: "approved",
-          inputType: "research_question",
+          status: "completed",
         },
         select: {
           uuid: true,
           title: true,
-          description: true,
-          inputUuids: true,
-        },
-      },
-      experimentRuns: {
-        select: {
-          uuid: true,
-          title: true,
-          status: true,
           outcome: true,
-          experimentResults: true,
-          experimentDesignUuid: true,
+          results: true,
+          researchQuestionUuid: true,
         },
       },
     },
@@ -157,22 +137,8 @@ export async function refreshProjectSynthesis(
 
   const completedIdeas = project.researchQuestions
     .map((idea) => {
-      const relatedDesigns = project.experimentDesigns
-        .filter((design) => Array.isArray(design.inputUuids) && (design.inputUuids as string[]).includes(idea.uuid))
-        .map((design) => ({
-          title: design.title,
-          description: design.description,
-          runs: project.experimentRuns.filter((run) => run.experimentDesignUuid === design.uuid),
-        }))
-        .filter((design) => design.runs.length > 0);
-
-      const allRunsDone =
-        relatedDesigns.length > 0 &&
-        relatedDesigns.every((design) =>
-          design.runs.every((run) => run.status === "done" || run.status === "closed")
-        );
-
-      if (!allRunsDone) {
+      const relatedExperiments = project.experiments.filter((experiment) => experiment.researchQuestionUuid === idea.uuid);
+      if (relatedExperiments.length === 0) {
         return null;
       }
 
@@ -180,7 +146,11 @@ export async function refreshProjectSynthesis(
         title: idea.title,
         content: idea.content,
         sourceType: idea.sourceType,
-        designs: relatedDesigns,
+        experiments: relatedExperiments.map((experiment) => ({
+          title: experiment.title,
+          outcome: experiment.outcome,
+          results: experiment.results,
+        })),
       };
     })
     .filter((idea): idea is NonNullable<typeof idea> => Boolean(idea));
@@ -198,18 +168,10 @@ export async function refreshProjectSynthesis(
   }
 
   const markdown = buildMarkdown(project.name, completedIdeas);
-  const { summary } = summarizeRuns(completedIdeas);
+  const { summary } = summarizeExperiments(completedIdeas);
   const now = new Date();
 
-  const existing = await prisma.document.findFirst({
-    where: {
-      companyUuid,
-      researchProjectUuid,
-      type: "project_synthesis",
-    },
-    orderBy: { updatedAt: "desc" },
-    select: { uuid: true, version: true },
-  });
+  const existing = await getLatestProjectSynthesisDocument(companyUuid, researchProjectUuid);
 
   if (existing) {
     await prisma.document.update({

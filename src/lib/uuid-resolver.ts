@@ -4,7 +4,7 @@
 
 import { prisma } from "@/lib/prisma";
 
-export type TargetType = "research_question" | "experiment_design" | "experiment_run" | "document";
+export type TargetType = "research_question" | "experiment" | "experiment_design" | "experiment_run" | "document";
 export type ActorType = "user" | "agent";
 
 // Get Actor name by UUID (for display)

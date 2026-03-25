@@ -2,8 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 
 export function ComputePoolForm() {
+  const t = useTranslations();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +24,7 @@ export function ComputePoolForm() {
     });
 
     if (!response.ok) {
-      setError("Could not create the compute pool.");
+      setError(t("compute.pool.poolError"));
       return;
     }
 
@@ -31,32 +33,35 @@ export function ComputePoolForm() {
 
   return (
     <form
-      action={(formData) => startTransition(() => handleSubmit(formData))}
-      className="space-y-3 rounded-[28px] border border-[#E5DED3] bg-white p-5"
+      action={(formData) => startTransition(() => { void handleSubmit(formData); })}
+      className="space-y-4 rounded-[28px] border border-[#E7DECF] bg-white p-6 shadow-sm"
     >
-      <div>
-        <p className="text-sm font-semibold text-[#2C2C2C]">Create compute pool</p>
-        <p className="text-xs text-[#8E8478]">Group EC2 machines into a schedulable research capacity pool.</p>
+      <div className="space-y-1">
+        <p className="text-base font-semibold text-[#2C2C2C]">{t("compute.pool.title")}</p>
+        <p className="text-sm leading-6 text-[#7E7469]">{t("compute.pool.description")}</p>
       </div>
+
       <input
         name="name"
         required
-        placeholder="Pool name"
-        className="w-full rounded-2xl border border-[#E6DED2] bg-[#FBF8F3] px-3 py-2 text-sm text-[#2C2C2C] outline-none placeholder:text-[#A49B90]"
+        placeholder={t("compute.pool.namePlaceholder")}
+        className="w-full rounded-2xl border border-[#E7DECF] bg-[#FBF8F3] px-3 py-2.5 text-sm text-[#2C2C2C] outline-none placeholder:text-[#A49B90]"
       />
       <textarea
         name="description"
-        rows={2}
-        placeholder="Optional description"
-        className="w-full rounded-2xl border border-[#E6DED2] bg-[#FBF8F3] px-3 py-2 text-sm text-[#2C2C2C] outline-none placeholder:text-[#A49B90]"
+        rows={3}
+        placeholder={t("compute.pool.descriptionPlaceholder")}
+        className="w-full rounded-2xl border border-[#E7DECF] bg-[#FBF8F3] px-3 py-2.5 text-sm text-[#2C2C2C] outline-none placeholder:text-[#A49B90]"
       />
-      {error ? <p className="text-xs text-[#B94C4C]">{error}</p> : null}
+
+      {error ? <p className="text-sm text-[#B94C4C]">{error}</p> : null}
+
       <button
         type="submit"
         disabled={isPending}
-        className="rounded-full bg-[#C67A52] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#B56A42] disabled:opacity-60"
+        className="rounded-full bg-[#2F7D5D] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#27674d] disabled:opacity-60"
       >
-        {isPending ? "Creating..." : "Create pool"}
+        {isPending ? t("compute.pool.creating") : t("compute.pool.submit")}
       </button>
     </form>
   );

@@ -87,8 +87,8 @@ export default function OidcCallbackPage() {
 
       setStatusKey("loginSuccess");
 
-      // Redirect to projects page
-      router.push("/projects");
+      // Redirect to research projects page
+      router.push("/research-projects");
     } catch (err) {
       console.error("OIDC callback error:", err);
       setError(

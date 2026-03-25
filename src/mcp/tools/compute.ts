@@ -57,7 +57,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
               slotIndex: gpu.slotIndex,
               model: gpu.model,
               memoryGb: gpu.memoryGb,
-              status: gpu.activeReservation ? `occupied:${gpu.activeReservation.runTitle}` : gpu.computedStatus,
+              status: gpu.activeReservation ? `occupied:${gpu.activeReservation.itemTitle}` : gpu.computedStatus,
               utilizationPercent: gpu.utilizationPercent,
               memoryUsedGb: gpu.memoryUsedGb,
               temperatureC: gpu.temperatureC,

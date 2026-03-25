@@ -57,12 +57,11 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
           select: {
             researchQuestions: true,
             documents: true,
-            experimentRuns: true,
-            experimentDesigns: true,
+            experiments: true,
           },
         },
-        experimentRuns: {
-          where: { status: "done" },
+        experiments: {
+          where: { status: "completed" },
           select: { uuid: true },
         },
       },
@@ -89,9 +88,11 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     counts: {
       researchQuestions: p._count.researchQuestions,
       documents: p._count.documents,
-      experimentRuns: p._count.experimentRuns,
-      doneExperimentRuns: p.experimentRuns.length,
-      experimentDesigns: p._count.experimentDesigns,
+      experiments: p._count.experiments,
+      doneExperiments: p.experiments.length,
+      tasks: p._count.experiments,
+      doneTasks: p.experiments.length,
+      proposals: 0,
     },
   }));
 

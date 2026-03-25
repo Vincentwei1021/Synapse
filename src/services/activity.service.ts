@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { eventBus } from "@/lib/event-bus";
 import { getActorName } from "@/lib/uuid-resolver";
 
-export type TargetType = "research_question" | "experiment_run" | "experiment_design" | "document";
+export type TargetType = "research_question" | "experiment" | "experiment_run" | "experiment_design" | "document";
 
 export interface ActivityListParams {
   companyUuid: string;

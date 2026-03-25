@@ -12,17 +12,15 @@ import {
   LayoutDashboard,
   Lightbulb,
   FileText,
-  Tags,
   CheckSquare,
-  Activity,
   FolderKanban,
   Cpu,
   Settings,
+  LineChart,
   LogOut,
   Menu,
 } from "lucide-react";
-import { getAccessToken, authFetch, logout as authLogout, clearUserManager } from "@/lib/auth-client";
-import { PixelCanvasWidget } from "@/components/pixel-canvas-widget";
+import { authFetch, logout as authLogout, clearUserManager } from "@/lib/auth-client";
 import { RealtimeProvider } from "@/contexts/realtime-context";
 import { NotificationProvider } from "@/contexts/notification-context";
 import { NotificationBell } from "@/components/notification-bell";
@@ -136,8 +134,9 @@ export default function DashboardLayout({
         return;
       }
       const data = await response.json();
-      if (data.success && data.data.length > 0) {
-        setProjects(data.data);
+      const projectList = data.data?.data || data.data || [];
+      if (data.success && Array.isArray(projectList) && projectList.length > 0) {
+        setProjects(projectList);
       }
     } catch (error) {
       console.error("Failed to fetch projects:", error);
@@ -171,16 +170,15 @@ export default function DashboardLayout({
   const getProjectNavItems = (projectUuid: string) => [
     { href: `/research-projects/${projectUuid}/dashboard`, label: t("nav.overview"), icon: LayoutDashboard },
     { href: `/research-projects/${projectUuid}/research-questions`, label: t("nav.researchQuestions"), icon: Lightbulb },
+    { href: `/research-projects/${projectUuid}/experiments`, label: t("nav.experiments"), icon: CheckSquare },
+    { href: `/research-projects/${projectUuid}/insights`, label: t("nav.insights"), icon: LineChart },
     { href: `/research-projects/${projectUuid}/documents`, label: t("nav.documents"), icon: FileText },
-    { href: `/research-projects/${projectUuid}/experiment-designs`, label: t("nav.experimentDesigns"), icon: Tags },
-    { href: `/research-projects/${projectUuid}/experiment-runs`, label: t("nav.experimentRuns"), icon: CheckSquare },
-    { href: `/research-projects/${projectUuid}/activity`, label: t("nav.activity"), icon: Activity },
   ];
 
   // Global navigation items
   const globalNavItems = [
     { href: "/research-projects", label: t("nav.researchProjects"), icon: FolderKanban },
-    { href: "/compute", label: "Compute", icon: Cpu },
+    { href: "/compute", label: t("nav.compute"), icon: Cpu },
     { href: "/settings", label: t("nav.settings"), icon: Settings },
   ];
 
@@ -409,10 +407,6 @@ export default function DashboardLayout({
       {isProjectContext && currentProject ? (
         <RealtimeProvider projectUuid={currentProject.uuid}>
           <main className="flex-1 overflow-auto pt-14 md:pt-0">{children}</main>
-          <PixelCanvasWidget
-            projectUuid={currentProject.uuid}
-            projectName={currentProject.name}
-          />
         </RealtimeProvider>
       ) : (
         <main className="flex-1 overflow-auto pt-14 md:pt-0">{children}</main>

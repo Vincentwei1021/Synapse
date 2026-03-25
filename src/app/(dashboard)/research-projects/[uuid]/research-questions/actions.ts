@@ -52,8 +52,9 @@ export async function createResearchQuestionAction(input: CreateIdeaInput) {
 interface UpdateIdeaInput {
   questionUuid: string;
   projectUuid: string;
-  title: string;
-  content: string | null;
+  title?: string;
+  content?: string | null;
+  status?: string;
 }
 
 export async function updateResearchQuestionAction(input: UpdateIdeaInput) {
@@ -66,6 +67,7 @@ export async function updateResearchQuestionAction(input: UpdateIdeaInput) {
     const idea = await updateResearchQuestion(input.questionUuid, auth.companyUuid, {
       title: input.title,
       content: input.content,
+      status: input.status,
     });
 
     revalidatePath(`/research-projects/${input.projectUuid}/research-questions`);
@@ -73,6 +75,33 @@ export async function updateResearchQuestionAction(input: UpdateIdeaInput) {
   } catch (error) {
     console.error("Failed to update idea:", error);
     return { success: false, error: "Failed to update idea" };
+  }
+}
+
+export async function setResearchQuestionStatusAction(input: {
+  projectUuid: string;
+  questionUuid: string;
+  status: string;
+}) {
+  const auth = await getServerAuthContext();
+  if (!auth) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const idea = await updateResearchQuestion(
+      input.questionUuid,
+      auth.companyUuid,
+      { status: input.status },
+      { actorType: auth.type, actorUuid: auth.actorUuid },
+    );
+
+    revalidatePath(`/research-projects/${input.projectUuid}/research-questions`);
+    revalidatePath(`/research-projects/${input.projectUuid}/dashboard`);
+    return { success: true, idea };
+  } catch (error) {
+    console.error("Failed to update research question status:", error);
+    return { success: false, error: "Failed to update research question status" };
   }
 }
 

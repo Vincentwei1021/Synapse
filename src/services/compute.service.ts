@@ -28,9 +28,10 @@ export interface ComputeGpuSnapshot {
   lastReportedAt: string | null;
   activeReservation: {
     uuid: string;
-    runUuid: string;
-    runTitle: string;
-    runStatus: string;
+    kind: "experiment" | "run";
+    itemUuid: string;
+    itemTitle: string;
+    itemStatus: string;
   } | null;
   computedStatus: string;
 }
@@ -46,6 +47,9 @@ export interface ComputeNodeSnapshot {
   sshUser: string | null;
   sshPort: number | null;
   sshKeyPath: string | null;
+  sshKeyName: string | null;
+  sshKeyFingerprint: string | null;
+  sshKeySource: string | null;
   ssmTarget: string | null;
   notes: string | null;
   lastReportedAt: string | null;
@@ -113,13 +117,16 @@ function serializeNode(node: {
   sshUser: string | null;
   sshPort: number | null;
   sshKeyPath: string | null;
+  sshKeyName: string | null;
+  sshKeyFingerprint: string | null;
+  sshKeySource: string | null;
   ssmTarget: string | null;
   notes: string | null;
   lastReportedAt: Date | null;
   gpus: Array<{
     uuid: string;
-    slotIndex: number;
-    model: string;
+      slotIndex: number;
+      model: string;
     memoryGb: number | null;
     lifecycle: string;
     utilizationPercent: number | null;
@@ -136,10 +143,37 @@ function serializeNode(node: {
         status: string;
       };
     }>;
+    experimentReservations: Array<{
+      uuid: string;
+      experimentUuid: string;
+      experiment: {
+        uuid: string;
+        title: string;
+        status: string;
+      };
+    }>;
   }>;
 }): ComputeNodeSnapshot {
   const gpus = node.gpus.map((gpu) => {
-    const activeReservation = gpu.reservations[0] ?? null;
+    const activeExperimentReservation = gpu.experimentReservations[0] ?? null;
+    const activeRunReservation = gpu.reservations[0] ?? null;
+    const activeReservation = activeExperimentReservation
+      ? {
+          uuid: activeExperimentReservation.uuid,
+          kind: "experiment" as const,
+          itemUuid: activeExperimentReservation.experiment.uuid,
+          itemTitle: activeExperimentReservation.experiment.title,
+          itemStatus: activeExperimentReservation.experiment.status,
+        }
+      : activeRunReservation
+        ? {
+            uuid: activeRunReservation.uuid,
+            kind: "run" as const,
+            itemUuid: activeRunReservation.run.uuid,
+            itemTitle: activeRunReservation.run.title,
+            itemStatus: activeRunReservation.run.status,
+          }
+        : null;
     const computedStatus = activeReservation ? "busy" : gpu.lifecycle;
 
     return {
@@ -156,9 +190,10 @@ function serializeNode(node: {
       activeReservation: activeReservation
         ? {
             uuid: activeReservation.uuid,
-            runUuid: activeReservation.run.uuid,
-            runTitle: activeReservation.run.title,
-            runStatus: activeReservation.run.status,
+            kind: activeReservation.kind,
+            itemUuid: activeReservation.itemUuid,
+            itemTitle: activeReservation.itemTitle,
+            itemStatus: activeReservation.itemStatus,
           }
         : null,
       computedStatus,
@@ -176,6 +211,9 @@ function serializeNode(node: {
     sshUser: node.sshUser,
     sshPort: node.sshPort,
     sshKeyPath: node.sshKeyPath,
+    sshKeyName: node.sshKeyName,
+    sshKeyFingerprint: node.sshKeyFingerprint,
+    sshKeySource: node.sshKeySource,
     ssmTarget: node.ssmTarget,
     notes: node.notes,
     lastReportedAt: node.lastReportedAt?.toISOString() ?? null,
@@ -199,6 +237,9 @@ async function listPollableNodes() {
       sshUser: true,
       sshPort: true,
       sshKeyPath: true,
+      sshKeyName: true,
+      sshKeyFingerprint: true,
+      sshKeySource: true,
     },
   });
 }
@@ -333,6 +374,18 @@ export async function listComputePools(companyUuid: string): Promise<ComputePool
                   },
                 },
               },
+              experimentReservations: {
+                where: { releasedAt: null },
+                include: {
+                  experiment: {
+                    select: {
+                      uuid: true,
+                      title: true,
+                      status: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -358,6 +411,9 @@ export async function listAvailableComputeGpus(companyUuid: string) {
         lifecycle: NODE_IDLE,
       },
       reservations: {
+        none: { releasedAt: null },
+      },
+      experimentReservations: {
         none: { releasedAt: null },
       },
     },
@@ -398,6 +454,9 @@ export async function createComputeNode(input: {
   sshUser?: string;
   sshPort?: number;
   sshKeyPath?: string;
+  sshKeyName?: string;
+  sshKeyFingerprint?: string;
+  sshKeySource?: string;
   ssmTarget?: string;
   notes?: string;
 }) {
@@ -414,6 +473,9 @@ export async function createComputeNode(input: {
       sshUser: input.sshUser || null,
       sshPort: input.sshPort || null,
       sshKeyPath: input.sshKeyPath || null,
+      sshKeyName: input.sshKeyName || null,
+      sshKeyFingerprint: input.sshKeyFingerprint || null,
+      sshKeySource: input.sshKeySource || null,
       ssmTarget: input.ssmTarget || null,
       notes: input.notes || null,
     },
@@ -569,6 +631,74 @@ export async function releaseGpuReservationsForRun(companyUuid: string, runUuid:
     where: {
       companyUuid,
       runUuid,
+      releasedAt: null,
+    },
+    data: {
+      releasedAt: new Date(),
+    },
+  });
+}
+
+export async function reserveGpusForExperiment(input: {
+  companyUuid: string;
+  experimentUuid: string;
+  gpuUuids: string[];
+}) {
+  if (input.gpuUuids.length === 0) {
+    return [];
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const gpus = await tx.computeGpu.findMany({
+      where: {
+        companyUuid: input.companyUuid,
+        uuid: { in: input.gpuUuids },
+      },
+      include: {
+        reservations: {
+          where: { releasedAt: null },
+          select: { uuid: true },
+        },
+        experimentReservations: {
+          where: { releasedAt: null },
+          select: { uuid: true },
+        },
+      },
+    });
+
+    if (gpus.length !== input.gpuUuids.length) {
+      throw new Error("Some GPUs could not be found");
+    }
+
+    const unavailable = gpus.find(
+      (gpu) =>
+        gpu.lifecycle !== GPU_AVAILABLE ||
+        gpu.reservations.length > 0 ||
+        gpu.experimentReservations.length > 0,
+    );
+    if (unavailable) {
+      throw new Error(`GPU ${unavailable.slotIndex} on node ${unavailable.nodeUuid} is not available`);
+    }
+
+    return Promise.all(
+      input.gpuUuids.map((gpuUuid) =>
+        tx.experimentGpuReservation.create({
+          data: {
+            companyUuid: input.companyUuid,
+            experimentUuid: input.experimentUuid,
+            gpuUuid,
+          },
+        }),
+      ),
+    );
+  });
+}
+
+export async function releaseGpuReservationsForExperiment(companyUuid: string, experimentUuid: string) {
+  await prisma.experimentGpuReservation.updateMany({
+    where: {
+      companyUuid,
+      experimentUuid,
       releasedAt: null,
     },
     data: {

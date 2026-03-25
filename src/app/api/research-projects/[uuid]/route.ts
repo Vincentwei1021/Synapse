@@ -34,8 +34,7 @@ export const GET = withErrorHandler(async (request: NextRequest, context: RouteC
         select: {
           researchQuestions: true,
           documents: true,
-          experimentRuns: true,
-          experimentDesigns: true,
+          experiments: true,
           activities: true,
         },
       },
@@ -55,8 +54,9 @@ export const GET = withErrorHandler(async (request: NextRequest, context: RouteC
     counts: {
       researchQuestions: researchProject._count.researchQuestions,
       documents: researchProject._count.documents,
-      experimentRuns: researchProject._count.experimentRuns,
-      experimentDesigns: researchProject._count.experimentDesigns,
+      experiments: researchProject._count.experiments,
+      tasks: researchProject._count.experiments,
+      proposals: 0,
       activities: researchProject._count.activities,
     },
   });
