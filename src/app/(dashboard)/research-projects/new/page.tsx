@@ -19,8 +19,15 @@ import {
   Upload,
   Rocket,
   Bell,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { createResearchProjectAction } from "./actions";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface UploadedFile {
   name: string;
@@ -44,6 +51,8 @@ export default function NewProjectPage() {
   const [ideas, setIdeas] = useState<string[]>([""]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [ideasOpen, setIdeasOpen] = useState(false);
+  const [documentsOpen, setDocumentsOpen] = useState(false);
 
   const handleAddIdea = () => {
     setIdeas([...ideas, ""]);
@@ -168,7 +177,7 @@ export default function NewProjectPage() {
         <div className="mb-6 flex items-center justify-between">
           <div className="text-[11px] text-muted-foreground">
             <Link href="/research-projects" className="hover:text-foreground">
-              {t("nav.projects")}
+              {t("nav.researchProjects")}
             </Link>
             <span className="mx-1">/</span>
             <span>{t("projects.newProject")}</span>
@@ -305,145 +314,187 @@ export default function NewProjectPage() {
           </Card>
 
           {/* Step 2: Initial Ideas Card */}
-          <Card className="overflow-hidden rounded-2xl border-l-3 border-l-[#C67A52] border-t-0 border-r-0 border-b-0 shadow-none">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#C67A52] text-[11px] font-semibold text-white">
-                    2
-                  </span>
-                  <Lightbulb className="h-4 w-4 text-[#C67A52]" />
-                  {t("projects.createNew.initialIdeas")}
-                </CardTitle>
-                <span className="text-[11px] text-muted-foreground">{t("common.optional")}</span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-xs text-muted-foreground">
-                {t("projects.createNew.initialIdeasDesc")}
-              </p>
-
-              <div className="space-y-3">
-                {ideas.map((idea, index) => (
-                  <div key={index} className="relative">
-                    <Textarea
-                      value={idea}
-                      onChange={(e) => handleIdeaChange(index, e.target.value)}
-                      placeholder={t("projects.createNew.ideaPlaceholder")}
-                      rows={3}
-                      className="pr-10"
-                    />
-                    {ideas.length > 1 && (
+          <Collapsible open={ideasOpen} onOpenChange={setIdeasOpen}>
+            <Card className="overflow-hidden rounded-2xl border-l-3 border-l-[#C67A52] border-t-0 border-r-0 border-b-0 shadow-none">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#C67A52] text-[11px] font-semibold text-white">
+                      2
+                    </span>
+                    <Lightbulb className="h-4 w-4 text-[#C67A52]" />
+                    {t("projects.createNew.initialIdeas")}
+                  </CardTitle>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[11px] text-muted-foreground">{t("common.optional")}</span>
+                    <CollapsibleTrigger asChild>
                       <Button
                         type="button"
                         variant="ghost"
-                        size="icon"
-                        onClick={() => handleRemoveIdea(index)}
-                        className="absolute right-2 top-2 h-6 w-6"
+                        size="sm"
+                        className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
                       >
-                        <X className="h-4 w-4" />
+                        {ideasOpen ? (
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        )}
+                        {ideasOpen ? t("common.collapse") : t("common.expand")}
                       </Button>
-                    )}
+                    </CollapsibleTrigger>
                   </div>
-                ))}
-              </div>
+                </div>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent>
+                  <p className="mb-4 text-xs text-muted-foreground">
+                    {t("projects.createNew.initialIdeasDesc")}
+                  </p>
 
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleAddIdea}
-                className="mt-3"
-              >
-                <Plus className="mr-1.5 h-3 w-3" />
-                {t("projects.createNew.addAnother")}
-              </Button>
-            </CardContent>
-          </Card>
+                  <div className="space-y-3">
+                    {ideas.map((idea, index) => (
+                      <div key={index} className="relative">
+                        <Textarea
+                          value={idea}
+                          onChange={(e) => handleIdeaChange(index, e.target.value)}
+                          placeholder={t("projects.createNew.ideaPlaceholder")}
+                          rows={3}
+                          className="pr-10"
+                        />
+                        {ideas.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveIdea(index)}
+                            className="absolute right-2 top-2 h-6 w-6"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddIdea}
+                    className="mt-3"
+                  >
+                    <Plus className="mr-1.5 h-3 w-3" />
+                    {t("projects.createNew.addAnother")}
+                  </Button>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
 
           {/* Step 3: Documents Card */}
-          <Card className="overflow-hidden rounded-2xl border-l-3 border-l-[#C67A52] border-t-0 border-r-0 border-b-0 shadow-none">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#C67A52] text-[11px] font-semibold text-white">
-                    3
-                  </span>
-                  <FolderOpen className="h-4 w-4 text-[#C67A52]" />
-                  {t("projects.createNew.documents")}
-                </CardTitle>
-                <span className="text-[11px] text-muted-foreground">{t("common.optional")}</span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-xs text-muted-foreground">
-                {t("projects.createNew.documentsDesc")}
-              </p>
-
-              {/* Upload Area */}
-              <div
-                className={`flex h-[120px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed transition-colors ${
-                  dragActive
-                    ? "border-[#C67A52] bg-[#C67A5210]"
-                    : "border-[#D0CCC4] bg-[#F5F2EC]"
-                }`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept=".md"
-                  onChange={(e) => e.target.files && handleFiles(e.target.files)}
-                  className="hidden"
-                />
-                <Upload className="h-8 w-8 text-muted-foreground" />
-                <span className="text-xs text-[#6B6B6B]">
-                  {t("projects.createNew.dragDrop")}
-                </span>
-                <span className="text-[11px] text-[#9A9A9A]">
-                  {t("projects.createNew.fileTypes")}
-                </span>
-              </div>
-
-              {/* Uploaded Files */}
-              {uploadedFiles.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  {uploadedFiles.map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between rounded-xl border border-[#E5E2DC] bg-[#F5F2EC] px-3 py-2.5"
-                    >
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-[#C67A52]" />
-                        <span className="text-[13px] text-foreground">
-                          {file.name}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-[11px] text-muted-foreground">
-                          {formatFileSize(file.size)}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveFile(index)}
-                          className="h-6 w-6"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+          <Collapsible open={documentsOpen} onOpenChange={setDocumentsOpen}>
+            <Card className="overflow-hidden rounded-2xl border-l-3 border-l-[#C67A52] border-t-0 border-r-0 border-b-0 shadow-none">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#C67A52] text-[11px] font-semibold text-white">
+                      3
+                    </span>
+                    <FolderOpen className="h-4 w-4 text-[#C67A52]" />
+                    {t("projects.createNew.documents")}
+                  </CardTitle>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[11px] text-muted-foreground">{t("common.optional")}</span>
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        {documentsOpen ? (
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        )}
+                        {documentsOpen ? t("common.collapse") : t("common.expand")}
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent>
+                  <p className="mb-4 text-xs text-muted-foreground">
+                    {t("projects.createNew.documentsDesc")}
+                  </p>
+
+                  {/* Upload Area */}
+                  <div
+                    className={`flex h-[120px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed transition-colors ${
+                      dragActive
+                        ? "border-[#C67A52] bg-[#C67A5210]"
+                        : "border-[#D0CCC4] bg-[#F5F2EC]"
+                    }`}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept=".md"
+                      onChange={(e) => e.target.files && handleFiles(e.target.files)}
+                      className="hidden"
+                    />
+                    <Upload className="h-8 w-8 text-muted-foreground" />
+                    <span className="text-xs text-[#6B6B6B]">
+                      {t("projects.createNew.dragDrop")}
+                    </span>
+                    <span className="text-[11px] text-[#9A9A9A]">
+                      {t("projects.createNew.fileTypes")}
+                    </span>
+                  </div>
+
+                  {/* Uploaded Files */}
+                  {uploadedFiles.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      {uploadedFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between rounded-xl border border-[#E5E2DC] bg-[#F5F2EC] px-3 py-2.5"
+                        >
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-[#C67A52]" />
+                            <span className="text-[13px] text-foreground">
+                              {file.name}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] text-muted-foreground">
+                              {formatFileSize(file.size)}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveFile(index)}
+                              className="h-6 w-6"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
 
           {/* Action Bar */}
           <Separator className="bg-[#E5E2DC]" />
