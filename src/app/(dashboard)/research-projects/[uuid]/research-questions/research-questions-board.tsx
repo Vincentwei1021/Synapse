@@ -17,15 +17,27 @@ import {
   useNodesState,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Check, CornerUpLeft, FlaskConical, PlayCircle, Plus } from "lucide-react";
+import { Check, CornerUpLeft, FlaskConical, Pencil, PlayCircle, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
 import type { ExperimentResponse } from "@/services/experiment.service";
 import type { ResearchQuestionResponse } from "@/services/research-question.service";
 import { IdeaCreateForm } from "./question-create-form";
 import {
+  deleteResearchQuestionAction,
   reviewResearchQuestionAction,
   setResearchQuestionStatusAction,
 } from "./actions";
@@ -219,7 +231,7 @@ function buildQuestionLayout(questions: ResearchQuestionResponse[]) {
     rootCursor += width + 0.2;
   }
 
-  return { positions, byParent, roots };
+  return { positions, roots };
 }
 
 export function ResearchQuestionsBoard({
@@ -235,6 +247,7 @@ export function ResearchQuestionsBoard({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [selectedQuestionUuid, setSelectedQuestionUuid] = useState<string | null>(researchQuestions[0]?.uuid ?? null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   useRealtimeRefresh();
 
   useEffect(() => {
@@ -262,7 +275,7 @@ export function ResearchQuestionsBoard({
   );
 
   const flow = useMemo(() => {
-    const { positions, byParent, roots } = buildQuestionLayout(researchQuestions);
+    const { positions, roots } = buildQuestionLayout(researchQuestions);
     const nodes: Node<CanvasNodeData>[] = researchQuestions.map((question) => {
       const position = positions.get(question.uuid) ?? { x: 0, y: 0 };
       return {
@@ -294,22 +307,18 @@ export function ResearchQuestionsBoard({
           target: `q-${question.uuid}`,
           sourceHandle: "child-source",
           targetHandle: "parent-target",
-          type: "smoothstep",
+          type: "straight",
           style: { stroke: "#C67A52", strokeWidth: 2.2 },
         });
       }
     }
 
-    const siblingGroups = [roots, ...researchQuestions.map((question) => byParent.get(question.uuid) ?? [])].filter(
-      (group) => group.length > 1,
-    );
-
-    for (const group of siblingGroups) {
-      for (let index = 0; index < group.length - 1; index += 1) {
+    if (roots.length > 1) {
+      for (let index = 0; index < roots.length - 1; index += 1) {
         edges.push({
-          id: `peer-${group[index].uuid}-${group[index + 1].uuid}`,
-          source: `q-${group[index].uuid}`,
-          target: `q-${group[index + 1].uuid}`,
+          id: `peer-${roots[index].uuid}-${roots[index + 1].uuid}`,
+          source: `q-${roots[index].uuid}`,
+          target: `q-${roots[index + 1].uuid}`,
           sourceHandle: "peer-source",
           targetHandle: "peer-target",
           type: "straight",
@@ -355,8 +364,7 @@ export function ResearchQuestionsBoard({
             target: `e-${experiment.uuid}`,
             sourceHandle: "experiment-source",
             targetHandle: "question-target",
-            type: "smoothstep",
-            animated: true,
+            type: "straight",
             style: { stroke: "#2F7D5D", strokeWidth: 1.8 },
           });
         });
@@ -380,7 +388,7 @@ export function ResearchQuestionsBoard({
       return;
     }
 
-    router.push(`/research-projects/${projectUuid}/experiments`);
+    router.push(`/research-projects/${projectUuid}/experiments?selected=${node.id.replace("e-", "")}`);
   };
 
   const runStatusAction = (status: "elaborating" | "experiment_created" | "completed") => {
@@ -392,6 +400,18 @@ export function ResearchQuestionsBoard({
         questionUuid: selectedQuestion.uuid,
         status,
       });
+    });
+  };
+
+  const handleDeleteSelectedQuestion = () => {
+    if (!selectedQuestion) return;
+
+    startTransition(() => {
+      void (async () => {
+        await deleteResearchQuestionAction(selectedQuestion.uuid, projectUuid);
+        setDeleteDialogOpen(false);
+        setSelectedQuestionUuid(null);
+      })();
     });
   };
 
@@ -468,6 +488,25 @@ export function ResearchQuestionsBoard({
               </div>
               <div className="flex flex-wrap gap-2">
                 <IdeaCreateForm
+                  mode="edit"
+                  projectUuid={projectUuid}
+                  questionUuid={selectedQuestion.uuid}
+                  researchQuestions={researchQuestions.map((question) => ({
+                    uuid: question.uuid,
+                    title: question.title,
+                  }))}
+                  initialTitle={selectedQuestion.title}
+                  initialContent={selectedQuestion.content}
+                  initialParentQuestionUuid={selectedQuestion.parentQuestionUuid ?? null}
+                  buttonLabel={t("ideas.editQuestion")}
+                  trigger={
+                    <Button variant="outline">
+                      <Pencil className="mr-2 h-4 w-4" />
+                      {t("ideas.editQuestion")}
+                    </Button>
+                  }
+                />
+                <IdeaCreateForm
                   projectUuid={projectUuid}
                   researchQuestions={researchQuestions.map((question) => ({
                     uuid: question.uuid,
@@ -476,6 +515,32 @@ export function ResearchQuestionsBoard({
                   buttonLabel={t("ideas.createChild")}
                   defaultParentQuestionUuid={selectedQuestion.uuid}
                 />
+                <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10">
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      {t("ideas.deleteResearchQuestion")}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t("ideas.deleteResearchQuestion")}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {t("ideas.deleteResearchQuestionCascadeConfirm", { title: selectedQuestion.title })}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={handleDeleteSelectedQuestion}
+                        disabled={isPending}
+                      >
+                        {t("common.delete")}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 <Button asChild variant="outline">
                   <Link href={`/research-projects/${projectUuid}/experiments`}>{t("ideas.viewExperiments")}</Link>
                 </Button>

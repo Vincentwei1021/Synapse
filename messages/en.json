@@ -132,9 +132,11 @@
     "openMenu": "Open menu"
   },
   "priority": {
+    "immediate": "Immediate",
     "low": "Low",
     "medium": "Medium",
     "high": "High",
+    "immediatePriority": "Immediate Priority",
     "lowPriority": "Low Priority",
     "mediumPriority": "Medium Priority",
     "highPriority": "High Priority",
@@ -1044,6 +1046,8 @@
     "submit": "Create question",
     "createRoot": "Create question",
     "createChild": "Create child question",
+    "editQuestion": "Edit question",
+    "editHint": "Refine this question, change its parent, or add more downstream context.",
     "titleLabel": "Question title",
     "parentLabel": "Parent question",
     "noParent": "No parent question",
@@ -1067,6 +1071,8 @@
     "noLinkedExperiments": "There are no direct experiments under this question yet.",
     "inheritsParentExperiments": "Child-question experiments can inherit context from this question's direct experiments",
     "viewExperiments": "Open experiments board",
+    "deleteResearchQuestion": "Delete research question",
+    "deleteResearchQuestionCascadeConfirm": "Are you sure you want to delete \"{title}\"? This will permanently remove the question, every child question underneath it, and their linked experiments. This action cannot be undone.",
     "card": {
       "review": "Review",
       "parent": "Parent",
@@ -1117,6 +1123,7 @@
       "returnToDraft": "Return to draft",
       "selectAgent": "Select agent",
       "assign": "Assign",
+      "reassign": "Reassign",
       "start": "Start",
       "complete": "Complete"
     },
@@ -1131,6 +1138,19 @@
       "computeBudgetHours": "Compute budget (hours)",
       "attachments": "Experiment documents",
       "attachmentsHelp": "Upload notes or specs to keep this experiment self-contained."
+    },
+    "detail": {
+      "noDescription": "No description provided yet.",
+      "computeBudget": "Compute budget",
+      "notSet": "Not set",
+      "outcome": "Outcome summary",
+      "noOutcome": "No outcome has been recorded yet.",
+      "attachments": "Linked experiment documents",
+      "noAttachments": "No documents were uploaded for this experiment.",
+      "parentContext": "Inherited parent-question context",
+      "noParentContext": "This experiment does not inherit any direct parent-question experiments.",
+      "results": "Structured results",
+      "noResults": "No structured results have been captured yet."
     }
   },
   "insights": {

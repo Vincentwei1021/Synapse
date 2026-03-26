@@ -161,6 +161,24 @@ export class SynapseEventRouter {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
     const mentionGuidance = this.buildMentionGuidance(n, "task");
 
+    if (n.entityType === "experiment") {
+      const prompt = [
+        `[Synapse] Experiment assigned: ${n.entityTitle}. Experiment UUID: ${n.entityUuid}, Project UUID: ${projectUuid}.`,
+        "Use synapse_get_assigned_experiments to inspect your current queue. Execute the highest-priority item first; experiments with priority 'immediate' must jump to the front of the queue, and experiments with the same priority should be handled FIFO.",
+        `Then use synapse_get_experiment with experimentUuid "${n.entityUuid}" to inspect full details, sync any needed GPU inventory with compute tools, call synapse_start_experiment when you begin execution, and call synapse_submit_experiment_results with experimentUuid "${n.entityUuid}" when you finish so Synapse can update the experiment and its document.`,
+        mentionGuidance,
+      ].join("\n");
+
+      this.triggerAgent(prompt, {
+        notificationUuid: n.uuid,
+        action: "task_assigned",
+        entityType: n.entityType,
+        entityUuid: n.entityUuid,
+        projectUuid,
+      });
+      return;
+    }
+
     if (this.config.autoStart) {
       try {
         await this.mcpClient.callTool("synapse_claim_experiment_run", { runUuid: n.entityUuid });

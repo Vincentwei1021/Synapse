@@ -17,7 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { createResearchQuestionAction } from "./actions";
+import { createResearchQuestionAction, updateResearchQuestionAction } from "./actions";
 
 interface IdeaCreateFormProps {
   projectUuid: string;
@@ -25,6 +25,12 @@ interface IdeaCreateFormProps {
   trigger?: React.ReactNode;
   buttonLabel?: string;
   defaultParentQuestionUuid?: string | null;
+  mode?: "create" | "edit";
+  questionUuid?: string;
+  initialTitle?: string;
+  initialContent?: string | null;
+  initialParentQuestionUuid?: string | null;
+  onSuccess?: () => void;
 }
 
 export function IdeaCreateForm({
@@ -33,31 +39,51 @@ export function IdeaCreateForm({
   trigger,
   buttonLabel,
   defaultParentQuestionUuid = null,
+  mode = "create",
+  questionUuid,
+  initialTitle = "",
+  initialContent = "",
+  initialParentQuestionUuid = null,
+  onSuccess,
 }: IdeaCreateFormProps) {
   const t = useTranslations();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [parentQuestionUuid, setParentQuestionUuid] = useState<string>(defaultParentQuestionUuid ?? "");
+  const [title, setTitle] = useState(initialTitle);
+  const [content, setContent] = useState(initialContent ?? "");
+  const [parentQuestionUuid, setParentQuestionUuid] = useState<string>(
+    initialParentQuestionUuid ?? defaultParentQuestionUuid ?? "",
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open) {
-      setParentQuestionUuid(defaultParentQuestionUuid ?? "");
+    if (open) {
+      setTitle(initialTitle);
+      setContent(initialContent ?? "");
+      setParentQuestionUuid(initialParentQuestionUuid ?? defaultParentQuestionUuid ?? "");
+      setError(null);
+      return;
     }
-  }, [defaultParentQuestionUuid, open]);
+
+    setTitle(initialTitle);
+    setContent(initialContent ?? "");
+    setParentQuestionUuid(initialParentQuestionUuid ?? defaultParentQuestionUuid ?? "");
+  }, [defaultParentQuestionUuid, initialContent, initialParentQuestionUuid, initialTitle, open]);
 
   const hasQuestions = researchQuestions.length > 0;
+  const selectableQuestions = useMemo(
+    () => researchQuestions.filter((question) => question.uuid !== questionUuid),
+    [questionUuid, researchQuestions],
+  );
   const defaultTrigger = useMemo(
     () => (
       <Button className="bg-[#C67A52] text-white hover:bg-[#B56A42]">
         <Plus className="mr-2 h-4 w-4" />
-        {buttonLabel || t("ideas.createRoot")}
+        {buttonLabel || (mode === "edit" ? t("ideas.editQuestion") : t("ideas.createRoot"))}
       </Button>
     ),
-    [buttonLabel, t],
+    [buttonLabel, mode, t],
   );
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -72,22 +98,29 @@ export function IdeaCreateForm({
     startTransition(() => {
       void (async () => {
         try {
-          const result = await createResearchQuestionAction({
-            projectUuid,
-            title: title.trim(),
-            content: content.trim() || undefined,
-            parentQuestionUuid: parentQuestionUuid || null,
-          });
+          const result =
+            mode === "edit" && questionUuid
+              ? await updateResearchQuestionAction({
+                  projectUuid,
+                  questionUuid,
+                  title: title.trim(),
+                  content: content.trim() || null,
+                  parentQuestionUuid: parentQuestionUuid || null,
+                })
+              : await createResearchQuestionAction({
+                  projectUuid,
+                  title: title.trim(),
+                  content: content.trim() || undefined,
+                  parentQuestionUuid: parentQuestionUuid || null,
+                });
 
           if (!result.success) {
-            setError(result.error || t("ideas.createFailed"));
+            setError(result.error || (mode === "edit" ? t("ideas.updateFailed") : t("ideas.createFailed")));
             return;
           }
 
-          setTitle("");
-          setContent("");
-          setParentQuestionUuid(defaultParentQuestionUuid ?? "");
           setOpen(false);
+          onSuccess?.();
           router.refresh();
         } catch {
           setError(t("common.genericError"));
@@ -103,10 +136,10 @@ export function IdeaCreateForm({
         <form onSubmit={handleSubmit} className="overflow-hidden rounded-3xl bg-background">
           <DialogHeader className="border-b border-border px-6 py-5 text-left">
             <DialogTitle className="text-lg font-semibold text-foreground">
-              {buttonLabel || t("ideas.createRoot")}
+              {buttonLabel || (mode === "edit" ? t("ideas.editQuestion") : t("ideas.createRoot"))}
             </DialogTitle>
             <DialogDescription className="text-sm leading-6 text-muted-foreground">
-              {t("ideas.canvasHint")}
+              {mode === "edit" ? t("ideas.editHint") : t("ideas.canvasHint")}
             </DialogDescription>
           </DialogHeader>
 
@@ -143,7 +176,7 @@ export function IdeaCreateForm({
                   className="h-11 w-full rounded-2xl border border-[#E5DED3] bg-card px-3 text-sm text-foreground outline-none focus:border-[#C67A52]"
                 >
                   <option value="">{t("ideas.noParent")}</option>
-                  {researchQuestions.map((question) => (
+                  {selectableQuestions.map((question) => (
                     <option key={question.uuid} value={question.uuid}>
                       {question.title}
                     </option>
@@ -180,10 +213,10 @@ export function IdeaCreateForm({
               {isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t("common.creating")}
+                  {mode === "edit" ? t("common.saving") : t("common.creating")}
                 </>
               ) : (
-                buttonLabel || t("ideas.submit")
+                buttonLabel || (mode === "edit" ? t("ideas.saveChanges") : t("ideas.submit"))
               )}
             </Button>
           </DialogFooter>

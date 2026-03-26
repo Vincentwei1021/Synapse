@@ -11,15 +11,17 @@ import { Button } from "@/components/ui/button";
 
 interface PageProps {
   params: Promise<{ uuid: string }>;
+  searchParams?: Promise<{ selected?: string }>;
 }
 
-export default async function ExperimentsPage({ params }: PageProps) {
+export default async function ExperimentsPage({ params, searchParams }: PageProps) {
   const auth = await getServerAuthContext();
   if (!auth) {
     redirect("/login");
   }
 
   const { uuid: projectUuid } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const exists = await researchProjectExists(auth.companyUuid, projectUuid);
   if (!exists) {
     redirect("/research-projects");
@@ -58,6 +60,7 @@ export default async function ExperimentsPage({ params }: PageProps) {
       <ExperimentsBoard
         experiments={experiments}
         agents={agents.map((agent) => ({ uuid: agent.uuid, name: agent.name }))}
+        initialSelectedExperimentUuid={resolvedSearchParams?.selected || null}
       />
     </div>
   );

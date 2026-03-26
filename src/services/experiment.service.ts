@@ -4,6 +4,7 @@ import { eventBus } from "@/lib/event-bus";
 import { formatAssigneeComplete, formatCreatedBy } from "@/lib/uuid-resolver";
 import { getActorName } from "@/lib/uuid-resolver";
 import * as activityService from "@/services/activity.service";
+import { createDocument, updateDocument } from "@/services/document.service";
 import * as notificationService from "@/services/notification.service";
 import { refreshProjectSynthesis } from "@/services/project-synthesis.service";
 
@@ -84,6 +85,8 @@ export interface ExperimentCreateParams {
   createdByType?: "user" | "agent";
 }
 
+export type ExperimentPriority = "low" | "medium" | "high" | "immediate";
+
 const VALID_TRANSITIONS: Record<ExperimentStatus, ExperimentStatus[]> = {
   draft: ["pending_review"],
   pending_review: ["draft", "pending_start"],
@@ -92,10 +95,144 @@ const VALID_TRANSITIONS: Record<ExperimentStatus, ExperimentStatus[]> = {
   completed: ["completed"],
 };
 
+const EXPERIMENT_PRIORITY_ORDER: Record<ExperimentPriority, number> = {
+  immediate: 0,
+  high: 1,
+  medium: 2,
+  low: 3,
+};
+const EXPERIMENT_RESULT_DOCUMENT_TYPE = "experiment_result";
+
 function jsonInput(value: unknown) {
   if (value === undefined) return undefined;
   if (value === null) return Prisma.JsonNull;
   return value as Prisma.InputJsonValue;
+}
+
+function normalizeExperimentPriority(priority?: string | null): ExperimentPriority {
+  if (priority === "immediate" || priority === "high" || priority === "medium" || priority === "low") {
+    return priority;
+  }
+  return "medium";
+}
+
+function queueSortTimestamp(item: { assignedAt?: Date | null; createdAt: Date }) {
+  return item.assignedAt ?? item.createdAt;
+}
+
+function sortExperimentsByQueue<T extends { priority: string; assignedAt?: Date | null; createdAt: Date }>(items: T[]) {
+  return [...items].sort((left, right) => {
+    const priorityDelta =
+      EXPERIMENT_PRIORITY_ORDER[normalizeExperimentPriority(left.priority)] -
+      EXPERIMENT_PRIORITY_ORDER[normalizeExperimentPriority(right.priority)];
+
+    if (priorityDelta !== 0) {
+      return priorityDelta;
+    }
+
+    return queueSortTimestamp(left).getTime() - queueSortTimestamp(right).getTime();
+  });
+}
+
+function buildExperimentDocumentMarker(experimentUuid: string) {
+  return `<!-- synapse:experiment:${experimentUuid} -->`;
+}
+
+function buildExperimentDocumentTitle(title: string) {
+  return `Experiment Result · ${title}`;
+}
+
+function formatExperimentDocumentContent(experiment: {
+  uuid: string;
+  title: string;
+  description: string | null;
+  status: string;
+  priority: string;
+  outcome: string | null;
+  computeBudgetHours: number | null;
+  computeUsedHours: number | null;
+  results: unknown;
+  researchQuestion?: { title: string } | null;
+}) {
+  const marker = buildExperimentDocumentMarker(experiment.uuid);
+  const lines = [
+    marker,
+    `# ${experiment.title}`,
+    "",
+    `- Status: ${experiment.status}`,
+    `- Priority: ${normalizeExperimentPriority(experiment.priority)}`,
+    `- Linked research question: ${experiment.researchQuestion?.title ?? "None"}`,
+    `- Compute budget (hours): ${experiment.computeBudgetHours ?? "Not set"}`,
+    `- Compute used (hours): ${experiment.computeUsedHours ?? "Not reported"}`,
+    "",
+    "## Description",
+    "",
+    experiment.description || "No description provided.",
+    "",
+    "## Outcome",
+    "",
+    experiment.outcome || "No outcome reported yet.",
+  ];
+
+  if (experiment.results !== null && experiment.results !== undefined) {
+    lines.push("", "## Results", "", "```json", JSON.stringify(experiment.results, null, 2), "```");
+  }
+
+  return lines.join("\n");
+}
+
+async function syncExperimentResultDocument(input: {
+  companyUuid: string;
+  actorUuid: string;
+  experiment: {
+    uuid: string;
+    researchProjectUuid: string;
+    title: string;
+    description: string | null;
+    status: string;
+    priority: string;
+    outcome: string | null;
+    computeBudgetHours: number | null;
+    computeUsedHours: number | null;
+    results: unknown;
+    researchQuestion?: { title: string } | null;
+  };
+}) {
+  const marker = buildExperimentDocumentMarker(input.experiment.uuid);
+  const title = buildExperimentDocumentTitle(input.experiment.title);
+  const content = formatExperimentDocumentContent(input.experiment);
+
+  const existing = await prisma.document.findFirst({
+    where: {
+      companyUuid: input.companyUuid,
+      researchProjectUuid: input.experiment.researchProjectUuid,
+      type: EXPERIMENT_RESULT_DOCUMENT_TYPE,
+      content: {
+        contains: marker,
+      },
+    },
+    select: { uuid: true },
+  });
+
+  if (existing) {
+    await updateDocument(existing.uuid, {
+      title,
+      content,
+      incrementVersion: true,
+    });
+    return existing.uuid;
+  }
+
+  const document = await createDocument({
+    companyUuid: input.companyUuid,
+    researchProjectUuid: input.experiment.researchProjectUuid,
+    type: EXPERIMENT_RESULT_DOCUMENT_TYPE,
+    title,
+    content,
+    createdByUuid: input.actorUuid,
+  });
+
+  return document.uuid;
 }
 
 function assertTransition(from: ExperimentStatus, to: ExperimentStatus) {
@@ -214,7 +351,7 @@ export async function listExperiments({
       where,
       skip,
       take,
-      orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+      orderBy: [{ createdAt: "asc" }],
       include: {
         researchQuestion: {
           select: { uuid: true, title: true, parentQuestionUuid: true },
@@ -225,9 +362,37 @@ export async function listExperiments({
   ]);
 
   return {
-    experiments: await Promise.all(experiments.map((experiment) => formatExperiment(companyUuid, experiment))),
+    experiments: await Promise.all(
+      sortExperimentsByQueue(experiments).map((experiment) => formatExperiment(companyUuid, experiment)),
+    ),
     total,
   };
+}
+
+export async function listAssignedExperiments(input: {
+  companyUuid: string;
+  assigneeUuid: string;
+  assigneeType?: string;
+  researchProjectUuid?: string;
+  statuses?: ExperimentStatus[];
+}) {
+  const experiments = await prisma.experiment.findMany({
+    where: {
+      companyUuid: input.companyUuid,
+      assigneeUuid: input.assigneeUuid,
+      ...(input.assigneeType ? { assigneeType: input.assigneeType } : {}),
+      ...(input.researchProjectUuid ? { researchProjectUuid: input.researchProjectUuid } : {}),
+      ...(input.statuses?.length ? { status: { in: input.statuses } } : {}),
+    },
+    orderBy: [{ createdAt: "asc" }],
+    include: {
+      researchQuestion: {
+        select: { uuid: true, title: true, parentQuestionUuid: true },
+      },
+    },
+  });
+
+  return Promise.all(sortExperimentsByQueue(experiments).map((experiment) => formatExperiment(input.companyUuid, experiment)));
 }
 
 export async function getExperiment(companyUuid: string, uuid: string) {
@@ -255,7 +420,8 @@ export async function createExperiment(params: ExperimentCreateParams) {
       researchQuestionUuid: params.researchQuestionUuid ?? null,
       title: params.title,
       description: params.description ?? null,
-      priority: params.priority ?? "medium",
+      priority: normalizeExperimentPriority(params.priority),
+      status: params.createdByType === "agent" ? "draft" : "pending_start",
       computeBudgetHours: params.computeBudgetHours ?? null,
       attachments: params.attachments ? (params.attachments as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
       createdByUuid: params.createdByUuid,
@@ -333,7 +499,7 @@ export async function updateExperiment(
       ...(data.title !== undefined ? { title: data.title } : {}),
       ...(data.description !== undefined ? { description: data.description } : {}),
       ...(data.status !== undefined ? { status: data.status } : {}),
-      ...(data.priority !== undefined ? { priority: data.priority } : {}),
+      ...(data.priority !== undefined ? { priority: normalizeExperimentPriority(data.priority) } : {}),
       ...(data.computeBudgetHours !== undefined ? { computeBudgetHours: data.computeBudgetHours } : {}),
       ...(data.outcome !== undefined ? { outcome: data.outcome } : {}),
       ...(data.results !== undefined ? { results: jsonInput(data.results) } : {}),
@@ -546,6 +712,24 @@ export async function startExperiment(input: {
     value: { status: "in_progress" },
   });
 
+  await syncExperimentResultDocument({
+    companyUuid: input.companyUuid,
+    actorUuid: input.actorUuid,
+    experiment: {
+      uuid: updated.uuid,
+      researchProjectUuid: updated.researchProjectUuid,
+      title: updated.title,
+      description: updated.description,
+      status: updated.status,
+      priority: updated.priority,
+      outcome: updated.outcome,
+      computeBudgetHours: updated.computeBudgetHours,
+      computeUsedHours: updated.computeUsedHours,
+      results: updated.results,
+      researchQuestion: updated.researchQuestion,
+    },
+  });
+
   eventBus.emitChange({
     companyUuid: input.companyUuid,
     researchProjectUuid: updated.researchProjectUuid,
@@ -607,6 +791,24 @@ export async function completeExperiment(input: {
     actorUuid: input.actorUuid,
     action: "completed",
     value: { outcome: input.outcome ?? null },
+  });
+
+  await syncExperimentResultDocument({
+    companyUuid: input.companyUuid,
+    actorUuid: input.actorUuid,
+    experiment: {
+      uuid: updated.uuid,
+      researchProjectUuid: updated.researchProjectUuid,
+      title: updated.title,
+      description: updated.description,
+      status: updated.status,
+      priority: updated.priority,
+      outcome: updated.outcome,
+      computeBudgetHours: updated.computeBudgetHours,
+      computeUsedHours: updated.computeUsedHours,
+      results: updated.results,
+      researchQuestion: updated.researchQuestion,
+    },
   });
 
   await refreshProjectSynthesis(input.companyUuid, updated.researchProjectUuid, input.actorUuid);

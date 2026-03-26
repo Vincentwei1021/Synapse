@@ -364,6 +364,47 @@ export async function updateResearchQuestion(
   data: { title?: string; content?: string | null; status?: string; parentQuestionUuid?: string | null },
   actorContext?: { actorType: string; actorUuid: string }
 ): Promise<ResearchQuestionResponse> {
+  const currentQuestion =
+    data.parentQuestionUuid !== undefined
+      ? await prisma.researchQuestion.findFirst({
+          where: { uuid, companyUuid },
+          select: { uuid: true, researchProjectUuid: true },
+        })
+      : null;
+
+  if (data.parentQuestionUuid !== undefined && currentQuestion) {
+    if (data.parentQuestionUuid === uuid) {
+      throw new Error("A research question cannot be its own parent");
+    }
+
+    if (data.parentQuestionUuid) {
+      const parent = await prisma.researchQuestion.findFirst({
+        where: {
+          uuid: data.parentQuestionUuid,
+          companyUuid,
+          researchProjectUuid: currentQuestion.researchProjectUuid,
+        },
+        select: { uuid: true, parentQuestionUuid: true },
+      });
+
+      if (!parent) {
+        throw new Error("Parent research question not found");
+      }
+
+      let cursor: string | null | undefined = parent.uuid;
+      while (cursor) {
+        if (cursor === uuid) {
+          throw new Error("Cannot move a research question under one of its descendants");
+        }
+        const ancestor: { parentQuestionUuid: string | null } | null = await prisma.researchQuestion.findUnique({
+          where: { uuid: cursor },
+          select: { parentQuestionUuid: true },
+        });
+        cursor = ancestor?.parentQuestionUuid;
+      }
+    }
+  }
+
   // If content is being updated and we have actor context, capture old content for mention diffing
   let oldContent: string | null = null;
   if (data.content !== undefined && actorContext) {
@@ -611,9 +652,114 @@ async function processNewResearchQuestionMentions(
 
 // Delete Idea
 export async function deleteResearchQuestion(uuid: string) {
-  const idea = await prisma.researchQuestion.delete({ where: { uuid } });
-  eventBus.emitChange({ companyUuid: idea.companyUuid, researchProjectUuid: idea.researchProjectUuid, entityType: "research_question", entityUuid: idea.uuid, action: "deleted" });
-  return idea;
+  const root = await prisma.researchQuestion.findUnique({
+    where: { uuid },
+    select: {
+      uuid: true,
+      companyUuid: true,
+      researchProjectUuid: true,
+    },
+  });
+
+  if (!root) {
+    throw new Error("ResearchQuestion not found");
+  }
+
+  const allQuestions = await prisma.researchQuestion.findMany({
+    where: {
+      companyUuid: root.companyUuid,
+      researchProjectUuid: root.researchProjectUuid,
+    },
+    select: {
+      uuid: true,
+      parentQuestionUuid: true,
+    },
+  });
+
+  const childrenByParent = new Map<string | null, string[]>();
+  for (const question of allQuestions) {
+    const siblings = childrenByParent.get(question.parentQuestionUuid ?? null) ?? [];
+    siblings.push(question.uuid);
+    childrenByParent.set(question.parentQuestionUuid ?? null, siblings);
+  }
+
+  const deletionOrder: Array<{ uuid: string; depth: number }> = [];
+  const queue: Array<{ uuid: string; depth: number }> = [{ uuid, depth: 0 }];
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    deletionOrder.push(current);
+    const children = childrenByParent.get(current.uuid) ?? [];
+    for (const childUuid of children) {
+      queue.push({ uuid: childUuid, depth: current.depth + 1 });
+    }
+  }
+
+  const questionUuids = deletionOrder.map((item) => item.uuid);
+
+  const experiments = await prisma.experiment.findMany({
+    where: {
+      companyUuid: root.companyUuid,
+      researchQuestionUuid: { in: questionUuids },
+    },
+    select: { uuid: true },
+  });
+
+  const experimentUuids = experiments.map((experiment) => experiment.uuid);
+
+  await prisma.$transaction(async (tx) => {
+    if (experimentUuids.length > 0) {
+      await tx.experimentGpuReservation.deleteMany({
+        where: {
+          companyUuid: root.companyUuid,
+          experimentUuid: { in: experimentUuids },
+        },
+      });
+
+      await tx.experiment.deleteMany({
+        where: {
+          companyUuid: root.companyUuid,
+          uuid: { in: experimentUuids },
+        },
+      });
+    }
+
+    const groupedByDepth = new Map<number, string[]>();
+    for (const item of deletionOrder) {
+      const bucket = groupedByDepth.get(item.depth) ?? [];
+      bucket.push(item.uuid);
+      groupedByDepth.set(item.depth, bucket);
+    }
+
+    const depths = [...groupedByDepth.keys()].sort((left, right) => right - left);
+    for (const depth of depths) {
+      await tx.researchQuestion.deleteMany({
+        where: { uuid: { in: groupedByDepth.get(depth) ?? [] } },
+      });
+    }
+  });
+
+  for (const experimentUuid of experimentUuids) {
+    eventBus.emitChange({
+      companyUuid: root.companyUuid,
+      researchProjectUuid: root.researchProjectUuid,
+      entityType: "experiment",
+      entityUuid: experimentUuid,
+      action: "deleted",
+    });
+  }
+
+  for (const item of deletionOrder) {
+    eventBus.emitChange({
+      companyUuid: root.companyUuid,
+      researchProjectUuid: root.researchProjectUuid,
+      entityType: "research_question",
+      entityUuid: item.uuid,
+      action: "deleted",
+    });
+  }
+
+  return root;
 }
 
 // Move Idea to a different project

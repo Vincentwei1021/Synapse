@@ -57,6 +57,7 @@ interface UpdateIdeaInput {
   title?: string;
   content?: string | null;
   status?: string;
+  parentQuestionUuid?: string | null;
 }
 
 export async function updateResearchQuestionAction(input: UpdateIdeaInput) {
@@ -70,6 +71,7 @@ export async function updateResearchQuestionAction(input: UpdateIdeaInput) {
       title: input.title,
       content: input.content,
       status: input.status,
+      parentQuestionUuid: input.parentQuestionUuid,
     });
 
     revalidatePath(`/research-projects/${input.projectUuid}/research-questions`);
@@ -116,6 +118,8 @@ export async function deleteResearchQuestionAction(questionUuid: string, project
   try {
     await deleteResearchQuestion(questionUuid);
     revalidatePath(`/research-projects/${projectUuid}/research-questions`);
+    revalidatePath(`/research-projects/${projectUuid}/experiments`);
+    revalidatePath(`/research-projects/${projectUuid}/dashboard`);
     return { success: true };
   } catch (error) {
     console.error("Failed to delete idea:", error);

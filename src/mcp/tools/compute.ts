@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { AgentAuthContext } from "@/types/auth";
 import * as activityService from "@/services/activity.service";
 import * as computeService from "@/services/compute.service";
+import * as experimentService from "@/services/experiment.service";
 import * as experimentRunService from "@/services/experiment-run.service";
 import * as sessionService from "@/services/session.service";
 
@@ -71,6 +72,123 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
         content: [{ type: "text", text: JSON.stringify({ pools, nodes }, null, 2) }],
       };
     }
+  );
+
+  server.registerTool(
+    "synapse_get_assigned_experiments",
+    {
+      description: "List experiments currently assigned to you, sorted by priority and assignment order.",
+      inputSchema: z.object({
+        researchProjectUuid: z.string().optional(),
+        statuses: z
+          .array(z.enum(["draft", "pending_review", "pending_start", "in_progress", "completed"]))
+          .optional(),
+      }),
+    },
+    async ({ researchProjectUuid, statuses }) => {
+      const experiments = await experimentService.listAssignedExperiments({
+        companyUuid: auth.companyUuid,
+        assigneeType: "agent",
+        assigneeUuid: auth.actorUuid,
+        researchProjectUuid,
+        statuses,
+      });
+
+      return {
+        content: [{ type: "text", text: JSON.stringify({ experiments }, null, 2) }],
+      };
+    },
+  );
+
+  server.registerTool(
+    "synapse_get_experiment",
+    {
+      description: "Get full details for a single experiment, including any inherited parent-question context.",
+      inputSchema: z.object({
+        experimentUuid: z.string(),
+      }),
+    },
+    async ({ experimentUuid }) => {
+      const experiment = await experimentService.getExperiment(auth.companyUuid, experimentUuid);
+      if (!experiment) {
+        return { content: [{ type: "text", text: "Experiment not found" }], isError: true };
+      }
+
+      return {
+        content: [{ type: "text", text: JSON.stringify({ experiment }, null, 2) }],
+      };
+    },
+  );
+
+  server.registerTool(
+    "synapse_start_experiment",
+    {
+      description: "Move an assigned experiment from pending_start to in_progress, optionally reserving GPUs first.",
+      inputSchema: z.object({
+        experimentUuid: z.string(),
+        gpuUuids: z.array(z.string()).default([]),
+        workingNotes: z.string().optional(),
+      }),
+    },
+    async ({ experimentUuid, gpuUuids, workingNotes }) => {
+      const experiment = await experimentService.getExperiment(auth.companyUuid, experimentUuid);
+      if (!experiment) {
+        return { content: [{ type: "text", text: "Experiment not found" }], isError: true };
+      }
+
+      if (experiment.assignee?.uuid && experiment.assignee.uuid !== auth.actorUuid) {
+        return { content: [{ type: "text", text: "Experiment is assigned to another actor" }], isError: true };
+      }
+
+      if (experiment.status !== "pending_start" && experiment.status !== "in_progress") {
+        return {
+          content: [{ type: "text", text: `Experiment must be pending_start or in_progress, current status: ${experiment.status}` }],
+          isError: true,
+        };
+      }
+
+      if (gpuUuids.length > 0) {
+        await computeService.reserveGpusForExperiment({
+          companyUuid: auth.companyUuid,
+          experimentUuid,
+          gpuUuids,
+        });
+      }
+
+      if (workingNotes?.trim()) {
+        await experimentService.updateExperiment(
+          auth.companyUuid,
+          experimentUuid,
+          { description: workingNotes.trim() },
+          { actorType: "agent", actorUuid: auth.actorUuid },
+        );
+      }
+
+      const updated =
+        experiment.status === "in_progress"
+          ? await experimentService.getExperiment(auth.companyUuid, experimentUuid)
+          : await experimentService.startExperiment({
+              companyUuid: auth.companyUuid,
+              experimentUuid,
+              actorType: "agent",
+              actorUuid: auth.actorUuid,
+            });
+
+      const availableNodes = await computeService.listComputePools(auth.companyUuid);
+      const selectedNodes = availableNodes
+        .flatMap((pool) => pool.nodes)
+        .filter((node) => node.gpus.some((gpu) => gpuUuids.includes(gpu.uuid)))
+        .map((node) => ({
+          uuid: node.uuid,
+          label: node.label,
+          access: serializeAccess(node),
+          gpus: node.gpus.filter((gpu) => gpuUuids.includes(gpu.uuid)),
+        }));
+
+      return {
+        content: [{ type: "text", text: JSON.stringify({ experiment: updated, nodes: selectedNodes }, null, 2) }],
+      };
+    },
   );
 
   server.registerTool(
@@ -252,15 +370,58 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
   server.registerTool(
     "synapse_submit_experiment_results",
     {
-      description: "Submit experiment outcomes, move the run to verification, and release any GPU reservations held by the run.",
+      description: "Submit experiment outcomes. Supports both legacy experiment runs and the new unified Experiment workflow.",
       inputSchema: z.object({
-        runUuid: z.string(),
+        runUuid: z.string().optional(),
+        experimentUuid: z.string().optional(),
         outcome: z.string().optional(),
         experimentResults: z.unknown().optional(),
         sessionUuid: z.string().optional(),
       }),
     },
-    async ({ runUuid, outcome, experimentResults, sessionUuid }) => {
+    async ({ runUuid, experimentUuid, outcome, experimentResults, sessionUuid }) => {
+      if (experimentUuid) {
+        const experiment = await experimentService.getExperiment(auth.companyUuid, experimentUuid);
+        if (!experiment) {
+          return { content: [{ type: "text", text: "Experiment not found" }], isError: true };
+        }
+
+        if (experiment.assignee?.uuid !== auth.actorUuid) {
+          return { content: [{ type: "text", text: "Only the assigned agent can submit results" }], isError: true };
+        }
+
+        const updated = await experimentService.completeExperiment({
+          companyUuid: auth.companyUuid,
+          experimentUuid,
+          actorType: "agent",
+          actorUuid: auth.actorUuid,
+          outcome,
+          results: experimentResults,
+        });
+
+        await computeService.releaseGpuReservationsForExperiment(auth.companyUuid, experimentUuid);
+
+        await activityService.createActivity({
+          companyUuid: auth.companyUuid,
+          researchProjectUuid: experiment.researchProjectUuid,
+          targetType: "experiment",
+          targetUuid: experimentUuid,
+          actorType: "agent",
+          actorUuid: auth.actorUuid,
+          action: "completed",
+          value: { outcome: outcome ?? null },
+          sessionUuid,
+        });
+
+        return {
+          content: [{ type: "text", text: JSON.stringify({ experiment: updated, released: true }, null, 2) }],
+        };
+      }
+
+      if (!runUuid) {
+        return { content: [{ type: "text", text: "Either experimentUuid or runUuid is required" }], isError: true };
+      }
+
       const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, runUuid);
       if (!run) {
         return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
