@@ -50,7 +50,7 @@ export default async function ExperimentsPage({ params, searchParams }: PageProp
           <p className="mt-1 text-sm text-muted-foreground">{t("experiments.subtitle")}</p>
         </div>
         <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90">
-          <Link href={`/research-projects/${projectUuid}/experiments/new`}>
+          <Link href={`/research-projects/${projectUuid}/experiments/new`} prefetch>
             <Plus className="mr-2 h-4 w-4" />
             {t("experiments.create")}
           </Link>

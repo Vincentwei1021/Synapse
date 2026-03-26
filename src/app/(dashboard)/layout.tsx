@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
@@ -158,6 +158,39 @@ export default function DashboardLayout({
     router.push("/login");
   };
 
+  // Global navigation items
+  const globalNavItems = useMemo(() => [
+    { href: "/research-projects", label: t("nav.researchProjects"), icon: FolderKanban },
+    { href: "/compute", label: t("nav.compute"), icon: Cpu },
+    { href: "/settings", label: t("nav.settings"), icon: Settings },
+  ], [t]);
+
+  const projectNavItems = useMemo(() => {
+    if (!currentProjectUuid) {
+      return [];
+    }
+
+    return [
+      { href: `/research-projects/${currentProjectUuid}/dashboard`, label: t("nav.overview"), icon: LayoutDashboard },
+      { href: `/research-projects/${currentProjectUuid}/research-questions`, label: t("nav.researchQuestions"), icon: Lightbulb },
+      { href: `/research-projects/${currentProjectUuid}/experiments`, label: t("nav.experiments"), icon: CheckSquare },
+      { href: `/research-projects/${currentProjectUuid}/insights`, label: t("nav.insights"), icon: LineChart },
+      { href: `/research-projects/${currentProjectUuid}/documents`, label: t("nav.documents"), icon: FileText },
+    ];
+  }, [currentProjectUuid, t]);
+
+  useEffect(() => {
+    globalNavItems.forEach((item) => {
+      router.prefetch(item.href);
+    });
+  }, [globalNavItems, router]);
+
+  useEffect(() => {
+    projectNavItems.forEach((item) => {
+      router.prefetch(item.href);
+    });
+  }, [projectNavItems, router]);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -165,22 +198,6 @@ export default function DashboardLayout({
       </div>
     );
   }
-
-  // Project navigation items - build URLs using UUIDs
-  const getProjectNavItems = (projectUuid: string) => [
-    { href: `/research-projects/${projectUuid}/dashboard`, label: t("nav.overview"), icon: LayoutDashboard },
-    { href: `/research-projects/${projectUuid}/research-questions`, label: t("nav.researchQuestions"), icon: Lightbulb },
-    { href: `/research-projects/${projectUuid}/experiments`, label: t("nav.experiments"), icon: CheckSquare },
-    { href: `/research-projects/${projectUuid}/insights`, label: t("nav.insights"), icon: LineChart },
-    { href: `/research-projects/${projectUuid}/documents`, label: t("nav.documents"), icon: FileText },
-  ];
-
-  // Global navigation items
-  const globalNavItems = [
-    { href: "/research-projects", label: t("nav.researchProjects"), icon: FolderKanban },
-    { href: "/compute", label: t("nav.compute"), icon: Cpu },
-    { href: "/settings", label: t("nav.settings"), icon: Settings },
-  ];
 
   const isNavActive = (href: string) => {
     // Exact match for dashboard
@@ -226,7 +243,7 @@ export default function DashboardLayout({
           {isProjectContext && currentProjectUuid ? (
             <>
               {/* Back to Projects */}
-              <Link href="/research-projects">
+              <Link href="/research-projects" prefetch>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -273,6 +290,7 @@ export default function DashboardLayout({
                       <div className="my-1 border-t border-border" />
                       <Link
                         href="/research-projects/new"
+                        prefetch
                         onClick={() => setProjectMenuOpen(false)}
                       >
                         <Button
@@ -291,11 +309,11 @@ export default function DashboardLayout({
 
               {/* Project Navigation Items */}
               <div className={`mt-2 flex flex-col ${navGap}`}>
-                {getProjectNavItems(currentProjectUuid).map((item) => {
+                {projectNavItems.map((item) => {
                   const isActive = isNavActive(item.href);
                   const Icon = item.icon;
                   return (
-                    <Link key={item.href} href={item.href}>
+                    <Link key={item.href} href={item.href} prefetch>
                       <Button
                         variant={isActive ? "secondary" : "ghost"}
                         size="sm"
@@ -323,7 +341,7 @@ export default function DashboardLayout({
                   const isActive = isNavActive(item.href);
                   const Icon = item.icon;
                   return (
-                    <Link key={item.href} href={item.href}>
+                    <Link key={item.href} href={item.href} prefetch>
                       <Button
                         variant={isActive ? "secondary" : "ghost"}
                         size="sm"
