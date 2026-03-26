@@ -2,6 +2,8 @@ import type { SynapseMcpClient } from "../mcp-client.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
+  const json = (value: unknown) => JSON.stringify(value, null, 2);
+
   api.registerTool({
     name: "synapse_checkin",
     description: "Agent check-in. Returns persona, roles, and pending assignments. Recommended at session start.",
@@ -12,7 +14,7 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
     },
     async execute() {
       const result = await mcpClient.callTool("synapse_checkin", {});
-      return JSON.stringify(result, null, 2);
+      return json(result);
     },
   });
 
@@ -32,7 +34,7 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       if (status) args.status = status;
       if (autoMarkRead !== undefined) args.autoMarkRead = autoMarkRead;
       const result = await mcpClient.callTool("synapse_get_notifications", args);
-      return JSON.stringify(result, null, 2);
+      return json(result);
     },
   });
 
@@ -48,8 +50,8 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { projectUuid }: { projectUuid: string }) {
-      const result = await mcpClient.callTool("synapse_get_project", { projectUuid });
-      return JSON.stringify(result, null, 2);
+      const result = await mcpClient.callTool("synapse_get_research_project", { researchProjectUuid: projectUuid });
+      return json(result);
     },
   });
 
@@ -65,8 +67,8 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { taskUuid }: { taskUuid: string }) {
-      const result = await mcpClient.callTool("synapse_get_task", { taskUuid });
-      return JSON.stringify(result, null, 2);
+      const result = await mcpClient.callTool("synapse_get_experiment", { experimentUuid: taskUuid });
+      return json(result);
     },
   });
 
@@ -82,8 +84,8 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { ideaUuid }: { ideaUuid: string }) {
-      const result = await mcpClient.callTool("synapse_get_idea", { ideaUuid });
-      return JSON.stringify(result, null, 2);
+      const result = await mcpClient.callTool("synapse_get_research_question", { researchQuestionUuid: ideaUuid });
+      return json(result);
     },
   });
 
@@ -102,8 +104,11 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
     async execute(_id: string, { projectUuid, proposalUuids }: { projectUuid: string; proposalUuids?: string[] }) {
       const args: Record<string, unknown> = { projectUuid };
       if (proposalUuids && proposalUuids.length > 0) args.proposalUuids = proposalUuids;
-      const result = await mcpClient.callTool("synapse_get_available_tasks", args);
-      return JSON.stringify(result, null, 2);
+      const result = await mcpClient.callTool("synapse_get_available_experiment_runs", {
+        researchProjectUuid: projectUuid,
+        experimentDesignUuids: proposalUuids,
+      });
+      return json(result);
     },
   });
 
@@ -119,8 +124,8 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { projectUuid }: { projectUuid: string }) {
-      const result = await mcpClient.callTool("synapse_get_available_ideas", { projectUuid });
-      return JSON.stringify(result, null, 2);
+      const result = await mcpClient.callTool("synapse_get_available_research_questions", { researchProjectUuid: projectUuid });
+      return json(result);
     },
   });
 
@@ -141,8 +146,8 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       const args: Record<string, unknown> = {};
       if (page !== undefined) args.page = page;
       if (pageSize !== undefined) args.pageSize = pageSize;
-      const result = await mcpClient.callTool("synapse_list_projects", args);
-      return JSON.stringify(result, null, 2);
+      const result = await mcpClient.callTool("synapse_list_research_projects", args);
+      return json(result);
     },
   });
 
@@ -163,14 +168,15 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { projectUuid, status, priority, proposalUuids, page, pageSize }: { projectUuid: string; status?: string; priority?: string; proposalUuids?: string[]; page?: number; pageSize?: number }) {
-      const args: Record<string, unknown> = { projectUuid };
-      if (status) args.status = status;
-      if (priority) args.priority = priority;
-      if (proposalUuids && proposalUuids.length > 0) args.proposalUuids = proposalUuids;
-      if (page !== undefined) args.page = page;
-      if (pageSize !== undefined) args.pageSize = pageSize;
-      const result = await mcpClient.callTool("synapse_list_tasks", args);
-      return JSON.stringify(result, null, 2);
+      const result = await mcpClient.callTool("synapse_get_assigned_experiments", {
+        researchProjectUuid: projectUuid,
+        statuses: status ? [status] : undefined,
+        priority,
+        proposalUuids,
+        page,
+        pageSize,
+      });
+      return json(result);
     },
   });
 
@@ -189,12 +195,12 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { projectUuid, status, page, pageSize }: { projectUuid: string; status?: string; page?: number; pageSize?: number }) {
-      const args: Record<string, unknown> = { projectUuid };
+      const args: Record<string, unknown> = { researchProjectUuid: projectUuid };
       if (status) args.status = status;
       if (page !== undefined) args.page = page;
       if (pageSize !== undefined) args.pageSize = pageSize;
-      const result = await mcpClient.callTool("synapse_get_ideas", args);
-      return JSON.stringify(result, null, 2);
+      const result = await mcpClient.callTool("synapse_get_research_questions", args);
+      return json(result);
     },
   });
 
@@ -218,7 +224,7 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       if (page !== undefined) args.page = page;
       if (pageSize !== undefined) args.pageSize = pageSize;
       const result = await mcpClient.callTool("synapse_get_proposals", args);
-      return JSON.stringify(result, null, 2);
+      return json(result);
     },
   });
 
@@ -237,12 +243,12 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { projectUuid, type, page, pageSize }: { projectUuid: string; type?: string; page?: number; pageSize?: number }) {
-      const args: Record<string, unknown> = { projectUuid };
+      const args: Record<string, unknown> = { researchProjectUuid: projectUuid };
       if (type) args.type = type;
       if (page !== undefined) args.page = page;
       if (pageSize !== undefined) args.pageSize = pageSize;
       const result = await mcpClient.callTool("synapse_get_documents", args);
-      return JSON.stringify(result, null, 2);
+      return json(result);
     },
   });
 
@@ -259,7 +265,7 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
     },
     async execute(_id: string, { documentUuid }: { documentUuid: string }) {
       const result = await mcpClient.callTool("synapse_get_document", { documentUuid });
-      return JSON.stringify(result, null, 2);
+      return json(result);
     },
   });
 
@@ -276,10 +282,11 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { projectUuid, proposalUuids }: { projectUuid: string; proposalUuids?: string[] }) {
-      const args: Record<string, unknown> = { projectUuid };
-      if (proposalUuids && proposalUuids.length > 0) args.proposalUuids = proposalUuids;
-      const result = await mcpClient.callTool("synapse_get_unblocked_tasks", args);
-      return JSON.stringify(result, null, 2);
+      const result = await mcpClient.callTool("synapse_get_available_experiment_runs", {
+        researchProjectUuid: projectUuid,
+        experimentDesignUuids: proposalUuids,
+      });
+      return json(result);
     },
   });
 
@@ -297,11 +304,11 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { projectUuid, page, pageSize }: { projectUuid: string; page?: number; pageSize?: number }) {
-      const args: Record<string, unknown> = { projectUuid };
+      const args: Record<string, unknown> = { researchProjectUuid: projectUuid };
       if (page !== undefined) args.page = page;
       if (pageSize !== undefined) args.pageSize = pageSize;
       const result = await mcpClient.callTool("synapse_get_activity", args);
-      return JSON.stringify(result, null, 2);
+      return json(result);
     },
   });
 
@@ -324,7 +331,7 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       if (page !== undefined) args.page = page;
       if (pageSize !== undefined) args.pageSize = pageSize;
       const result = await mcpClient.callTool("synapse_get_comments", args);
-      return JSON.stringify(result, null, 2);
+      return json(result);
     },
   });
 
@@ -340,8 +347,8 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { ideaUuid }: { ideaUuid: string }) {
-      const result = await mcpClient.callTool("synapse_get_elaboration", { ideaUuid });
-      return JSON.stringify(result, null, 2);
+      const result = await mcpClient.callTool("synapse_get_hypothesis_formulation", { researchQuestionUuid: ideaUuid });
+      return json(result);
     },
   });
 
@@ -355,7 +362,7 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
     },
     async execute() {
       const result = await mcpClient.callTool("synapse_get_my_assignments", {});
-      return JSON.stringify(result, null, 2);
+      return json(result);
     },
   });
 
@@ -371,7 +378,7 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
     },
     async execute() {
       const result = await mcpClient.callTool("synapse_get_project_groups", {});
-      return JSON.stringify(result, null, 2);
+      return json(result);
     },
   });
 
@@ -388,7 +395,7 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
     },
     async execute(_id: string, { groupUuid }: { groupUuid: string }) {
       const result = await mcpClient.callTool("synapse_get_project_group", { groupUuid });
-      return JSON.stringify(result, null, 2);
+      return json(result);
     },
   });
 
@@ -409,7 +416,7 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
     },
     async execute(_id: string, { targetType, targetUuid, content }: { targetType: string; targetUuid: string; content: string }) {
       const result = await mcpClient.callTool("synapse_add_comment", { targetType, targetUuid, content });
-      return JSON.stringify(result, null, 2);
+      return json(result);
     },
   });
 
@@ -429,7 +436,142 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       const args: Record<string, unknown> = { query };
       if (limit !== undefined) args.limit = limit;
       const result = await mcpClient.callTool("synapse_search_mentionables", args);
-      return JSON.stringify(result, null, 2);
+      return json(result);
+    },
+  });
+
+  api.registerTool({
+    name: "synapse_get_research_project",
+    description: "Get research project details including goal, datasets, evaluation methods, and synthesis summary.",
+    parameters: {
+      type: "object",
+      properties: {
+        researchProjectUuid: { type: "string", description: "Research Project UUID" },
+      },
+      required: ["researchProjectUuid"],
+      additionalProperties: false,
+    },
+    async execute(_id: string, { researchProjectUuid }: { researchProjectUuid: string }) {
+      const result = await mcpClient.callTool("synapse_get_research_project", { researchProjectUuid });
+      return json(result);
+    },
+  });
+
+  api.registerTool({
+    name: "synapse_get_research_question",
+    description: "Get detailed information for a research question.",
+    parameters: {
+      type: "object",
+      properties: {
+        researchQuestionUuid: { type: "string", description: "Research Question UUID" },
+      },
+      required: ["researchQuestionUuid"],
+      additionalProperties: false,
+    },
+    async execute(_id: string, { researchQuestionUuid }: { researchQuestionUuid: string }) {
+      const result = await mcpClient.callTool("synapse_get_research_question", { researchQuestionUuid });
+      return json(result);
+    },
+  });
+
+  api.registerTool({
+    name: "synapse_get_experiment",
+    description: "Get detailed information for an experiment.",
+    parameters: {
+      type: "object",
+      properties: {
+        experimentUuid: { type: "string", description: "Experiment UUID" },
+      },
+      required: ["experimentUuid"],
+      additionalProperties: false,
+    },
+    async execute(_id: string, { experimentUuid }: { experimentUuid: string }) {
+      const result = await mcpClient.callTool("synapse_get_experiment", { experimentUuid });
+      return json(result);
+    },
+  });
+
+  api.registerTool({
+    name: "synapse_get_assigned_experiments",
+    description: "List experiments assigned to this agent, sorted by execution priority and FIFO within the same priority.",
+    parameters: {
+      type: "object",
+      properties: {
+        researchProjectUuid: { type: "string", description: "Optional research project UUID" },
+        statuses: { type: "array", items: { type: "string" }, description: "Optional experiment statuses to include" },
+      },
+      additionalProperties: false,
+    },
+    async execute(_id: string, { researchProjectUuid, statuses }: { researchProjectUuid?: string; statuses?: string[] }) {
+      const args: Record<string, unknown> = {};
+      if (researchProjectUuid) args.researchProjectUuid = researchProjectUuid;
+      if (statuses?.length) args.statuses = statuses;
+      const result = await mcpClient.callTool("synapse_get_assigned_experiments", args);
+      return json(result);
+    },
+  });
+
+  api.registerTool({
+    name: "synapse_start_experiment",
+    description: "Start an assigned experiment and optionally reserve GPUs.",
+    parameters: {
+      type: "object",
+      properties: {
+        experimentUuid: { type: "string", description: "Experiment UUID" },
+        gpuUuids: { type: "array", items: { type: "string" }, description: "Optional GPU UUIDs to reserve" },
+        workingNotes: { type: "string", description: "Optional notes or execution plan to append to the experiment description" },
+      },
+      required: ["experimentUuid"],
+      additionalProperties: false,
+    },
+    async execute(_id: string, { experimentUuid, gpuUuids, workingNotes }: { experimentUuid: string; gpuUuids?: string[]; workingNotes?: string }) {
+      const result = await mcpClient.callTool("synapse_start_experiment", {
+        experimentUuid,
+        gpuUuids: gpuUuids ?? [],
+        workingNotes,
+      });
+      return json(result);
+    },
+  });
+
+  api.registerTool({
+    name: "synapse_submit_experiment_results",
+    description: "Submit experiment outcome and structured results, releasing any reserved GPU resources.",
+    parameters: {
+      type: "object",
+      properties: {
+        experimentUuid: { type: "string", description: "Experiment UUID" },
+        outcome: { type: "string", description: "Human-readable summary of the outcome" },
+        experimentResults: { type: "object", description: "Structured results payload" },
+      },
+      required: ["experimentUuid"],
+      additionalProperties: true,
+    },
+    async execute(_id: string, { experimentUuid, outcome, experimentResults }: { experimentUuid: string; outcome?: string; experimentResults?: unknown }) {
+      const result = await mcpClient.callTool("synapse_submit_experiment_results", {
+        experimentUuid,
+        outcome,
+        experimentResults,
+      });
+      return json(result);
+    },
+  });
+
+  api.registerTool({
+    name: "synapse_list_compute_nodes",
+    description: "List compute pools, machines, and per-GPU availability and telemetry.",
+    parameters: {
+      type: "object",
+      properties: {
+        onlyAvailable: { type: "boolean", description: "If true, only show currently available GPUs" },
+      },
+      additionalProperties: false,
+    },
+    async execute(_id: string, { onlyAvailable }: { onlyAvailable?: boolean }) {
+      const result = await mcpClient.callTool("synapse_list_compute_nodes", {
+        onlyAvailable: onlyAvailable ?? false,
+      });
+      return json(result);
     },
   });
 }

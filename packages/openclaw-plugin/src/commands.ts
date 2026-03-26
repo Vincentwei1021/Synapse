@@ -12,12 +12,16 @@ interface CheckinResponse {
     systemPrompt: string | null;
   };
   assignments: {
-    ideas: AssignedIdea[];
-    tasks: AssignedTask[];
+    ideas?: AssignedIdea[];
+    tasks?: AssignedTask[];
+    researchQuestions?: AssignedIdea[];
+    experimentRuns?: AssignedTask[];
   };
   pending: {
-    ideasCount: number;
-    tasksCount: number;
+    ideasCount?: number;
+    tasksCount?: number;
+    researchQuestionsCount?: number;
+    experimentRunsCount?: number;
   };
   notifications: {
     unreadCount: number;
@@ -40,16 +44,20 @@ interface AssignedTask {
 }
 
 interface AssignmentsResponse {
-  ideas: AssignedIdea[];
-  tasks: AssignedTask[];
+  ideas?: AssignedIdea[];
+  tasks?: AssignedTask[];
+  researchQuestions?: AssignedIdea[];
+  experimentRuns?: AssignedTask[];
 }
 
 // ===== Formatting helpers =====
 
 function formatStatus(checkin: CheckinResponse, connectionStatus: string): string {
+  const ideaCount = checkin?.pending?.ideasCount ?? checkin?.pending?.researchQuestionsCount ?? 0;
+  const taskCount = checkin?.pending?.tasksCount ?? checkin?.pending?.experimentRunsCount ?? 0;
   const lines: string[] = [
     `Connection: ${connectionStatus}`,
-    `Assignments: ${checkin?.pending?.ideasCount ?? 0} ideas, ${checkin?.pending?.tasksCount ?? 0} tasks`,
+    `Assignments: ${ideaCount} questions, ${taskCount} experiments`,
     `Notifications: ${checkin?.notifications?.unreadCount ?? 0} unread`,
   ];
   return lines.join("\n");
@@ -115,7 +123,7 @@ export function registerSynapseCommands(
             "synapse_get_my_assignments",
             {}
           )) as AssignmentsResponse;
-          return { text: formatTaskList(data?.tasks) };
+          return { text: formatTaskList(data?.tasks ?? data?.experimentRuns) };
         } catch (err) {
           return { text: `Failed to fetch tasks: ${err instanceof Error ? err.message : String(err)}` };
         }
@@ -128,7 +136,7 @@ export function registerSynapseCommands(
             "synapse_get_my_assignments",
             {}
           )) as AssignmentsResponse;
-          return { text: formatIdeaList(data?.ideas) };
+          return { text: formatIdeaList(data?.ideas ?? data?.researchQuestions) };
         } catch (err) {
           return { text: `Failed to fetch ideas: ${err instanceof Error ? err.message : String(err)}` };
         }

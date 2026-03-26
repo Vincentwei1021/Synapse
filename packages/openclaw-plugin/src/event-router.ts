@@ -27,6 +27,27 @@ interface NotificationDetail {
   actorName: string;
 }
 
+interface ExperimentDetail {
+  uuid: string;
+  researchProjectUuid: string;
+  title: string;
+  description: string | null;
+  priority: string;
+  computeBudgetHours: number | null;
+  attachments: Array<{ originalName: string }> | null;
+  researchQuestion?: { uuid: string; title: string } | null;
+  parentQuestionExperiments?: Array<{ title: string; status: string; outcome: string | null }> | null;
+}
+
+interface ResearchProjectDetail {
+  uuid: string;
+  name: string;
+  description: string | null;
+  goal: string | null;
+  datasets: Array<unknown> | null;
+  evaluationMethods: Array<unknown> | null;
+}
+
 export class SynapseEventRouter {
   private readonly mcpClient: SynapseMcpClient;
   private readonly config: SynapsePluginConfig;
@@ -157,15 +178,74 @@ export class SynapseEventRouter {
     );
   }
 
+  private formatList(values: Array<unknown> | null | undefined): string {
+    if (!values || values.length === 0) {
+      return "Not specified";
+    }
+
+    return values
+      .map((value) => {
+        if (typeof value === "string") {
+          return value;
+        }
+        return JSON.stringify(value);
+      })
+      .join("; ");
+  }
+
   private async handleTaskAssigned(n: NotificationDetail): Promise<void> {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
     const mentionGuidance = this.buildMentionGuidance(n, "task");
 
     if (n.entityType === "experiment") {
+      let experiment: ExperimentDetail | null = null;
+      let project: ResearchProjectDetail | null = null;
+
+      try {
+        const result = await this.mcpClient.callTool("synapse_get_experiment", {
+          experimentUuid: n.entityUuid,
+        }) as { experiment?: ExperimentDetail } | null;
+        experiment = result?.experiment ?? null;
+      } catch (err) {
+        this.logger.warn(`Failed to fetch experiment detail for wake prompt: ${err}`);
+      }
+
+      try {
+        const targetProjectUuid = experiment?.researchProjectUuid ?? projectUuid;
+        if (targetProjectUuid) {
+          const result = await this.mcpClient.callTool("synapse_get_research_project", {
+            researchProjectUuid: targetProjectUuid,
+          }) as ResearchProjectDetail | null;
+          project = result;
+        }
+      } catch (err) {
+        this.logger.warn(`Failed to fetch research project detail for wake prompt: ${err}`);
+      }
+
+      const contextLines = [
+        project?.name ? `Research project: ${project.name}` : null,
+        project?.goal ? `Goal: ${project.goal}` : null,
+        project?.description ? `Project brief: ${project.description}` : null,
+        project ? `Datasets: ${this.formatList(project.datasets)}` : null,
+        project ? `Evaluation methods: ${this.formatList(project.evaluationMethods)}` : null,
+        experiment?.description ? `Experiment description: ${experiment.description}` : null,
+        experiment?.researchQuestion?.title ? `Linked research question: ${experiment.researchQuestion.title}` : null,
+        experiment?.computeBudgetHours != null ? `Compute budget (hours): ${experiment.computeBudgetHours}` : null,
+        experiment?.attachments?.length
+          ? `Attached files: ${experiment.attachments.map((item) => item.originalName).join(", ")}`
+          : null,
+        experiment?.parentQuestionExperiments?.length
+          ? `Parent-question experiment context: ${experiment.parentQuestionExperiments
+              .map((item) => `${item.title} [${item.status}]${item.outcome ? ` outcome: ${item.outcome}` : ""}`)
+              .join("; ")}`
+          : null,
+      ].filter(Boolean);
+
       const prompt = [
         `[Synapse] Experiment assigned: ${n.entityTitle}. Experiment UUID: ${n.entityUuid}, Project UUID: ${projectUuid}.`,
+        ...contextLines,
         "Use synapse_get_assigned_experiments to inspect your current queue. Execute the highest-priority item first; experiments with priority 'immediate' must jump to the front of the queue, and experiments with the same priority should be handled FIFO.",
-        `Then use synapse_get_experiment with experimentUuid "${n.entityUuid}" to inspect full details, sync any needed GPU inventory with compute tools, call synapse_start_experiment when you begin execution, and call synapse_submit_experiment_results with experimentUuid "${n.entityUuid}" when you finish so Synapse can update the experiment and its document.`,
+        `Then use synapse_get_experiment with experimentUuid "${n.entityUuid}" to inspect full details, use synapse_list_compute_nodes to inspect available machines and GPUs, call synapse_start_experiment when you begin execution, and call synapse_submit_experiment_results with experimentUuid "${n.entityUuid}" when you finish so Synapse can update the experiment and its document.`,
         mentionGuidance,
       ].join("\n");
 
