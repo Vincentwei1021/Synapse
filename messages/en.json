@@ -160,6 +160,7 @@
     "completed": "Completed",
     "closed": "Closed",
     "elaborating": "Elaborating",
+    "proposal_created": "Proposal Created",
     "experimentCreated": "Experiment Created",
     "hypothesisFormulating": "Hypothesis Formulation",
     "experimentDesignCreated": "Experiment Design Created",

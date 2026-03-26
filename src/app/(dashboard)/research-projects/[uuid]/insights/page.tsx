@@ -59,54 +59,54 @@ export default async function InsightsPage({ params }: PageProps) {
   return (
     <div className="space-y-6 p-4 md:p-8">
       <div>
-        <h1 className="text-2xl font-semibold text-[#2C2C2C]">{t("insights.title")}</h1>
-        <p className="mt-1 text-sm text-[#6B6B6B]">{t("insights.subtitle")}</p>
+        <h1 className="text-2xl font-semibold text-foreground">{t("insights.title")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t("insights.subtitle")}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="rounded-3xl border-[#E5DED3] p-5">
-          <p className="text-xs uppercase tracking-[0.18em] text-[#9A8F81]">{t("insights.latestUpdate")}</p>
-          <p className="mt-3 text-lg font-semibold text-[#2C2C2C]">
+        <Card className="rounded-3xl border-border bg-card p-5">
+          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{t("insights.latestUpdate")}</p>
+          <p className="mt-3 text-lg font-semibold text-foreground">
             {project.latestSynthesisAt ? new Date(project.latestSynthesisAt).toLocaleString() : t("insights.notAvailable")}
           </p>
         </Card>
-        <Card className="rounded-3xl border-[#E5DED3] p-5">
-          <p className="text-xs uppercase tracking-[0.18em] text-[#9A8F81]">{t("insights.coveredIdeas")}</p>
-          <p className="mt-3 text-lg font-semibold text-[#2C2C2C]">{project.latestSynthesisIdeaCount ?? 0}</p>
+        <Card className="rounded-3xl border-border bg-card p-5">
+          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{t("insights.coveredIdeas")}</p>
+          <p className="mt-3 text-lg font-semibold text-foreground">{project.latestSynthesisIdeaCount ?? 0}</p>
         </Card>
-        <Card className="rounded-3xl border-[#E5DED3] p-5">
-          <p className="text-xs uppercase tracking-[0.18em] text-[#9A8F81]">{t("insights.summary")}</p>
-          <p className="mt-3 text-sm leading-6 text-[#2C2C2C]">
+        <Card className="rounded-3xl border-border bg-card p-5">
+          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{t("insights.summary")}</p>
+          <p className="mt-3 text-sm leading-6 text-foreground">
             {project.latestSynthesisSummary || t("insights.empty")}
           </p>
         </Card>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.6fr_0.9fr]">
-        <Card className="rounded-3xl border-[#E5DED3] p-6">
-          <h2 className="text-lg font-semibold text-[#2C2C2C]">{t("insights.analysis")}</h2>
+        <Card className="rounded-3xl border-border bg-card p-6">
+          <h2 className="text-lg font-semibold text-foreground">{t("insights.analysis")}</h2>
           {synthesis?.content ? (
-            <div className="mt-4 max-w-none text-sm leading-7 text-[#2C2C2C]">
+            <div className="mt-4 max-w-none text-sm leading-7 text-foreground">
               <MarkdownContent>{synthesis.content}</MarkdownContent>
             </div>
           ) : (
-            <p className="mt-4 text-sm text-[#6B6B6B]">{t("insights.empty")}</p>
+            <p className="mt-4 text-sm text-muted-foreground">{t("insights.empty")}</p>
           )}
         </Card>
 
-        <Card className="rounded-3xl border-[#E5DED3] p-6">
-          <h2 className="text-lg font-semibold text-[#2C2C2C]">{t("insights.recentExperiments")}</h2>
+        <Card className="rounded-3xl border-border bg-card p-6">
+          <h2 className="text-lg font-semibold text-foreground">{t("insights.recentExperiments")}</h2>
           <div className="mt-4 space-y-3">
             {completedExperiments.length === 0 ? (
-              <p className="text-sm text-[#6B6B6B]">{t("insights.empty")}</p>
+              <p className="text-sm text-muted-foreground">{t("insights.empty")}</p>
             ) : (
               completedExperiments.map((experiment) => (
-                <div key={experiment.uuid} className="rounded-2xl bg-[#FBF8F3] p-4">
-                  <p className="text-sm font-medium text-[#2C2C2C]">{experiment.title}</p>
-                  <p className="mt-1 text-xs text-[#8E8478]">
+                <div key={experiment.uuid} className="rounded-2xl border border-border bg-background p-4">
+                  <p className="text-sm font-medium text-foreground">{experiment.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {experiment.researchQuestion?.title || t("experiments.card.unlinked")}
                   </p>
-                  {experiment.outcome ? <p className="mt-2 text-xs text-[#6B6B6B]">{experiment.outcome}</p> : null}
+                  {experiment.outcome ? <p className="mt-2 text-xs text-muted-foreground">{experiment.outcome}</p> : null}
                 </div>
               ))
             )}

@@ -62,21 +62,21 @@ export function ExperimentsBoard({
   }
 
   return (
-    <div className="overflow-x-auto pb-4">
-      <div className="grid min-w-max grid-flow-col auto-cols-[minmax(360px,1fr)] gap-5">
+    <div className="pb-4">
+      <div className="grid gap-4 xl:grid-cols-5">
         {columns.map((column) => (
           <section
             key={column.id}
-            className="flex min-h-[calc(100vh-260px)] flex-col rounded-3xl border border-border bg-secondary/50 p-5"
+            className="flex min-h-[calc(100vh-220px)] flex-col rounded-3xl border border-border bg-secondary/50 p-4"
           >
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-semibold text-foreground">{t(`experiments.columns.${column.labelKey}`)}</h2>
                 <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">{grouped[column.id].length}</span>
               </div>
             </div>
 
-            <div className="flex-1 space-y-3">
+            <div className="flex flex-1 flex-col gap-3">
               {grouped[column.id].length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border bg-background/70 px-4 py-8 text-center text-sm text-muted-foreground">
                   {t("experiments.empty")}
