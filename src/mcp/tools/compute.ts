@@ -11,19 +11,24 @@ function serializeAccess(node: {
   sshHost: string | null;
   sshUser: string | null;
   sshPort: number | null;
-  sshKeyPath: string | null;
+  sshKeyName?: string | null;
+  sshKeyFingerprint?: string | null;
+  sshKeySource?: string | null;
   ssmTarget: string | null;
 }) {
   return {
-    ssh:
-      node.sshHost || node.sshUser || node.sshPort || node.sshKeyPath
-        ? {
-            host: node.sshHost,
-            user: node.sshUser,
-            port: node.sshPort ?? 22,
-            keyPath: node.sshKeyPath,
-          }
-        : null,
+    ssh: node.sshHost || node.sshUser || node.sshPort
+      ? {
+          host: node.sshHost,
+          user: node.sshUser,
+          port: node.sshPort ?? 22,
+          keyName: node.sshKeyName ?? null,
+          keyFingerprint: node.sshKeyFingerprint ?? null,
+          keySource: node.sshKeySource ?? null,
+          managedKeyAvailable: Boolean(node.sshHost && node.sshKeySource && node.sshKeySource !== "manual_path"),
+          accessBundleTool: "synapse_get_node_access_bundle",
+        }
+      : null,
     ssmTarget: node.ssmTarget,
   };
 }
@@ -39,39 +44,74 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
     },
     async ({ onlyAvailable }) => {
       const pools = await computeService.listComputePools(auth.companyUuid);
-      const nodes = pools.flatMap((pool) =>
+      const serializeNodeForMcp = (node: (typeof pools)[number]["nodes"][number]) => ({
+        uuid: node.uuid,
+        label: node.label,
+        lifecycle: node.lifecycle,
+        ec2InstanceId: node.ec2InstanceId,
+        instanceType: node.instanceType,
+        region: node.region,
+        inventoryPending: node.inventoryPending,
+        access: serializeAccess(node),
+        lastReportedAt: node.lastReportedAt,
+        gpus: node.gpus
+          .filter((gpu) => !onlyAvailable || gpu.computedStatus === "available")
+          .map((gpu) => ({
+            uuid: gpu.uuid,
+            slotIndex: gpu.slotIndex,
+            model: gpu.model,
+            memoryGb: gpu.memoryGb,
+            status: gpu.activeReservation ? `occupied:${gpu.activeReservation.itemTitle}` : gpu.computedStatus,
+            utilizationPercent: gpu.utilizationPercent,
+            memoryUsedGb: gpu.memoryUsedGb,
+            temperatureC: gpu.temperatureC,
+            activeReservation: gpu.activeReservation,
+            lastReportedAt: gpu.lastReportedAt,
+          })),
+      });
+
+      const sanitizedPools = pools.map((pool) => ({
+        uuid: pool.uuid,
+        name: pool.name,
+        description: pool.description,
+        nodes: pool.nodes.map((node) => serializeNodeForMcp(node)),
+      }));
+
+      const nodes = sanitizedPools.flatMap((pool) =>
         pool.nodes.map((node) => ({
-          uuid: node.uuid,
-          label: node.label,
+          ...node,
           pool: { uuid: pool.uuid, name: pool.name },
-          lifecycle: node.lifecycle,
-          ec2InstanceId: node.ec2InstanceId,
-          instanceType: node.instanceType,
-          region: node.region,
-          inventoryPending: node.inventoryPending,
-          access: serializeAccess(node),
-          lastReportedAt: node.lastReportedAt,
-          gpus: node.gpus
-            .filter((gpu) => !onlyAvailable || gpu.computedStatus === "available")
-            .map((gpu) => ({
-              uuid: gpu.uuid,
-              slotIndex: gpu.slotIndex,
-              model: gpu.model,
-              memoryGb: gpu.memoryGb,
-              status: gpu.activeReservation ? `occupied:${gpu.activeReservation.itemTitle}` : gpu.computedStatus,
-              utilizationPercent: gpu.utilizationPercent,
-              memoryUsedGb: gpu.memoryUsedGb,
-              temperatureC: gpu.temperatureC,
-              activeReservation: gpu.activeReservation,
-              lastReportedAt: gpu.lastReportedAt,
-            })),
-        }))
+        })),
       );
 
       return {
-        content: [{ type: "text", text: JSON.stringify({ pools, nodes }, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ pools: sanitizedPools, nodes }, null, 2) }],
       };
     }
+  );
+
+  server.registerTool(
+    "synapse_get_node_access_bundle",
+    {
+      description:
+        "Return a managed SSH access bundle for a node assigned to your current experiment. Use this instead of any server-local key path.",
+      inputSchema: z.object({
+        experimentUuid: z.string(),
+        nodeUuid: z.string(),
+      }),
+    },
+    async ({ experimentUuid, nodeUuid }) => {
+      const bundle = await computeService.getNodeAccessBundle({
+        companyUuid: auth.companyUuid,
+        experimentUuid,
+        nodeUuid,
+        agentUuid: auth.actorUuid,
+      });
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(bundle, null, 2) }],
+      };
+    },
   );
 
   server.registerTool(

@@ -239,6 +239,7 @@ export class SynapseEventRouter {
               .map((item) => `${item.title} [${item.status}]${item.outcome ? ` outcome: ${item.outcome}` : ""}`)
               .join("; ")}`
           : null,
+        "If a selected compute node exposes managedKeyAvailable=true, call synapse_get_node_access_bundle with the experimentUuid and nodeUuid. Write the returned privateKeyPemBase64 to a local PEM file with chmod 600 before using ssh.",
       ].filter(Boolean);
 
       const prompt = [

@@ -574,4 +574,26 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       return json(result);
     },
   });
+
+  api.registerTool({
+    name: "synapse_get_node_access_bundle",
+    description:
+      "Fetch a managed SSH access bundle for a selected compute node. Use this when Synapse reports a managed key instead of a local key path.",
+    parameters: {
+      type: "object",
+      properties: {
+        experimentUuid: { type: "string", description: "Experiment UUID" },
+        nodeUuid: { type: "string", description: "Compute node UUID" },
+      },
+      required: ["experimentUuid", "nodeUuid"],
+      additionalProperties: false,
+    },
+    async execute(_id: string, { experimentUuid, nodeUuid }: { experimentUuid: string; nodeUuid: string }) {
+      const result = await mcpClient.callTool("synapse_get_node_access_bundle", {
+        experimentUuid,
+        nodeUuid,
+      });
+      return json(result);
+    },
+  });
 }

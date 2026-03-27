@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import { prisma } from "@/lib/prisma";
 
@@ -65,6 +66,21 @@ export interface ComputePoolSnapshot {
   name: string;
   description: string | null;
   nodes: ComputeNodeSnapshot[];
+}
+
+export interface ComputeNodeAccessBundle {
+  nodeUuid: string;
+  label: string;
+  ssh: {
+    host: string;
+    user: string;
+    port: number;
+    keyName: string | null;
+    keyFingerprint: string | null;
+    keySource: string | null;
+    privateKeyPemBase64: string;
+  } | null;
+  ssmTarget: string | null;
 }
 
 type PolledGpuSnapshot = {
@@ -705,4 +721,76 @@ export async function releaseGpuReservationsForExperiment(companyUuid: string, e
       releasedAt: new Date(),
     },
   });
+}
+
+export async function getNodeAccessBundle(input: {
+  companyUuid: string;
+  experimentUuid: string;
+  nodeUuid: string;
+  agentUuid: string;
+}) {
+  const experiment = await prisma.experiment.findFirst({
+    where: {
+      companyUuid: input.companyUuid,
+      uuid: input.experimentUuid,
+      assigneeType: "agent",
+      assigneeUuid: input.agentUuid,
+    },
+    select: {
+      uuid: true,
+      status: true,
+    },
+  });
+
+  if (!experiment) {
+    throw new Error("Experiment is not assigned to this agent");
+  }
+
+  if (experiment.status !== "pending_start" && experiment.status !== "in_progress") {
+    throw new Error(`Experiment must be pending_start or in_progress, current status: ${experiment.status}`);
+  }
+
+  const node = await prisma.computeNode.findFirst({
+    where: {
+      companyUuid: input.companyUuid,
+      uuid: input.nodeUuid,
+    },
+    select: {
+      uuid: true,
+      label: true,
+      sshHost: true,
+      sshUser: true,
+      sshPort: true,
+      sshKeyPath: true,
+      sshKeyName: true,
+      sshKeyFingerprint: true,
+      sshKeySource: true,
+      ssmTarget: true,
+    },
+  });
+
+  if (!node) {
+    throw new Error("Compute node not found");
+  }
+
+  if (!node.sshHost || !node.sshKeyPath) {
+    throw new Error("This compute node does not have a managed SSH key bundle");
+  }
+
+  const privateKeyPem = await readFile(node.sshKeyPath, "utf8");
+
+  return {
+    nodeUuid: node.uuid,
+    label: node.label,
+    ssh: {
+      host: node.sshHost,
+      user: node.sshUser ?? "ubuntu",
+      port: node.sshPort ?? 22,
+      keyName: node.sshKeyName,
+      keyFingerprint: node.sshKeyFingerprint,
+      keySource: node.sshKeySource,
+      privateKeyPemBase64: Buffer.from(privateKeyPem, "utf8").toString("base64"),
+    },
+    ssmTarget: node.ssmTarget,
+  } satisfies ComputeNodeAccessBundle;
 }
