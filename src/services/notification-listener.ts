@@ -18,6 +18,7 @@ function resolveNotificationType(action: string, targetType: string): string | n
     "experiment_run:submitted": "run_submitted_for_verify",
     "experiment_run:verified": "run_verified",
     "experiment_run:reopened": "run_reopened",
+    "experiment:comment_added": "comment_added",
     "research_question:assigned": "research_question_claimed",
     "experiment_design:approved": "design_approved",
     "experiment_design:rejected_to_draft": "design_rejected",
@@ -79,6 +80,13 @@ async function resolveEntityTitle(
   targetUuid: string
 ): Promise<string> {
   switch (targetType) {
+    case "experiment": {
+      const experiment = await prisma.experiment.findUnique({
+        where: { uuid: targetUuid },
+        select: { title: true },
+      });
+      return experiment?.title ?? "Unknown Experiment";
+    }
     case "experiment_run": {
       const run = await prisma.experimentRun.findUnique({
         where: { uuid: targetUuid },
@@ -321,7 +329,23 @@ async function resolveRecipients(
       // Notify entity assignee + creator, but EXCLUDE the comment author
       const recipients: Recipient[] = [];
 
-      if (targetType === "experiment_run") {
+      if (targetType === "experiment") {
+        const experiment = await prisma.experiment.findUnique({
+          where: { uuid: targetUuid },
+          select: {
+            assigneeType: true,
+            assigneeUuid: true,
+            createdByUuid: true,
+            createdByType: true,
+          },
+        });
+        if (experiment) {
+          if (experiment.assigneeType && experiment.assigneeUuid) {
+            recipients.push({ type: experiment.assigneeType, uuid: experiment.assigneeUuid });
+          }
+          recipients.push({ type: experiment.createdByType, uuid: experiment.createdByUuid });
+        }
+      } else if (targetType === "experiment_run") {
         const run = await prisma.experimentRun.findUnique({
           where: { uuid: targetUuid },
           select: {

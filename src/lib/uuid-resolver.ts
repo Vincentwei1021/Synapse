@@ -235,6 +235,8 @@ export async function validateTargetExists(
   switch (targetType) {
     case "research_question":
       return !!(await prisma.researchQuestion.findFirst({ where, select: { uuid: true } }));
+    case "experiment":
+      return !!(await prisma.experiment.findFirst({ where, select: { uuid: true } }));
     case "experiment_design":
       return !!(await prisma.experimentDesign.findFirst({ where, select: { uuid: true } }));
     case "experiment_run":

@@ -314,11 +314,11 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
 
   api.registerTool({
     name: "synapse_get_comments",
-    description: "Get comments for an Idea, Proposal, Task, or Document. Useful for understanding context, decisions, and feedback.",
+    description: "Get comments for a Research Question, Experiment, Experiment Design, Experiment Run, or Document. Useful for understanding context, decisions, and feedback.",
     parameters: {
       type: "object",
       properties: {
-        targetType: { type: "string", description: "Target type: idea | proposal | task | document" },
+        targetType: { type: "string", description: "Target type: research_question | experiment | experiment_design | experiment_run | document" },
         targetUuid: { type: "string", description: "Target UUID" },
         page: { type: "number", description: "Page number (default: 1)" },
         pageSize: { type: "number", description: "Items per page (default: 20)" },
@@ -403,11 +403,11 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
 
   api.registerTool({
     name: "synapse_add_comment",
-    description: "Add a comment to an Idea, Proposal, Task, or Document",
+    description: "Add a comment to a Research Question, Experiment, Experiment Design, Experiment Run, or Document",
     parameters: {
       type: "object",
       properties: {
-        targetType: { type: "string", description: "Target type: idea | proposal | task | document" },
+        targetType: { type: "string", description: "Target type: research_question | experiment | experiment_design | experiment_run | document" },
         targetUuid: { type: "string", description: "Target UUID" },
         content: { type: "string", description: "Comment content" },
       },

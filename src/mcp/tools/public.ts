@@ -362,9 +362,9 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
   server.registerTool(
     "synapse_add_comment",
     {
-      description: "Add a comment to a Research Question/Experiment Design/Experiment Run/Document",
+      description: "Add a comment to a Research Question/Experiment/Experiment Design/Experiment Run/Document",
       inputSchema: z.object({
-        targetType: z.enum(["research_question", "experiment_design", "experiment_run", "document"]).describe("Target type"),
+        targetType: z.enum(["research_question", "experiment", "experiment_design", "experiment_run", "document"]).describe("Target type"),
         targetUuid: z.string().describe("Target UUID"),
         content: z.string().describe("Comment content"),
       }),
@@ -386,7 +386,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
           await activityService.createActivity({
             companyUuid: auth.companyUuid,
             researchProjectUuid: projectUuid,
-            targetType: targetType as "research_question" | "experiment_design" | "experiment_run" | "document",
+            targetType: targetType as "research_question" | "experiment" | "experiment_design" | "experiment_run" | "document",
             targetUuid,
             actorType: "agent",
             actorUuid: auth.actorUuid,
@@ -643,9 +643,9 @@ Work style: rigorous, efficient, quality-focused`,
   server.registerTool(
     "synapse_get_comments",
     {
-      description: "Get the list of comments for a Research Question/Experiment Design/Experiment Run/Document",
+      description: "Get the list of comments for a Research Question/Experiment/Experiment Design/Experiment Run/Document",
       inputSchema: z.object({
-        targetType: z.enum(["research_question", "experiment_design", "experiment_run", "document"]).describe("Target type"),
+        targetType: z.enum(["research_question", "experiment", "experiment_design", "experiment_run", "document"]).describe("Target type"),
         targetUuid: z.string().describe("Target UUID"),
         page: z.number().optional().default(1).describe("Page number"),
         pageSize: z.number().optional().default(20).describe("Items per page"),

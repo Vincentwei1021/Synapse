@@ -188,6 +188,13 @@ export async function resolveProjectUuid(
   targetUuid: string
 ): Promise<string | null> {
   switch (targetType) {
+    case "experiment": {
+      const experiment = await prisma.experiment.findUnique({
+        where: { uuid: targetUuid },
+        select: { researchProjectUuid: true },
+      });
+      return experiment?.researchProjectUuid ?? null;
+    }
     case "experiment_run": {
       const task = await prisma.experimentRun.findUnique({ where: { uuid: targetUuid }, select: { researchProjectUuid: true } });
       return task?.researchProjectUuid ?? null;
@@ -215,6 +222,13 @@ async function resolveEntityTitle(
   targetUuid: string
 ): Promise<string> {
   switch (targetType) {
+    case "experiment": {
+      const experiment = await prisma.experiment.findUnique({
+        where: { uuid: targetUuid },
+        select: { title: true },
+      });
+      return experiment?.title ?? "Unknown Experiment";
+    }
     case "experiment_run": {
       const task = await prisma.experimentRun.findUnique({ where: { uuid: targetUuid }, select: { title: true } });
       return task?.title ?? "Unknown Experiment Run";
