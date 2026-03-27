@@ -26,42 +26,57 @@ interface RedisEnvelope {
 
 class SynapseEventBus extends EventEmitter {
   private _connected = false;
+  private _connectPromise: Promise<void> | null = null;
   /** Unique per-process ID to deduplicate own messages from Redis */
   private readonly _instanceId = randomUUID();
 
   /** Call once at startup to initialize Redis subscriptions */
   async connect(): Promise<void> {
     if (this._connected || !isRedisEnabled()) return;
-    this._connected = true;
+    if (this._connectPromise) {
+      await this._connectPromise;
+      return;
+    }
 
-    const sub = getRedisSubscriber();
-    const pub = getRedisPublisher();
-    if (!sub) return;
+    this._connectPromise = (async () => {
+      const sub = getRedisSubscriber();
+      const pub = getRedisPublisher();
+      if (!sub) return;
 
-    await sub.connect();
-    // Connect publisher eagerly so pub.status === "ready" when emit() checks it
-    if (pub) await pub.connect();
-    // Use SUBSCRIBE (not PSUBSCRIBE) — compatible with ElastiCache Serverless
-    await sub.subscribe(REDIS_CHANNEL);
-
-    sub.on("message", (_channel: string, message: string) => {
-      try {
-        const envelope: RedisEnvelope = JSON.parse(message);
-        // Skip messages we published ourselves — already delivered locally
-        if (envelope._origin === this._instanceId) return;
-        // Emit locally using the original channel name for cross-instance delivery
-        super.emit(envelope.channel, envelope.data);
-      } catch {
-        // Ignore malformed messages
+      await sub.connect();
+      if (pub) {
+        await pub.connect();
       }
-    });
+      // Use SUBSCRIBE (not PSUBSCRIBE) — compatible with ElastiCache Serverless
+      await sub.subscribe(REDIS_CHANNEL);
+
+      sub.on("message", (_channel: string, message: string) => {
+        try {
+          const envelope: RedisEnvelope = JSON.parse(message);
+          // Skip messages we published ourselves — already delivered locally
+          if (envelope._origin === this._instanceId) return;
+          // Emit locally using the original channel name for cross-instance delivery
+          super.emit(envelope.channel, envelope.data);
+        } catch {
+          // Ignore malformed messages
+        }
+      });
+
+      this._connected = true;
+    })();
+
+    try {
+      await this._connectPromise;
+    } finally {
+      this._connectPromise = null;
+    }
   }
 
   // Override emit to publish to Redis when available
   emit(event: string | symbol, ...args: unknown[]): boolean {
     if (typeof event === "string" && isRedisEnabled()) {
       const pub = getRedisPublisher();
-      if (pub && pub.status === "ready") {
+      if (pub) {
         const envelope: RedisEnvelope = {
           _origin: this._instanceId,
           channel: event,
@@ -97,9 +112,12 @@ const globalForEventBus = globalThis as unknown as {
 
 export const eventBus = (globalForEventBus.synapseEventBus ??= new SynapseEventBus());
 
-// Auto-connect on import (non-blocking)
-if (isRedisEnabled()) {
-  eventBus.connect().catch((err) => {
-    console.error("[EventBus] Redis connect failed, falling back to memory:", err.message);
-  });
+export async function ensureEventBusConnected(): Promise<void> {
+  if (!isRedisEnabled()) return;
+  try {
+    await eventBus.connect();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[EventBus] Redis connect failed, falling back to memory:", message);
+  }
 }

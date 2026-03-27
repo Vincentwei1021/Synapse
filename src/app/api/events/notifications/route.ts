@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getAuthContext } from "@/lib/auth";
-import { eventBus } from "@/lib/event-bus";
+import { ensureEventBusConnected, eventBus } from "@/lib/event-bus";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +9,8 @@ export async function GET(request: NextRequest) {
   if (!auth) {
     return new Response("Unauthorized", { status: 401 });
   }
+
+  await ensureEventBusConnected();
 
   const channel = `notification:${auth.type}:${auth.actorUuid}`;
 

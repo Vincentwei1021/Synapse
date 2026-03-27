@@ -3,7 +3,7 @@
 // Auth via cookie (EventSource automatically sends cookies)
 
 import { getAuthContext } from "@/lib/auth";
-import { eventBus, type RealtimeEvent } from "@/lib/event-bus";
+import { ensureEventBusConnected, eventBus, type RealtimeEvent } from "@/lib/event-bus";
 import { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +13,8 @@ export async function GET(request: NextRequest) {
   if (!auth) {
     return new Response("Unauthorized", { status: 401 });
   }
+
+  await ensureEventBusConnected();
 
   const researchProjectUuid = request.nextUrl.searchParams.get("researchProjectUuid");
 

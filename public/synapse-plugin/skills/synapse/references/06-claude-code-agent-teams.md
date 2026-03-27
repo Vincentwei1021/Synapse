@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide explains how to run **Claude Code Agent Teams** (swarm mode) with Synapse for full work observability. In this setup, a Team Lead agent orchestrates multiple sub-agents, each working on Synapse tasks in parallel, with every action tracked through Synapse Sessions.
+This guide explains how to run **Claude Code Agent Teams** (swarm mode) with Synapse for full work observability. In this setup, a Team Lead agent orchestrates multiple sub-agents, each working on Synapse experiment runs in parallel, with every action tracked through Synapse Sessions.
 
 The Synapse Plugin **fully automates** session lifecycle — sessions are created/reused on sub-agent spawn, heartbeats sent on idle, and sessions closed on sub-agent exit. The Team Lead focuses on work assignment, not session management.
 
@@ -13,7 +13,7 @@ Claude Code Agent Teams and Synapse serve different purposes:
 | Layer | System | Purpose |
 |-------|--------|---------|
 | **Orchestration** | Claude Code Agent Teams | Spawning sub-agents, internal task dispatch, inter-agent messaging |
-| **Work Tracking** | Synapse | Task lifecycle (claim → in_progress → to_verify → done), session observability, activity stream |
+| **Work Tracking** | Synapse | Experiment-run lifecycle (claim → in_progress → to_verify → done), session observability, activity stream |
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -43,7 +43,7 @@ Claude Code Agent Teams and Synapse serve different purposes:
 
 ### Key Principle: One Session Per Worker
 
-Every agent that works on Synapse tasks **must have its own separate Synapse Session**. This is a hard requirement — the UI relies on session checkins to show which worker is active on which task.
+Every agent that works on Synapse experiment runs **must have its own separate Synapse Session**. This is a hard requirement — the UI relies on session checkins to show which worker is active on which run.
 
 ---
 
@@ -82,11 +82,11 @@ synapse_checkin()
 
 # 2. Understand the project and available tasks
 synapse_get_project({ projectUuid: "<project-uuid>" })
-synapse_list_tasks({ projectUuid: "<project-uuid>", status: "assigned" })
+synapse_list_experiment_runs({ projectUuid: "<project-uuid>", status: "assigned" })
 
 # 3. Read task details to plan work distribution
-synapse_get_task({ taskUuid: "<task-A-uuid>" })
-synapse_get_task({ taskUuid: "<task-B-uuid>" })
+synapse_get_experiment_run({ runUuid: "<task-A-uuid>" })
+synapse_get_experiment_run({ runUuid: "<task-B-uuid>" })
 
 # The main agent (Team Lead) does NOT need a session.
 # Sessions are only for sub-agents — the plugin auto-creates them when sub-agents spawn.
@@ -146,14 +146,14 @@ The plugin injects the session UUID and workflow instructions directly into the 
 # === Synapse Setup (FIRST, before any coding) ===
 
 # 2. Checkin to task — makes you visible in the UI
-synapse_session_checkin_task({
+synapse_session_checkin_experiment_run({
   sessionUuid: "<my-session-uuid>",
-  taskUuid: "<my-task-uuid>"
+  runUuid: "<my-task-uuid>"
 })
 
 # 3. Move task to in_progress
-synapse_update_task({
-  taskUuid: "<my-task-uuid>",
+synapse_update_experiment_run({
+  runUuid: "<my-task-uuid>",
   status: "in_progress",
   sessionUuid: "<my-session-uuid>"
 })
@@ -165,7 +165,7 @@ synapse_update_task({
 
 # 4. Report progress (auto-heartbeats the session)
 synapse_report_work({
-  taskUuid: "<my-task-uuid>",
+  runUuid: "<my-task-uuid>",
   report: "Completed user form component.\n- Files: src/components/UserForm.tsx\n- Commit: abc123",
   sessionUuid: "<my-session-uuid>"
 })
@@ -173,14 +173,14 @@ synapse_report_work({
 # === Completion ===
 
 # 5. Checkout from task
-synapse_session_checkout_task({
+synapse_session_checkout_experiment_run({
   sessionUuid: "<my-session-uuid>",
-  taskUuid: "<my-task-uuid>"
+  runUuid: "<my-task-uuid>"
 })
 
 # 6. Submit for verification
 synapse_submit_for_verify({
-  taskUuid: "<my-task-uuid>",
+  runUuid: "<my-task-uuid>",
   summary: "Implemented user form with validation.\nFiles: ...\nAll tests passing."
 })
 
@@ -200,14 +200,14 @@ The Team Lead monitors until all Synapse tasks reach `to_verify` or `done`. Sess
 
 ```
 # 1. Check which tasks are ready for verification
-synapse_list_tasks({ projectUuid: "<project-uuid>", status: "to_verify" })
+synapse_list_experiment_runs({ projectUuid: "<project-uuid>", status: "to_verify" })
 
 # 2. Verify each completed task (moves to_verify → done, unblocks dependents)
-synapse_admin_verify_task({ taskUuid: "<task-A-uuid>" })
-synapse_admin_verify_task({ taskUuid: "<task-B-uuid>" })
+synapse_pi_verify_experiment_run({ runUuid: "<task-A-uuid>" })
+synapse_pi_verify_experiment_run({ runUuid: "<task-B-uuid>" })
 
 # 3. Check what's now unblocked for the next wave
-synapse_get_unblocked_tasks({ projectUuid: "<project-uuid>" })
+synapse_get_unblocked_experiment_runs({ projectUuid: "<project-uuid>" })
 
 # 4. Spawn next wave of sub-agents for newly unblocked tasks
 # ... (repeat Phase 2-4 until all tasks done)
@@ -226,24 +226,24 @@ If the Team Lead does NOT have admin role, it should notify the human admin to v
 
 When Synapse tasks have dependencies (Task B depends on Task A), the Team Lead must coordinate the execution order.
 
-> **Server-side enforcement**: `synapse_update_task(status: "in_progress")` will automatically reject if any `dependsOn` task is not `done` or `closed`. The error includes detailed blocker info (title, status, assignee, active session). Sub-agents do NOT need to manually poll dependency status — the server enforces it.
+> **Server-side enforcement**: `synapse_update_experiment_run(status: "in_progress")` will automatically reject if any `dependsOn` task is not `done` or `closed`. The error includes detailed blocker info (title, status, assignee, active session). Sub-agents do NOT need to manually poll dependency status — the server enforces it.
 
 **Recommended: Wave-based sequential spawning with verification**
 
 > **Key rule**: `to_verify` does NOT count as resolved. Only `done` or `closed` resolves a dependency. The Team Lead must verify tasks between waves to unblock the next wave.
 
-1. Use `synapse_get_unblocked_tasks` to find tasks ready to start (all deps resolved)
+1. Use `synapse_get_unblocked_experiment_runs` to find tasks ready to start (all deps resolved)
 2. Spawn sub-agents only for unblocked tasks (Wave 1)
 3. Wait for Wave 1 tasks to reach `to_verify`
-4. **Verify each task**: `synapse_admin_verify_task()` → moves to `done` (requires admin role)
-5. Check `synapse_get_unblocked_tasks()` for newly unblocked tasks (Wave 2)
+4. **Verify each task**: `synapse_pi_verify_experiment_run()` → moves to `done` (requires admin role)
+5. Check `synapse_get_unblocked_experiment_runs()` for newly unblocked tasks (Wave 2)
 6. Spawn Wave 2 sub-agents
 7. Repeat until all tasks are done
 
 **Alternative: Spawn all, server rejects blocked ones**
 - Spawn all sub-agents immediately
 - Sub-agents that try to move blocked tasks to `in_progress` will receive a clear error with blocker details
-- Those sub-agents can then use `synapse_get_unblocked_tasks` to find other work, or wait and retry
+- Those sub-agents can then use `synapse_get_unblocked_experiment_runs` to find other work, or wait and retry
 - **Note**: Even in this mode, the Team Lead must still verify completed tasks to unblock dependents
 
 ---
@@ -286,9 +286,9 @@ This keeps session history clean and makes it easier to trace work across multip
 - Verify the API key in the MCP config has `developer_agent` role
 
 ### UI doesn't show active workers on a task
-- The sub-agent likely forgot to call `synapse_session_checkin_task`
+- The sub-agent likely forgot to call `synapse_session_checkin_experiment_run`
 - Check: `synapse_get_session({ sessionUuid })` to see active checkins
-- Manual fix: call `synapse_session_checkin_task` for the sub-agent's session
+- Manual fix: call `synapse_session_checkin_experiment_run` for the sub-agent's session
 
 ### Session shows as "inactive" (yellow dot)
 - The sub-agent hasn't sent a heartbeat in over 1 hour
@@ -296,7 +296,7 @@ This keeps session history clean and makes it easier to trace work across multip
 
 ### Task stuck in wrong status
 - If a sub-agent crashed before completing, the task may be stuck in `in_progress`
-- Team Lead can: spawn a new sub-agent with the same name (plugin auto-reopens the session), or use `synapse_update_task` to reset status
+- Team Lead can: spawn a new sub-agent with the same name (plugin auto-reopens the session), or use `synapse_update_experiment_run` to reset status
 
 ### Duplicate sessions created
 - This happens if someone manually calls `synapse_create_session` while the plugin also creates sessions
@@ -314,17 +314,17 @@ This keeps session history clean and makes it easier to trace work across multip
 
 | Step | Who | Claude Code Tool | Synapse Tool |
 |------|-----|-----------------|-------------|
-| Plan work | Team Lead | — | `synapse_checkin`, `synapse_list_tasks` |
+| Plan work | Team Lead | — | `synapse_checkin`, `synapse_list_experiment_runs` |
 | Create team | Team Lead | `TeamCreate` | — |
 | Spawn workers | Team Lead | `Task` (pass task UUIDs only) | — |
 | *(auto)* Create sessions + inject workflow | Plugin (SubagentStart) | — | *(automatic)* |
 | *(auto)* Receive session + workflow | Sub-Agent | (injected into context) | — |
-| Checkin to task | Sub-Agent | — | `synapse_session_checkin_task` |
-| Start work | Sub-Agent | — | `synapse_update_task(in_progress, sessionUuid)` |
+| Checkin to task | Sub-Agent | — | `synapse_session_checkin_experiment_run` |
+| Start work | Sub-Agent | — | `synapse_update_experiment_run(in_progress, sessionUuid)` |
 | Report progress | Sub-Agent | — | `synapse_report_work(sessionUuid)` |
-| Complete task | Sub-Agent | — | `synapse_session_checkout_task` + `synapse_submit_for_verify` |
+| Complete task | Sub-Agent | — | `synapse_session_checkout_experiment_run` + `synapse_submit_for_verify` |
 | Notify lead | Sub-Agent | `SendMessage` | — |
 | *(auto)* Heartbeat | Plugin | — | `synapse_session_heartbeat` |
-| Monitor | Team Lead | `TaskList` | `synapse_list_tasks` |
+| Monitor | Team Lead | `TaskList` | `synapse_list_experiment_runs` |
 | *(auto)* Close sessions | Plugin | — | *(automatic)* |
 | Shutdown | Team Lead | `SendMessage(shutdown_request)` + `TeamDelete` | — |
