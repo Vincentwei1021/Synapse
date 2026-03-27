@@ -563,10 +563,13 @@ export async function updateExperimentRun(
         : (data.experimentResults as Prisma.InputJsonValue);
   }
 
+  let previousStatus: string | null = null;
   const task = await prisma.$transaction(async (tx) => {
-    if (data.status && data.status !== "done") {
+    if (data.status) {
       const current = await tx.experimentRun.findUnique({ where: { uuid }, select: { status: true } });
-      if (current?.status === "to_verify") {
+      previousStatus = current?.status ?? null;
+
+      if (data.status !== "done" && current?.status === "to_verify") {
         await tx.acceptanceCriterion.updateMany({
           where: { runUuid: uuid },
           data: {
@@ -596,7 +599,14 @@ export async function updateExperimentRun(
 
   eventBus.emitChange({ companyUuid: task.companyUuid, researchProjectUuid: task.researchProject.uuid, entityType: "experiment_run", entityUuid: task.uuid, action: "updated" });
 
-  if (task.status === "done" || task.status === "closed") {
+  const terminalStatuses = new Set(["done", "closed"]);
+  const enteredTerminalStatus =
+    previousStatus !== null &&
+    data.status !== undefined &&
+    terminalStatuses.has(task.status) &&
+    previousStatus !== task.status;
+
+  if (enteredTerminalStatus) {
     await releaseGpuReservationsForRun(task.companyUuid, task.uuid);
     await refreshProjectSynthesis(
       task.companyUuid,
@@ -669,7 +679,7 @@ export async function claimExperimentRun({
       },
     });
 
-    eventBus.emitChange({ companyUuid: task.companyUuid, researchProjectUuid: task.researchProject.uuid, entityType: "experiment_run", entityUuid: task.uuid, action: "updated" });
+    eventBus.emitChange({ companyUuid, researchProjectUuid: task.researchProject.uuid, entityType: "experiment_run", entityUuid: task.uuid, action: "updated" });
 
     return formatExperimentRunResponse(task);
   } catch (e: unknown) {

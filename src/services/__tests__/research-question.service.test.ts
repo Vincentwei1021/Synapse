@@ -8,14 +8,23 @@ const { mockPrisma, mockEventBus, mockFormatAssigneeComplete, mockFormatCreatedB
       create: vi.fn(),
       findFirst: vi.fn(),
       findUnique: vi.fn(),
+      findMany: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      deleteMany: vi.fn(),
     },
     researchProject: {
       findFirst: vi.fn(),
     },
+    experiment: {
+      findMany: vi.fn(),
+      deleteMany: vi.fn(),
+    },
     experimentDesign: {
       updateMany: vi.fn(),
+    },
+    experimentGpuReservation: {
+      deleteMany: vi.fn(),
     },
     $transaction: vi.fn(),
   },
@@ -59,6 +68,16 @@ function makeResearchQuestionRecord(overrides: Record<string, unknown> = {}) {
     title: "Test ResearchQuestion",
     content: "Some content",
     attachments: null,
+    sourceType: "human",
+    sourceLabel: null,
+    generatedByAgentUuid: null,
+    parentQuestionUuid: null,
+    childQuestions: [],
+    _count: { experiments: 0 },
+    reviewStatus: "pending",
+    reviewedByUuid: null,
+    reviewNote: null,
+    reviewedAt: null,
     status: "open",
     elaborationStatus: null,
     elaborationDepth: null,
@@ -80,6 +99,7 @@ function makeResearchQuestionRecord(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => fn(mockPrisma));
 });
 
 describe("createResearchQuestion", () => {
@@ -630,22 +650,73 @@ describe("updateResearchQuestion", () => {
 });
 
 describe("deleteResearchQuestion", () => {
-  it("should delete research question and emit event", async () => {
-    const deleted = makeResearchQuestionRecord();
-    mockPrisma.researchQuestion.delete.mockResolvedValue(deleted);
+  it("should cascade delete child questions and linked experiments, then emit delete events", async () => {
+    const childUuid = "idea-child-uuid";
+    const experimentUuid = "experiment-uuid";
 
-    const result = await deleteResearchQuestion(RESEARCH_QUESTION_UUID);
+    mockPrisma.researchQuestion.findUnique.mockResolvedValue({
+      uuid: RESEARCH_QUESTION_UUID,
+      companyUuid: COMPANY_UUID,
+      researchProjectUuid: PROJECT_UUID,
+    });
+    mockPrisma.researchQuestion.findMany.mockResolvedValue([
+      { uuid: RESEARCH_QUESTION_UUID, parentQuestionUuid: null },
+      { uuid: childUuid, parentQuestionUuid: RESEARCH_QUESTION_UUID },
+    ]);
+    mockPrisma.experiment.findMany.mockResolvedValue([{ uuid: experimentUuid }]);
 
-    expect(mockPrisma.researchQuestion.delete).toHaveBeenCalledWith({
-      where: { uuid: RESEARCH_QUESTION_UUID },
+    await deleteResearchQuestion(RESEARCH_QUESTION_UUID);
+
+    expect(mockPrisma.experimentGpuReservation.deleteMany).toHaveBeenCalledWith({
+      where: {
+        companyUuid: COMPANY_UUID,
+        experimentUuid: { in: [experimentUuid] },
+      },
+    });
+    expect(mockPrisma.experiment.deleteMany).toHaveBeenCalledWith({
+      where: {
+        companyUuid: COMPANY_UUID,
+        uuid: { in: [experimentUuid] },
+      },
+    });
+    expect(mockPrisma.researchQuestion.deleteMany).toHaveBeenNthCalledWith(1, {
+      where: { uuid: { in: [childUuid] } },
+    });
+    expect(mockPrisma.researchQuestion.deleteMany).toHaveBeenNthCalledWith(2, {
+      where: { uuid: { in: [RESEARCH_QUESTION_UUID] } },
     });
     expect(mockEventBus.emitChange).toHaveBeenCalledWith(
       expect.objectContaining({
         companyUuid: COMPANY_UUID,
-        entityType: "research_question",
+        researchProjectUuid: PROJECT_UUID,
+        entityType: "experiment",
+        entityUuid: experimentUuid,
         action: "deleted",
-      })
+      }),
     );
-    expect(result.uuid).toBe(RESEARCH_QUESTION_UUID);
+    expect(mockEventBus.emitChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        companyUuid: COMPANY_UUID,
+        researchProjectUuid: PROJECT_UUID,
+        entityType: "research_question",
+        entityUuid: RESEARCH_QUESTION_UUID,
+        action: "deleted",
+      }),
+    );
+    expect(mockEventBus.emitChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        companyUuid: COMPANY_UUID,
+        researchProjectUuid: PROJECT_UUID,
+        entityType: "research_question",
+        entityUuid: childUuid,
+        action: "deleted",
+      }),
+    );
+  });
+
+  it("should throw when research question does not exist", async () => {
+    mockPrisma.researchQuestion.findUnique.mockResolvedValue(null);
+
+    await expect(deleteResearchQuestion(RESEARCH_QUESTION_UUID)).rejects.toThrow("ResearchQuestion not found");
   });
 });

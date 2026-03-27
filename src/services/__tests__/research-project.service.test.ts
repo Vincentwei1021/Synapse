@@ -10,11 +10,7 @@ const mockPrisma = vi.hoisted(() => ({
     update: vi.fn(),
     delete: vi.fn(),
   },
-  experimentRun: {
-    count: vi.fn(),
-    groupBy: vi.fn(),
-  },
-  experimentDesign: {
+  experiment: {
     count: vi.fn(),
     groupBy: vi.fn(),
   },
@@ -54,7 +50,13 @@ function makeProject(overrides: Record<string, unknown> = {}) {
     groupUuid: null,
     createdAt: now,
     updatedAt: now,
-    _count: { researchQuestions: 5, documents: 3, experimentRuns: 10, experimentDesigns: 2 },
+    goal: "Improve retrieval accuracy",
+    datasets: ["dataset-a"],
+    evaluationMethods: ["pass@1"],
+    latestSynthesisAt: null,
+    latestSynthesisIdeaCount: null,
+    latestSynthesisSummary: null,
+    _count: { researchQuestions: 5, documents: 3, experiments: 10, activities: 2 },
     ...overrides,
   };
 }
@@ -75,7 +77,7 @@ describe("listResearchProjects", () => {
     expect(result.projects).toHaveLength(1);
     expect(result.total).toBe(1);
     expect(result.projects[0].uuid).toBe(researchProjectUuid);
-    expect(result.projects[0]._count.experimentRuns).toBe(10);
+    expect(result.projects[0]._count.experiments).toBe(10);
   });
 
   it("should pass skip and take to prisma", async () => {
@@ -93,7 +95,7 @@ describe("listResearchProjects", () => {
 // ===== getResearchProject =====
 describe("getResearchProject", () => {
   it("should return project with activity count", async () => {
-    const project = makeProject({ _count: { researchQuestions: 5, documents: 3, experimentRuns: 10, experimentDesigns: 2, activities: 100 } });
+    const project = makeProject({ _count: { researchQuestions: 5, documents: 3, experiments: 10, activities: 100 } });
     mockPrisma.researchProject.findFirst.mockResolvedValue(project);
 
     const result = await getResearchProject(companyUuid, researchProjectUuid);
@@ -205,20 +207,35 @@ describe("researchProjectExists", () => {
 // ===== getResearchProjectByUuid =====
 describe("getResearchProjectByUuid", () => {
   it("should return basic project info", async () => {
-    mockPrisma.researchProject.findFirst.mockResolvedValue({
+    const project = {
       uuid: researchProjectUuid,
       name: "Test Project",
-    });
+      description: "A test project",
+      goal: "Improve retrieval accuracy",
+      datasets: ["dataset-a"],
+      evaluationMethods: ["pass@1"],
+      latestSynthesisAt: null,
+      latestSynthesisIdeaCount: null,
+      latestSynthesisSummary: null,
+    };
+    mockPrisma.researchProject.findFirst.mockResolvedValue(project);
 
     const result = await getResearchProjectByUuid(companyUuid, researchProjectUuid);
 
-    expect(result).toEqual({
-      uuid: researchProjectUuid,
-      name: "Test Project",
-    });
+    expect(result).toEqual(project);
     expect(mockPrisma.researchProject.findFirst).toHaveBeenCalledWith({
       where: { uuid: researchProjectUuid, companyUuid },
-      select: { uuid: true, name: true },
+      select: {
+        uuid: true,
+        name: true,
+        description: true,
+        goal: true,
+        datasets: true,
+        evaluationMethods: true,
+        latestSynthesisAt: true,
+        latestSynthesisIdeaCount: true,
+        latestSynthesisSummary: true,
+      },
     });
   });
 
@@ -234,8 +251,9 @@ describe("getResearchProjectByUuid", () => {
 describe("getCompanyOverviewStats", () => {
   it("should return aggregated company stats", async () => {
     mockPrisma.researchProject.count.mockResolvedValue(3);
-    mockPrisma.experimentRun.count.mockResolvedValue(25);
-    mockPrisma.experimentDesign.count.mockResolvedValue(2);
+    mockPrisma.experiment.count
+      .mockResolvedValueOnce(25)
+      .mockResolvedValueOnce(2);
     mockPrisma.researchQuestion.count.mockResolvedValue(10);
 
     const result = await getCompanyOverviewStats(companyUuid);
@@ -254,27 +272,38 @@ describe("getResearchProjectStats", () => {
   it("should return per-project stats grouped by status", async () => {
     mockPrisma.researchQuestion.groupBy.mockResolvedValue([
       { status: "open", _count: 5 },
-      { status: "claimed", _count: 3 },
+      { status: "elaborating", _count: 3 },
+      { status: "proposal_created", _count: 2 },
+      { status: "completed", _count: 1 },
     ]);
-    mockPrisma.experimentRun.groupBy.mockResolvedValue([
-      { status: "open", _count: 2 },
-      { status: "assigned", _count: 1 },
+    mockPrisma.experiment.groupBy.mockResolvedValue([
+      { status: "draft", _count: 2 },
+      { status: "pending_review", _count: 1 },
+      { status: "pending_start", _count: 2 },
       { status: "in_progress", _count: 4 },
-      { status: "to_verify", _count: 2 },
-      { status: "done", _count: 6 },
-      { status: "closed", _count: 1 },
-    ]);
-    mockPrisma.experimentDesign.groupBy.mockResolvedValue([
-      { status: "pending", _count: 2 },
-      { status: "approved", _count: 5 },
+      { status: "completed", _count: 6 },
     ]);
     mockPrisma.document.count.mockResolvedValue(8);
 
     const result = await getResearchProjectStats(companyUuid, researchProjectUuid);
 
-    expect(result.researchQuestions).toEqual({ total: 8, open: 5 });
-    expect(result.experimentRuns).toEqual({ total: 16, inProgress: 4, todo: 3, toVerify: 2, done: 7 });
-    expect(result.experimentDesigns).toEqual({ total: 7, pending: 2 });
+    expect(result.researchQuestions).toEqual({
+      total: 11,
+      open: 8,
+      elaborating: 3,
+      proposalCreated: 2,
+      completed: 1,
+    });
+    expect(result.experimentRuns).toEqual({ total: 15, inProgress: 4, todo: 2, toVerify: 3, done: 6 });
+    expect(result.experimentDesigns).toEqual({ total: 15, pending: 1 });
+    expect(result.experiments).toEqual({
+      total: 15,
+      draft: 2,
+      pendingReview: 1,
+      pendingStart: 2,
+      inProgress: 4,
+      completed: 6,
+    });
     expect(result.documents).toEqual({ total: 8 });
   });
 });
@@ -287,7 +316,7 @@ describe("listResearchProjectsWithStats", () => {
 
     mockPrisma.researchProject.findMany.mockResolvedValue([project1, project2]);
     mockPrisma.researchProject.count.mockResolvedValue(2);
-    mockPrisma.experimentRun.groupBy.mockResolvedValue([
+    mockPrisma.experiment.groupBy.mockResolvedValue([
       { researchProjectUuid: "project-0000-0000-0000-000000000001", _count: 5 },
       { researchProjectUuid: "project-0000-0000-0000-000000000002", _count: 3 },
     ]);
@@ -298,12 +327,12 @@ describe("listResearchProjectsWithStats", () => {
     expect(result.total).toBe(2);
     expect(result.projects[0].experimentRunsDone).toBe(5);
     expect(result.projects[1].experimentRunsDone).toBe(3);
-    expect(mockPrisma.experimentRun.groupBy).toHaveBeenCalledWith({
+    expect(mockPrisma.experiment.groupBy).toHaveBeenCalledWith({
       by: ["researchProjectUuid"],
       where: {
         companyUuid,
         researchProjectUuid: { in: [project1.uuid, project2.uuid] },
-        status: "done",
+        status: "completed",
       },
       _count: true,
     });
@@ -313,7 +342,7 @@ describe("listResearchProjectsWithStats", () => {
     const project = makeProject();
     mockPrisma.researchProject.findMany.mockResolvedValue([project]);
     mockPrisma.researchProject.count.mockResolvedValue(1);
-    mockPrisma.experimentRun.groupBy.mockResolvedValue([]);
+    mockPrisma.experiment.groupBy.mockResolvedValue([]);
 
     const result = await listResearchProjectsWithStats({ companyUuid, skip: 0, take: 20 });
 

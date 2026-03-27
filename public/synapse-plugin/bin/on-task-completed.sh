@@ -58,8 +58,8 @@ fi
 
 if [ -n "$SESSION_UUID" ] && [ -n "$SYNAPSE_TASK_UUID" ]; then
   # Checkout from the Synapse task via MCP
-  "$API" mcp-tool "synapse_session_checkout_task" \
-    "$(printf '{"sessionUuid":"%s","taskUuid":"%s"}' "$SESSION_UUID" "$SYNAPSE_TASK_UUID")" \
+  "$API" mcp-tool "synapse_session_checkout_experiment_run" \
+    "$(printf '{"sessionUuid":"%s","runUuid":"%s"}' "$SESSION_UUID" "$SYNAPSE_TASK_UUID")" \
     >/dev/null 2>&1 || {
     "$API" hook-output \
       "Synapse: failed to checkout from task ${SYNAPSE_TASK_UUID:0:8}..." \

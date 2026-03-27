@@ -19,7 +19,7 @@ export function registerAdminTools(api: any, mcpClient: SynapseMcpClient) {
       const args: Record<string, unknown> = { name };
       if (description) args.description = description;
       if (groupUuid) args.groupUuid = groupUuid;
-      const result = await mcpClient.callTool("synapse_admin_create_project", args);
+      const result = await mcpClient.callTool("synapse_pi_create_research_project", args);
       return JSON.stringify(result, null, 2);
     },
   });
@@ -39,7 +39,7 @@ export function registerAdminTools(api: any, mcpClient: SynapseMcpClient) {
     async execute(_id: string, { name, description }: { name: string; description?: string }) {
       const args: Record<string, unknown> = { name };
       if (description) args.description = description;
-      const result = await mcpClient.callTool("synapse_admin_create_project_group", args);
+      const result = await mcpClient.callTool("synapse_pi_create_project_group", args);
       return JSON.stringify(result, null, 2);
     },
   });
@@ -59,9 +59,9 @@ export function registerAdminTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { proposalUuid, reviewNote }: { proposalUuid: string; reviewNote?: string }) {
-      const args: Record<string, unknown> = { proposalUuid };
+      const args: Record<string, unknown> = { experimentDesignUuid: proposalUuid };
       if (reviewNote) args.reviewNote = reviewNote;
-      const result = await mcpClient.callTool("synapse_admin_approve_proposal", args);
+      const result = await mcpClient.callTool("synapse_pi_approve_experiment_design", args);
       return JSON.stringify(result, null, 2);
     },
   });
@@ -80,7 +80,7 @@ export function registerAdminTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { taskUuid }: { taskUuid: string }) {
-      const result = await mcpClient.callTool("synapse_admin_verify_task", { taskUuid });
+      const result = await mcpClient.callTool("synapse_pi_verify_experiment_run", { runUuid: taskUuid });
       return JSON.stringify(result, null, 2);
     },
   });
@@ -110,7 +110,7 @@ export function registerAdminTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { taskUuid, criteria }: { taskUuid: string; criteria: Array<{ uuid: string; status: string; evidence?: string }> }) {
-      const result = await mcpClient.callTool("synapse_mark_acceptance_criteria", { taskUuid, criteria });
+      const result = await mcpClient.callTool("synapse_mark_acceptance_criteria", { runUuid: taskUuid, criteria });
       return JSON.stringify(result, null, 2);
     },
   });

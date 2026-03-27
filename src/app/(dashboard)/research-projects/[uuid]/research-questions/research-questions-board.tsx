@@ -155,7 +155,7 @@ function sourceLabelForQuestion(t: ReturnType<typeof useTranslations>, question:
 
 function statusLabelForQuestion(t: ReturnType<typeof useTranslations>, question: ResearchQuestionResponse) {
   const statusKey =
-    question.status === "experiment_created"
+    question.status === "proposal_created" || question.status === "experiment_created"
       ? "experimentCreated"
       : question.status === "elaborating"
         ? "elaborating"
@@ -391,7 +391,7 @@ export function ResearchQuestionsBoard({
     router.push(`/research-projects/${projectUuid}/experiments?selected=${node.id.replace("e-", "")}`);
   };
 
-  const runStatusAction = (status: "elaborating" | "experiment_created" | "completed") => {
+  const runStatusAction = (status: "elaborating" | "proposal_created" | "completed") => {
     if (!selectedQuestion) return;
 
     startTransition(() => {
@@ -632,14 +632,15 @@ export function ResearchQuestionsBoard({
                 <Button
                   className="w-full bg-emerald-700 text-white hover:bg-emerald-600"
                   disabled={isPending}
-                  onClick={() => runStatusAction("experiment_created")}
+                  onClick={() => runStatusAction("proposal_created")}
                 >
                   <FlaskConical className="mr-2 h-4 w-4" />
                   {t("ideas.actions.markExperimentCreated")}
                 </Button>
               ) : null}
 
-              {selectedQuestion.reviewStatus === "accepted" && selectedQuestion.status === "experiment_created" ? (
+              {selectedQuestion.reviewStatus === "accepted" &&
+              (selectedQuestion.status === "proposal_created" || selectedQuestion.status === "experiment_created") ? (
                 <div className="grid gap-2 sm:grid-cols-2">
                   <Button variant="outline" disabled={isPending} onClick={() => runStatusAction("elaborating")}>
                     <CornerUpLeft className="mr-2 h-4 w-4" />

@@ -295,6 +295,7 @@ function statusKey(status: string) {
 
 function questionStatusKey(status: string) {
   switch (status) {
+    case "proposal_created":
     case "experiment_created":
       return "experimentCreated";
     default:

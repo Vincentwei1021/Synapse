@@ -14,7 +14,7 @@ export function registerDevTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { taskUuid }: { taskUuid: string }) {
-      const result = await mcpClient.callTool("synapse_claim_task", { taskUuid });
+      const result = await mcpClient.callTool("synapse_claim_experiment_run", { runUuid: taskUuid });
       return JSON.stringify(result, null, 2);
     },
   });
@@ -33,9 +33,9 @@ export function registerDevTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { taskUuid, status, sessionUuid }: { taskUuid: string; status: string; sessionUuid?: string }) {
-      const args: Record<string, unknown> = { taskUuid, status };
+      const args: Record<string, unknown> = { runUuid: taskUuid, status };
       if (sessionUuid) args.sessionUuid = sessionUuid;
-      const result = await mcpClient.callTool("synapse_update_task", args);
+      const result = await mcpClient.callTool("synapse_update_experiment_run", args);
       return JSON.stringify(result, null, 2);
     },
   });
@@ -55,7 +55,7 @@ export function registerDevTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { taskUuid, report, status, sessionUuid }: { taskUuid: string; report: string; status?: string; sessionUuid?: string }) {
-      const args: Record<string, unknown> = { taskUuid, report };
+      const args: Record<string, unknown> = { runUuid: taskUuid, report };
       if (status) args.status = status;
       if (sessionUuid) args.sessionUuid = sessionUuid;
       const result = await mcpClient.callTool("synapse_report_work", args);
@@ -76,7 +76,7 @@ export function registerDevTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { taskUuid, summary }: { taskUuid: string; summary?: string }) {
-      const args: Record<string, unknown> = { taskUuid };
+      const args: Record<string, unknown> = { runUuid: taskUuid };
       if (summary) args.summary = summary;
       const result = await mcpClient.callTool("synapse_submit_for_verify", args);
       return JSON.stringify(result, null, 2);
@@ -108,7 +108,7 @@ export function registerDevTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { taskUuid, criteria }: { taskUuid: string; criteria: Array<{ uuid: string; devStatus: string; devEvidence?: string }> }) {
-      const result = await mcpClient.callTool("synapse_report_criteria_self_check", { taskUuid, criteria });
+      const result = await mcpClient.callTool("synapse_report_criteria_self_check", { runUuid: taskUuid, criteria });
       return JSON.stringify(result, null, 2);
     },
   });

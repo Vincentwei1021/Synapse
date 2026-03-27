@@ -447,7 +447,7 @@ export async function createExperiment(params: ExperimentCreateParams) {
   if (params.researchQuestionUuid) {
     await prisma.researchQuestion.update({
       where: { uuid: params.researchQuestionUuid },
-      data: { status: "experiment_created" },
+      data: { status: "proposal_created" },
     });
   }
 

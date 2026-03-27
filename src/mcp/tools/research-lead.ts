@@ -121,7 +121,9 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
       description: "Update Research Question status (only assignee can operate). Valid statuses: open, elaborating, proposal_created, completed, closed. Claiming auto-transitions to elaborating; use this tool for proposal_created (after Experiment Design submission) or completed (after approval).",
       inputSchema: z.object({
         researchQuestionUuid: z.string().describe("Research Question UUID"),
-        status: z.enum(["in_progress", "pending_review", "completed"]).describe("New status"),
+        status: z
+          .enum(["elaborating", "proposal_created", "completed", "in_progress", "pending_review"])
+          .describe("New status"),
       }),
     },
     async ({ researchQuestionUuid, status }) => {
@@ -139,15 +141,22 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
         return { content: [{ type: "text", text: "Only the assignee can update the status" }], isError: true };
       }
 
+      const normalizedStatus =
+        status === "in_progress"
+          ? "elaborating"
+          : status === "pending_review"
+            ? "proposal_created"
+            : status;
+
       // Validate status transition
-      if (!researchQuestionService.isValidResearchQuestionStatusTransition(researchQuestion.status, status)) {
+      if (!researchQuestionService.isValidResearchQuestionStatusTransition(researchQuestion.status, normalizedStatus)) {
         return {
-          content: [{ type: "text", text: `Invalid status transition: ${researchQuestion.status} -> ${status}` }],
+          content: [{ type: "text", text: `Invalid status transition: ${researchQuestion.status} -> ${normalizedStatus}` }],
           isError: true,
         };
       }
 
-      const updated = await researchQuestionService.updateResearchQuestion(researchQuestion.uuid, auth.companyUuid, { status });
+      const updated = await researchQuestionService.updateResearchQuestion(researchQuestion.uuid, auth.companyUuid, { status: normalizedStatus });
 
       await activityService.createActivity({
         companyUuid: auth.companyUuid,
@@ -157,7 +166,7 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
         actorType: "agent",
         actorUuid: auth.actorUuid,
         action: "status_changed",
-        value: { status },
+        value: { status: normalizedStatus },
       });
 
       return {

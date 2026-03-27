@@ -270,7 +270,9 @@ export async function getResearchProjectStats(companyUuid: string, researchProje
       total: researchQuestionsTotal,
       open: researchQuestionsOpen,
       elaborating: researchQuestionStatusMap.get("elaborating") || 0,
-      experimentCreated: researchQuestionStatusMap.get("experiment_created") || 0,
+      proposalCreated:
+        (researchQuestionStatusMap.get("proposal_created") || 0) +
+        (researchQuestionStatusMap.get("experiment_created") || 0),
       completed: researchQuestionStatusMap.get("completed") || 0,
     },
     experimentRuns: {

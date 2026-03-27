@@ -67,7 +67,7 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { taskUuid }: { taskUuid: string }) {
-      const result = await mcpClient.callTool("synapse_get_experiment", { experimentUuid: taskUuid });
+      const result = await mcpClient.callTool("synapse_get_experiment_run", { runUuid: taskUuid });
       return json(result);
     },
   });
@@ -168,11 +168,11 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { projectUuid, status, priority, proposalUuids, page, pageSize }: { projectUuid: string; status?: string; priority?: string; proposalUuids?: string[]; page?: number; pageSize?: number }) {
-      const result = await mcpClient.callTool("synapse_get_assigned_experiments", {
+      const result = await mcpClient.callTool("synapse_list_experiment_runs", {
         researchProjectUuid: projectUuid,
-        statuses: status ? [status] : undefined,
+        status,
         priority,
-        proposalUuids,
+        experimentDesignUuids: proposalUuids,
         page,
         pageSize,
       });
@@ -219,11 +219,11 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { projectUuid, status, page, pageSize }: { projectUuid: string; status?: string; page?: number; pageSize?: number }) {
-      const args: Record<string, unknown> = { projectUuid };
+      const args: Record<string, unknown> = { researchProjectUuid: projectUuid };
       if (status) args.status = status;
       if (page !== undefined) args.page = page;
       if (pageSize !== undefined) args.pageSize = pageSize;
-      const result = await mcpClient.callTool("synapse_get_proposals", args);
+      const result = await mcpClient.callTool("synapse_get_experiment_designs", args);
       return json(result);
     },
   });
@@ -282,7 +282,7 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { projectUuid, proposalUuids }: { projectUuid: string; proposalUuids?: string[] }) {
-      const result = await mcpClient.callTool("synapse_get_available_experiment_runs", {
+      const result = await mcpClient.callTool("synapse_get_unblocked_experiment_runs", {
         researchProjectUuid: projectUuid,
         experimentDesignUuids: proposalUuids,
       });

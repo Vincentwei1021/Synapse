@@ -15,7 +15,7 @@ export function registerPmTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { ideaUuid }: { ideaUuid: string }) {
-      const result = await mcpClient.callTool("synapse_claim_idea", { ideaUuid });
+      const result = await mcpClient.callTool("synapse_claim_research_question", { researchQuestionUuid: ideaUuid });
       return JSON.stringify(result, null, 2);
     },
   });
@@ -40,7 +40,11 @@ export function registerPmTools(api: any, mcpClient: SynapseMcpClient) {
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async execute(_id: string, { ideaUuid, depth, questions }: { ideaUuid: string; depth: string; questions: any[] }) {
-      const result = await mcpClient.callTool("synapse_pm_start_elaboration", { ideaUuid, depth, questions });
+      const result = await mcpClient.callTool("synapse_research_lead_start_hypothesis_formulation", {
+        researchQuestionUuid: ideaUuid,
+        depth,
+        questions,
+      });
       return JSON.stringify(result, null, 2);
     },
   });
@@ -65,7 +69,11 @@ export function registerPmTools(api: any, mcpClient: SynapseMcpClient) {
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async execute(_id: string, { ideaUuid, roundUuid, answers }: { ideaUuid: string; roundUuid: string; answers: any[] }) {
-      const result = await mcpClient.callTool("synapse_answer_elaboration", { ideaUuid, roundUuid, answers });
+      const result = await mcpClient.callTool("synapse_answer_hypothesis_formulation", {
+        researchQuestionUuid: ideaUuid,
+        roundUuid,
+        answers,
+      });
       return JSON.stringify(result, null, 2);
     },
   });
@@ -90,7 +98,11 @@ export function registerPmTools(api: any, mcpClient: SynapseMcpClient) {
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async execute(_id: string, { ideaUuid, roundUuid, issues }: { ideaUuid: string; roundUuid: string; issues: any[] }) {
-      const result = await mcpClient.callTool("synapse_pm_validate_elaboration", { ideaUuid, roundUuid, issues });
+      const result = await mcpClient.callTool("synapse_research_lead_validate_hypothesis_formulation", {
+        researchQuestionUuid: ideaUuid,
+        roundUuid,
+        issues,
+      });
       return JSON.stringify(result, null, 2);
     },
   });
@@ -114,9 +126,14 @@ export function registerPmTools(api: any, mcpClient: SynapseMcpClient) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async execute(_id: string, { projectUuid, title, inputType, inputUuids, description }: any) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const args: Record<string, any> = { projectUuid, title, inputType, inputUuids };
+      const args: Record<string, any> = {
+        researchProjectUuid: projectUuid,
+        title,
+        inputType: inputType === "idea" ? "research_question" : inputType,
+        inputUuids,
+      };
       if (description !== undefined) args.description = description;
-      const result = await mcpClient.callTool("synapse_pm_create_proposal", args);
+      const result = await mcpClient.callTool("synapse_research_lead_create_experiment_design", args);
       return JSON.stringify(result, null, 2);
     },
   });
@@ -137,7 +154,12 @@ export function registerPmTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { proposalUuid, type, title, content }: { proposalUuid: string; type: string; title: string; content: string }) {
-      const result = await mcpClient.callTool("synapse_pm_add_document_draft", { proposalUuid, type, title, content });
+      const result = await mcpClient.callTool("synapse_research_lead_add_document_draft", {
+        experimentDesignUuid: proposalUuid,
+        type,
+        title,
+        content,
+      });
       return JSON.stringify(result, null, 2);
     },
   });
@@ -163,13 +185,13 @@ export function registerPmTools(api: any, mcpClient: SynapseMcpClient) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async execute(_id: string, { proposalUuid, title, description, priority, storyPoints, acceptanceCriteriaItems, dependsOnDraftUuids }: any) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const args: Record<string, any> = { proposalUuid, title };
+      const args: Record<string, any> = { experimentDesignUuid: proposalUuid, title };
       if (description !== undefined) args.description = description;
       if (priority !== undefined) args.priority = priority;
-      if (storyPoints !== undefined) args.storyPoints = storyPoints;
+      if (storyPoints !== undefined) args.computeBudgetHours = storyPoints;
       if (acceptanceCriteriaItems !== undefined) args.acceptanceCriteriaItems = acceptanceCriteriaItems;
       if (dependsOnDraftUuids !== undefined) args.dependsOnDraftUuids = dependsOnDraftUuids;
-      const result = await mcpClient.callTool("synapse_pm_add_task_draft", args);
+      const result = await mcpClient.callTool("synapse_research_lead_add_experiment_run_draft", args);
       return JSON.stringify(result, null, 2);
     },
   });
@@ -187,7 +209,7 @@ export function registerPmTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { proposalUuid }: { proposalUuid: string }) {
-      const result = await mcpClient.callTool("synapse_get_proposal", { proposalUuid });
+      const result = await mcpClient.callTool("synapse_get_experiment_design", { experimentDesignUuid: proposalUuid });
       return JSON.stringify(result, null, 2);
     },
   });
@@ -211,11 +233,11 @@ export function registerPmTools(api: any, mcpClient: SynapseMcpClient) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async execute(_id: string, { proposalUuid, draftUuid, title, type, content }: any) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const args: Record<string, any> = { proposalUuid, draftUuid };
+      const args: Record<string, any> = { experimentDesignUuid: proposalUuid, draftUuid };
       if (title !== undefined) args.title = title;
       if (type !== undefined) args.type = type;
       if (content !== undefined) args.content = content;
-      const result = await mcpClient.callTool("synapse_pm_update_document_draft", args);
+      const result = await mcpClient.callTool("synapse_research_lead_update_document_draft", args);
       return JSON.stringify(result, null, 2);
     },
   });
@@ -242,14 +264,14 @@ export function registerPmTools(api: any, mcpClient: SynapseMcpClient) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async execute(_id: string, { proposalUuid, draftUuid, title, description, priority, storyPoints, acceptanceCriteriaItems, dependsOnDraftUuids }: any) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const args: Record<string, any> = { proposalUuid, draftUuid };
+      const args: Record<string, any> = { experimentDesignUuid: proposalUuid, draftUuid };
       if (title !== undefined) args.title = title;
       if (description !== undefined) args.description = description;
       if (priority !== undefined) args.priority = priority;
-      if (storyPoints !== undefined) args.storyPoints = storyPoints;
+      if (storyPoints !== undefined) args.computeBudgetHours = storyPoints;
       if (acceptanceCriteriaItems !== undefined) args.acceptanceCriteriaItems = acceptanceCriteriaItems;
       if (dependsOnDraftUuids !== undefined) args.dependsOnDraftUuids = dependsOnDraftUuids;
-      const result = await mcpClient.callTool("synapse_pm_update_task_draft", args);
+      const result = await mcpClient.callTool("synapse_research_lead_update_experiment_run_draft", args);
       return JSON.stringify(result, null, 2);
     },
   });
@@ -268,7 +290,10 @@ export function registerPmTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { proposalUuid, draftUuid }: { proposalUuid: string; draftUuid: string }) {
-      const result = await mcpClient.callTool("synapse_pm_remove_document_draft", { proposalUuid, draftUuid });
+      const result = await mcpClient.callTool("synapse_research_lead_remove_document_draft", {
+        experimentDesignUuid: proposalUuid,
+        draftUuid,
+      });
       return JSON.stringify(result, null, 2);
     },
   });
@@ -287,7 +312,10 @@ export function registerPmTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { proposalUuid, draftUuid }: { proposalUuid: string; draftUuid: string }) {
-      const result = await mcpClient.callTool("synapse_pm_remove_task_draft", { proposalUuid, draftUuid });
+      const result = await mcpClient.callTool("synapse_research_lead_remove_experiment_run_draft", {
+        experimentDesignUuid: proposalUuid,
+        draftUuid,
+      });
       return JSON.stringify(result, null, 2);
     },
   });
@@ -305,7 +333,9 @@ export function registerPmTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { proposalUuid }: { proposalUuid: string }) {
-      const result = await mcpClient.callTool("synapse_pm_validate_proposal", { proposalUuid });
+      const result = await mcpClient.callTool("synapse_research_lead_validate_experiment_design", {
+        experimentDesignUuid: proposalUuid,
+      });
       return JSON.stringify(result, null, 2);
     },
   });
@@ -323,7 +353,9 @@ export function registerPmTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { proposalUuid }: { proposalUuid: string }) {
-      const result = await mcpClient.callTool("synapse_pm_submit_proposal", { proposalUuid });
+      const result = await mcpClient.callTool("synapse_research_lead_submit_experiment_design", {
+        experimentDesignUuid: proposalUuid,
+      });
       return JSON.stringify(result, null, 2);
     },
   });
@@ -342,7 +374,10 @@ export function registerPmTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { taskUuid, agentUuid }: { taskUuid: string; agentUuid: string }) {
-      const result = await mcpClient.callTool("synapse_pm_assign_task", { taskUuid, agentUuid });
+      const result = await mcpClient.callTool("synapse_research_lead_assign_experiment_run", {
+        runUuid: taskUuid,
+        agentUuid,
+      });
       return JSON.stringify(result, null, 2);
     },
   });
@@ -361,7 +396,10 @@ export function registerPmTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { ideaUuid, targetProjectUuid }: { ideaUuid: string; targetProjectUuid: string }) {
-      const result = await mcpClient.callTool("synapse_move_idea", { ideaUuid, targetProjectUuid });
+      const result = await mcpClient.callTool("synapse_move_research_question", {
+        researchQuestionUuid: ideaUuid,
+        targetResearchProjectUuid: targetProjectUuid,
+      });
       return JSON.stringify(result, null, 2);
     },
   });
@@ -381,9 +419,9 @@ export function registerPmTools(api: any, mcpClient: SynapseMcpClient) {
       additionalProperties: false,
     },
     async execute(_id: string, { projectUuid, title, content }: { projectUuid: string; title: string; content?: string }) {
-      const args: Record<string, unknown> = { projectUuid, title };
+      const args: Record<string, unknown> = { researchProjectUuid: projectUuid, title };
       if (content) args.content = content;
-      const result = await mcpClient.callTool("synapse_pm_create_idea", args);
+      const result = await mcpClient.callTool("synapse_research_lead_create_research_question", args);
       return JSON.stringify(result, null, 2);
     },
   });

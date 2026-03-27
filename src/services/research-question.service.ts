@@ -5,8 +5,8 @@
 import { prisma } from "@/lib/prisma";
 import { formatAssigneeComplete, formatCreatedBy } from "@/lib/uuid-resolver";
 import { eventBus } from "@/lib/event-bus";
-import { AlreadyClaimedError, NotClaimedError, isPrismaNotFound } from "@/lib/errors";
 import { ApiError } from "@/lib/api-handler";
+import { AlreadyClaimedError } from "@/lib/errors";
 import * as mentionService from "@/services/mention.service";
 import * as activityService from "@/services/activity.service";
 
@@ -80,8 +80,8 @@ export interface ResearchQuestionResponse {
 // open → elaborating → proposal_created → completed → closed
 export const RESEARCH_QUESTION_STATUS_TRANSITIONS: Record<string, string[]> = {
   open: ["elaborating", "closed"],
-  elaborating: ["experiment_created", "closed"],
-  experiment_created: ["completed", "elaborating", "closed"],
+  elaborating: ["proposal_created", "closed"],
+  proposal_created: ["completed", "elaborating", "closed"],
   completed: ["closed"],
   closed: [],
 };
@@ -93,7 +93,8 @@ export function normalizeResearchQuestionStatus(status: string): string {
     case "in_progress":
       return "elaborating";
     case "pending_review":
-      return "experiment_created";
+    case "experiment_created":
+      return "proposal_created";
     default:
       return status;
   }
@@ -102,8 +103,9 @@ export function normalizeResearchQuestionStatus(status: string): string {
 // Validate whether a status transition is valid
 export function isValidResearchQuestionStatusTransition(from: string, to: string): boolean {
   const normalizedFrom = normalizeResearchQuestionStatus(from);
+  const normalizedTo = normalizeResearchQuestionStatus(to);
   const allowed = RESEARCH_QUESTION_STATUS_TRANSITIONS[normalizedFrom] || [];
-  return allowed.includes(to);
+  return allowed.includes(normalizedTo);
 }
 
 // ===== Internal Helper Functions =====
@@ -461,14 +463,11 @@ export async function claimResearchQuestion({
   if (existing.assigneeUuid) {
     throw new AlreadyClaimedError("Idea");
   }
-  if (existing.reviewStatus === "rejected") {
-    throw new Error("Cannot claim a rejected ResearchQuestion");
-  }
-  if (existing.reviewStatus !== "accepted") {
-    throw new Error("ResearchQuestion must be accepted before it can be claimed");
-  }
   if (existing.status === "completed" || existing.status === "closed") {
     throw new Error("Cannot claim a completed or closed ResearchQuestion");
+  }
+  if (existing.reviewStatus === "rejected") {
+    throw new Error("Cannot claim a rejected ResearchQuestion");
   }
 
   const idea = await prisma.researchQuestion.update({
@@ -502,14 +501,11 @@ export async function assignResearchQuestion({
     where: { uuid: researchQuestionUuid, companyUuid },
   });
   if (!existing) throw new Error("ResearchQuestion not found");
-  if (existing.reviewStatus === "rejected") {
-    throw new Error("Cannot assign a rejected ResearchQuestion");
-  }
-  if (existing.reviewStatus !== "accepted") {
-    throw new Error("ResearchQuestion must be accepted before it can be assigned");
-  }
   if (existing.status === "completed" || existing.status === "closed") {
     throw new Error("Cannot assign a completed or closed ResearchQuestion");
+  }
+  if (existing.reviewStatus === "rejected") {
+    throw new Error("Cannot assign a rejected ResearchQuestion");
   }
 
   // If currently open, move to elaborating; otherwise keep current status

@@ -93,10 +93,18 @@ const HELP_TEXT = [
   "  /synapse ideas     List assigned ideas",
 ].join("\n");
 
+interface CommandRegistry {
+  registerCommand(command: {
+    name: string;
+    description: string;
+    handler: (ctx: { args: string }) => Promise<{ text: string }>;
+  }): void;
+}
+
 // ===== Registration =====
 
 export function registerSynapseCommands(
-  api: any,
+  api: CommandRegistry,
   mcpClient: SynapseMcpClient,
   getStatus: () => string
 ): void {

@@ -34,6 +34,13 @@ const globalForRedis = globalThis as unknown as {
   redisSub: Redis | undefined;
 };
 
+export interface RedisHealth {
+  enabled: boolean;
+  publisherStatus: string;
+  subscriberStatus: string;
+  transport: "disabled" | "memory-fallback" | "redis";
+}
+
 function createClient(name: string): Redis {
   const client = new Redis(REDIS_URL!, {
     lazyConnect: true,
@@ -45,7 +52,7 @@ function createClient(name: string): Redis {
     },
   });
   client.on("error", (err) => {
-    console.error(`[Redis:${name}] error:`, err.message);
+    console.error(`[Redis:${name}] error:`, err.message || "unknown redis error");
   });
   client.on("connect", () => {
     console.log(`[Redis:${name}] connected`);
@@ -67,4 +74,23 @@ export function getRedisSubscriber(): Redis | null {
     globalForRedis.redisSub = createClient("sub");
   }
   return globalForRedis.redisSub;
+}
+
+export function getRedisHealth(): RedisHealth {
+  const publisherStatus = globalForRedis.redisPub?.status ?? "not_initialized";
+  const subscriberStatus = globalForRedis.redisSub?.status ?? "not_initialized";
+  const enabled = isRedisEnabled();
+  const transport =
+    enabled && (publisherStatus === "ready" || subscriberStatus === "ready")
+      ? "redis"
+      : enabled
+        ? "memory-fallback"
+        : "disabled";
+
+  return {
+    enabled,
+    publisherStatus,
+    subscriberStatus,
+    transport,
+  };
 }

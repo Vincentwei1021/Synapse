@@ -83,6 +83,16 @@ const mockActivityService = vi.hoisted(() => ({
 }));
 vi.mock("@/services/activity.service", () => mockActivityService);
 
+const mockComputeService = vi.hoisted(() => ({
+  releaseGpuReservationsForRun: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("@/services/compute.service", () => mockComputeService);
+
+const mockProjectSynthesisService = vi.hoisted(() => ({
+  refreshProjectSynthesis: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("@/services/project-synthesis.service", () => mockProjectSynthesisService);
+
 // ===== Import under test (after mocks) =====
 
 import {
@@ -1515,6 +1525,12 @@ describe("updateExperimentRun", () => {
     await updateExperimentRun(RUN_UUID, { status: "done" });
 
     expect(mockPrisma.acceptanceCriterion.updateMany).not.toHaveBeenCalled();
+    expect(mockComputeService.releaseGpuReservationsForRun).toHaveBeenCalledWith(COMPANY_UUID, RUN_UUID);
+    expect(mockProjectSynthesisService.refreshProjectSynthesis).toHaveBeenCalledWith(
+      COMPANY_UUID,
+      PROJECT_UUID,
+      updated.createdByUuid,
+    );
   });
 
   it("should process new mentions when description updated with actor context", async () => {

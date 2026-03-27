@@ -10,7 +10,6 @@ import * as researchQuestionService from "@/services/research-question.service";
 import * as documentService from "@/services/document.service";
 import * as experimentRunService from "@/services/experiment-run.service";
 import * as experimentDesignService from "@/services/experiment-design.service";
-import * as experimentService from "@/services/experiment.service";
 import * as activityService from "@/services/activity.service";
 import * as commentService from "@/services/comment.service";
 import * as assignmentService from "@/services/assignment.service";
@@ -87,18 +86,64 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
   server.registerTool(
     "synapse_get_task",
     {
-      description: "Compatibility alias for synapse_get_experiment.",
+      description: "Compatibility alias for synapse_get_experiment_run.",
       inputSchema: z.object({
-        taskUuid: z.string().describe("Experiment UUID"),
+        taskUuid: z.string().describe("Experiment Run UUID"),
       }),
     },
     async ({ taskUuid }) => {
-      const experiment = await experimentService.getExperiment(auth.companyUuid, taskUuid);
-      if (!experiment) {
-        return { content: [{ type: "text", text: "Experiment not found" }], isError: true };
+      const experimentRun = await experimentRunService.getExperimentRun(auth.companyUuid, taskUuid);
+      if (!experimentRun) {
+        return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }
       return {
-        content: [{ type: "text", text: JSON.stringify(experiment, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(experimentRun, null, 2) }],
+      };
+    }
+  );
+
+  server.registerTool(
+    "synapse_get_proposal",
+    {
+      description: "Compatibility alias for synapse_get_experiment_design.",
+      inputSchema: z.object({
+        proposalUuid: z.string().describe("Experiment Design UUID"),
+      }),
+    },
+    async ({ proposalUuid }) => {
+      const experimentDesign = await experimentDesignService.getExperimentDesign(auth.companyUuid, proposalUuid);
+      if (!experimentDesign) {
+        return { content: [{ type: "text", text: "Experiment Design not found" }], isError: true };
+      }
+      return {
+        content: [{ type: "text", text: JSON.stringify(experimentDesign, null, 2) }],
+      };
+    }
+  );
+
+  server.registerTool(
+    "synapse_get_unblocked_tasks",
+    {
+      description: "Compatibility alias for synapse_get_unblocked_experiment_runs.",
+      inputSchema: z.object({
+        projectUuid: z.string().describe("Research Project UUID"),
+        proposalUuids: z.array(z.string()).optional().describe("Filter by Experiment Design UUIDs"),
+      }),
+    },
+    async ({ projectUuid, proposalUuids }) => {
+      const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, projectUuid);
+      if (!project) {
+        return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
+      }
+
+      const { tasks, total } = await experimentRunService.getUnblockedExperimentRuns({
+        companyUuid: auth.companyUuid,
+        researchProjectUuid: projectUuid,
+        experimentDesignUuids: proposalUuids,
+      });
+
+      return {
+        content: [{ type: "text", text: JSON.stringify({ tasks, total }, null, 2) }],
       };
     }
   );
