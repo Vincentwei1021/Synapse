@@ -1,218 +1,367 @@
-# CLAUDE.md — Synapse Project Guide
+# CLAUDE.md — Synapse Working Guide
 
-## What is Synapse
+## What Synapse Is
 
-Synapse is an AI Agent & Human collaboration platform implementing the **AI-DLC (AI-Driven Development Lifecycle)** workflow. Multiple AI Agents (Research Lead, Researcher, PI) and humans work together through a shared Research Question → Experiment Design → Document + Experiment Run → Execute → Verify → Done pipeline.
+Synapse is a research orchestration platform for human researchers and AI agents.
+The current product is centered on:
 
-Core philosophy: **"Reversed Conversation"** — AI proposes, humans verify (not human prompt → AI execute).
+- `ResearchProject`: project brief, datasets, evaluation methods, rolling synthesis
+- `ResearchQuestion`: optional problem framing and question hierarchy
+- `Experiment`: the primary execution unit
+- `Document`: project docs, experiment result docs, and project synthesis docs
+- `Compute`: pools, machines, GPUs, and reservations
+- `AgentSession`: observability for long-running or delegated agent work
+
+The current primary workflow is:
+
+1. Human creates a `ResearchProject`
+2. Human or agent creates `ResearchQuestion` records
+3. Human or agent creates `Experiment` records
+4. Experiments are assigned to agents
+5. Agents use MCP tools to inspect context, allocate compute, start experiments, and submit results
+6. Synapse updates experiment result documents and rolling project synthesis
+
+This repo still contains older Chorus-derived entities like `ExperimentDesign` and `ExperimentRun`, but they are now mostly compatibility or legacy surfaces. For new research work, default to the `Experiment` model unless a specific route or tool still explicitly uses the older flow.
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router, Turbopack for dev)
-- **Language**: TypeScript 5 (strict mode)
-- **Frontend**: React 19, Tailwind CSS 4, shadcn/ui (Radix UI)
-- **Database**: PostgreSQL 16, Prisma ORM 7
-- **Cache/Pub-Sub**: Redis 7 (ioredis, optional — falls back to in-memory)
-- **Testing**: Vitest 4
-- **Auth**: OIDC (users), API Keys with `syn_` prefix (agents), SuperAdmin (env-based bcrypt)
-- **MCP**: @modelcontextprotocol/sdk 1.26 (HTTP Streamable Transport)
-- **i18n**: next-intl (en, zh)
-- **Package Manager**: pnpm 9.15
-- **Path alias**: `@/*` → `./src/*`
+- Framework: Next.js 15 App Router
+- Language: TypeScript 5
+- Frontend: React 19, Tailwind CSS 4, Radix/shadcn UI
+- Database: PostgreSQL + Prisma 7
+- Realtime / Pub-Sub: Redis via `ioredis` with in-memory fallback
+- Auth: OIDC-style user login, default-login fallback for local/demo use, `syn_` API keys for agents
+- MCP: `@modelcontextprotocol/sdk` over HTTP streamable transport
+- i18n: `next-intl` (`en`, `zh`)
+- Testing: Vitest
+- Package manager: pnpm
 
-## Project Structure
+## Commands
 
+```bash
+pnpm dev                      # Dev server (Turbopack)
+pnpm dev:webpack              # Dev server without Turbopack
+pnpm build                    # prisma generate + next build
+pnpm start                    # Standalone start via scripts/start-standalone.sh
+pnpm start:legacy             # Plain next start
+pnpm lint                     # ESLint
+pnpm test                     # Vitest run
+pnpm test:watch               # Vitest watch mode
+pnpm test:coverage            # Coverage report
+pnpm db:generate              # Prisma client generation
+pnpm db:migrate               # Deploy migrations
+pnpm db:migrate:dev           # Create/apply dev migration
+pnpm db:push                  # Push schema without migrations
+pnpm db:studio                # Prisma Studio
+pnpm docker:db                # Start postgres + redis
+pnpm docker:up                # Full docker profile
+pnpm docker:down              # Stop full docker profile
 ```
+
+Important:
+
+- After every `prisma/schema.prisma` change, run `pnpm db:generate`
+- Restart the running app after schema changes
+- The standalone start path depends on `scripts/start-standalone.sh`, which copies static assets into `.next/standalone` before launch
+
+## Current Project Structure
+
+```text
 src/
-├── app/                    # Next.js App Router
-│   ├── (dashboard)/        # Main app layout (sidebar nav)
-│   │   ├── research-projects/[uuid]/  # Research project-scoped pages (experiment-runs, research-questions, experiment-designs, docs)
-│   │   └── settings/       # Agent API Key management, session management
-│   ├── api/                # REST API routes + MCP endpoint
-│   │   └── mcp/            # MCP HTTP streaming (POST init, DELETE close)
-│   ├── admin/              # SuperAdmin panel
-│   └── login/              # OIDC login flow
-├── lib/                    # Core utilities (auth, prisma, api-response, uuid-resolver)
-├── services/               # Business logic layer (all UUID-based)
-├── mcp/                    # MCP Server factory + role-based tool modules
-│   ├── server.ts           # Creates per-auth MCP server instance
-│   └── tools/              # public.ts, researcher.ts, research-lead.ts, pi.ts, session.ts
-├── components/ui/          # shadcn/ui primitives
-├── contexts/               # React contexts (locale)
-├── i18n/                   # config.ts + request.ts
-└── types/                  # TypeScript type definitions (auth.ts)
+  app/
+    (dashboard)/
+      research-projects/
+        [uuid]/
+          dashboard/
+          research-questions/
+          experiments/
+          insights/
+          documents/
+          activity/                # still present, not a primary nav surface
+          experiment-designs/      # legacy / compatibility
+          experiment-runs/         # legacy / compatibility
+      compute/
+      settings/
+      project-groups/
+    api/
+      mcp/
+      comments/
+      compute-nodes/
+      compute-pools/
+      experiments/
+      research-projects/
+      research-questions/
+      notifications/
+      events/notifications/
+  services/
+  lib/
+  mcp/
+  components/
+  contexts/
+  generated/prisma/
 
-prisma/
-├── schema.prisma           # 21 models, UUID-first architecture
-└── migrations/             # DB migrations
+packages/
+  openclaw-plugin/
+  synapse-cdk/
 
-messages/
-├── en.json                 # English translations
-└── zh.json                 # Chinese translations
-
-public/skill/               # MCP Skill documentation served as static files
-docs/                       # Architecture, PRD, MCP tools reference, design.pen
-packages/synapse-cdk/       # AWS CDK for deployment
+public/
+  skill/
+  synapse-plugin/
 ```
 
-## Key Commands
+## Data Model Reality
 
-```bash
-pnpm dev                    # Dev server with Turbopack (:3000)
-pnpm build                  # Production build (runs prisma generate first)
-pnpm lint                   # ESLint
-npx tsc --noEmit            # Type check
-pnpm test                   # Run tests (Vitest)
-pnpm test:watch             # Run tests in watch mode
-pnpm db:migrate:dev         # Create/run dev migration
-pnpm db:generate            # Regenerate Prisma client (REQUIRED after schema changes)
-pnpm db:push                # Push schema to DB without migration (dev only)
-pnpm db:studio              # Prisma Studio GUI (:5555)
-pnpm docker:db              # Start PostgreSQL + Redis via Docker
-docker compose up -d db     # Start PostgreSQL only (:5433)
-```
+The schema currently contains `29` Prisma models.
 
-## Architecture Patterns
+The most important active models are:
 
-### UUID-First
+- `Company`
+- `User`
+- `Agent`
+- `ApiKey`
+- `ProjectGroup`
+- `ResearchProject`
+- `ResearchQuestion`
+- `Document`
+- `Experiment`
+- `ComputePool`
+- `ComputeNode`
+- `ComputeGpu`
+- `ExperimentGpuReservation`
+- `AgentSession`
+- `Notification`
+- `Comment`
+- `Activity`
 
-All entities use UUIDs as public identifiers. URLs, API params, and cross-entity references all use UUIDs. Never expose database serial IDs.
+Older but still present legacy/compatibility models:
 
-### Service Layer
+- `ExperimentDesign`
+- `ExperimentRun`
+- `RunDependency`
+- `AcceptanceCriterion`
+- `RunGpuReservation`
+- `SessionRunCheckin`
+- `HypothesisFormulation`
+- `HypothesisFormulationQuestion`
 
-Business logic lives in `src/services/*.service.ts`. API routes and MCP tools both call service functions — never put business logic directly in routes or tools.
+## Core Architecture Rules
 
-### Auth Context
+### UUID-first
 
-Every request resolves to an `AuthContext` with `type` ("user" | "agent" | "super_admin"), `companyUuid`, and `actorUuid`. The `getAuthContext(request)` function in `src/lib/auth.ts` checks: Bearer token (API Key or OIDC) → Session cookie (user_session / admin_session) → OIDC cookie (oidc_access_token).
+All public references use UUIDs. URLs, APIs, assignments, notifications, and comments all use UUIDs, not serial IDs.
 
-Agent auth carries `roles: string[]` (research_lead_agent, researcher_agent, pi_agent) which determines MCP tool visibility.
+### Service layer
 
-### Polymorphic Assignment
+Business logic belongs in `src/services/*.service.ts`.
+Routes and MCP tools should orchestrate auth, parsing, and response formatting, then call services.
 
-Experiment Runs and Research Questions use `assigneeType` ("user" | "agent") + `assigneeUuid` for flexible assignment to either humans or AI agents.
+### Multi-tenancy
 
-### MCP Server
+Every query must stay scoped by `companyUuid`.
+Do not return or mutate cross-company data.
 
-The MCP endpoint at `POST /api/mcp` creates per-session server instances. Each session is tied to an authenticated agent. Tools are registered based on the agent's roles. Sessions auto-expire after 30 minutes of inactivity.
+### Auth context
 
-Tool registration pattern:
-```typescript
-server.registerTool("tool_name", {
-  description: "...",
-  inputSchema: z.object({ /* zod schema */ }),
-}, async (params) => {
-  const result = await someService.doSomething(auth.companyUuid, ...);
-  return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-});
-```
+Requests resolve to an auth context with:
 
-### Agent Sessions (Swarm Mode)
+- `type`: `user | agent | super_admin`
+- `companyUuid`
+- `actorUuid`
 
-When agents spawn sub-agents (e.g., Claude Code Agent Teams), they create **Sessions** for observability. Lifecycle: `active <-> inactive (1h no heartbeat) -> closed -> (reopen) -> active`. Sessions checkin/checkout from experiment runs to track which worker is on which experiment run.
+Agents authenticate with API keys. Users use session/cookie-based auth.
 
-### Activity Stream
+### Realtime model
 
-`src/services/activity.service.ts` logs all significant actions. Activities support `sessionUuid` + `sessionName` for sub-agent attribution (denormalized for query efficiency).
+Activities are emitted through the `EventBus`.
+Redis is optional; if unavailable, the app falls back to in-memory pub/sub.
+Notifications are streamed over SSE at `/api/events/notifications`.
 
-### Redis (Optional)
+## Agent and MCP Rules
 
-Redis is used for SSE event propagation across multiple instances. If `REDIS_URL` is not set, the system falls back to an in-memory EventBus (single-instance only). For production deployments with multiple ECS tasks, ElastiCache Serverless is required.
+### Primary research MCP flow
 
-## Database Notes
+For the current research workflow, the main tools are the experiment-oriented ones:
 
-- **21 Prisma models**: Company, User, Agent, ApiKey, ProjectGroup, ResearchProject, ResearchQuestion, Document, ExperimentRun, ExperimentRunDependency, AcceptanceCriterion, ExperimentDesign, Comment, Activity, AgentSession, SessionExperimentRunCheckin, Notification, NotificationPreference, Mention, HypothesisRefinementRound, HypothesisRefinementQuestion
-- **relationMode = "prisma"**: Prisma handles relations in application code, not DB foreign keys
-- **Cascade deletes**: Configured at Prisma level (onDelete: Cascade)
-- **After schema changes**: Must run `npx prisma generate` to regenerate client, then restart the dev server to pick up new models. Forgetting this causes `prisma.newModel` to be `undefined` at runtime.
+- `synapse_get_research_project`
+- `synapse_get_research_question`
+- `synapse_get_experiment`
+- `synapse_get_assigned_experiments`
+- `synapse_start_experiment`
+- `synapse_submit_experiment_results`
+- `synapse_list_compute_nodes`
+- `synapse_get_node_access_bundle`
+- `synapse_add_comment`
+- `synapse_get_comments`
 
-## Testing
+Default to these tools for new work. Do not prefer legacy `experiment_run` tools unless the task is explicitly about that older flow.
 
-Tests use Vitest with coverage thresholds (95% lines, 85% branches). Test files are located in `src/**/__tests__/**/*.test.ts`.
+### OpenClaw wake semantics
 
-```bash
-pnpm test              # Run all tests
-pnpm test:watch        # Watch mode
-pnpm test:coverage     # Run with coverage report
-```
+The OpenClaw plugin now wakes agents via `/hooks/agent`, not `/hooks/wake`.
 
-Test mocks are in `src/__mocks__/`. The Prisma client is mocked for all service tests.
+Why this matters:
 
-## API Response Format
+- `/hooks/agent` creates an isolated agent turn
+- the Synapse assignment prompt becomes the primary message
+- this is what currently enables end-to-end automatic experiment execution
 
-All REST APIs return:
-```json
-{ "success": true, "data": { ... } }
-{ "success": false, "error": "Error message" }
-```
+Relevant code:
 
-Use helpers from `src/lib/api-response.ts`: `success(data)`, `errors.notFound("Entity")`, `errors.badRequest("msg")`, `errors.unauthorized()`, `errors.forbidden("msg")`.
+- [/Users/weiyihao/personal/Synapse/packages/openclaw-plugin/src/index.ts](/Users/weiyihao/personal/Synapse/packages/openclaw-plugin/src/index.ts)
 
-Use `withErrorHandler<T>()` from `src/lib/api-handler.ts` to wrap route handlers for consistent error handling.
+### Compute access
+
+Agents do not SSH using server-local key paths.
+
+Correct flow:
+
+1. Inspect machines with `synapse_list_compute_nodes`
+2. If `managedKeyAvailable=true`, call `synapse_get_node_access_bundle`
+3. Write `privateKeyPemBase64` to a local file
+4. `chmod 600` the PEM file
+5. SSH using the returned host/user/port
+
+Never assume a path like `/home/ubuntu/.synapse/keys/...` exists on the agent machine.
+
+## Experiment vs Document
+
+`Document` is not strongly foreign-keyed to `Experiment`.
+
+Current relationship:
+
+- Documents are still project-scoped first
+- Experiment result docs are soft-linked to experiments via a marker in document content
+- Project synthesis docs are separate rolling documents of type `project_synthesis`
+
+Agent-triggered document behavior:
+
+- `synapse_start_experiment` will create or update the experiment result document
+- `synapse_submit_experiment_results` updates the experiment and its result document
+- Completing experiments also refreshes the project-level synthesis document
+
+So if an agent runs an experiment correctly, Synapse should update both:
+
+- the `Experiment`
+- the related result document
+
+## Comments
+
+`Comment.targetType` now supports:
+
+- `research_question`
+- `experiment`
+- `experiment_design`
+- `experiment_run`
+- `document`
+
+For current research work, prefer commenting directly on `experiment` instead of forcing everything through `experiment_run`.
+
+## UI / Product Reality
+
+Primary project navigation today is:
+
+- Overview
+- Research Questions
+- Experiments
+- Insights
+- Documents
+
+Other important surfaces:
+
+- `Compute`
+- `Settings`
+- `Project Groups`
+
+Notes:
+
+- `Insights` is the project-level synthesis surface
+- `Research Questions` uses a canvas-style hierarchy view
+- `Experiments` is a five-column board:
+  - `draft`
+  - `pending_review`
+  - `pending_start`
+  - `in_progress`
+  - `completed`
+
+Human-created experiments should normally land in `pending_start`, not sit in `draft`, unless explicitly created as drafts.
 
 ## i18n Rules
 
-**CRITICAL: Every user-facing string in the frontend MUST use i18n.** Never hardcode English text directly in JSX — always use `t("key")` and add the key to both locale files. This includes:
-- Page titles, subtitles, descriptions
-- Button labels, form labels, placeholders
-- Error messages, success messages, confirmation dialogs
-- Status labels, priority labels, entity type labels
-- Relative time strings ("just now", "5 min ago", etc.)
+All user-facing frontend text must use i18n.
 
 Rules:
-- Two locales: `en`, `zh` (messages in `/messages/en.json`, `/messages/zh.json`)
-- Always add keys to **both** locale files when adding UI strings
-- Use `useTranslations()` hook in client components, `getTranslations()` in server components
-- Keys are nested objects: `common.save`, `sessions.reopen`, `activity.experimentRunAssigned`
-- Server Components read the locale from the `synapse-locale` cookie (set by `LocaleProvider`). The `src/i18n/request.ts` config reads this cookie — do not hardcode `defaultLocale` there.
-- When adding error fallback strings (e.g., `result.error || "Something failed"`), the fallback must also use `t()`: `result.error || t("some.errorKey")`
 
-## Frontend UI Rules
+- Add keys to both:
+  - [/Users/weiyihao/personal/Synapse/messages/en.json](/Users/weiyihao/personal/Synapse/messages/en.json)
+  - [/Users/weiyihao/personal/Synapse/messages/zh.json](/Users/weiyihao/personal/Synapse/messages/zh.json)
+- Use `useTranslations()` in client components
+- Use `getTranslations()` in server components
+- Do not ship JSX with hardcoded English copy
 
-**CRITICAL: Always use shadcn/ui components instead of custom HTML elements.** The project uses shadcn/ui (built on Radix UI) as its component library under `src/components/ui/`. When building UI:
-- Use `<Button>`, `<Input>`, `<Label>`, `<Card>`, `<Dialog>`, `<Select>`, `<Table>`, `<Badge>`, etc. from `@/components/ui/*`
-- Never write raw `<button>`, `<input>`, `<select>`, `<table>`, or `<dialog>` HTML elements — always use the corresponding shadcn/ui component
-- For layout and spacing, use Tailwind CSS utility classes
-- If a needed component doesn't exist yet, add it via `npx shadcn@latest add <component>` — do not create custom implementations
-- Follow existing component usage patterns in the codebase for consistency
+## Frontend Rules
 
-## Skill & Plugin Documentation
+Use the project UI primitives instead of raw HTML where a shared component already exists.
 
-Synapse has two sets of skill documentation. **All skill docs must be written in English.**
+In practice:
 
-| Location | Purpose |
-|----------|---------|
-| `public/skill/` | Standalone skill — served as static assets at `/skill/`, consumed by any agent via curl download |
-| `public/synapse-plugin/skills/synapse/` | Plugin-embedded skill — bundled with the Synapse Plugin for Claude Code, includes plugin-specific session automation |
-
-When adding new MCP tools, update:
-1. `docs/MCP_TOOLS.md` (internal reference)
-2. Relevant skill docs in **both** `public/skill/` and `public/synapse-plugin/skills/synapse/`
-
-MCP tool roles, agent workflows, session management, and AI-DLC lifecycle are all documented in the skill files — not here. Refer to the skill docs for those details.
+- Prefer shadcn/Radix components in `src/components/ui`
+- Use Tailwind utilities for layout and state styling
+- Reuse existing board, panel, and detail-sheet patterns from the current research project screens
 
 ## Development Conventions
 
-### Update design.pen on Every Feature
+### Keep `docs/design.pen` updated
 
-When implementing any user-facing feature or UI change, you **must** update `docs/design.pen` to reflect the new or modified screens/components. Use the Pencil MCP tools (`get_editor_state`, `open_document`, `batch_design`, `get_screenshot`, etc.) to read and write `.pen` files — never use Read/Grep directly on `.pen` files as their contents are encrypted.
+If you change user-facing flows or layout, update `docs/design.pen`.
+Do not read or edit `.pen` files directly with generic text tools; use Pencil tooling.
+
+### Prefer server components by default
+
+Only add `"use client"` when you need:
+
+- local state
+- effects
+- browser-only APIs
+- event handlers
+
+### Keep compatibility layers explicit
+
+This repo is mid-migration from Chorus-style `research_question -> experiment_design -> experiment_run` to a flatter `research_question -> experiment` flow.
+
+When changing behavior:
+
+- keep legacy routes working unless you are intentionally removing them
+- mark docs and code comments clearly when something is legacy-only
+- do not accidentally route new features through old `experiment_run` abstractions if `Experiment` already covers the use case
 
 ## Common Pitfalls
 
-1. **Prisma client stale after schema change**: If you modify `prisma/schema.prisma`, you must run `npx prisma generate` AND restart the dev server. The running process caches the old Prisma client in memory.
+1. Prisma client stale after schema change
+   Run `pnpm db:generate` and restart the app.
 
-2. **MCP session expiry**: MCP sessions expire after 30 minutes. The client must handle 404 by reinitializing.
+2. Wrong MCP tool family
+   For current research work, use `experiment` tools first. Only use `experiment_run` tools when you are intentionally working on the old pipeline.
 
-3. **Multi-tenancy**: All queries must be scoped by `companyUuid`. Never return data across company boundaries.
+3. Wrong wake endpoint
+   OpenClaw auto-start depends on `/hooks/agent`, not `/hooks/wake`.
 
-4. **API Key format**: Keys start with `syn_` prefix, followed by base64url-encoded random bytes. Stored as SHA-256 hash in DB. The raw key is shown only once at creation time.
+4. Assuming server-local SSH key paths
+   Agents must use `synapse_get_node_access_bundle` instead of trying to read Synapse host filesystem paths.
 
-5. **Experiment Design is a container**: An Experiment Design holds `documentDrafts` (JSON) and `experimentRunDrafts` (JSON). On approval, these drafts materialize into real Document and Experiment Run entities. Don't confuse drafts with actual entities.
+5. Hardcoded English copy
+   Always add locale keys to both `en` and `zh`.
 
-6. **Experiment Run dependencies form a DAG**: Use `ExperimentRunDependency` model. Frontend renders with @xyflow/react + dagre for layout. Circular dependency detection is handled at the service level.
+6. Confusing `Document` linkage
+   Experiment result docs are soft-linked, not strict foreign-key children of `Experiment`.
 
-7. **design.pen is encrypted**: The `docs/design.pen` file can only be read/written through the Pencil MCP tools. Never use Read/Grep on `.pen` files.
+7. Legacy pages still exist
+   `experiment-designs` and `experiment-runs` are still in the repo. Do not assume they are the primary workflow just because routes exist.
 
-8. **Server Components vs Client Components**: Default to Server Components. Only add `"use client"` when you need interactivity (useState, useEffect, event handlers). Server Actions (`"use server"`) are used for mutations called from client components.
+8. Demo/remote environment may run `pnpm dev`
+   Some demo environments are temporarily run with `pnpm dev -H 0.0.0.0 -p 3000` for stability, even if `pnpm start` is the intended production path.
 
-9. **Plugin shell scripts must be Bash 3.2 compatible**: macOS ships with Bash 3.2 (`/bin/bash`) and Claude Code uses it to run hooks. Do NOT use Bash 4+ features in `public/synapse-plugin/bin/*.sh`. Common traps: `${VAR,,}` (use `tr '[:upper:]' '[:lower:]'`), `${VAR^^}` (use `tr '[:lower:]' '[:upper:]'`), `declare -A` (associative arrays), `readarray`/`mapfile`, `|&`, `&>>`. Run `/bin/bash public/synapse-plugin/bin/test-syntax.sh` on macOS to verify.
+9. Comment target mismatch
+   If an agent comments on an `experiment`, use `targetType: "experiment"`. Do not force it into `experiment_run` unless the entity is actually a legacy run.
+
+10. Bash compatibility for plugin hooks
+   Keep shell scripts compatible with macOS Bash 3.2 when editing files under `public/synapse-plugin/bin/`.
