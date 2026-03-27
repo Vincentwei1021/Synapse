@@ -310,6 +310,21 @@ In practice:
 
 ## Development Conventions
 
+### Keep local and remote repos in sync
+
+This project has two active working copies:
+
+- local: `/Users/weiyihao/personal/Synapse`
+- remote: `chorus-research:/home/ubuntu/Synapse`
+
+The `chorus-research` SSH target details are available in local SSH config.
+
+Rules:
+
+- any code change must be synced to both local and remote working copies
+- when pushing to GitHub, push from the `chorus-research` machine
+- do not leave local and remote code in diverged states after finishing work
+
 ### Keep `docs/design.pen` updated
 
 If you change user-facing flows or layout, update `docs/design.pen`.
