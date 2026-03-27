@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -59,11 +59,7 @@ export default function CompanyDetailPage({
   const [oidcIssuer, setOidcIssuer] = useState("");
   const [oidcClientId, setOidcClientId] = useState("");
 
-  useEffect(() => {
-    fetchCompany();
-  }, [uuid]);
-
-  const fetchCompany = async () => {
+  const fetchCompany = useCallback(async () => {
     try {
       const response = await fetch(`/api/admin/companies/${uuid}`);
       const data = await response.json();
@@ -83,7 +79,11 @@ export default function CompanyDetailPage({
     } finally {
       setLoading(false);
     }
-  };
+  }, [t, uuid]);
+
+  useEffect(() => {
+    void fetchCompany();
+  }, [fetchCompany]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +121,7 @@ export default function CompanyDetailPage({
       }
 
       setSuccess(t("admin.companyUpdated"));
-      fetchCompany();
+      void fetchCompany();
     } catch {
       setError(t("admin.networkError"));
     } finally {

@@ -92,7 +92,8 @@ const plugin = {
       mcpClient,
       config,
       logger,
-      triggerAgent: (message: string, _metadata?: Record<string, unknown>) => {
+      triggerAgent: (message: string, metadata?: Record<string, unknown>) => {
+        void metadata;
         // Use /hooks/agent to create an isolated agent turn for Synapse work.
         if (hooksToken) {
           wakeAgent(gatewayUrl, hooksToken, message, logger);

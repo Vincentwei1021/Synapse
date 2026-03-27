@@ -277,7 +277,6 @@ export function IdeasList({
           idea={selectedIdea}
           projectUuid={projectUuid}
           currentUserUuid={currentUserUuid}
-          isUsedInProposal={usedSet.has(selectedIdea.uuid)}
           onClose={closePanel}
           onDeleted={closePanel}
         />

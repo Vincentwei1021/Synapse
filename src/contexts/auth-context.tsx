@@ -89,6 +89,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     init();
   }, [fetchSession]);
 
+  // Handle session expired
+  const handleSessionExpired = useCallback(() => {
+    setUser(null);
+    setCompany(null);
+    setError("Session expired. Please log in again.");
+    router.push("/login");
+  }, [router]);
+
   // Set up OIDC event handlers
   useEffect(() => {
     const manager = getUserManager();
@@ -132,15 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       manager.events.removeSilentRenewError(handleRenewError);
       manager.events.removeUserLoaded(handleUserLoaded);
     };
-  }, []);
-
-  // Handle session expired
-  const handleSessionExpired = () => {
-    setUser(null);
-    setCompany(null);
-    setError("Session expired. Please log in again.");
-    router.push("/login");
-  };
+  }, [handleSessionExpired]);
 
   // Logout
   const logout = async () => {

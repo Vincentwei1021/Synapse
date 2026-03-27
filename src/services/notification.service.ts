@@ -308,7 +308,7 @@ export async function markRead(
   recipientType: string,
   recipientUuid: string
 ): Promise<NotificationResponse> {
-  const notification = await prisma.notification.updateMany({
+  await prisma.notification.updateMany({
     where: {
       uuid,
       companyUuid,

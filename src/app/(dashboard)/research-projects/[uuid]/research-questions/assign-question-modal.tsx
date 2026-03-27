@@ -62,6 +62,7 @@ export function AssignIdeaModal({
   currentUserUuid,
   onClose,
 }: AssignIdeaModalProps) {
+  void projectUuid;
   const t = useTranslations();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);

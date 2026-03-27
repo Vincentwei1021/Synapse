@@ -108,7 +108,10 @@ export function TaskDraftDetailPanel({
   const [error, setError] = useState<string | null>(null);
 
   // Current deps: from taskDraft in view mode, from pendingDeps in create mode
-  const currentDeps = isCreateMode ? pendingDeps : (taskDraft?.dependsOnDraftUuids || []);
+  const currentDeps = useMemo(
+    () => (isCreateMode ? pendingDeps : (taskDraft?.dependsOnDraftUuids ?? [])),
+    [isCreateMode, pendingDeps, taskDraft?.dependsOnDraftUuids]
+  );
 
   // Dependency tasks resolved from UUIDs
   const depTasks = useMemo(() => {

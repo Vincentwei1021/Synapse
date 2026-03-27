@@ -195,7 +195,7 @@ export class SynapseEventRouter {
 
   private async handleTaskAssigned(n: NotificationDetail): Promise<void> {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
-    const mentionGuidance = this.buildMentionGuidance(n, "task");
+    const mentionGuidance = this.buildMentionGuidance(n, "experiment run");
 
     if (n.entityType === "experiment") {
       let experiment: ExperimentDetail | null = null;
@@ -263,9 +263,9 @@ export class SynapseEventRouter {
     if (this.config.autoStart) {
       try {
         await this.mcpClient.callTool("synapse_claim_experiment_run", { runUuid: n.entityUuid });
-        this.logger.info(`Auto-claimed task ${n.entityUuid}`);
+        this.logger.info(`Auto-claimed experiment run ${n.entityUuid}`);
       } catch (err) {
-        this.logger.warn(`Failed to auto-claim task ${n.entityUuid}: ${err}`);
+        this.logger.warn(`Failed to auto-claim experiment run ${n.entityUuid}: ${err}`);
         // Still trigger agent even if claim fails — let the agent handle it
       }
 
@@ -296,14 +296,14 @@ export class SynapseEventRouter {
   private handleElaborationRequested(n: NotificationDetail): void {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
     this.triggerAgent(
-      `[Synapse] Hypothesis formulation requested for idea '${n.entityTitle}' (ideaUuid: ${n.entityUuid}, projectUuid: ${projectUuid}). Use synapse_get_hypothesis_formulation to review questions.`,
+      `[Synapse] Hypothesis formulation requested for research question '${n.entityTitle}' (questionUuid: ${n.entityUuid}, projectUuid: ${projectUuid}). Use synapse_get_hypothesis_formulation to review questions.`,
       { notificationUuid: n.uuid, action: "elaboration_requested", entityUuid: n.entityUuid, projectUuid }
     );
   }
 
   private handleProposalRejected(n: NotificationDetail): void {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
-    const mentionGuidance = this.buildMentionGuidance(n, "proposal");
+    const mentionGuidance = this.buildMentionGuidance(n, "experiment design");
 
     this.triggerAgent(
       `[Synapse] Experiment design '${n.entityTitle}' was rejected (designUuid: ${n.entityUuid}, projectUuid: ${projectUuid}). Review note: "${n.message}". ` +
@@ -315,7 +315,7 @@ export class SynapseEventRouter {
 
   private handleProposalApproved(n: NotificationDetail): void {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
-    const mentionGuidance = this.buildMentionGuidance(n, "proposal");
+    const mentionGuidance = this.buildMentionGuidance(n, "experiment design");
 
     const reviewInfo = n.message.includes("Note: ") ? ` Review note: "${n.message.split("Note: ").pop()}"` : "";
     this.triggerAgent(
@@ -328,11 +328,11 @@ export class SynapseEventRouter {
 
   private handleIdeaClaimed(n: NotificationDetail): void {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
-    const mentionGuidance = this.buildMentionGuidance(n, "idea");
+    const mentionGuidance = this.buildMentionGuidance(n, "research question");
 
     this.triggerAgent(
-      `[Synapse] Idea '${n.entityTitle}' has been assigned to you (ideaUuid: ${n.entityUuid}, projectUuid: ${projectUuid}). ` +
-      `Use synapse_get_research_questions to review the idea context, then synapse_claim_research_question to start elaboration.\n` +
+      `[Synapse] Research question '${n.entityTitle}' has been assigned to you (questionUuid: ${n.entityUuid}, projectUuid: ${projectUuid}). ` +
+      `Use synapse_get_research_questions to review the question context, then synapse_claim_research_question to start elaboration.\n` +
       mentionGuidance,
       { notificationUuid: n.uuid, action: "idea_claimed", entityUuid: n.entityUuid, projectUuid }
     );
@@ -349,7 +349,7 @@ export class SynapseEventRouter {
 
   private handleTaskReopened(n: NotificationDetail): void {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
-    const mentionGuidance = this.buildMentionGuidance(n, "task");
+    const mentionGuidance = this.buildMentionGuidance(n, "experiment run");
 
     this.triggerAgent(
       `[Synapse] Experiment run '${n.entityTitle}' has been reopened and needs rework (runUuid: ${n.entityUuid}, projectUuid: ${projectUuid}). ` +
@@ -360,10 +360,10 @@ export class SynapseEventRouter {
 
   private handleElaborationAnswered(n: NotificationDetail): void {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
-    const mentionGuidance = this.buildMentionGuidance(n, "idea");
+    const mentionGuidance = this.buildMentionGuidance(n, "research question");
 
     this.triggerAgent(
-      `[Synapse] Hypothesis formulation answers submitted for idea '${n.entityTitle}' (ideaUuid: ${n.entityUuid}, projectUuid: ${projectUuid}). ` +
+      `[Synapse] Hypothesis formulation answers submitted for research question '${n.entityTitle}' (questionUuid: ${n.entityUuid}, projectUuid: ${projectUuid}). ` +
       `Review the answers with synapse_get_hypothesis_formulation, then either resolve the round or start a follow-up round.\n\n` +
       `After reviewing, @mention the answerer to ask if they have any further questions before you proceed.\n` +
       mentionGuidance,

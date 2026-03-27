@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { createUserManager, storeOidcConfig, type OidcConfig } from "@/lib/oidc";
 import { Card, CardContent } from "@/components/ui/card";
@@ -137,7 +138,7 @@ export default function LoginPage() {
         <CardContent className="p-10">
           {/* Logo Section */}
           <div className="mb-8 flex flex-col items-center gap-2">
-            <img src="/synapse-icon.png" alt="Synapse" className="h-12 w-12" />
+            <Image src="/synapse-icon.png" alt="Synapse" width={48} height={48} className="h-12 w-12" />
             <h1 className="text-[28px] font-semibold text-foreground">
               {t("login.title")}
             </h1>

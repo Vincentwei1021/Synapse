@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { X, Pencil, CheckCircle, Play, Eye, Bot, User, Send, FileText, Loader2, Check, Trash2, GitBranch, Plus, ArrowRight, Activity as ActivityIcon, CircleCheck, Timer, CircleX, AlertTriangle, FlaskConical, XCircle, Clock, Shield } from "lucide-react";
+import { X, Pencil, CheckCircle, Play, Eye, Bot, User, Send, FileText, Loader2, Check, Trash2, GitBranch, Plus, ArrowRight, CircleCheck, Timer, CircleX, AlertTriangle, FlaskConical, XCircle, Clock, Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { updateExperimentRunStatusAction, createExperimentRunAction, updateExperimentRunFieldsAction, deleteExperimentRunAction } from "./[runUuid]/actions";
-import { markCriteriaAction, selfCheckCriteriaAction, resetCriterionAction } from "./[runUuid]/criteria-actions";
+import { markCriteriaAction, resetCriterionAction } from "./[runUuid]/criteria-actions";
 import {
   getExperimentRunCommentsAction,
   createExperimentRunCommentAction,
@@ -363,7 +363,7 @@ export function TaskDetailPanel({
     loadDependencies();
     loadActiveWorkers();
     loadRegistryData();
-  }, [task?.uuid, task?.experimentDesignUuid, projectUuid]);
+  }, [projectUuid, task]);
 
   // Load project tasks for dependency picker in create mode
   useEffect(() => {
@@ -386,7 +386,7 @@ export function TaskDetailPanel({
       setEditAcceptanceCriteria(task.acceptanceCriteria || "");
       setEditError(null);
     }
-  }, [task?.uuid, task?.title, task?.description, task?.priority, task?.computeBudgetHours, task?.acceptanceCriteria]);
+  }, [task]);
 
   const handleStatusChange = async (newStatus: string) => {
     if (!task) return;

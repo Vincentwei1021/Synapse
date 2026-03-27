@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useTranslations } from "next-intl";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -201,7 +200,6 @@ export function MetricsComparisonTable({
   runs,
   baseline,
 }: MetricsComparisonTableProps) {
-  const t = useTranslations();
   const [mode, setMode] = useState<ViewMode>("by-design");
   const [selectedRunUuids, setSelectedRunUuids] = useState<Set<string>>(
     new Set(),

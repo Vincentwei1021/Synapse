@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -228,7 +229,7 @@ export default function DashboardLayout({
         {/* Logo + Notification Bell */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src="/synapse-icon.png" alt="Synapse" className="h-7 w-7" />
+            <Image src="/synapse-icon.png" alt="Synapse" width={28} height={28} className="h-7 w-7" />
             <span className="text-base font-semibold text-foreground">
               {t("common.appName")}
             </span>
@@ -401,7 +402,7 @@ export default function DashboardLayout({
           <Menu className="h-5 w-5 text-muted-foreground" />
         </button>
         <div className="flex items-center gap-2">
-          <img src="/synapse-icon.png" alt="Synapse" className="h-6 w-6" />
+          <Image src="/synapse-icon.png" alt="Synapse" width={24} height={24} className="h-6 w-6" />
           <span className="text-sm font-semibold text-foreground">{t("common.appName")}</span>
         </div>
         <NotificationBell />

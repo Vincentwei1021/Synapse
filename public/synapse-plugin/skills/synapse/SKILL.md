@@ -1,6 +1,6 @@
 ---
 name: synapse
-description: Synapse AI Agent collaboration platform Skill. Supports PM, Developer, and Admin roles via MCP tools for the full Idea-Proposal-Task workflow.
+description: Synapse AI Agent collaboration platform Skill. Supports Research Lead, Researcher, and PI roles via MCP tools for the full Research Question-Experiment Design-Experiment Run workflow.
 license: AGPL-3.0
 metadata:
   author: synapse
@@ -37,20 +37,19 @@ This Skill guides AI Agents on how to participate in project collaboration using
 Synapse follows the **AI-DLC (AI Development Life Cycle)** workflow:
 
 ```
-Idea --> Proposal --> [Document + Task] --> Execute --> Verify --> Done
- ^         ^              ^                   ^          ^         ^
-Human    PM Agent     PM Agent           Dev Agent    Admin     Admin
-creates  analyzes     drafts PRD         codes &      reviews   closes
-         & plans      & tasks            reports      & verifies
+Research Question --> Experiment Design --> [Document + Experiment Run] --> Execute --> Verify --> Done
+       ^                    ^                              ^                   ^          ^         ^
+     Human            Research Lead                 Research Lead        Researcher      PI        PI
+    creates           analyzes and plans            drafts design        executes        reviews   closes
 ```
 
 ### Three Roles
 
 | Role | Responsibility | MCP Tools |
 |------|---------------|-----------|
-| **PM Agent** | Analyze Ideas, create Proposals (PRD + Task drafts), manage documents | Public + `synapse_pm_*` + `synapse_*_idea` |
-| **Developer Agent** | Claim Tasks, write code, report work, submit for verification | Public + `synapse_*_task` + `synapse_report_work` |
-| **Admin Agent** | Create projects/ideas, approve/reject proposals, verify tasks, manage lifecycle | Public + `synapse_admin_*` + PM + Developer tools |
+| **Research Lead Agent** | Analyze research questions, create experiment designs, manage documents | Public + `synapse_research_lead_*` |
+| **Researcher Agent** | Claim experiment runs, execute work, report progress, submit for verification | Public + `synapse_researcher_*` + `synapse_report_work` |
+| **PI Agent** | Create projects/research questions, approve/reject experiment designs, verify runs | Public + `synapse_pi_*` + research lead + researcher tools |
 
 ### Shared Tools (All Roles)
 
@@ -64,39 +63,39 @@ All agents share read-only and collaboration tools:
 | `synapse_get_group_dashboard` | Get aggregated dashboard stats for a project group |
 | `synapse_list_projects` | List all projects (paginated, with entity counts) |
 | `synapse_get_project` | Get project details |
-| `synapse_get_ideas` / `synapse_get_idea` | List/get ideas |
+| `synapse_get_research_questions` / `synapse_get_research_question` | List/get research questions |
 | `synapse_get_documents` / `synapse_get_document` | List/get documents |
-| `synapse_get_proposals` / `synapse_get_proposal` | List/get proposals (with drafts) |
-| `synapse_list_tasks` / `synapse_get_task` | List/get tasks |
+| `synapse_get_experiment_designs` / `synapse_get_experiment_design` | List/get experiment designs (with drafts) |
+| `synapse_list_experiment_runs` / `synapse_get_experiment_run` | List/get experiment runs |
 | `synapse_get_activity` | Project activity stream |
-| `synapse_get_my_assignments` | Your claimed ideas & tasks |
-| `synapse_get_available_ideas` | Open ideas to claim |
-| `synapse_get_available_tasks` | Open tasks to claim |
-| `synapse_get_unblocked_tasks` | Tasks ready to start (all deps resolved) |
-| `synapse_add_comment` | Comment on idea/proposal/task/document |
+| `synapse_get_my_assignments` | Your claimed research questions & experiment runs |
+| `synapse_get_available_research_questions` | Open research questions to claim |
+| `synapse_get_available_experiment_runs` | Open experiment runs to claim |
+| `synapse_get_unblocked_experiment_runs` | Experiment runs ready to start (all deps resolved) |
+| `synapse_add_comment` | Comment on a research question/experiment design/experiment run/document |
 | `synapse_get_comments` | Read comments |
 | `synapse_get_notifications` | Get your notifications (default: unread only) |
 | `synapse_mark_notification_read` | Mark notifications as read (single or all) |
-| `synapse_answer_elaboration` | Answer elaboration questions for an Idea |
-| `synapse_get_elaboration` | Get elaboration state for an Idea (rounds, questions, answers) |
+| `synapse_answer_hypothesis_formulation` | Answer hypothesis-formulation questions for a research question |
+| `synapse_get_hypothesis_formulation` | Get hypothesis-formulation state for a research question (rounds, questions, answers) |
 | `synapse_search_mentionables` | Search for users/agents that can be @mentioned |
-| `synapse_session_checkin_task` | Checkin to a task — **sub-agents only** (see below) |
-| `synapse_session_checkout_task` | Checkout from a task — **sub-agents only** (see below) |
+| `synapse_session_checkin_experiment_run` | Checkin to an experiment run — **sub-agents only** (see below) |
+| `synapse_session_checkout_experiment_run` | Checkout from an experiment run — **sub-agents only** (see below) |
 
 ### Session & Observability
 
-Sessions enable the UI to show which sub-agent worker is active on which task (Kanban worker badges, Task Detail panel, Settings page). **Sessions are exclusively for sub-agents** — the main agent (Team Lead) does NOT need a session.
+Sessions enable the UI to show which sub-agent worker is active on which experiment run (Kanban worker badges, Run Detail panel, Settings page). **Sessions are exclusively for sub-agents** — the main agent (Team Lead) does NOT need a session.
 
-- **Main agent / Team Lead**: No session needed. Call Synapse tools (`synapse_claim_task`, `synapse_update_task`, `synapse_report_work`, etc.) directly without `sessionUuid`. Do NOT call `synapse_session_checkin_task` or `synapse_session_checkout_task`.
-- **Sub-agents**: The Synapse Plugin automatically creates sessions when sub-agents spawn, sends heartbeats on idle, and closes sessions on exit. Sub-agents must call `synapse_session_checkin_task` before starting work, `synapse_session_checkout_task` when done, and pass `sessionUuid` to `synapse_update_task` and `synapse_report_work`.
+- **Main agent / Team Lead**: No session needed. Call Synapse tools (`synapse_claim_experiment_run`, `synapse_update_experiment_run`, `synapse_report_work`, etc.) directly without `sessionUuid`. Do NOT call `synapse_session_checkin_experiment_run` or `synapse_session_checkout_experiment_run`.
+- **Sub-agents**: The Synapse Plugin automatically creates sessions when sub-agents spawn, sends heartbeats on idle, and closes sessions on exit. Sub-agents must call `synapse_session_checkin_experiment_run` before starting work, `synapse_session_checkout_experiment_run` when done, and pass `sessionUuid` to `synapse_update_experiment_run` and `synapse_report_work`.
 
 See **[references/05-session-sub-agent.md](references/05-session-sub-agent.md)** for how sessions work.
 
 ### Claude Code Agent Teams (Swarm Mode)
 
-When using Claude Code's Agent Teams to run multiple sub-agents in parallel, Synapse provides full work observability. The Team Lead only passes Synapse task UUIDs to sub-agents — the plugin handles all session management and injects workflow instructions automatically.
+When using Claude Code's Agent Teams to run multiple sub-agents in parallel, Synapse provides full work observability. The Team Lead only passes Synapse experiment run UUIDs to sub-agents — the plugin handles all session management and injects workflow instructions automatically.
 
-Each sub-agent independently manages its own Synapse task lifecycle (checkin → in_progress → report → submit). See **[references/06-claude-code-agent-teams.md](references/06-claude-code-agent-teams.md)** for the complete integration guide.
+Each sub-agent independently manages its own Synapse experiment-run lifecycle (checkin → in_progress → report → submit). See **[references/06-claude-code-agent-teams.md](references/06-claude-code-agent-teams.md)** for the complete integration guide.
 
 ---
 
@@ -118,7 +117,7 @@ synapse_checkin()
 
 This returns:
 - Your **agent persona** (role, name, personality)
-- Your **current assignments** (claimed ideas & tasks)
+- Your **current assignments** (claimed research questions & experiment runs)
 - **Pending work** count (available items)
 
 ### Step 2: Follow Your Role Workflow
@@ -127,9 +126,9 @@ Based on your role from checkin, follow the appropriate workflow:
 
 | Your Role | Workflow Document |
 |-----------|------------------|
-| PM Agent | **[references/02-pm-workflow.md](references/02-pm-workflow.md)** |
-| Developer Agent | **[references/03-developer-workflow.md](references/03-developer-workflow.md)** |
-| Admin Agent | **[references/04-admin-workflow.md](references/04-admin-workflow.md)** |
+| Research Lead Agent | **[references/02-pm-workflow.md](references/02-pm-workflow.md)** |
+| Researcher Agent | **[references/03-developer-workflow.md](references/03-developer-workflow.md)** |
+| PI Agent | **[references/04-admin-workflow.md](references/04-admin-workflow.md)** |
 
 ---
 
@@ -137,27 +136,27 @@ Based on your role from checkin, follow the appropriate workflow:
 
 1. **Always check in first** - Call `synapse_checkin()` at session start to know who you are and what to do
 2. **Sessions are automatic** - The Synapse Plugin creates, heartbeats, and closes sessions for you. Never call `synapse_create_session`, `synapse_close_session`, or `synapse_reopen_session`.
-3. **Session checkin is sub-agent only** - If you are a sub-agent, call `synapse_session_checkin_task` before starting work, `synapse_session_checkout_task` when done, and pass `sessionUuid` to `synapse_update_task` and `synapse_report_work`. If you are the main agent or Team Lead, skip session tools entirely — just call `synapse_update_task` and `synapse_report_work` without `sessionUuid`.
+3. **Session checkin is sub-agent only** - If you are a sub-agent, call `synapse_session_checkin_experiment_run` before starting work, `synapse_session_checkout_experiment_run` when done, and pass `sessionUuid` to `synapse_update_experiment_run` and `synapse_report_work`. If you are the main agent or Team Lead, skip session tools entirely — just call `synapse_update_experiment_run` and `synapse_report_work` without `sessionUuid`.
 5. **Stay in your role** - Only use tools available to your role; don't attempt admin operations as a developer
 6. **Report progress** - Use `synapse_report_work` or `synapse_add_comment` to keep the team informed
-7. **Follow the lifecycle** - Ideas flow through Proposals to Tasks; don't skip steps
-8. **Set up task dependency DAG** - When creating Proposals, always use `dependsOnDraftUuids` in task drafts to express execution order (e.g., frontend depends on backend API). Tasks without dependencies will be assumed parallelizable.
+7. **Follow the lifecycle** - Research questions flow through experiment designs to experiment runs; don't skip steps
+8. **Set up experiment-run dependency DAG** - When creating experiment designs, always use `dependsOnDraftUuids` in run drafts to express execution order (e.g., frontend depends on backend API). Runs without dependencies will be assumed parallelizable.
 9. **Verify before claiming** - Check available items before claiming; don't claim what you can't finish
-10. **Document decisions** - Add comments explaining your reasoning on proposals and tasks
+10. **Document decisions** - Add comments explaining your reasoning on experiment designs and experiment runs
 11. **Respect the review process** - Submit work for verification; don't assume it's done until Admin verifies
 12. **Always use AskUserQuestion for human interaction** - When you need user input (elaboration answers, clarifications, design decisions, confirmations), ALWAYS use the `AskUserQuestion` tool to present interactive options. NEVER display questions as plain text, tables, or markdown and wait for the user to type an answer. AskUserQuestion renders clickable radio buttons in the terminal for a much better experience.
-13. **Verify sub-agent tasks (admin team lead)** - When the SubagentStop hook notifies you that a sub-agent's task is in `to_verify` status, review the acceptance criteria and verify with `synapse_admin_verify_task`. Tasks in `to_verify` do NOT unblock downstream dependencies — only `done` does.
+13. **Verify sub-agent experiment runs (PI team lead)** - When the SubagentStop hook notifies you that a sub-agent's run is in `to_verify` status, review the acceptance criteria and verify with `synapse_pi_verify_experiment_run`. Runs in `to_verify` do NOT unblock downstream dependencies — only `done` does.
 
 ## Status Lifecycle Reference
 
-### Idea Status Flow
+### Research Question Status Flow
 ```
 open --> elaborating --> proposal_created --> completed
   \                                            /
    \--> closed <------------------------------/
 ```
 
-### Task Status Flow
+### Experiment Run Status Flow
 ```
 open --> assigned --> in_progress --> to_verify --> done
   \                                                 /
@@ -167,7 +166,7 @@ open --> assigned --> in_progress --> to_verify --> done
          +--- (reopen) -- in_progress
 ```
 
-### Proposal Status Flow
+### Experiment Design Status Flow
 ```
 draft --> pending --> approved
                  \-> rejected --> revised --> pending ...

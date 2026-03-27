@@ -4,7 +4,7 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Card } from "@/components/ui/card";
-import { Monitor, User, Settings } from "lucide-react";
+import { Monitor, User } from "lucide-react";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { listActivities } from "@/services/activity.service";
 import { researchProjectExists } from "@/services/research-project.service";

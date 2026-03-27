@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
@@ -23,17 +23,7 @@ export default function OidcCallbackPage() {
   // Authorization codes are one-time use, so we must prevent double callback processing
   const callbackProcessed = useRef(false);
 
-  useEffect(() => {
-    // Prevent double execution in React Strict Mode (development)
-    if (callbackProcessed.current) {
-      return;
-    }
-    callbackProcessed.current = true;
-
-    handleCallback();
-  }, []);
-
-  const handleCallback = async () => {
+  const handleCallback = useCallback(async () => {
     try {
       // Get stored OIDC config
       const oidcConfig = getStoredOidcConfig();
@@ -95,7 +85,17 @@ export default function OidcCallbackPage() {
         err instanceof Error ? err.message : t("authFailed")
       );
     }
-  };
+  }, [router, t]);
+
+  useEffect(() => {
+    // Prevent double execution in React Strict Mode (development)
+    if (callbackProcessed.current) {
+      return;
+    }
+    callbackProcessed.current = true;
+
+    void handleCallback();
+  }, [handleCallback]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">

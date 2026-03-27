@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,7 +25,6 @@ interface ProjectActionsProps {
 export function ProjectActions({ projectUuid, projectName }: ProjectActionsProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const t = useTranslations();
-  const router = useRouter();
 
   const handleDelete = async () => {
     setIsDeleting(true);
