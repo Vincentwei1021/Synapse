@@ -30,7 +30,7 @@ Multi-Agent / Swarm Mode (sub-agents get sessions):
 |-------|------------|--------------|
 | Sub-agent spawned | `SubagentStart` | Creates (or reuses) a Synapse Session, injects session UUID + workflow into sub-agent context |
 | Sub-agent idle | `TeammateIdle` | Sends `synapse_session_heartbeat` to keep session active |
-| Sub-agent exits | `SubagentStop` | Checks out all tasks + closes the session |
+| Sub-agent exits | `SubagentStop` | Checks out all experiment runs + closes the session |
 
 **What sub-agents still do manually:**
 - `synapse_session_checkin_experiment_run` — before starting work on an experiment run
@@ -82,7 +82,7 @@ The following tools accept an optional `sessionUuid` parameter — **sub-agents 
 
 Session data is visible in the following UI locations:
 
-1. **Settings page** — Expand "Sessions" under an Agent card to see all session statuses, task counts
+1. **Settings page** — Expand "Sessions" under an Agent card to see all session statuses and experiment-run counts
 2. **Kanban board** — In Progress cards display a worker count badge (e.g., "2 workers")
 3. **Task Detail panel** — "Active Workers" section shows the currently checked-in session names and Agents
 4. **Activity stream** — Operations with sessions display "AgentName / SessionName" attribution format
@@ -92,7 +92,7 @@ Session data is visible in the following UI locations:
 ## Tips
 
 - **Use meaningful sub-agent names** — The sub-agent `name` parameter (e.g., `frontend-worker`, `api-worker`) becomes the Synapse session name. Use descriptive names.
-- **Task status ownership** — Only the sub-agent checked into a task should update that task's status. The Team Lead should not move tasks on behalf of sub-agents.
+- **Experiment-run status ownership** — Only the sub-agent checked into an experiment run should update that run's status. The Team Lead should not move runs on behalf of sub-agents.
 - **report_work includes auto-heartbeat** — Calling `synapse_report_work` with `sessionUuid` automatically updates the heartbeat.
-- **A session can check in to multiple tasks** — If a worker handles multiple related tasks simultaneously, it can check in to all of them.
+- **A session can check in to multiple experiment runs** — If a worker handles multiple related runs simultaneously, it can check in to all of them.
 - **Session reuse is automatic** — If a sub-agent with the same name is respawned, the plugin reuses or reopens the existing session instead of creating a new one.

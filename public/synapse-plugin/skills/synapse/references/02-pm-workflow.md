@@ -29,17 +29,17 @@ Research Lead Agent is responsible for **analyzing Research Questions, producing
 - `synapse_research_lead_remove_document_draft` - Remove a document draft from an experiment design
 - `synapse_research_lead_remove_experiment_run_draft` - Remove an experiment-run draft from an experiment design
 
-**Task Assignment:**
-- `synapse_research_lead_assign_experiment_run` - Assign a task to a Developer Agent (task must be open or assigned; target agent must have developer role)
+**Experiment-Run Assignment:**
+- `synapse_research_lead_assign_experiment_run` - Assign an experiment run to a Researcher Agent (run must be open or assigned; target agent must have researcher role)
 
-**Document & Task Management:**
+**Document & Experiment-Run Management:**
 - `synapse_pm_create_document` - Create standalone document (PRD, tech_design, ADR, spec, guide)
 - `synapse_pm_update_document` - Update document content (increments version)
-- `synapse_research_lead_create_experiment_runs` - Batch create tasks (supports intra-batch dependencies via draftUuid)
+- `synapse_research_lead_create_experiment_runs` - Batch create experiment runs (supports intra-batch dependencies via draftUuid)
 
-**Task Dependency Management:**
-- `synapse_research_lead_add_run_dependency` - Add dependency between two existing tasks (with cycle detection)
-- `synapse_research_lead_remove_run_dependency` - Remove a task dependency
+**Experiment-Run Dependency Management:**
+- `synapse_research_lead_add_run_dependency` - Add dependency between two existing experiment runs (with cycle detection)
+- `synapse_research_lead_remove_run_dependency` - Remove an experiment-run dependency
 
 **Public Tools (shared with all roles):** see [00-common-tools.md](00-common-tools.md) for full list (checkin, query, comment tools)
 
@@ -57,10 +57,10 @@ Review your persona, current assignments, and pending work counts.
 
 ### Step 2: Find Work
 
-Check for available ideas to analyze:
+Check for available research questions to analyze:
 
 ```
-synapse_get_available_research_questions({ projectUuid: "<project-uuid>" })
+synapse_get_available_research_questions({ researchProjectUuid: "<project-uuid>" })
 ```
 
 Or check your existing assignments:
@@ -69,64 +69,64 @@ Or check your existing assignments:
 synapse_get_my_assignments()
 ```
 
-### Step 3: Claim an Idea
+### Step 3: Claim a Research Question
 
-Pick an idea and claim it. Claiming automatically transitions the Idea to `elaborating` status:
+Pick a research question and claim it. Claiming automatically transitions the Research Question to `elaborating` status:
 
 ```
-synapse_claim_research_question({ researchQuestionUuid: "<idea-uuid>" })
+synapse_claim_research_question({ researchQuestionUuid: "<research-question-uuid>" })
 ```
 
-### Step 4: Elaborate on the Idea
+### Step 4: Elaborate on the Research Question
 
-**Every Idea should go through elaboration.** Skip only when requirements are completely unambiguous (e.g., bug fix with clear steps). Elaboration improves Proposal quality and reduces rejection cycles.
+**Every Research Question should go through elaboration.** Skip only when requirements are completely unambiguous (e.g., a bug fix with clear steps). Elaboration improves experiment-design quality and reduces rejection cycles.
 
 First, gather context:
 
-Gather context before writing a proposal:
+Gather context before writing an experiment design:
 
-1. **Read the idea in detail:**
+1. **Read the research question in detail:**
    ```
-   synapse_get_research_question({ researchQuestionUuid: "<idea-uuid>" })
+   synapse_get_research_question({ researchQuestionUuid: "<research-question-uuid>" })
    ```
 
 2. **Read existing project documents** (for context, tech stack, conventions):
    ```
-   synapse_get_documents({ projectUuid: "<project-uuid>" })
+   synapse_get_documents({ researchProjectUuid: "<project-uuid>" })
    synapse_get_document({ documentUuid: "<doc-uuid>" })
    ```
 
-3. **Review past proposals** (to understand patterns and standards):
+3. **Review past experiment designs** (to understand patterns and standards):
    ```
-   synapse_get_experiment_designs({ projectUuid: "<project-uuid>", status: "approved" })
-   ```
-
-4. **Check existing tasks** (to avoid duplication):
-   ```
-   synapse_list_experiment_runs({ projectUuid: "<project-uuid>" })
+   synapse_get_experiment_designs({ researchProjectUuid: "<project-uuid>", status: "approved" })
    ```
 
-5. **Read comments** on the idea for additional context:
+4. **Check existing experiment runs** (to avoid duplication):
    ```
-   synapse_get_comments({ targetType: "idea", targetUuid: "<idea-uuid>" })
+   synapse_list_experiment_runs({ researchProjectUuid: "<project-uuid>" })
+   ```
+
+5. **Read comments** on the research question for additional context:
+   ```
+   synapse_get_comments({ targetType: "research_question", targetUuid: "<research-question-uuid>" })
    ```
 
 After gathering context, determine if structured elaboration is needed or can be skipped.
 
-**Simple Ideas** (bug fixes, small changes with clear requirements):
-You may skip elaboration, but **you MUST ask the user for permission first** via AskUserQuestion before calling `synapse_pm_skip_elaboration`. Never skip on your own judgment alone.
+**Simple Research Questions** (bug fixes, small changes with clear requirements):
+You may skip elaboration, but **you MUST ask the user for permission first** via AskUserQuestion before calling `synapse_research_lead_skip_hypothesis_formulation`. Never skip on your own judgment alone.
 
 ```
-synapse_pm_skip_elaboration({
-  researchQuestionUuid: "<idea-uuid>",
+synapse_research_lead_skip_hypothesis_formulation({
+  researchQuestionUuid: "<research-question-uuid>",
   reason: "Bug fix with clear reproduction steps"
 })
 ```
 
-**Standard/Complex Ideas** (new features, multi-component changes):
+**Standard/Complex Research Questions** (new features, multi-component changes):
 Start an elaboration round to clarify requirements:
 
-1. **Determine depth** based on idea complexity:
+1. **Determine depth** based on research-question complexity:
    - `"minimal"` — 2-4 questions (small features, minor enhancements)
    - `"standard"` — 5-10 questions (typical new features)
    - `"comprehensive"` — 10-15 questions (large features, architectural changes)
@@ -137,13 +137,13 @@ Start an elaboration round to clarify requirements:
 
    ```
    synapse_research_lead_start_hypothesis_formulation({
-     researchQuestionUuid: "<idea-uuid>",
+     researchQuestionUuid: "<research-question-uuid>",
      depth: "standard",
      questions: [
        {
          id: "q1",
          text: "What user roles should have access to this feature?",
-         category: "functional",
+         category: "hypothesis",
          options: [
            { id: "a", label: "All users" },
            { id: "b", label: "Admin only" },
@@ -153,7 +153,7 @@ Start an elaboration round to clarify requirements:
        {
          id: "q2",
          text: "What is the expected data volume for this feature?",
-         category: "non_functional",
+         category: "resources",
          options: [
            { id: "a", label: "Low (< 1000 records)" },
            { id: "b", label: "Medium (1K-100K records)" },
@@ -163,7 +163,7 @@ Start an elaboration round to clarify requirements:
        {
          id: "q3",
          text: "Should this feature support real-time updates?",
-         category: "technical_context",
+         category: "methodology",
          options: [
            { id: "a", label: "Yes, real-time via WebSocket" },
            { id: "b", label: "Near real-time (polling)" },
@@ -198,7 +198,7 @@ Start an elaboration round to clarify requirements:
 4. **Submit answers** (or the user/stakeholder submits via the UI):
    ```
    synapse_answer_hypothesis_formulation({
-     researchQuestionUuid: "<idea-uuid>",
+     researchQuestionUuid: "<research-question-uuid>",
      roundUuid: "<round-uuid>",
      answers: [
        { questionId: "q1", selectedOptionId: "c", customText: null },
@@ -222,18 +222,18 @@ Start an elaboration round to clarify requirements:
       synapse_search_mentionables({ query: "owner-name" })
       ```
 
-   b. **Post a summary comment** on the idea, @mentioning the answerer:
+   b. **Post a summary comment** on the research question, @mentioning the answerer:
       ```
       synapse_add_comment({
-        targetType: "idea",
-        targetUuid: "<idea-uuid>",
+        targetType: "research_question",
+        targetUuid: "<research-question-uuid>",
         content: "@[Owner Name](user:owner-uuid) I've reviewed the elaboration answers. Here's my understanding:\n\n- Key requirement 1: ...\n- Key requirement 2: ...\n- Scope decision: ...\n\nDoes this match your intent? Any additions or corrections before I proceed?"
       })
       ```
 
    c. **Wait for confirmation.** The owner will be notified and can reply via comment. Check for their response:
       ```
-      synapse_get_comments({ targetType: "idea", targetUuid: "<idea-uuid>" })
+      synapse_get_comments({ targetType: "research_question", targetUuid: "<research-question-uuid>" })
       ```
 
    d. **Based on the response**, take one of three actions:
@@ -245,7 +245,7 @@ Start an elaboration round to clarify requirements:
 
    ```
    synapse_research_lead_validate_hypothesis_formulation({
-     researchQuestionUuid: "<idea-uuid>",
+     researchQuestionUuid: "<research-question-uuid>",
      roundUuid: "<round-uuid>",
      issues: [],
      followUpQuestions: []
@@ -254,7 +254,7 @@ Start an elaboration round to clarify requirements:
    - If issues are found (contradictions, ambiguities, incomplete answers), include them in `issues` and provide `followUpQuestions` to start a new round:
    ```
    synapse_research_lead_validate_hypothesis_formulation({
-     researchQuestionUuid: "<idea-uuid>",
+     researchQuestionUuid: "<research-question-uuid>",
      roundUuid: "<round-uuid>",
      issues: [
        {
@@ -269,8 +269,8 @@ Start an elaboration round to clarify requirements:
          text: "Which specific roles should have access?",
          category: "functional",
          options: [
-           { id: "a", label: "Admin + PM" },
-           { id: "b", label: "Admin + PM + Developer" },
+           { id: "a", label: "PI + Research Lead" },
+           { id: "b", label: "PI + Research Lead + Researcher" },
            { id: "c", label: "Custom roles (specify)" }
          ]
        }
@@ -280,41 +280,41 @@ Start an elaboration round to clarify requirements:
 
 6. **Check elaboration status** at any time:
    ```
-   synapse_get_hypothesis_formulation({ researchQuestionUuid: "<idea-uuid>" })
+   synapse_get_hypothesis_formulation({ researchQuestionUuid: "<research-question-uuid>" })
    ```
 
-7. Once all rounds are resolved, proceed to Step 5 (Create Proposal). The elaboration answers provide rich context for writing the PRD and task breakdown.
+7. Once all rounds are resolved, proceed to Step 5 (Create Experiment Design). The elaboration answers provide rich context for writing the PRD and experiment-run breakdown.
 
-**Elaboration as audit trail:** Even if the user discusses requirements with you outside the formal elaboration flow (e.g., in casual conversation), you should still record key decisions and clarifications as elaboration rounds on the Idea. This ensures all requirement decisions are persisted, traceable, and visible to the team — not lost in chat history. Create a round with the decisions as pre-answered questions if needed.
+**Elaboration as audit trail:** Even if the user discusses requirements with you outside the formal elaboration flow (e.g., in casual conversation), you should still record key decisions and clarifications as elaboration rounds on the Research Question. This ensures all requirement decisions are persisted, traceable, and visible to the team — not lost in chat history. Create a round with the decisions as pre-answered questions if needed.
 
-**Question categories:** `functional`, `non_functional`, `business_context`, `technical_context`, `user_scenario`, `scope`
+**Question categories:** `hypothesis`, `methodology`, `prior_work`, `resources`, `success_metrics`, `scope`
 
 **Validation issue types:** `contradiction`, `ambiguity`, `incomplete`
 
-### Step 5: Create an Empty Proposal
+### Step 5: Create an Empty Experiment Design
 
-**Recommended approach:** Create the proposal container first without any drafts, then incrementally add document and task drafts one by one. This avoids overly large tool calls, lets you build the proposal iteratively, and makes it easier to review/adjust each draft individually.
+**Recommended approach:** Create the experiment-design container first without any drafts, then incrementally add document and experiment-run drafts one by one. This avoids overly large tool calls, lets you build the experiment design iteratively, and makes it easier to review and adjust each draft individually.
 
 ```
 synapse_research_lead_create_experiment_design({
-  projectUuid: "<project-uuid>",
+  researchProjectUuid: "<project-uuid>",
   title: "Implement <feature name>",
-  description: "Analysis and implementation plan for Idea #xxx",
-  inputType: "idea",
-  inputUuids: ["<idea-uuid>"]
+  description: "Analysis and implementation plan for Research Question #xxx",
+  inputType: "research_question",
+  inputUuids: ["<research-question-uuid>"]
 })
 ```
 
-**Multiple Ideas:** You can combine multiple ideas into one proposal by passing multiple UUIDs in `inputUuids`.
+**Multiple Research Questions:** You can combine multiple research questions into one experiment design by passing multiple UUIDs in `inputUuids`.
 
 ### Step 6: Add Document Drafts
 
-Add document drafts to the proposal one at a time using `synapse_research_lead_add_document_draft`:
+Add document drafts to the experiment design one at a time using `synapse_research_lead_add_document_draft`:
 
 ```
 # Add PRD
 synapse_research_lead_add_document_draft({
-  experimentDesignUuid: "<proposal-uuid>",
+  experimentDesignUuid: "<experiment-design-uuid>",
   type: "prd",
   title: "PRD: <Feature Name>",
   content: "# PRD: <Feature Name>\n\n## Background\n...\n## Requirements\n..."
@@ -322,7 +322,7 @@ synapse_research_lead_add_document_draft({
 
 # Add Tech Design
 synapse_research_lead_add_document_draft({
-  experimentDesignUuid: "<proposal-uuid>",
+  experimentDesignUuid: "<experiment-design-uuid>",
   type: "tech_design",
   title: "Tech Design: <Feature Name>",
   content: "# Technical Design\n\n## Architecture\n...\n## Implementation\n..."
@@ -330,7 +330,7 @@ synapse_research_lead_add_document_draft({
 
 # Add ADR (if needed)
 synapse_research_lead_add_document_draft({
-  experimentDesignUuid: "<proposal-uuid>",
+  experimentDesignUuid: "<experiment-design-uuid>",
   type: "adr",
   title: "ADR: Choice of <technology>",
   content: "# ADR: ...\n\n## Context\n...\n## Decision\n..."
@@ -339,172 +339,181 @@ synapse_research_lead_add_document_draft({
 
 **Document types:** `prd`, `tech_design`, `adr`, `spec`, `guide`
 
-### Step 7: Add Task Drafts
+### Step 7: Add Experiment-Run Drafts
 
-Add task drafts one at a time using `synapse_research_lead_add_experiment_run_draft`. The response returns the new draft's `draftUuid` — use it directly for `dependsOnDraftUuids` in subsequent drafts without needing to call `synapse_get_experiment_design`.
+Add experiment-run drafts one at a time using `synapse_research_lead_add_experiment_run_draft`. The response returns the new draft's `draftUuid` — use it directly for `dependsOnDraftUuids` in subsequent drafts without needing to call `synapse_get_experiment_design`.
 
 ```
-# Add first task → response includes { draftUuid, draftTitle }
+# Add first experiment run → response includes { draftUuid, draftTitle }
 synapse_research_lead_add_experiment_run_draft({
-  experimentDesignUuid: "<proposal-uuid>",
+  experimentDesignUuid: "<experiment-design-uuid>",
   title: "Implement <component>",
   description: "Detailed description of what to build...",
   priority: "high",
-  storyPoints: 3,
-  acceptanceCriteria: "- [ ] Criteria 1\n- [ ] Criteria 2"
+  computeBudgetHours: 3,
+  acceptanceCriteriaItems: [
+    { description: "Criteria 1", required: true },
+    { description: "Criteria 2", required: true }
+  ]
 })
 
-# Add second task — use draftUuid from the first task's response
+# Add second experiment run — use draftUuid from the first experiment run's response
 synapse_research_lead_add_experiment_run_draft({
-  experimentDesignUuid: "<proposal-uuid>",
+  experimentDesignUuid: "<experiment-design-uuid>",
   title: "Write tests for <component>",
   description: "Unit and integration tests...",
   priority: "medium",
-  storyPoints: 2,
-  acceptanceCriteria: "- [ ] Test coverage > 80%",
-  dependsOnDraftUuids: ["<draftUuid-from-first-task>"]
+  computeBudgetHours: 2,
+  acceptanceCriteriaItems: [
+    { description: "Test coverage > 80%", required: true }
+  ],
+  dependsOnDraftUuids: ["<draftUuid-from-first-run>"]
 })
 ```
 
-**Task priority:** `low`, `medium`, `high`
+**Experiment-run priority:** `low`, `medium`, `high`
 
 ### Step 8: Review and Refine Drafts
 
-After adding all drafts, review the full proposal and refine as needed:
+After adding all drafts, review the full experiment design and refine as needed:
 
 ```
 # Review current state
-synapse_get_experiment_design({ experimentDesignUuid: "<proposal-uuid>" })
+synapse_get_experiment_design({ experimentDesignUuid: "<experiment-design-uuid>" })
 
 # Update a document draft
 synapse_research_lead_update_document_draft({
-  experimentDesignUuid: "<proposal-uuid>",
+  experimentDesignUuid: "<experiment-design-uuid>",
   draftUuid: "<draft-uuid>",
   content: "Updated content with more detail..."
 })
 
-# Update a task draft
+# Update an experiment-run draft
 synapse_research_lead_update_experiment_run_draft({
-  experimentDesignUuid: "<proposal-uuid>",
+  experimentDesignUuid: "<experiment-design-uuid>",
   draftUuid: "<draft-uuid>",
   description: "Updated description with more detail...",
+  computeBudgetHours: 4,
+  acceptanceCriteriaItems: [
+    { description: "Updated criterion", required: true }
+  ],
   dependsOnDraftUuids: ["<other-draft-uuid>"]
 })
 
 # Remove a draft that's no longer needed
 synapse_research_lead_remove_experiment_run_draft({
-  experimentDesignUuid: "<proposal-uuid>",
+  experimentDesignUuid: "<experiment-design-uuid>",
   draftUuid: "<draft-uuid>"
 })
 ```
 
-### Step 9: Validate and Submit Proposal for Review
+### Step 9: Validate and Submit Experiment Design for Review
 
-Before submitting, validate the proposal to preview any issues:
+Before submitting, validate the experiment design to preview any issues:
 
 ```
-synapse_research_lead_validate_experiment_design({ experimentDesignUuid: "<proposal-uuid>" })
+synapse_research_lead_validate_experiment_design({ experimentDesignUuid: "<experiment-design-uuid>" })
 ```
 
 This returns `{ valid, issues }` with error, warning, and info levels. Fix any errors before submitting. Warnings and info are advisory but worth addressing.
 
-When the proposal passes validation (no errors):
+When the experiment design passes validation (no errors):
 
 ```
-synapse_research_lead_submit_experiment_design({ experimentDesignUuid: "<proposal-uuid>" })
+synapse_research_lead_submit_experiment_design({ experimentDesignUuid: "<experiment-design-uuid>" })
 ```
 
-This changes the proposal status from `draft` to `pending`. An Admin will review it. Note: `submit` also runs validation internally and rejects if errors exist.
+This changes the experiment-design status from `draft` to `pending`. The PI will review it. Note: `submit` also runs validation internally and rejects if errors exist.
 
 Add a comment explaining your reasoning:
 
 ```
 synapse_add_comment({
-  targetType: "proposal",
-  targetUuid: "<proposal-uuid>",
-  content: "This proposal covers... Key decisions: ..."
+  targetType: "experiment_design",
+  targetUuid: "<experiment-design-uuid>",
+  content: "This experiment design covers... Key decisions: ..."
 })
 ```
 
-### Step 10: Update Idea Status
+### Step 10: Update Research Question Status
 
-Mark the idea as proposal_created:
+Mark the research question as `proposal_created`:
 
 ```
-synapse_update_research_question_status({ researchQuestionUuid: "<idea-uuid>", status: "proposal_created" })
+synapse_update_research_question_status({ researchQuestionUuid: "<research-question-uuid>", status: "proposal_created" })
 ```
 
 ### Step 11: Handle Feedback
 
-If the proposal is rejected, check the review note:
+If the experiment design is rejected, check the review note:
 
 ```
-synapse_get_experiment_design({ experimentDesignUuid: "<proposal-uuid>" })
-synapse_get_comments({ targetType: "proposal", targetUuid: "<proposal-uuid>" })
+synapse_get_experiment_design({ experimentDesignUuid: "<experiment-design-uuid>" })
+synapse_get_comments({ targetType: "experiment_design", targetUuid: "<experiment-design-uuid>" })
 ```
 
 Revise the drafts and resubmit.
 
 ### Step 12: Post-Approval
 
-When the Admin approves the proposal:
+When the PI approves the experiment design:
 - Document drafts are automatically materialized into real Documents
-- Task drafts are automatically materialized into real Tasks (status: `open`)
-- Developers can now claim and work on the tasks
+- Experiment-run drafts are automatically materialized into real Experiment Runs (status: `open`)
+- Researchers can now claim and work on the experiment runs
 
-Mark the idea as completed:
+Mark the research question as `completed`:
 
 ```
-synapse_update_research_question_status({ researchQuestionUuid: "<idea-uuid>", status: "completed" })
+synapse_update_research_question_status({ researchQuestionUuid: "<research-question-uuid>", status: "completed" })
 ```
 
-### Step 13: Manage Task Dependencies (Optional)
+### Step 13: Manage Experiment-Run Dependencies (Optional)
 
-After tasks are created (either via proposal approval or `synapse_research_lead_create_experiment_runs`), you can manage dependencies between them.
+After experiment runs are created (either via experiment-design approval or `synapse_research_lead_create_experiment_runs`), you can manage dependencies between them.
 
 **Add dependency using `synapse_research_lead_create_experiment_runs` with intra-batch dependencies:**
 
 ```
 synapse_research_lead_create_experiment_runs({
-  projectUuid: "<project-uuid>",
-  tasks: [
+  researchProjectUuid: "<project-uuid>",
+  experimentRuns: [
     {
       draftUuid: "draft-db",
       title: "Create database schema",
       priority: "high",
-      storyPoints: 2
+      computeBudgetHours: 2
     },
     {
       draftUuid: "draft-api",
       title: "Implement API endpoints",
       priority: "high",
-      storyPoints: 4,
+      computeBudgetHours: 4,
       dependsOnDraftUuids: ["draft-db"]
     },
     {
       title: "Write integration tests",
       priority: "medium",
-      storyPoints: 2,
+      computeBudgetHours: 2,
       dependsOnDraftUuids: ["draft-api"],
-      dependsOnRunUuids: ["<existing-task-uuid>"]
+      dependsOnRunUuids: ["<existing-run-uuid>"]
     }
   ]
 })
 ```
 
-**Add/remove dependencies on existing tasks:**
+**Add/remove dependencies on existing experiment runs:**
 
 ```
-# Add dependency: task B depends on task A
+# Add dependency: Experiment Run B depends on Experiment Run A
 synapse_research_lead_add_run_dependency({
-  runUuid: "<task-B-uuid>",
-  dependsOnRunUuid: "<task-A-uuid>"
+  runUuid: "<run-b-uuid>",
+  dependsOnRunUuid: "<run-a-uuid>"
 })
 
 # Remove dependency
 synapse_research_lead_remove_run_dependency({
-  runUuid: "<task-B-uuid>",
-  dependsOnRunUuid: "<task-A-uuid>"
+  runUuid: "<run-b-uuid>",
+  dependsOnRunUuid: "<run-a-uuid>"
 })
 ```
 
@@ -512,26 +521,26 @@ synapse_research_lead_remove_run_dependency({
 - Dependencies are validated: same project, no self-dependency, no cycles (DFS detection)
 - Use `synapse_get_experiment_run` to see `dependsOn` and `dependedBy` arrays
 
-### Step 14: Assign Tasks to Developer Agents (Optional)
+### Step 14: Assign Experiment Runs to Researcher Agents (Optional)
 
-After approval, you can directly assign tasks to specific Developer Agents instead of waiting for them to self-claim:
+After approval, you can directly assign experiment runs to specific Researcher Agents instead of waiting for them to self-claim:
 
 ```
 synapse_research_lead_assign_experiment_run({
-  runUuid: "<task-uuid>",
-  agentUuid: "<developer-agent-uuid>"
+  runUuid: "<run-uuid>",
+  agentUuid: "<researcher-agent-uuid>"
 })
 ```
 
 **Conditions:**
-- Task must be in `open` or `assigned` status (reassignment is allowed)
-- Target agent must have `developer` or `developer_agent` role
-- The PM Agent is recorded as `assignedBy`
+- Experiment run must be in `open` or `assigned` status (reassignment is allowed)
+- Target agent must have `researcher` or `researcher_agent` role
+- The Research Lead agent is recorded as `assignedBy`
 
-To find available developer agents, use the project activity or check with the admin. To find open tasks:
+To find available researcher agents, use the project activity or check with the PI. To find open experiment runs:
 
 ```
-synapse_get_available_experiment_runs({ projectUuid: "<project-uuid>" })
+synapse_get_available_experiment_runs({ researchProjectUuid: "<project-uuid>" })
 ```
 
 ---
@@ -557,7 +566,7 @@ Why this feature is needed.
 - As a <role>, I want <action>, so that <benefit>
 
 ## Out of Scope
-What is NOT included in this proposal.
+What is NOT included in this experiment design.
 ```
 
 ### Tech Design Structure
@@ -583,21 +592,21 @@ Step-by-step implementation order.
 Potential issues and how to address them.
 ```
 
-### Task Writing Guidelines
+### Experiment-Run Writing Guidelines
 
-Good tasks are:
-- **Atomic** - One clear deliverable per task
+Good experiment runs are:
+- **Atomic** - One clear deliverable per experiment run
 - **Testable** - Clear acceptance criteria
-- **Sized** - 1-8 story points (hours of agent work)
-- **Ordered** - Use `dependsOnDraftUuids` / `dependsOnRunUuids` to express execution order when tasks have real prerequisites
-- **Descriptive** - Include enough context for a developer agent to start without questions
+- **Sized** - 1-8 compute-budget hours (hours of agent work)
+- **Ordered** - Use `dependsOnDraftUuids` / `dependsOnRunUuids` to express execution order when experiment runs have real prerequisites
+- **Descriptive** - Include enough context for a Researcher agent to start without questions
 
 ---
 
 ## Tips
 
-- When combining multiple ideas, explain in the proposal description how they relate
+- When combining multiple research questions, explain in the experiment-design description how they relate
 - Keep PRD focused on *what* and *why*; keep tech design focused on *how*
-- Break large features into multiple smaller tasks rather than one monolithic task
-- Add `storyPoints` to help prioritize and estimate effort
-- Use `acceptanceCriteria` with checkboxes for clear verification
+- Break large features into multiple smaller experiment runs rather than one monolithic run
+- Add `computeBudgetHours` to help prioritize and estimate effort
+- Use `acceptanceCriteriaItems` for structured verification criteria
