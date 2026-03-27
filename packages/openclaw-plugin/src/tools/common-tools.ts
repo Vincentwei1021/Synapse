@@ -57,11 +57,11 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
 
   api.registerTool({
     name: "synapse_get_task",
-    description: "Get detailed information and context for a single task",
+    description: "Legacy alias: get detailed information and context for a single experiment run.",
     parameters: {
       type: "object",
       properties: {
-        taskUuid: { type: "string", description: "Task UUID" },
+        taskUuid: { type: "string", description: "Experiment Run UUID (legacy parameter name)" },
       },
       required: ["taskUuid"],
       additionalProperties: false,
@@ -74,11 +74,11 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
 
   api.registerTool({
     name: "synapse_get_idea",
-    description: "Get detailed information for a single idea",
+    description: "Legacy alias: get detailed information for a single research question.",
     parameters: {
       type: "object",
       properties: {
-        ideaUuid: { type: "string", description: "Idea UUID" },
+        ideaUuid: { type: "string", description: "Research Question UUID (legacy parameter name)" },
       },
       required: ["ideaUuid"],
       additionalProperties: false,
@@ -91,12 +91,12 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
 
   api.registerTool({
     name: "synapse_get_available_tasks",
-    description: "Get tasks available to claim in a project (status=open). Optionally filter by proposal UUIDs.",
+    description: "Legacy alias: get experiment runs available to claim in a project (status=open). Optionally filter by experiment-design UUIDs.",
     parameters: {
       type: "object",
       properties: {
         projectUuid: { type: "string", description: "Project UUID" },
-        proposalUuids: { type: "array", items: { type: "string" }, description: "Filter tasks by proposal UUIDs" },
+        proposalUuids: { type: "array", items: { type: "string" }, description: "Experiment Design UUIDs to filter by (legacy parameter name)" },
       },
       required: ["projectUuid"],
       additionalProperties: false,
@@ -114,7 +114,7 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
 
   api.registerTool({
     name: "synapse_get_available_ideas",
-    description: "Get ideas available to claim in a project (status=open)",
+    description: "Legacy alias: get research questions available to claim in a project (status=open).",
     parameters: {
       type: "object",
       properties: {
@@ -133,7 +133,7 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
 
   api.registerTool({
     name: "synapse_list_projects",
-    description: "List all projects for the current company. Returns projects with counts of ideas, documents, tasks, and proposals.",
+    description: "List all projects for the current company. Returns projects with counts of research questions, documents, experiment runs, and experiment designs.",
     parameters: {
       type: "object",
       properties: {
@@ -153,14 +153,14 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
 
   api.registerTool({
     name: "synapse_list_tasks",
-    description: "List tasks for a project. Can filter by status, priority, and proposal UUIDs.",
+    description: "Legacy alias: list experiment runs for a project. Can filter by status, priority, and experiment-design UUIDs.",
     parameters: {
       type: "object",
       properties: {
         projectUuid: { type: "string", description: "Project UUID" },
         status: { type: "string", description: "Filter by status: open | assigned | in_progress | to_verify | done | closed" },
         priority: { type: "string", description: "Filter by priority: low | medium | high" },
-        proposalUuids: { type: "array", items: { type: "string" }, description: "Filter tasks by proposal UUIDs" },
+        proposalUuids: { type: "array", items: { type: "string" }, description: "Experiment Design UUIDs to filter by (legacy parameter name)" },
         page: { type: "number", description: "Page number (default: 1)" },
         pageSize: { type: "number", description: "Items per page (default: 20)" },
       },
@@ -182,7 +182,7 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
 
   api.registerTool({
     name: "synapse_get_ideas",
-    description: "List ideas for a project. Can filter by status.",
+    description: "Legacy alias: list research questions for a project. Can filter by status.",
     parameters: {
       type: "object",
       properties: {
@@ -206,7 +206,7 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
 
   api.registerTool({
     name: "synapse_get_proposals",
-    description: "List proposals for a project. Can filter by status.",
+    description: "Legacy alias: list experiment designs for a project. Can filter by status.",
     parameters: {
       type: "object",
       properties: {
@@ -271,12 +271,12 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
 
   api.registerTool({
     name: "synapse_get_unblocked_tasks",
-    description: "Get tasks that are ready to start — status is open/assigned and all dependencies are resolved (done/closed). Optionally filter by proposal UUIDs. Note: to_verify is NOT considered resolved.",
+    description: "Legacy alias: get experiment runs that are ready to start — status is open/assigned and all dependencies are resolved (done/closed). Optionally filter by experiment-design UUIDs. Note: to_verify is NOT considered resolved.",
     parameters: {
       type: "object",
       properties: {
         projectUuid: { type: "string", description: "Project UUID" },
-        proposalUuids: { type: "array", items: { type: "string" }, description: "Filter tasks by proposal UUIDs" },
+        proposalUuids: { type: "array", items: { type: "string" }, description: "Filter experiment runs by experiment-design UUIDs" },
       },
       required: ["projectUuid"],
       additionalProperties: false,
@@ -337,11 +337,11 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
 
   api.registerTool({
     name: "synapse_get_elaboration",
-    description: "Get the full elaboration state for an Idea, including all rounds, questions, answers, and progress summary.",
+    description: "Legacy alias: get the full elaboration state for a research question, including all rounds, questions, answers, and progress summary.",
     parameters: {
       type: "object",
       properties: {
-        ideaUuid: { type: "string", description: "Idea UUID" },
+        ideaUuid: { type: "string", description: "Research Question UUID (legacy parameter name)" },
       },
       required: ["ideaUuid"],
       additionalProperties: false,
@@ -354,7 +354,7 @@ export function registerCommonTools(api: any, mcpClient: SynapseMcpClient) {
 
   api.registerTool({
     name: "synapse_get_my_assignments",
-    description: "Get all Ideas and Tasks currently assigned to you.",
+    description: "Get all research questions and experiment runs currently assigned to you.",
     parameters: {
       type: "object",
       properties: {},

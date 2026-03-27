@@ -65,32 +65,32 @@ function formatStatus(checkin: CheckinResponse, connectionStatus: string): strin
 
 function formatTaskList(tasks: AssignedTask[] | undefined): string {
   if (!tasks?.length) {
-    return "No assigned tasks.";
+    return "No assigned experiment runs.";
   }
 
   const lines = tasks.map(
     (t) => `[${t.status}] [${t.priority}] ${t.title}  (${t.project.name})`
   );
-  return `Assigned tasks (${tasks.length}):\n${lines.join("\n")}`;
+  return `Assigned experiment runs (${tasks.length}):\n${lines.join("\n")}`;
 }
 
 function formatIdeaList(ideas: AssignedIdea[] | undefined): string {
   if (!ideas?.length) {
-    return "No assigned ideas.";
+    return "No assigned research questions.";
   }
 
   const lines = ideas.map(
     (i) => `[${i.status}] ${i.title}  (${i.project.name})`
   );
-  return `Assigned ideas (${ideas.length}):\n${lines.join("\n")}`;
+  return `Assigned research questions (${ideas.length}):\n${lines.join("\n")}`;
 }
 
 const HELP_TEXT = [
   "Synapse commands:",
   "  /synapse           Show connection status and summary",
   "  /synapse status    Same as above",
-  "  /synapse tasks     List assigned tasks",
-  "  /synapse ideas     List assigned ideas",
+  "  /synapse tasks     List assigned experiment runs (legacy alias name)",
+  "  /synapse ideas     List assigned research questions (legacy alias name)",
 ].join("\n");
 
 interface CommandRegistry {
@@ -110,7 +110,7 @@ export function registerSynapseCommands(
 ): void {
   api.registerCommand({
     name: "synapse",
-    description: "Synapse plugin commands: status, tasks, ideas",
+    description: "Synapse plugin commands: status, tasks (experiment runs), ideas (research questions)",
     async handler(ctx: { args: string }) {
       const sub = (ctx.args ?? "").trim().toLowerCase();
 
@@ -124,7 +124,7 @@ export function registerSynapseCommands(
         }
       }
 
-      // /synapse tasks
+      // /synapse tasks (legacy alias for experiment runs)
       if (sub === "tasks") {
         try {
           const data = (await mcpClient.callTool(
@@ -133,11 +133,11 @@ export function registerSynapseCommands(
           )) as AssignmentsResponse;
           return { text: formatTaskList(data?.tasks ?? data?.experimentRuns) };
         } catch (err) {
-          return { text: `Failed to fetch tasks: ${err instanceof Error ? err.message : String(err)}` };
+          return { text: `Failed to fetch experiment runs: ${err instanceof Error ? err.message : String(err)}` };
         }
       }
 
-      // /synapse ideas
+      // /synapse ideas (legacy alias for research questions)
       if (sub === "ideas") {
         try {
           const data = (await mcpClient.callTool(
@@ -146,7 +146,7 @@ export function registerSynapseCommands(
           )) as AssignmentsResponse;
           return { text: formatIdeaList(data?.ideas ?? data?.researchQuestions) };
         } catch (err) {
-          return { text: `Failed to fetch ideas: ${err instanceof Error ? err.message : String(err)}` };
+          return { text: `Failed to fetch research questions: ${err instanceof Error ? err.message : String(err)}` };
         }
       }
 

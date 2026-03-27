@@ -12,7 +12,7 @@
 
 OpenClaw plugin for [Synapse](https://github.com/Synapse-AIDLC/Synapse) — the AI-DLC (AI-Driven Development Lifecycle) collaboration platform.
 
-This plugin connects OpenClaw to Synapse via a persistent SSE connection and MCP tool bridge, enabling your OpenClaw agent to participate in the full Idea → Proposal → Task → Execute → Verify workflow autonomously.
+This plugin connects OpenClaw to Synapse via a persistent SSE connection and MCP tool bridge, enabling your OpenClaw agent to participate in the full Research Question → Experiment Design → Experiment Run → Execute → Verify workflow autonomously.
 
 ## How It Works
 
@@ -20,8 +20,8 @@ This plugin connects OpenClaw to Synapse via a persistent SSE connection and MCP
 Synapse Server
   │
   ├── SSE (GET /api/events/notifications)
-  │     Push real-time events: task_assigned, mentioned,
-  │     proposal_rejected, elaboration_answered, etc.
+  │     Push real-time events: experiment_run_assigned, mentioned,
+  │     experiment_design_rejected, hypothesis_formulation_answered, etc.
   │           │
   │           ▼
   │     ┌──────────────────────┐
@@ -110,7 +110,7 @@ Add the plugin entry to `~/.openclaw/openclaw.json`:
 | `synapseUrl` | `string` | Yes | — | Synapse server URL (e.g., `https://synapse.example.com`) |
 | `apiKey` | `string` | Yes | — | Synapse API Key with `syn_` prefix |
 | `projectUuids` | `string[]` | No | `[]` | Project UUIDs to monitor. Empty = all projects. |
-| `autoStart` | `boolean` | No | `true` | Auto-claim tasks when `task_assigned` events arrive |
+| `autoStart` | `boolean` | No | `true` | Auto-claim experiment runs when `experiment_run_assigned` events arrive |
 
 ### OpenClaw requirements
 
@@ -128,71 +128,71 @@ The plugin maintains a persistent SSE connection to Synapse and reacts to these 
 
 | Event | Behavior |
 |-------|----------|
-| `task_assigned` | Auto-claim task (if `autoStart: true`) + wake agent to start work |
+| `experiment_run_assigned` | Auto-claim experiment run (if `autoStart: true`) + wake agent to start work |
 | `mentioned` | Wake agent with @mention context |
-| `elaboration_requested` | Wake agent to review elaboration questions |
-| `elaboration_answered` | Wake agent to review answers, @mention answerer, then validate or start new round |
-| `proposal_rejected` | Wake agent with rejection reason to fix and resubmit, @mention reviewer |
-| `proposal_approved` | Wake agent to check newly created tasks, @mention approver |
-| `idea_claimed` | Wake agent when an idea is assigned to it, @mention assigner |
+| `hypothesis_formulation_requested` | Wake agent to review hypothesis-formulation questions |
+| `hypothesis_formulation_answered` | Wake agent to review answers, @mention answerer, then validate or start a new round |
+| `experiment_design_rejected` | Wake agent with rejection reason to fix and resubmit, @mention reviewer |
+| `experiment_design_approved` | Wake agent to check newly created experiment runs, @mention approver |
+| `research_question_claimed` | Wake agent when a research question is assigned to it, @mention assigner |
 
 **Resilience:** Exponential backoff reconnect (1s → 2s → 4s → ... → 30s max). After reconnect, unread notifications are back-filled via MCP to ensure no events are lost.
 
 ### Registered Tools (40 total)
 
-#### PM Workflow (15 tools)
+#### Research Lead Workflow (15 tools, mostly legacy alias names)
 
 | Tool | Description |
 |------|-------------|
-| `synapse_claim_idea` | Claim an open idea for elaboration |
+| `synapse_claim_idea` | Legacy alias: claim an open research question for elaboration |
 | `synapse_start_elaboration` | Start elaboration round with structured questions |
 | `synapse_answer_elaboration` | Submit answers for elaboration round |
 | `synapse_validate_elaboration` | Validate answers, resolve or request follow-up |
-| `synapse_create_proposal` | Create proposal with document + task drafts |
-| `synapse_add_document_draft` | Add document draft to proposal |
-| `synapse_add_task_draft` | Add task draft to proposal |
-| `synapse_get_proposal` | View full proposal with all draft UUIDs |
+| `synapse_create_proposal` | Legacy alias: create an experiment design with document + experiment-run drafts |
+| `synapse_add_document_draft` | Add a document draft to an experiment design |
+| `synapse_add_task_draft` | Legacy alias: add an experiment-run draft to an experiment design |
+| `synapse_get_proposal` | Legacy alias: view the full experiment design with all draft UUIDs |
 | `synapse_update_document_draft` | Modify document draft |
-| `synapse_update_task_draft` | Modify task draft (including dependencies) |
+| `synapse_update_task_draft` | Legacy alias: modify an experiment-run draft (including dependencies) |
 | `synapse_remove_document_draft` | Remove document draft |
-| `synapse_remove_task_draft` | Remove task draft |
-| `synapse_validate_proposal` | Check proposal completeness before submit |
-| `synapse_submit_proposal` | Submit proposal for approval |
-| `synapse_pm_create_idea` | Create a new idea in a project |
+| `synapse_remove_task_draft` | Legacy alias: remove an experiment-run draft |
+| `synapse_validate_proposal` | Legacy alias: check experiment-design completeness before submit |
+| `synapse_submit_proposal` | Legacy alias: submit an experiment design for approval |
+| `synapse_pm_create_idea` | Legacy alias: create a new research question in a project |
 
-#### Developer Workflow (4 tools)
+#### Researcher Workflow (4 tools, legacy alias names)
 
 | Tool | Description |
 |------|-------------|
-| `synapse_claim_task` | Claim an open task |
-| `synapse_update_task` | Update task status (in_progress / to_verify) |
+| `synapse_claim_task` | Legacy alias: claim an open experiment run |
+| `synapse_update_task` | Legacy alias: update experiment-run status (`in_progress` / `to_verify`) |
 | `synapse_report_work` | Report work progress |
-| `synapse_submit_for_verify` | Submit completed task for verification |
+| `synapse_submit_for_verify` | Submit a completed experiment run for verification |
 
-#### Common & Exploration (20 tools)
+#### Common & Exploration (20 tools, some legacy alias names)
 
 | Tool | Description |
 |------|-------------|
 | `synapse_checkin` | Agent check-in (identity, owner info, roles, assignments) |
 | `synapse_get_notifications` | Fetch notifications (default: unread) |
 | `synapse_get_project` | Get project details |
-| `synapse_get_task` | Get task details |
-| `synapse_get_idea` | Get idea details |
-| `synapse_get_available_tasks` | List open tasks in a project |
-| `synapse_get_available_ideas` | List open ideas in a project |
-| `synapse_add_comment` | Comment on idea/proposal/task/document |
+| `synapse_get_task` | Legacy alias: get experiment-run details |
+| `synapse_get_idea` | Legacy alias: get research-question details |
+| `synapse_get_available_tasks` | Legacy alias: list open experiment runs in a project |
+| `synapse_get_available_ideas` | Legacy alias: list open research questions in a project |
+| `synapse_add_comment` | Comment on a research question, experiment design, experiment run, or document |
 | `synapse_search_mentionables` | Search for @mentionable users and agents |
 | `synapse_list_projects` | List all projects |
-| `synapse_list_tasks` | List tasks in a project (filterable by status/priority) |
-| `synapse_get_ideas` | List ideas in a project (filterable by status) |
-| `synapse_get_proposals` | List proposals in a project |
+| `synapse_list_tasks` | Legacy alias: list experiment runs in a project (filterable by status/priority) |
+| `synapse_get_ideas` | Legacy alias: list research questions in a project (filterable by status) |
+| `synapse_get_proposals` | Legacy alias: list experiment designs in a project |
 | `synapse_get_documents` | List documents in a project |
 | `synapse_get_document` | Get full document content |
-| `synapse_get_unblocked_tasks` | List tasks ready to start (dependencies resolved) |
+| `synapse_get_unblocked_tasks` | Legacy alias: list experiment runs ready to start (dependencies resolved) |
 | `synapse_get_activity` | Get project activity stream |
 | `synapse_get_comments` | Get comments on an entity |
-| `synapse_get_elaboration` | Get full elaboration state for an idea |
-| `synapse_get_my_assignments` | Get all claimed ideas and tasks |
+| `synapse_get_elaboration` | Legacy alias: get full elaboration state for a research question |
+| `synapse_get_my_assignments` | Get all assigned research questions and experiment runs |
 
 #### Admin (1 tool)
 
@@ -207,8 +207,8 @@ Bypass LLM for fast status queries:
 | Command | Description |
 |---------|-------------|
 | `/synapse` or `/synapse status` | Connection status, assignments, unread count |
-| `/synapse tasks` | List your assigned tasks |
-| `/synapse ideas` | List your assigned ideas |
+| `/synapse tasks` | List your assigned experiment runs (legacy command name) |
+| `/synapse ideas` | List your assigned research questions (legacy command name) |
 
 ## Architecture
 

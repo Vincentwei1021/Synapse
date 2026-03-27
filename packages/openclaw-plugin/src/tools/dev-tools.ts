@@ -4,11 +4,11 @@ import type { SynapseMcpClient } from "../mcp-client.js";
 export function registerDevTools(api: any, mcpClient: SynapseMcpClient) {
   api.registerTool({
     name: "synapse_claim_task",
-    description: "Claim an open task (open -> assigned)",
+    description: "Legacy alias: claim an open experiment run (open -> assigned).",
     parameters: {
       type: "object",
       properties: {
-        taskUuid: { type: "string", description: "Task UUID to claim" },
+        taskUuid: { type: "string", description: "Experiment Run UUID to claim (legacy parameter name)" },
       },
       required: ["taskUuid"],
       additionalProperties: false,
@@ -21,11 +21,11 @@ export function registerDevTools(api: any, mcpClient: SynapseMcpClient) {
 
   api.registerTool({
     name: "synapse_update_task",
-    description: "Update task status (only the assignee can operate). Moving to in_progress requires all dependsOn tasks to be done or closed — otherwise the request is rejected with blocker details. Use synapse_get_unblocked_tasks to find tasks ready to start.",
+    description: "Legacy alias: update experiment-run status (only the assignee can operate). Moving to in_progress requires all dependsOn runs to be done or closed; otherwise the request is rejected with blocker details. Use synapse_get_unblocked_tasks to find runs ready to start.",
     parameters: {
       type: "object",
       properties: {
-        taskUuid: { type: "string", description: "Task UUID" },
+        taskUuid: { type: "string", description: "Experiment Run UUID (legacy parameter name)" },
         status: { type: "string", description: "New status: in_progress | to_verify" },
         sessionUuid: { type: "string", description: "Session UUID for sub-agent identification" },
       },
@@ -42,11 +42,11 @@ export function registerDevTools(api: any, mcpClient: SynapseMcpClient) {
 
   api.registerTool({
     name: "synapse_report_work",
-    description: "Report work progress or completion on a task",
+    description: "Report work progress or completion on an experiment run.",
     parameters: {
       type: "object",
       properties: {
-        taskUuid: { type: "string", description: "Task UUID" },
+        taskUuid: { type: "string", description: "Experiment Run UUID (legacy parameter name)" },
         report: { type: "string", description: "Work report content" },
         status: { type: "string", description: "Optional: update status at the same time (in_progress | to_verify)" },
         sessionUuid: { type: "string", description: "Session UUID for sub-agent identification" },
@@ -65,11 +65,11 @@ export function registerDevTools(api: any, mcpClient: SynapseMcpClient) {
 
   api.registerTool({
     name: "synapse_submit_for_verify",
-    description: "Submit task for human verification (in_progress -> to_verify)",
+    description: "Submit an experiment run for human verification (in_progress -> to_verify).",
     parameters: {
       type: "object",
       properties: {
-        taskUuid: { type: "string", description: "Task UUID" },
+        taskUuid: { type: "string", description: "Experiment Run UUID (legacy parameter name)" },
         summary: { type: "string", description: "Work summary" },
       },
       required: ["taskUuid"],
@@ -85,11 +85,11 @@ export function registerDevTools(api: any, mcpClient: SynapseMcpClient) {
 
   api.registerTool({
     name: "synapse_report_criteria_self_check",
-    description: "Report self-check results on acceptance criteria for a task you're working on. For required criteria, keep working until all pass. Only mark optional criteria as failed if out of scope.",
+    description: "Report self-check results on acceptance criteria for an experiment run you're working on. For required criteria, keep working until all pass. Only mark optional criteria as failed if out of scope.",
     parameters: {
       type: "object",
       properties: {
-        taskUuid: { type: "string", description: "Task UUID" },
+        taskUuid: { type: "string", description: "Experiment Run UUID (legacy parameter name)" },
         criteria: {
           type: "array",
           description: "Array of { uuid, devStatus: 'passed'|'failed', devEvidence?: string }",

@@ -2,7 +2,7 @@
 # on-pre-spawn-agent.sh — PreToolUse hook for Task (spawning sub-agents)
 # 1. Captures agent name + type from tool_input and writes a per-agent pending file
 #    (SubagentStart will claim this file atomically via mv)
-# 2. Reminds Team Lead to pass Synapse task info to sub-agents.
+# 2. Reminds Team Lead to pass Synapse experiment-run info to sub-agents.
 #
 # Concurrency safety: Each PreToolUse writes a separate file under .synapse/pending/
 # so parallel spawns never contend on a shared file. SubagentStart claims files

@@ -222,14 +222,14 @@ The plugin manages session lifecycle (heartbeat, close). Do NOT call synapse_cre
 3. Report progress: synapse_report_work({ runUuid: \"<RUN_UUID>\", report: \"...\", sessionUuid: \"${SESSION_UUID}\" })
 
 **After completing:**
-4. Self-check acceptance criteria (if the task has structured criteria):
+4. Self-check acceptance criteria (if the experiment run has structured criteria):
    Call synapse_get_experiment_run to see acceptanceCriteriaItems, then self-check each criterion as passed.
    For required criteria, keep working until all pass. Only mark optional criteria as failed if out of scope.
    synapse_report_criteria_self_check({ runUuid: \"<RUN_UUID>\", criteria: [{ uuid: \"<CRITERION_UUID>\", devStatus: \"passed\", devEvidence: \"...\" }] })
 5. Check out: synapse_session_checkout_experiment_run({ sessionUuid: \"${SESSION_UUID}\", runUuid: \"<RUN_UUID>\" })
 6. Submit: synapse_submit_for_verify({ runUuid: \"<RUN_UUID>\", summary: \"...\" })
 
-Replace <TASK_UUID> with the actual Synapse task UUID from your prompt.${OWNER_SECTION}"
+Replace <RUN_UUID> with the actual Synapse experiment-run UUID from your prompt.${OWNER_SECTION}"
 
 "$API" hook-output \
   "Synapse session ${SESSION_ACTION}: '${SESSION_NAME}' (${SESSION_UUID:0:8}...)" \
