@@ -12,9 +12,9 @@ import { registerAdminTools } from "./tools/admin-tools.js";
 import { registerSynapseCommands } from "./commands.js";
 
 /**
- * Trigger the OpenClaw agent by posting a system event to the gateway's
- * /hooks/wake endpoint. This enqueues the text into the agent's prompt
- * and triggers an immediate heartbeat so the agent processes it right away.
+ * Trigger the OpenClaw agent by dispatching an isolated agent turn through
+ * the gateway's /hooks/agent endpoint. This treats the Synapse assignment as
+ * a primary prompt instead of a side-channel wake event.
  */
 async function wakeAgent(
   gatewayUrl: string,
@@ -23,13 +23,18 @@ async function wakeAgent(
   logger: { info: (msg: string) => void; warn: (msg: string) => void },
 ) {
   try {
-    const res = await fetch(`${gatewayUrl}/hooks/wake`, {
+    const res = await fetch(`${gatewayUrl}/hooks/agent`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${hooksToken}`,
       },
-      body: JSON.stringify({ text, mode: "now" }),
+      body: JSON.stringify({
+        message: text,
+        name: "Synapse",
+        wakeMode: "now",
+        deliver: false,
+      }),
     });
     if (!res.ok) {
       logger.warn(`Wake agent failed: HTTP ${res.status}`);
@@ -88,12 +93,12 @@ const plugin = {
       config,
       logger,
       triggerAgent: (message: string, _metadata?: Record<string, unknown>) => {
-        // Use /hooks/wake to enqueue a system event + trigger immediate heartbeat
+        // Use /hooks/agent to create an isolated agent turn for Synapse work.
         if (hooksToken) {
           wakeAgent(gatewayUrl, hooksToken, message, logger);
         } else {
           logger.warn(
-            `[Synapse] Cannot wake agent — gateway.auth.token not configured. Event: ${message.slice(0, 100)}`
+            `[Synapse] Cannot wake agent — hooks.token not configured. Event: ${message.slice(0, 100)}`
           );
         }
       },

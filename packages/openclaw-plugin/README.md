@@ -34,9 +34,9 @@ Synapse Server
   │     │                      │    maps event → action
   │     └──────────┬───────────┘
   │                │
-  │     ┌──────────▼───────────┐      POST /hooks/wake
+  │     ┌──────────▼───────────┐      POST /hooks/agent
   │     │  Agent Trigger       │ ──────────────────────►  OpenClaw Agent
-  │     └──────────────────────┘      (immediate heartbeat)
+  │     └──────────────────────┘      (isolated agent turn)
   │
   ├── MCP (POST /api/mcp)
   │     40 Synapse MCP tools available as native
@@ -49,7 +49,7 @@ Synapse Server
 
 - **MCP Client, not REST** — Uses `@modelcontextprotocol/sdk` to call Synapse MCP tools directly. Zero Synapse-side code changes needed. 40 tools registered out of the box. When Synapse adds new MCP tools, adding them to the plugin is a one-liner.
 - **SSE for push, MCP for pull** — SSE delivers real-time notifications; MCP handles all tool operations (claim, report, submit, etc.).
-- **Hooks-based agent wake** — Uses OpenClaw's `/hooks/wake` API to inject system events and trigger immediate heartbeats when Synapse events arrive.
+- **Hooks-based agent wake** — Uses OpenClaw's `/hooks/agent` API to start an isolated agent turn when Synapse events arrive.
 
 ## Prerequisites
 
@@ -116,7 +116,7 @@ Add the plugin entry to `~/.openclaw/openclaw.json`:
 
 The plugin reads these from the main OpenClaw config:
 
-- **`hooks.enabled`** must be `true` — required for agent wake via `/hooks/wake`
+- **`hooks.enabled`** must be `true` — required for agent wake via `/hooks/agent`
 - **`hooks.token`** — shared secret for hook authentication (must differ from `gateway.auth.token`)
 - **`gateway.port`** — defaults to `18789`
 
