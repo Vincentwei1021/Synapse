@@ -19,134 +19,109 @@ import * as hypothesisFormulationService from "@/services/hypothesis-formulation
 import * as projectGroupService from "@/services/project-group.service";
 import * as mentionService from "@/services/mention.service";
 import { prisma } from "@/lib/prisma";
+import {
+  createCompatAliasTool,
+  defineCompatAliasTools,
+  jsonTextResult,
+  notFoundTextResult,
+  registerCompatAliasTools,
+} from "./compat-alias-tools";
 
 export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
   // Compatibility aliases ----------------------------------------------------
-
-  server.registerTool(
-    "synapse_get_project",
-    {
+  const compatibilityAliasTools = defineCompatAliasTools([
+    createCompatAliasTool({
+      name: "synapse_get_project",
       description: "Compatibility alias for synapse_get_research_project.",
       inputSchema: z.object({
         projectUuid: z.string().describe("Research Project UUID"),
       }),
-    },
-    async ({ projectUuid }) => {
-      const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, projectUuid);
-      if (!project) {
-        return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
-      }
-      return {
-        content: [{ type: "text", text: JSON.stringify(project, null, 2) }],
-      };
-    }
-  );
-
-  server.registerTool(
-    "synapse_list_projects",
-    {
+      async execute({ projectUuid }) {
+        const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, projectUuid);
+        return project ? jsonTextResult(project) : notFoundTextResult("Research Project");
+      },
+    }),
+    createCompatAliasTool({
+      name: "synapse_list_projects",
       description: "Compatibility alias for synapse_list_research_projects.",
       inputSchema: z.object({
         page: z.number().default(1).describe("Page number"),
         pageSize: z.number().default(20).describe("Items per page"),
       }),
-    },
-    async ({ page, pageSize }) => {
-      const skip = (page - 1) * pageSize;
-      const result = await researchProjectService.listResearchProjects({
-        companyUuid: auth.companyUuid,
-        skip,
-        take: pageSize,
-      });
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-      };
-    }
-  );
-
-  server.registerTool(
-    "synapse_get_idea",
-    {
+      async execute({ page, pageSize }) {
+        const skip = (page - 1) * pageSize;
+        const result = await researchProjectService.listResearchProjects({
+          companyUuid: auth.companyUuid,
+          skip,
+          take: pageSize,
+        });
+        return jsonTextResult(result);
+      },
+    }),
+    createCompatAliasTool({
+      name: "synapse_get_idea",
       description: "Compatibility alias for synapse_get_research_question.",
       inputSchema: z.object({
         ideaUuid: z.string().describe("Research Question UUID"),
       }),
-    },
-    async ({ ideaUuid }) => {
-      const researchQuestion = await researchQuestionService.getResearchQuestion(auth.companyUuid, ideaUuid);
-      if (!researchQuestion) {
-        return { content: [{ type: "text", text: "Research Question not found" }], isError: true };
-      }
-      return {
-        content: [{ type: "text", text: JSON.stringify(researchQuestion, null, 2) }],
-      };
-    }
-  );
-
-  server.registerTool(
-    "synapse_get_task",
-    {
+      async execute({ ideaUuid }) {
+        const researchQuestion = await researchQuestionService.getResearchQuestion(auth.companyUuid, ideaUuid);
+        return researchQuestion
+          ? jsonTextResult(researchQuestion)
+          : notFoundTextResult("Research Question");
+      },
+    }),
+    createCompatAliasTool({
+      name: "synapse_get_task",
       description: "Compatibility alias for synapse_get_experiment_run.",
       inputSchema: z.object({
         taskUuid: z.string().describe("Experiment Run UUID"),
       }),
-    },
-    async ({ taskUuid }) => {
-      const experimentRun = await experimentRunService.getExperimentRun(auth.companyUuid, taskUuid);
-      if (!experimentRun) {
-        return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
-      }
-      return {
-        content: [{ type: "text", text: JSON.stringify(experimentRun, null, 2) }],
-      };
-    }
-  );
-
-  server.registerTool(
-    "synapse_get_proposal",
-    {
+      async execute({ taskUuid }) {
+        const experimentRun = await experimentRunService.getExperimentRun(auth.companyUuid, taskUuid);
+        return experimentRun
+          ? jsonTextResult(experimentRun)
+          : notFoundTextResult("Experiment Run");
+      },
+    }),
+    createCompatAliasTool({
+      name: "synapse_get_proposal",
       description: "Compatibility alias for synapse_get_experiment_design.",
       inputSchema: z.object({
         proposalUuid: z.string().describe("Experiment Design UUID"),
       }),
-    },
-    async ({ proposalUuid }) => {
-      const experimentDesign = await experimentDesignService.getExperimentDesign(auth.companyUuid, proposalUuid);
-      if (!experimentDesign) {
-        return { content: [{ type: "text", text: "Experiment Design not found" }], isError: true };
-      }
-      return {
-        content: [{ type: "text", text: JSON.stringify(experimentDesign, null, 2) }],
-      };
-    }
-  );
-
-  server.registerTool(
-    "synapse_get_unblocked_tasks",
-    {
+      async execute({ proposalUuid }) {
+        const experimentDesign = await experimentDesignService.getExperimentDesign(auth.companyUuid, proposalUuid);
+        return experimentDesign
+          ? jsonTextResult(experimentDesign)
+          : notFoundTextResult("Experiment Design");
+      },
+    }),
+    createCompatAliasTool({
+      name: "synapse_get_unblocked_tasks",
       description: "Compatibility alias for synapse_get_unblocked_experiment_runs.",
       inputSchema: z.object({
         projectUuid: z.string().describe("Research Project UUID"),
         proposalUuids: z.array(z.string()).optional().describe("Filter by Experiment Design UUIDs"),
       }),
-    },
-    async ({ projectUuid, proposalUuids }) => {
-      const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, projectUuid);
-      if (!project) {
-        return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
-      }
+      async execute({ projectUuid, proposalUuids }) {
+        const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, projectUuid);
+        if (!project) {
+          return notFoundTextResult("Research Project");
+        }
 
-      const { tasks, total } = await experimentRunService.getUnblockedExperimentRuns({
-        companyUuid: auth.companyUuid,
-        researchProjectUuid: projectUuid,
-        experimentDesignUuids: proposalUuids,
-      });
+        const { tasks, total } = await experimentRunService.getUnblockedExperimentRuns({
+          companyUuid: auth.companyUuid,
+          researchProjectUuid: projectUuid,
+          experimentDesignUuids: proposalUuids,
+        });
 
-      return {
-        content: [{ type: "text", text: JSON.stringify({ tasks, total }, null, 2) }],
-      };
-    }
-  );
+        return jsonTextResult({ tasks, total });
+      },
+    }),
+  ]);
+
+  registerCompatAliasTools(server, compatibilityAliasTools);
 
   // synapse_get_research_project - Get research project details and context
   server.registerTool(
