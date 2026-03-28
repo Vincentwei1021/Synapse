@@ -218,12 +218,10 @@ export function GroupSection({
   group,
   projects,
   stats,
-  onNewProject,
 }: {
   group: ProjectGroupData;
   projects: ProjectData[];
   stats: GroupStats;
-  onNewProject: () => void;
 }) {
   const t = useTranslations();
   const [isOpen, setIsOpen] = useState(false);
@@ -289,10 +287,12 @@ export function GroupSection({
                     variant="outline"
                     size="sm"
                     className="w-full border-border text-xs md:w-auto"
-                    onClick={onNewProject}
+                    asChild
                   >
-                    <Plus className="mr-1 h-3 w-3" />
-                    {t("projects.newProject")}
+                    <Link href="/research-projects/new">
+                      <Plus className="mr-1 h-3 w-3" />
+                      {t("projects.newProject")}
+                    </Link>
                   </Button>
                 </div>
               </div>
@@ -319,10 +319,8 @@ export function GroupSection({
 
 export function UngroupedSection({
   projects,
-  onNewProject,
 }: {
   projects: ProjectData[];
-  onNewProject: () => void;
 }) {
   const t = useTranslations();
   const [isOpen, setIsOpen] = useState(false);
@@ -372,10 +370,12 @@ export function UngroupedSection({
                     variant="outline"
                     size="sm"
                     className={`ml-2 shrink-0 border-border text-xs md:inline-flex ${isOpen ? "inline-flex" : "hidden"}`}
-                    onClick={onNewProject}
+                    asChild
                   >
-                    <Plus className="mr-1 h-3 w-3" />
-                    {t("projects.newProject")}
+                    <Link href="/research-projects/new">
+                      <Plus className="mr-1 h-3 w-3" />
+                      {t("projects.newProject")}
+                    </Link>
                   </Button>
                 </div>
 

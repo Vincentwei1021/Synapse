@@ -5,7 +5,6 @@ import { DragDropContext, type DropResult } from "@hello-pangea/dnd";
 import { useTranslations } from "next-intl";
 import { MoveProjectConfirmDialog } from "@/components/move-research-project-confirm-dialog";
 import { CreateProjectGroupDialog } from "@/components/create-project-group-dialog";
-import { CreateProjectDialog } from "@/components/create-research-project-dialog";
 import {
   GroupSection,
   ProjectsEmptyState,
@@ -22,10 +21,6 @@ import { useResearchProjectsPageData } from "./use-research-projects-page-data";
 export default function ProjectsPage() {
   const t = useTranslations();
   const [showCreateGroup, setShowCreateGroup] = useState(false);
-  const [createResearchProjectTarget, setCreateProjectTarget] = useState<{
-    groupUuid: string | null;
-    groupName: string;
-  } | null>(null);
 
   const getGroupName = (groupUuid: string | null) => {
     if (!groupUuid) return t("projectGroups.ungrouped");
@@ -113,14 +108,12 @@ export default function ProjectsPage() {
                     group={group}
                     projects={groupProjects}
                     stats={stats}
-                    onNewProject={() => setCreateProjectTarget({ groupUuid: group.uuid, groupName: group.name })}
                   />
                 );
               })}
 
               <UngroupedSection
                 projects={ungroupedProjects}
-                onNewProject={() => setCreateProjectTarget({ groupUuid: null, groupName: t("projectGroups.ungrouped") })}
               />
             </div>
           )}
@@ -143,19 +136,6 @@ export default function ProjectsPage() {
         onOpenChange={setShowCreateGroup}
         onCreated={() => {
           setShowCreateGroup(false);
-          refresh();
-        }}
-      />
-
-      <CreateProjectDialog
-        open={createResearchProjectTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setCreateProjectTarget(null);
-        }}
-        groupUuid={createResearchProjectTarget?.groupUuid ?? null}
-        groupName={createResearchProjectTarget?.groupName ?? ""}
-        onCreated={() => {
-          setCreateProjectTarget(null);
           refresh();
         }}
       />
