@@ -131,6 +131,7 @@ model ResearchProject {
   latestSynthesisIdeaCount Int?
   latestSynthesisSummary String?
   groupUuid            String? // nullable FK -> ProjectGroup.uuid
+  computePoolUuid      String?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -143,6 +144,7 @@ model ResearchProject {
 
   @@index([companyUuid])
   @@index([groupUuid])
+  @@index([computePoolUuid])
   @@map("Project")
 }
 
@@ -246,10 +248,14 @@ model Experiment {
   reviewedAt          DateTime?
   startedAt           DateTime?
   completedAt         DateTime?
+  liveStatus    String?
+  liveMessage   String?
+  liveUpdatedAt DateTime?
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
 
   gpuReservations ExperimentGpuReservation[]
+  progressLogs ExperimentProgressLog[]
 
   @@index([companyUuid])
   @@index([researchProjectUuid])
@@ -564,6 +570,21 @@ model ExperimentGpuReservation {
   @@index([gpuUuid, releasedAt])
 }
 
+model ExperimentProgressLog {
+  id             Int        @id @default(autoincrement())
+  uuid           String     @unique @default(uuid())
+  companyUuid    String
+  experimentUuid String
+  experiment     Experiment @relation(fields: [experimentUuid], references: [uuid], onDelete: Cascade)
+  message        String
+  phase          String?
+  actorUuid      String
+  createdAt      DateTime   @default(now())
+
+  @@index([experimentUuid, createdAt])
+  @@index([companyUuid])
+}
+
 // Session-Run checkin relation (many-to-many)
 model SessionRunCheckin {
   id          Int           @id @default(autoincrement())
@@ -631,6 +652,7 @@ model NotificationPreference {
   commentAdded                   Boolean  @default(true)
   hypothesisFormulationRequested Boolean  @default(true) @map("elaborationRequested")
   hypothesisFormulationAnswered  Boolean  @default(true) @map("elaborationAnswered")
+  experimentCompleted            Boolean  @default(true)
   mentioned                      Boolean  @default(true)
   createdAt                      DateTime @default(now())
   updatedAt                      DateTime @updatedAt
