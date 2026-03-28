@@ -20,13 +20,11 @@ import {
   Rocket,
   Bell,
   ChevronDown,
-  ChevronRight,
 } from "lucide-react";
 import { createResearchProjectAction } from "./actions";
 import {
   Collapsible,
   CollapsibleContent,
-  CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 
 interface UploadedFile {
@@ -44,7 +42,6 @@ export default function NewProjectPage() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    goal: "",
     datasets: "",
     evaluationMethods: "",
   });
@@ -144,7 +141,6 @@ export default function NewProjectPage() {
       const result = await createResearchProjectAction({
         name: formData.name,
         description: formData.description,
-        goal: formData.goal,
         datasets: formData.datasets
           .split(/\r?\n/)
           .map((item) => item.trim())
@@ -266,23 +262,6 @@ export default function NewProjectPage() {
                 />
               </div>
 
-              <div className="pl-12">
-                <Separator className="bg-[#E5E2DC]" />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="goal">{t("projects.createNew.goalLabel")}</Label>
-                <Textarea
-                  id="goal"
-                  value={formData.goal}
-                  onChange={(e) =>
-                    setFormData({ ...formData, goal: e.target.value })
-                  }
-                  placeholder={t("projects.createNew.goalPlaceholder")}
-                  rows={3}
-                />
-              </div>
-
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="datasets">{t("projects.createNew.datasetsLabel")}</Label>
@@ -319,7 +298,10 @@ export default function NewProjectPage() {
           {/* Step 2: Initial Ideas Card */}
           <Collapsible open={ideasOpen} onOpenChange={setIdeasOpen}>
             <Card className="overflow-hidden rounded-2xl border-l-3 border-l-[#C67A52] border-t-0 border-r-0 border-b-0 shadow-none">
-              <CardHeader className="pb-4">
+              <CardHeader
+                className="cursor-pointer pb-4"
+                onClick={() => setIdeasOpen(!ideasOpen)}
+              >
                 <div className="flex items-center justify-between gap-3">
                   <CardTitle className="flex items-center gap-2 text-sm font-medium">
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#C67A52] text-[11px] font-semibold text-white">
@@ -328,24 +310,11 @@ export default function NewProjectPage() {
                     <Lightbulb className="h-4 w-4 text-[#C67A52]" />
                     {t("projects.createNew.initialIdeas")}
                   </CardTitle>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[11px] text-muted-foreground">{t("common.optional")}</span>
-                    <CollapsibleTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
-                      >
-                        {ideasOpen ? (
-                          <ChevronDown className="h-3.5 w-3.5" />
-                        ) : (
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        )}
-                        {ideasOpen ? t("common.collapse") : t("common.expand")}
-                      </Button>
-                    </CollapsibleTrigger>
-                  </div>
+                  <ChevronDown
+                    className={`h-4 w-4 text-muted-foreground transition-transform ${
+                      ideasOpen ? "rotate-180" : ""
+                    }`}
+                  />
                 </div>
               </CardHeader>
               <CollapsibleContent>
@@ -397,7 +366,10 @@ export default function NewProjectPage() {
           {/* Step 3: Documents Card */}
           <Collapsible open={documentsOpen} onOpenChange={setDocumentsOpen}>
             <Card className="overflow-hidden rounded-2xl border-l-3 border-l-[#C67A52] border-t-0 border-r-0 border-b-0 shadow-none">
-              <CardHeader className="pb-4">
+              <CardHeader
+                className="cursor-pointer pb-4"
+                onClick={() => setDocumentsOpen(!documentsOpen)}
+              >
                 <div className="flex items-center justify-between gap-3">
                   <CardTitle className="flex items-center gap-2 text-sm font-medium">
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#C67A52] text-[11px] font-semibold text-white">
@@ -406,24 +378,11 @@ export default function NewProjectPage() {
                     <FolderOpen className="h-4 w-4 text-[#C67A52]" />
                     {t("projects.createNew.documents")}
                   </CardTitle>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[11px] text-muted-foreground">{t("common.optional")}</span>
-                    <CollapsibleTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
-                      >
-                        {documentsOpen ? (
-                          <ChevronDown className="h-3.5 w-3.5" />
-                        ) : (
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        )}
-                        {documentsOpen ? t("common.collapse") : t("common.expand")}
-                      </Button>
-                    </CollapsibleTrigger>
-                  </div>
+                  <ChevronDown
+                    className={`h-4 w-4 text-muted-foreground transition-transform ${
+                      documentsOpen ? "rotate-180" : ""
+                    }`}
+                  />
                 </div>
               </CardHeader>
               <CollapsibleContent>
