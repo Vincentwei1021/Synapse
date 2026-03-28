@@ -17,9 +17,11 @@ const mockPrisma = vi.hoisted(() => ({
   },
   experimentDesign: {
     groupBy: vi.fn(),
+    findMany: vi.fn(),
   },
   experimentRun: {
     groupBy: vi.fn(),
+    findMany: vi.fn(),
   },
   researchQuestion: {
     count: vi.fn(),
@@ -29,6 +31,7 @@ const mockPrisma = vi.hoisted(() => ({
   document: {
     count: vi.fn(),
     groupBy: vi.fn(),
+    findMany: vi.fn(),
   },
 }));
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
@@ -43,7 +46,9 @@ import {
   researchProjectExists,
   getResearchProjectByUuid,
   getResearchProjectDashboardData,
+  getResearchProjectExportData,
   getCompanyOverviewStats,
+  getResearchProjectInsightsData,
   getResearchProjectStats,
   listResearchProjectsWithStats,
 } from "@/services/research-project.service";
@@ -258,6 +263,86 @@ describe("getResearchProjectDashboardData", () => {
     mockPrisma.researchQuestion.findMany = vi.fn().mockResolvedValue([]);
 
     const result = await getResearchProjectDashboardData(companyUuid, "missing");
+
+    expect(result).toBeNull();
+  });
+});
+
+describe("getResearchProjectInsightsData", () => {
+  it("should return synthesis metadata and recent completed experiments", async () => {
+    mockPrisma.researchProject.findFirst.mockResolvedValue(
+      makeProject({
+        latestSynthesisAt: now,
+        latestSynthesisIdeaCount: 4,
+        latestSynthesisSummary: "Summary",
+      }),
+    );
+    mockPrisma.experiment.findMany.mockResolvedValue([
+      {
+        uuid: "exp-1",
+        title: "Completed experiment",
+        outcome: "accepted",
+        completedAt: now,
+        researchQuestion: { title: "Question A" },
+      },
+    ]);
+
+    const result = await getResearchProjectInsightsData(companyUuid, researchProjectUuid);
+
+    expect(result).not.toBeNull();
+    expect(result!.project.latestSynthesisIdeaCount).toBe(4);
+    expect(result!.completedExperiments).toHaveLength(1);
+  });
+
+  it("should return null when project is missing", async () => {
+    mockPrisma.researchProject.findFirst.mockResolvedValue(null);
+    mockPrisma.experiment.findMany.mockResolvedValue([]);
+
+    const result = await getResearchProjectInsightsData(companyUuid, "missing");
+
+    expect(result).toBeNull();
+  });
+});
+
+describe("getResearchProjectExportData", () => {
+  it("should return export data bundles for an existing project", async () => {
+    mockPrisma.researchProject.findFirst.mockResolvedValue(makeProject());
+    mockPrisma.experimentDesign.findMany.mockResolvedValue([
+      { uuid: "design-1", title: "Design 1" },
+    ]);
+    mockPrisma.researchQuestion.findMany.mockResolvedValue([
+      { uuid: "rq-1", title: "Question 1", status: "open" },
+    ]);
+    mockPrisma.experimentRun.findMany.mockResolvedValue([
+      {
+        uuid: "run-1",
+        title: "Run 1",
+        experimentDesignUuid: "design-1",
+        experimentResults: { accuracy: 0.9 },
+        outcome: "accepted",
+      },
+    ]);
+    mockPrisma.document.findMany.mockResolvedValue([
+      { title: "RDR 1", content: "Decision", createdAt: now },
+    ]);
+
+    const result = await getResearchProjectExportData(companyUuid, researchProjectUuid);
+
+    expect(result).not.toBeNull();
+    expect(result!.designs).toHaveLength(1);
+    expect(result!.questions).toHaveLength(1);
+    expect(result!.runs).toHaveLength(1);
+    expect(result!.rdrDocs).toHaveLength(1);
+  });
+
+  it("should return null when project is missing", async () => {
+    mockPrisma.researchProject.findFirst.mockResolvedValue(null);
+    mockPrisma.experimentDesign.findMany.mockResolvedValue([]);
+    mockPrisma.researchQuestion.findMany.mockResolvedValue([]);
+    mockPrisma.experimentRun.findMany.mockResolvedValue([]);
+    mockPrisma.document.findMany.mockResolvedValue([]);
+
+    const result = await getResearchProjectExportData(companyUuid, "missing");
 
     expect(result).toBeNull();
   });

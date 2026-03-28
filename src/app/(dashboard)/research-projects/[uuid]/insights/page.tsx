@@ -3,9 +3,8 @@ import { getTranslations } from "next-intl/server";
 import { Card } from "@/components/ui/card";
 import { MarkdownContent } from "@/components/markdown-content";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { prisma } from "@/lib/prisma";
 import { getLatestProjectSynthesisDocument } from "@/services/project-synthesis.service";
-import { researchProjectExists } from "@/services/research-project.service";
+import { getResearchProjectInsightsData } from "@/services/research-project.service";
 
 interface PageProps {
   params: Promise<{ uuid: string }>;
@@ -18,43 +17,17 @@ export default async function InsightsPage({ params }: PageProps) {
   }
 
   const { uuid: projectUuid } = await params;
-  const exists = await researchProjectExists(auth.companyUuid, projectUuid);
-  if (!exists) {
+  const t = await getTranslations();
+  const [insightsData, synthesis] = await Promise.all([
+    getResearchProjectInsightsData(auth.companyUuid, projectUuid),
+    getLatestProjectSynthesisDocument(auth.companyUuid, projectUuid),
+  ]);
+
+  if (!insightsData) {
     redirect("/research-projects");
   }
 
-  const t = await getTranslations();
-  const [project, synthesis, completedExperiments] = await Promise.all([
-    prisma.researchProject.findUniqueOrThrow({
-      where: { uuid: projectUuid },
-      select: {
-        latestSynthesisAt: true,
-        latestSynthesisIdeaCount: true,
-        latestSynthesisSummary: true,
-      },
-    }),
-    getLatestProjectSynthesisDocument(auth.companyUuid, projectUuid),
-    prisma.experiment.findMany({
-      where: {
-        companyUuid: auth.companyUuid,
-        researchProjectUuid: projectUuid,
-        status: "completed",
-      },
-      orderBy: { completedAt: "desc" },
-      take: 8,
-      select: {
-        uuid: true,
-        title: true,
-        outcome: true,
-        completedAt: true,
-        researchQuestion: {
-          select: {
-            title: true,
-          },
-        },
-      },
-    }),
-  ]);
+  const { project, completedExperiments } = insightsData;
 
   return (
     <div className="space-y-6 p-4 md:p-8">

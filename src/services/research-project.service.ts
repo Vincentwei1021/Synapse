@@ -47,6 +47,37 @@ export interface ResearchProjectDashboardData {
   }>;
 }
 
+export interface ResearchProjectInsightsData {
+  project: {
+    latestSynthesisAt: Date | null;
+    latestSynthesisIdeaCount: number | null;
+    latestSynthesisSummary: string | null;
+  };
+  completedExperiments: Array<{
+    uuid: string;
+    title: string;
+    outcome: string | null;
+    completedAt: Date | null;
+    researchQuestion: {
+      title: string;
+    } | null;
+  }>;
+}
+
+export interface ResearchProjectExportData {
+  project: NonNullable<Awaited<ReturnType<typeof getResearchProject>>>;
+  designs: Array<{ uuid: string; title: string }>;
+  questions: Array<{ uuid: string; title: string; status: string }>;
+  runs: Array<{
+    uuid: string;
+    title: string;
+    experimentDesignUuid: string | null;
+    experimentResults: unknown;
+    outcome: string | null;
+  }>;
+  rdrDocs: Array<{ title: string; content: string | null; createdAt: Date }>;
+}
+
 export async function listResearchProjects({ companyUuid, skip, take }: ResearchProjectListParams) {
   const [projects, total] = await Promise.all([
     prisma.researchProject.findMany({
@@ -340,5 +371,106 @@ export async function getResearchProjectDashboardData(
     stats,
     recentExperiments,
     recentQuestions,
+  };
+}
+
+export async function getResearchProjectInsightsData(
+  companyUuid: string,
+  researchProjectUuid: string,
+): Promise<ResearchProjectInsightsData | null> {
+  const [project, completedExperiments] = await Promise.all([
+    prisma.researchProject.findFirst({
+      where: { uuid: researchProjectUuid, companyUuid },
+      select: {
+        latestSynthesisAt: true,
+        latestSynthesisIdeaCount: true,
+        latestSynthesisSummary: true,
+      },
+    }),
+    prisma.experiment.findMany({
+      where: {
+        companyUuid,
+        researchProjectUuid,
+        status: "completed",
+      },
+      orderBy: { completedAt: "desc" },
+      take: 8,
+      select: {
+        uuid: true,
+        title: true,
+        outcome: true,
+        completedAt: true,
+        researchQuestion: {
+          select: {
+            title: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  if (!project) {
+    return null;
+  }
+
+  return {
+    project,
+    completedExperiments,
+  };
+}
+
+export async function getResearchProjectExportData(
+  companyUuid: string,
+  researchProjectUuid: string,
+): Promise<ResearchProjectExportData | null> {
+  const [project, designs, questions, runs, rdrDocs] = await Promise.all([
+    getResearchProject(companyUuid, researchProjectUuid),
+    prisma.experimentDesign.findMany({
+      where: {
+        companyUuid,
+        researchProjectUuid,
+      },
+      select: { uuid: true, title: true },
+    }),
+    prisma.researchQuestion.findMany({
+      where: {
+        companyUuid,
+        researchProjectUuid,
+      },
+      select: { uuid: true, title: true, status: true },
+    }),
+    prisma.experimentRun.findMany({
+      where: {
+        companyUuid,
+        researchProjectUuid,
+      },
+      select: {
+        uuid: true,
+        title: true,
+        experimentDesignUuid: true,
+        experimentResults: true,
+        outcome: true,
+      },
+    }),
+    prisma.document.findMany({
+      where: {
+        companyUuid,
+        researchProjectUuid,
+        type: "rdr",
+      },
+      select: { title: true, content: true, createdAt: true },
+    }),
+  ]);
+
+  if (!project) {
+    return null;
+  }
+
+  return {
+    project,
+    designs,
+    questions,
+    runs,
+    rdrDocs,
   };
 }

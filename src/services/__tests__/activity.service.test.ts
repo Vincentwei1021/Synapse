@@ -17,9 +17,9 @@ const mockEventBus = vi.hoisted(() => ({
 vi.mock("@/lib/event-bus", () => ({ eventBus: mockEventBus }));
 
 // ===== UUID resolver mock =====
-const mockGetActorName = vi.fn();
+const mockBatchGetActorNames = vi.fn();
 vi.mock("@/lib/uuid-resolver", () => ({
-  getActorName: (...args: unknown[]) => mockGetActorName(...args),
+  batchGetActorNames: (...args: unknown[]) => mockBatchGetActorNames(...args),
 }));
 
 import {
@@ -56,7 +56,7 @@ function makeActivity(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockGetActorName.mockResolvedValue("Test User");
+  mockBatchGetActorNames.mockResolvedValue(new Map([[actorUuid, "Test User"]]));
 });
 
 // ===== listActivities =====
@@ -158,7 +158,7 @@ describe("listActivitiesWithActorNames", () => {
     const activity = makeActivity();
     mockPrisma.activity.findMany.mockResolvedValue([activity]);
     mockPrisma.activity.count.mockResolvedValue(1);
-    mockGetActorName.mockResolvedValue("John Doe");
+    mockBatchGetActorNames.mockResolvedValue(new Map([[actorUuid, "John Doe"]]));
 
     const result = await listActivitiesWithActorNames({
       companyUuid,
@@ -170,14 +170,14 @@ describe("listActivitiesWithActorNames", () => {
     expect(result.activities).toHaveLength(1);
     expect(result.activities[0].actorName).toBe("John Doe");
     expect(result.activities[0].createdAt).toBe(now.toISOString());
-    expect(mockGetActorName).toHaveBeenCalledWith("user", actorUuid);
+    expect(mockBatchGetActorNames).toHaveBeenCalledWith([{ type: "user", uuid: actorUuid }]);
   });
 
   it("should use 'Unknown' when actor name is null", async () => {
     const activity = makeActivity();
     mockPrisma.activity.findMany.mockResolvedValue([activity]);
     mockPrisma.activity.count.mockResolvedValue(1);
-    mockGetActorName.mockResolvedValue(null);
+    mockBatchGetActorNames.mockResolvedValue(new Map());
 
     const result = await listActivitiesWithActorNames({
       companyUuid,
@@ -216,8 +216,12 @@ describe("listActivitiesWithActorNames", () => {
     ];
     mockPrisma.activity.findMany.mockResolvedValue(activities);
     mockPrisma.activity.count.mockResolvedValue(3);
-    mockGetActorName.mockImplementation((type, uuid) =>
-      Promise.resolve(`${type}-${uuid}`)
+    mockBatchGetActorNames.mockResolvedValue(
+      new Map([
+        ["user-1", "user-user-1"],
+        ["user-2", "user-user-2"],
+        ["agent-1", "agent-agent-1"],
+      ]),
     );
 
     const result = await listActivitiesWithActorNames({
@@ -228,7 +232,7 @@ describe("listActivitiesWithActorNames", () => {
     });
 
     expect(result.activities).toHaveLength(3);
-    expect(mockGetActorName).toHaveBeenCalledTimes(3);
+    expect(mockBatchGetActorNames).toHaveBeenCalledTimes(1);
     expect(result.activities[0].actorName).toBe("user-user-1");
     expect(result.activities[2].actorName).toBe("agent-agent-1");
   });

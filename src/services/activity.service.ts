@@ -4,7 +4,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { eventBus } from "@/lib/event-bus";
-import { getActorName } from "@/lib/uuid-resolver";
+import { batchGetActorNames } from "@/lib/uuid-resolver";
 
 export type TargetType = "research_question" | "experiment" | "experiment_run" | "experiment_design" | "document";
 
@@ -91,24 +91,25 @@ export async function listActivitiesWithActorNames(
 ): Promise<{ activities: ActivityResponse[]; total: number }> {
   const { activities: rawActivities, total } = await listActivities(params);
 
-  // Batch resolve actor names
-  const activities: ActivityResponse[] = await Promise.all(
-    rawActivities.map(async (activity) => {
-      const actorName = await getActorName(activity.actorType, activity.actorUuid);
-      return {
-        uuid: activity.uuid,
-        targetType: activity.targetType,
-        targetUuid: activity.targetUuid,
-        action: activity.action,
-        actorType: activity.actorType,
-        actorName: actorName || "Unknown",
-        value: activity.value,
-        sessionUuid: activity.sessionUuid,
-        sessionName: activity.sessionName,
-        createdAt: activity.createdAt.toISOString(),
-      };
-    })
+  const actorNames = await batchGetActorNames(
+    rawActivities.map((activity) => ({
+      type: activity.actorType,
+      uuid: activity.actorUuid,
+    })),
   );
+
+  const activities: ActivityResponse[] = rawActivities.map((activity) => ({
+    uuid: activity.uuid,
+    targetType: activity.targetType,
+    targetUuid: activity.targetUuid,
+    action: activity.action,
+    actorType: activity.actorType,
+    actorName: actorNames.get(activity.actorUuid) || "Unknown",
+    value: activity.value,
+    sessionUuid: activity.sessionUuid,
+    sessionName: activity.sessionName,
+    createdAt: activity.createdAt.toISOString(),
+  }));
 
   return { activities, total };
 }
