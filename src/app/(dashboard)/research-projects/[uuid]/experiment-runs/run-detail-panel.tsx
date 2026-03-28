@@ -3,23 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { X, Pencil, Bot, FileText, FlaskConical, Shield, GitBranch, Plus } from "lucide-react";
+import { X, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { updateExperimentRunStatusAction, createExperimentRunAction, updateExperimentRunFieldsAction, deleteExperimentRunAction } from "./[runUuid]/actions";
 import {
   getExperimentRunCommentsAction,
@@ -30,8 +17,6 @@ import {
   getRunSourceAction,
   type ProposalSource,
 } from "./[runUuid]/source-actions";
-import { Streamdown } from "streamdown";
-import { code } from "@streamdown/code";
 import type { MentionEditorRef } from "@/components/mention-editor";
 import { AssignTaskModal } from "./assign-run-modal";
 import {
@@ -49,10 +34,11 @@ import { RunDetailActivity } from "./run-detail-panel-activity";
 import { RunDetailComments } from "./run-detail-panel-comments";
 import { RunDetailCriteria } from "./run-detail-panel-criteria";
 import { RunDetailDependencies } from "./run-detail-panel-dependencies";
+import { RunDetailEditForm } from "./run-detail-panel-edit-form";
 import { RunDetailFooter } from "./run-detail-panel-footer";
+import { RunDetailOverview } from "./run-detail-panel-overview";
+import { RunDetailConfig } from "./run-detail-panel-config";
 import {
-  JsonKeyValue,
-  formatRelativeTime,
   priorityColors,
   priorityI18nKeys,
   statusColors,
@@ -392,152 +378,6 @@ export function TaskDetailPanel({
     t => !pendingDeps.some(d => d.uuid === t.uuid)
   );
 
-  // Render the edit/create form
-  const renderEditForm = () => (
-    <div className="space-y-5">
-      {editError && (
-        <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-          {editError}
-        </div>
-      )}
-
-      <div className="space-y-2">
-        <Label htmlFor="edit-title" className="text-[13px] font-medium text-[#2C2C2C]">
-          {t("tasks.titleLabel")}
-        </Label>
-        <Input
-          id="edit-title"
-          value={editTitle}
-          onChange={(e) => setEditTitle(e.target.value)}
-          className="border-[#E5E0D8] text-sm focus-visible:ring-[#C67A52]"
-          autoFocus
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="edit-description" className="text-[13px] font-medium text-[#2C2C2C]">
-          {t("tasks.descriptionLabel")}
-        </Label>
-        <Textarea
-          id="edit-description"
-          value={editDescription}
-          onChange={(e) => setEditDescription(e.target.value)}
-          rows={4}
-          className="border-[#E5E0D8] text-sm resize-none focus-visible:ring-[#C67A52]"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="edit-priority" className="text-[13px] font-medium text-[#2C2C2C]">
-          {t("tasks.priorityLabel")}
-        </Label>
-        <Select value={editPriority} onValueChange={setEditPriority}>
-          <SelectTrigger className="border-[#E5E0D8] text-sm focus:ring-[#C67A52]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="low">{t("priority.low")}</SelectItem>
-            <SelectItem value="medium">{t("priority.medium")}</SelectItem>
-            <SelectItem value="high">{t("priority.high")}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="edit-story-points" className="text-[13px] font-medium text-[#2C2C2C]">
-          {t("tasks.computeBudgetHoursLabel")}
-        </Label>
-        <Input
-          id="edit-story-points"
-          type="number"
-          min="0"
-          step="0.5"
-          value={editStoryPoints}
-          onChange={(e) => setEditStoryPoints(e.target.value)}
-          className="border-[#E5E0D8] text-sm focus-visible:ring-[#C67A52]"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="edit-acceptance-criteria" className="text-[13px] font-medium text-[#2C2C2C]">
-          {t("tasks.acceptanceCriteriaLabel")}
-        </Label>
-        <Textarea
-          id="edit-acceptance-criteria"
-          value={editAcceptanceCriteria}
-          onChange={(e) => setEditAcceptanceCriteria(e.target.value)}
-          rows={4}
-          className="border-[#E5E0D8] text-sm resize-none focus-visible:ring-[#C67A52]"
-        />
-      </div>
-
-      {/* Dependency picker for create mode */}
-      {isCreateMode && (
-        <div className="space-y-2">
-          <Label className="text-[13px] font-medium text-[#2C2C2C]">
-            {t("tasks.dependencies")}
-          </Label>
-
-          {/* Selected pending deps */}
-          {pendingDeps.length > 0 && (
-            <div className="space-y-1.5">
-              {pendingDeps.map((dep) => (
-                <div
-                  key={dep.uuid}
-                  className="group flex items-center justify-between rounded-lg bg-[#FAF8F4] p-2.5"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <GitBranch className="h-3.5 w-3.5 shrink-0 text-[#C67A52]" />
-                    <span className="text-xs text-[#2C2C2C] truncate">{dep.title}</span>
-                    <Badge className={`shrink-0 text-[10px] ${statusColors[dep.status] || ""}`}>
-                      {t(`status.${statusI18nKeys[dep.status] || dep.status}`)}
-                    </Badge>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0"
-                    onClick={() => setPendingDeps(prev => prev.filter(d => d.uuid !== dep.uuid))}
-                  >
-                    <X className="h-3.5 w-3.5 text-[#9A9A9A] hover:text-[#D32F2F]" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Add dependency select */}
-          {availableDepsForCreate.length > 0 && (
-            <Select
-              key={pendingDeps.length}
-              onValueChange={(uuid) => {
-                const found = allProjectTasks.find(t => t.uuid === uuid);
-                if (found) {
-                  setPendingDeps(prev => [...prev, found]);
-                }
-              }}
-            >
-              <SelectTrigger className="h-8 border-[#E5E0D8] text-xs text-[#6B6B6B] focus:ring-[#C67A52]">
-                <div className="flex items-center gap-1.5">
-                  <Plus className="h-3 w-3" />
-                  <SelectValue placeholder={t("tasks.addDependency")} />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                {availableDepsForCreate.map((t) => (
-                  <SelectItem key={t.uuid} value={t.uuid}>
-                    <span className="truncate">{t.title}</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <>
       {/* Backdrop */}
@@ -604,117 +444,39 @@ export function TaskDetailPanel({
         <ScrollArea className="flex-1 min-h-0 [&_[data-slot=scroll-area-viewport]>div]:!block">
           <div className="flex min-h-full flex-col px-6 py-5">
             {isEditing ? (
-              renderEditForm()
+              <RunDetailEditForm
+                availableDepsForCreate={availableDepsForCreate}
+                editAcceptanceCriteria={editAcceptanceCriteria}
+                editDescription={editDescription}
+                editError={editError}
+                editPriority={editPriority}
+                editStoryPoints={editStoryPoints}
+                editTitle={editTitle}
+                isCreateMode={isCreateMode}
+                onAcceptanceCriteriaChange={setEditAcceptanceCriteria}
+                onAddPendingDependency={(uuid) => {
+                  const found = allProjectTasks.find((task) => task.uuid === uuid);
+                  if (found) {
+                    setPendingDeps((prev) => [...prev, found]);
+                  }
+                }}
+                onDescriptionChange={setEditDescription}
+                onPriorityChange={setEditPriority}
+                onRemovePendingDependency={(uuid) => {
+                  setPendingDeps((prev) => prev.filter((dep) => dep.uuid !== uuid));
+                }}
+                onStoryPointsChange={setEditStoryPoints}
+                onTitleChange={setEditTitle}
+                pendingDeps={pendingDeps}
+              />
             ) : task ? (
               <>
-                {/* Assignee Section */}
-                <div>
-                  <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                    {t("common.assignee")}
-                  </label>
-                  <div className="mt-2 flex items-center gap-2.5 rounded-lg bg-[#FAF8F4] p-3">
-                    {task.assignee ? (
-                      <>
-                        <Avatar className="h-7 w-7">
-                          <AvatarFallback className={task.assignee.type === "agent" ? "bg-[#C67A52] text-white" : "bg-[#E5E0D8] text-[#6B6B6B]"}>
-                            {task.assignee.type === "agent" ? (
-                              <Bot className="h-3.5 w-3.5" />
-                            ) : (
-                              task.assignee.name.charAt(0).toUpperCase()
-                            )}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="text-sm font-medium text-[#2C2C2C]">
-                            {task.assignee.name}
-                          </div>
-                          <div className="text-xs text-[#6B6B6B]">
-                            {task.assignee.type === "agent"
-                              ? `${t("common.agent")} • ${task.assignee.assignedAt ? new Date(task.assignee.assignedAt).toLocaleDateString() : ''}`
-                              : t("common.user")}
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <span className="text-sm text-[#9A9A9A]">{t("common.unassigned")}</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Active Workers Section */}
-                {activeWorkers.length > 0 && (
-                  <div className="mt-5">
-                    <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                      {t("sessions.activeWorkers")}
-                    </label>
-                    <div className="mt-2 space-y-1.5">
-                      {activeWorkers.map((worker) => (
-                        <div
-                          key={worker.sessionUuid}
-                          className="flex items-center gap-2.5 rounded-lg bg-[#FAF8F4] p-2.5"
-                        >
-                          <div className="h-2 w-2 rounded-full bg-green-500 flex-shrink-0" />
-                          <div className="min-w-0">
-                            <div className="text-xs font-medium text-[#2C2C2C] truncate">
-                              {worker.sessionName}
-                            </div>
-                            <div className="text-[10px] text-[#9A9A9A]">
-                              {worker.agentName} · {formatRelativeTime(worker.checkinAt, t)}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Description Section */}
-                <div className="mt-5">
-                  <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                    {t("common.description")}
-                  </label>
-                  <div className="mt-2">
-                    {task.description ? (
-                      <div className="prose prose-sm max-w-none text-[13px] leading-relaxed text-[#2C2C2C]">
-                        <Streamdown plugins={{ code }}>{task.description}</Streamdown>
-                      </div>
-                    ) : (
-                      <p className="text-sm italic text-[#9A9A9A]">{t("common.noDescription")}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Acceptance Criteria Section - legacy only (structured criteria shown below dependencies) */}
-                {task.acceptanceCriteria && !(task.acceptanceCriteriaItems && task.acceptanceCriteriaItems.length > 0) && (
-                  <div className="mt-5">
-                    <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                      {t("tasks.acceptanceCriteria")}
-                    </label>
-                    <div className="mt-2">
-                      <div className="prose prose-sm max-w-none text-[13px] leading-relaxed text-[#2C2C2C]">
-                        <Streamdown plugins={{ code }}>{task.acceptanceCriteria}</Streamdown>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Source Section - only show if from proposal */}
-                {source && (
-                  <div className="mt-5">
-                    <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                      {t("common.source")}
-                    </label>
-                    <a
-                      href={`/research-projects/${projectUuid}/experiment-designs/${source.uuid}`}
-                      className="mt-2 flex items-center justify-between rounded-lg bg-[#FAF8F4] p-3 hover:bg-[#F0EDE5] transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-3.5 w-3.5 text-[#C67A52]" />
-                        <span className="text-xs text-[#2C2C2C]">{source.title}</span>
-                      </div>
-                    </a>
-                  </div>
-                )}
+                <RunDetailOverview
+                  activeWorkers={activeWorkers}
+                  projectUuid={projectUuid}
+                  source={source}
+                  task={task}
+                />
 
                 <RunDetailDependencies
                   availableDepsForAdd={availableDepsForAdd}
@@ -727,101 +489,7 @@ export function TaskDetailPanel({
                   onRemoveDependedBy={handleRemoveDependedBy}
                 />
 
-                {/* Experiment Configuration Section */}
-                {task.experimentConfig && (
-                  <div className="mt-5">
-                    <Card className="p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <FlaskConical className="h-4 w-4 text-[#C67A52]" />
-                        <span className="text-[13px] font-semibold text-[#2C2C2C]">Experiment Configuration</span>
-                      </div>
-
-                      {/* Configuration table */}
-                      <div className="mb-3">
-                        <label className="text-[10px] font-medium uppercase tracking-wide text-[#9A9A9A] mb-1.5 block">
-                          Configuration
-                        </label>
-                        <JsonKeyValue data={task.experimentConfig} />
-                      </div>
-
-                      {/* Results table */}
-                      {task.experimentResults && (
-                        <div className="mb-3">
-                          <Separator className="my-3 bg-[#F5F2EC]" />
-                          <label className="text-[10px] font-medium uppercase tracking-wide text-[#9A9A9A] mb-1.5 block">
-                            Results
-                          </label>
-                          <JsonKeyValue data={task.experimentResults} />
-                        </div>
-                      )}
-
-                      {/* Outcome badge */}
-                      {task.outcome && (
-                        <>
-                          <Separator className="my-3 bg-[#F5F2EC]" />
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-medium text-[#9A9A9A]">Outcome:</span>
-                            <Badge className={
-                              task.outcome === "accepted" ? "bg-green-50 text-green-700" :
-                              task.outcome === "rejected" ? "bg-red-50 text-red-700" :
-                              "bg-yellow-50 text-yellow-700"
-                            }>
-                              {task.outcome}
-                            </Badge>
-                          </div>
-                        </>
-                      )}
-
-                      {/* Registry info */}
-                      {registryData && (
-                        <>
-                          <Separator className="my-3 bg-[#F5F2EC]" />
-                          <label className="text-[10px] font-medium uppercase tracking-wide text-[#9A9A9A] mb-1.5 block">
-                            Registry
-                          </label>
-
-                          {/* Environment */}
-                          {registryData.environment && typeof registryData.environment === "object" && (
-                            <div className="mb-2">
-                              <span className="text-[11px] font-medium text-[#6B6B6B]">Environment</span>
-                              <div className="mt-1">
-                                <JsonKeyValue data={registryData.environment as Record<string, unknown>} />
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Seed */}
-                          {registryData.seed !== null && registryData.seed !== undefined && (
-                            <div className="flex items-center gap-2 mb-2 text-[13px]">
-                              <span className="font-medium text-[#6B6B6B]">Seed</span>
-                              <span className="text-[#2C2C2C]">{registryData.seed}</span>
-                            </div>
-                          )}
-
-                          {/* Reproducibility */}
-                          <div className="flex items-center gap-2 mb-2">
-                            <Shield className="h-3.5 w-3.5 text-[#6B6B6B]" />
-                            <span className="text-[11px] font-medium text-[#6B6B6B]">Reproducibility:</span>
-                            {registryData.reproducible ? (
-                              <Badge className="bg-green-50 text-green-700 text-[10px]">Verified</Badge>
-                            ) : (
-                              <Badge className="bg-[#F5F5F5] text-[#9A9A9A] text-[10px]">Unverified</Badge>
-                            )}
-                          </div>
-
-                          {/* Timestamps */}
-                          <div className="space-y-1 text-[11px] text-[#6B6B6B]">
-                            <div>Started: {new Date(registryData.startedAt).toLocaleString()}</div>
-                            {registryData.completedAt && (
-                              <div>Completed: {new Date(registryData.completedAt).toLocaleString()}</div>
-                            )}
-                            <div>Registered: {new Date(registryData.createdAt).toLocaleString()}</div>
-                          </div>
-                        </>
-                      )}
-                    </Card>
-                  </div>
-                )}
+                <RunDetailConfig registryData={registryData} task={task} />
 
                 <RunDetailCriteria task={task} />
 
