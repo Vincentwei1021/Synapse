@@ -3,10 +3,10 @@
 // UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { withErrorHandler, parseBody, parsePagination } from "@/lib/api-handler";
 import { success, paginated, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
+import { createAgent, listAgents } from "@/services/agent.service";
 
 // GET /api/agents - List Agents
 export const GET = withErrorHandler(async (request: NextRequest) => {
@@ -22,31 +22,11 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   const { page, pageSize, skip, take } = parsePagination(request);
 
-  const where = {
+  const { agents, total } = await listAgents({
     companyUuid: auth.companyUuid,
-  };
-
-  const [agents, total] = await Promise.all([
-    prisma.agent.findMany({
-      where,
-      skip,
-      take,
-      orderBy: { createdAt: "desc" },
-      select: {
-        uuid: true,
-        name: true,
-        roles: true,
-        persona: true,
-        ownerUuid: true,
-        lastActiveAt: true,
-        createdAt: true,
-        _count: {
-          select: { apiKeys: true },
-        },
-      },
-    }),
-    prisma.agent.count({ where }),
-  ]);
+    skip,
+    take,
+  });
 
   const data = agents.map((a) => ({
     uuid: a.uuid,
@@ -97,24 +77,13 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     }
   }
 
-  const agent = await prisma.agent.create({
-    data: {
-      companyUuid: auth.companyUuid,
-      name: body.name.trim(),
-      roles,
-      persona: body.persona?.trim() || null,
-      systemPrompt: body.systemPrompt?.trim() || null,
-      ownerUuid: auth.actorUuid,
-    },
-    select: {
-      uuid: true,
-      name: true,
-      roles: true,
-      persona: true,
-      systemPrompt: true,
-      ownerUuid: true,
-      createdAt: true,
-    },
+  const agent = await createAgent({
+    companyUuid: auth.companyUuid,
+    name: body.name.trim(),
+    roles,
+    persona: body.persona?.trim() || null,
+    systemPrompt: body.systemPrompt?.trim() || null,
+    ownerUuid: auth.actorUuid,
   });
 
   return success({

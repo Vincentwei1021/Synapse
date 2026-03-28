@@ -3,10 +3,10 @@
 // UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { withErrorHandler } from "@/lib/api-handler";
 import { success, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
+import { getApiKey, revokeApiKey } from "@/services/agent.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
@@ -25,10 +25,7 @@ export const DELETE = withErrorHandler<{ uuid: string }>(
 
     const { uuid } = await context.params;
 
-    const apiKey = await prisma.apiKey.findFirst({
-      where: { uuid, companyUuid: auth.companyUuid },
-      select: { uuid: true, revokedAt: true },
-    });
+    const apiKey = await getApiKey(auth.companyUuid, uuid);
 
     if (!apiKey) {
       return errors.notFound("API Key");
@@ -38,10 +35,7 @@ export const DELETE = withErrorHandler<{ uuid: string }>(
       return errors.badRequest("API Key is already revoked");
     }
 
-    await prisma.apiKey.update({
-      where: { uuid: apiKey.uuid },
-      data: { revokedAt: new Date() },
-    });
+    await revokeApiKey(apiKey.uuid);
 
     return success({ revoked: true });
   }

@@ -4,7 +4,7 @@
 
 import { NextRequest } from "next/server";
 import { success, errors } from "@/lib/api-response";
-import { prisma } from "@/lib/prisma";
+import { getUserIdentity } from "@/services/user.service";
 
 // Decode JWT without verification (just to extract claims)
 function decodeJwt(token: string): Record<string, unknown> | null {
@@ -45,21 +45,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Find user - prefer userUuid, fallback to oidcSub (query by UUID)
-    const user = await prisma.user.findFirst({
-      where: userUuid ? { uuid: userUuid } : { oidcSub: oidcSub },
-      select: {
-        uuid: true,
-        email: true,
-        name: true,
-        companyUuid: true,
-        company: {
-          select: {
-            uuid: true,
-            name: true,
-          },
-        },
-      },
-    });
+    const user = await getUserIdentity({ userUuid, oidcSub });
 
     if (!user) {
       return errors.unauthorized("User not found");
