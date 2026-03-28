@@ -119,7 +119,7 @@ describe("agent management routes", () => {
     mockUpdateAgent.mockResolvedValue({
       uuid: agentUuid,
       name: "Renamed Agent",
-      roles: ["research_lead_agent"],
+      roles: ["experiment"],
       persona: "Helpful",
       systemPrompt: "Be precise",
       ownerUuid: "user-uuid-1",
@@ -199,7 +199,7 @@ describe("agent management routes", () => {
         method: "POST",
         body: JSON.stringify({
           name: " Test Agent ",
-          roles: ["researcher_agent"],
+          roles: ["research"],
           persona: " Helpful ",
           systemPrompt: " Be precise ",
         }),
@@ -214,7 +214,7 @@ describe("agent management routes", () => {
     expect(mockCreateAgent).toHaveBeenCalledWith({
       companyUuid,
       name: "Test Agent",
-      roles: ["researcher_agent"],
+      roles: ["research"],
       persona: "Helpful",
       systemPrompt: "Be precise",
       ownerUuid: "user-uuid-1",
@@ -236,7 +236,7 @@ describe("agent management routes", () => {
         method: "PATCH",
         body: JSON.stringify({
           name: " Renamed Agent ",
-          roles: ["research_lead_agent"],
+          roles: ["experiment"],
           persona: " Helpful ",
           systemPrompt: " Be precise ",
         }),
@@ -251,7 +251,7 @@ describe("agent management routes", () => {
     expect(mockGetAgentByUuid).toHaveBeenCalledWith(companyUuid, agentUuid, "user-uuid-1");
     expect(mockUpdateAgent).toHaveBeenCalledWith(agentUuid, {
       name: "Renamed Agent",
-      roles: ["research_lead_agent"],
+      roles: ["experiment"],
       persona: "Helpful",
       systemPrompt: "Be precise",
     });

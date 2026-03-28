@@ -35,6 +35,9 @@ export interface ExperimentResponse {
   outcome: string | null;
   results: unknown;
   attachments: ExperimentAttachment[] | null;
+  liveStatus: string | null;
+  liveMessage: string | null;
+  liveUpdatedAt: string | null;
   assignee: {
     type: string;
     uuid: string;
@@ -285,6 +288,9 @@ async function formatExperiment(
     outcome: string | null;
     results: unknown;
     attachments: unknown;
+    liveStatus: string | null;
+    liveMessage: string | null;
+    liveUpdatedAt: Date | null;
     assigneeType: string | null;
     assigneeUuid: string | null;
     assignedAt: Date | null;
@@ -342,6 +348,9 @@ async function formatExperiment(
     outcome: experiment.outcome,
     results: experiment.results ?? null,
     attachments: (experiment.attachments as ExperimentAttachment[] | null) ?? null,
+    liveStatus: experiment.liveStatus,
+    liveMessage: experiment.liveMessage,
+    liveUpdatedAt: experiment.liveUpdatedAt?.toISOString() ?? null,
     assignee,
     createdBy,
     reviewedByUuid: experiment.reviewedByUuid,
@@ -360,6 +369,33 @@ async function formatExperiment(
       updatedAt: item.updatedAt.toISOString(),
     })),
   };
+}
+
+export async function updateExperimentLiveStatus(
+  experimentUuid: string,
+  liveStatus: string | null,
+  liveMessage?: string | null,
+) {
+  const data: Record<string, unknown> = {
+    liveStatus,
+    liveUpdatedAt: new Date(),
+  };
+  if (liveMessage !== undefined) {
+    data.liveMessage = liveMessage;
+  }
+  const experiment = await prisma.experiment.update({
+    where: { uuid: experimentUuid },
+    data,
+    select: { researchProjectUuid: true, companyUuid: true },
+  });
+
+  eventBus.emitChange({
+    companyUuid: experiment.companyUuid,
+    researchProjectUuid: experiment.researchProjectUuid,
+    entityType: "experiment",
+    entityUuid: experimentUuid,
+    action: "updated",
+  });
 }
 
 export async function listExperiments({
@@ -691,6 +727,8 @@ export async function assignExperiment(input: {
     action: "updated",
     actorUuid: input.assignedByUuid,
   });
+
+  await updateExperimentLiveStatus(input.experimentUuid, "sent");
 
   return formatExperiment(input.companyUuid, updated);
 }

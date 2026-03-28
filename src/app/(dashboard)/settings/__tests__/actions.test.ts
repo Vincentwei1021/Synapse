@@ -95,7 +95,7 @@ describe("settings actions", () => {
 
     const result = await createAgentAndKeyAction({
       name: "  New Agent  ",
-      roles: ["researcher_agent", "researcher_agent"],
+      roles: ["research", "research"],
       persona: "  Helpful  ",
     });
 
@@ -103,7 +103,7 @@ describe("settings actions", () => {
     expect(mockCreateAgent).toHaveBeenCalledWith({
       companyUuid: auth.companyUuid,
       name: "New Agent",
-      roles: ["researcher_agent"],
+      roles: ["research"],
       ownerUuid: auth.actorUuid,
       persona: "Helpful",
     });
@@ -152,7 +152,7 @@ describe("settings actions", () => {
     const result = await updateAgentAction({
       agentUuid: "foreign-agent",
       name: "Updated",
-      roles: ["researcher_agent"],
+      roles: ["research"],
       persona: null,
     });
 

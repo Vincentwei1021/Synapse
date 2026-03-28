@@ -70,7 +70,7 @@ interface CreateAgentKeyInput {
   persona: string | null;
 }
 
-const VALID_AGENT_ROLES = new Set(["researcher_agent", "research_lead_agent", "pi_agent"]);
+const VALID_AGENT_ROLES = new Set(["pre_research", "research", "experiment", "report"]);
 
 export async function createAgentAndKeyAction(input: CreateAgentKeyInput): Promise<{
   success: boolean;

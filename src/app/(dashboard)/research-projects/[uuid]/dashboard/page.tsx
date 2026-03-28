@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { getResearchProjectDashboardData } from "@/services/research-project.service";
+import { EditProjectDialog } from "./edit-project-dialog";
 
 interface PageProps {
   params: Promise<{ uuid: string }>;
@@ -86,6 +87,15 @@ export default async function DashboardPage({ params }: PageProps) {
             <Button asChild variant="outline" className="border-border bg-background">
               <Link href={`/research-projects/${projectUuid}/insights`}>{t("nav.insights")}</Link>
             </Button>
+            <EditProjectDialog
+              projectUuid={projectUuid}
+              initialData={{
+                name: project.name,
+                description: project.description,
+                datasets: Array.isArray(project.datasets) ? (project.datasets as string[]) : null,
+                evaluationMethods: Array.isArray(project.evaluationMethods) ? (project.evaluationMethods as string[]) : null,
+              }}
+            />
           </div>
         </div>
 

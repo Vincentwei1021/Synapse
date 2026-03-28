@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
+  Bot,
   ChevronDown,
   Plus,
   LayoutDashboard,
@@ -73,6 +74,7 @@ export default function DashboardLayout({
     pathname === "/research-projects" ||
     pathname === "/research-projects/new" ||
     pathname === "/compute" ||
+    pathname === "/agents" ||
     pathname === "/settings" ||
     pathname.startsWith("/project-groups");
   const isProjectContext = currentProjectUuid && !isGlobalPage;
@@ -163,6 +165,7 @@ export default function DashboardLayout({
   const globalNavItems = useMemo(() => [
     { href: "/research-projects", label: t("nav.researchProjects"), icon: FolderKanban },
     { href: "/compute", label: t("nav.compute"), icon: Cpu },
+    { href: "/agents", label: t("nav.agents"), icon: Bot },
     { href: "/settings", label: t("nav.settings"), icon: Settings },
   ], [t]);
 
