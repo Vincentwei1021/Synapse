@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef, Fragment } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { X, Pencil, CheckCircle, Play, Eye, Bot, User, Send, FileText, Loader2, Check, Trash2, GitBranch, Plus, ArrowRight, CircleCheck, Timer, CircleX, AlertTriangle, FlaskConical, XCircle, Clock, Shield } from "lucide-react";
+import { X, Pencil, CheckCircle, Play, Eye, Bot, User, FileText, Loader2, Check, Trash2, GitBranch, Plus, ArrowRight, CircleCheck, Timer, CircleX, AlertTriangle, FlaskConical, XCircle, Clock, Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,16 +38,13 @@ import {
   createExperimentRunCommentAction,
 } from "./[runUuid]/comment-actions";
 import { getRunActivitiesAction } from "./[runUuid]/activity-actions";
-import type { ActivityResponse } from "@/services/activity.service";
 import {
   getRunSourceAction,
   type ProposalSource,
 } from "./[runUuid]/source-actions";
-import type { CommentResponse } from "@/services/comment.service";
 import { Streamdown } from "streamdown";
 import { code } from "@streamdown/code";
-import { ContentWithMentions } from "@/components/mention-renderer";
-import { MentionEditor, type MentionEditorRef } from "@/components/mention-editor";
+import type { MentionEditorRef } from "@/components/mention-editor";
 import { AssignTaskModal } from "./assign-run-modal";
 import {
   getExperimentRunDependenciesAction,
@@ -60,183 +57,26 @@ import type { RunSessionInfo } from "@/services/session.service";
 import { useRealtimeEntityEvent } from "@/contexts/realtime-context";
 import { getExperimentRegistryAction } from "./[runUuid]/registry-actions";
 import type { ExperimentRegistry } from "@/generated/prisma/client";
-
-interface DependencyTask {
-  uuid: string;
-  title: string;
-  status: string;
-}
-
-interface AcceptanceCriterionItem {
-  uuid: string;
-  description: string;
-  required: boolean;
-  devStatus: string;
-  devEvidence: string | null;
-  status: string;
-  evidence: string | null;
-  sortOrder: number;
-  // Research-specific Go/No-Go fields
-  metricName: string | null;
-  operator: string | null;
-  threshold: number | null;
-  isEarlyStop: boolean;
-  actualValue: number | null;
-}
-
-interface AcceptanceSummaryData {
-  total: number;
-  required: number;
-  passed: number;
-  failed: number;
-  pending: number;
-  requiredPassed: number;
-  requiredFailed: number;
-  requiredPending: number;
-}
-
-interface Task {
-  uuid: string;
-  title: string;
-  description: string | null;
-  status: string;
-  priority: string;
-  computeBudgetHours: number | null;
-  acceptanceCriteria?: string | null;
-  acceptanceCriteriaItems?: AcceptanceCriterionItem[];
-  acceptanceStatus?: string;
-  acceptanceSummary?: AcceptanceSummaryData;
-  experimentDesignUuid: string | null;
-  assignee: {
-    type: string;
-    uuid: string;
-    name: string;
-    assignedAt: string | null;
-    assignedBy: { type: string; uuid: string; name: string } | null;
-  } | null;
-  dependsOn?: DependencyTask[];
-  dependedBy?: DependencyTask[];
-  experimentConfig?: Record<string, unknown> | null;
-  experimentResults?: Record<string, unknown> | null;
-  baselineRunUuid?: string | null;
-  outcome?: string | null;
-  earlyStopTriggered?: boolean;
-}
+import { RunDetailActivity } from "./run-detail-panel-activity";
+import { RunDetailComments } from "./run-detail-panel-comments";
+import {
+  JsonKeyValue,
+  formatRelativeTime,
+  priorityColors,
+  priorityI18nKeys,
+  statusColors,
+  statusI18nKeys,
+  type DependencyTask,
+  type TaskDetail,
+} from "./run-detail-panel-shared";
 
 interface TaskDetailPanelProps {
-  task: Task | null;
+  task: TaskDetail | null;
   projectUuid: string;
   currentUserUuid: string;
   onClose: () => void;
   onCreated?: () => void;
   onDependencyChange?: () => void;
-}
-
-// Status color configuration
-const statusColors: Record<string, string> = {
-  open: "bg-[#FFF3E0] text-[#E65100]",
-  assigned: "bg-[#E3F2FD] text-[#1976D2]",
-  in_progress: "bg-[#E8F5E9] text-[#5A9E6F]",
-  to_verify: "bg-[#F3E5F5] text-[#7B1FA2]",
-  done: "bg-[#E0F2F1] text-[#00796B]",
-  closed: "bg-[#F5F5F5] text-[#9A9A9A]",
-};
-
-// Status to i18n key mapping
-const statusI18nKeys: Record<string, string> = {
-  open: "open",
-  assigned: "assigned",
-  in_progress: "inProgress",
-  to_verify: "toVerify",
-  done: "done",
-  closed: "closed",
-};
-
-// Priority color configuration
-const priorityColors: Record<string, string> = {
-  low: "bg-[#F5F5F5] text-[#9A9A9A]",
-  medium: "bg-[#FFF3E0] text-[#E65100]",
-  high: "bg-[#FEE2E2] text-[#D32F2F]",
-  critical: "bg-[#FFCDD2] text-[#B71C1C]",
-};
-
-// Priority to i18n key mapping
-const priorityI18nKeys: Record<string, string> = {
-  low: "lowPriority",
-  medium: "mediumPriority",
-  high: "highPriority",
-  critical: "criticalPriority",
-};
-
-// Format relative time
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function formatRelativeTime(dateString: string, t: any): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return t("time.justNow");
-  if (diffMins < 60) return t("time.minutesAgo", { minutes: diffMins });
-  if (diffHours < 24) return t("time.hoursAgo", { hours: diffHours });
-  if (diffDays < 7) return t("time.daysAgo", { days: diffDays });
-  return date.toLocaleDateString();
-}
-
-// Activity dot color
-function getActivityDotColor(action: string): string {
-  switch (action) {
-    case "task_created":
-      return "bg-[#C67A52]";
-    case "task_assigned":
-    case "task_claimed":
-      return "bg-[#1976D2]";
-    case "task_started":
-      return "bg-[#5A9E6F]";
-    case "task_submitted":
-      return "bg-[#7B1FA2]";
-    case "task_completed":
-    case "task_verified":
-      return "bg-[#00796B]";
-    case "task_released":
-      return "bg-[#E65100]";
-    default:
-      return "bg-[#6B6B6B]";
-  }
-}
-
-// Format Activity message
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function formatActivityMessage(activity: ActivityResponse, t: any): string {
-  const actorDisplay = activity.sessionName
-    ? `${activity.actorName} / ${activity.sessionName}`
-    : activity.actorName;
-  const { action } = activity;
-  const actorName = actorDisplay;
-
-  switch (action) {
-    case "task_created":
-      return t("activity.taskCreated", { actor: actorName });
-    case "task_assigned":
-      return t("activity.taskAssigned", { actor: actorName });
-    case "task_claimed":
-      return t("activity.taskClaimed", { actor: actorName });
-    case "task_started":
-      return t("activity.taskStarted", { actor: actorName });
-    case "task_submitted":
-      return t("activity.taskSubmitted", { actor: actorName });
-    case "task_completed":
-    case "task_verified":
-      return t("activity.taskCompleted", { actor: actorName });
-    case "task_released":
-      return t("activity.taskReleased", { actor: actorName });
-    case "task_status_changed":
-      return t("activity.taskStatusChanged", { actor: actorName });
-    default:
-      return `${actorName}: ${action}`;
-  }
 }
 
 export function TaskDetailPanel({
@@ -259,11 +99,11 @@ export function TaskDetailPanel({
 
   const [isLoading, setIsLoading] = useState(false);
   const [comment, setComment] = useState("");
-  const [comments, setComments] = useState<CommentResponse[]>([]);
+  const [comments, setComments] = useState<Awaited<ReturnType<typeof getExperimentRunCommentsAction>>["comments"]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(true);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const editorRef = useRef<MentionEditorRef>(null);
-  const [activities, setActivities] = useState<ActivityResponse[]>([]);
+  const [activities, setActivities] = useState<Awaited<ReturnType<typeof getRunActivitiesAction>>["activities"]>([]);
   const [isLoadingActivities, setIsLoadingActivities] = useState(true);
   const [source, setSource] = useState<ProposalSource | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -571,20 +411,6 @@ export function TaskDetailPanel({
       case "==": return actual === threshold;
       default: return false;
     }
-  }
-
-  // Inline JSON key-value renderer
-  function JsonKeyValue({ data }: { data: Record<string, unknown> }) {
-    return (
-      <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[13px]">
-        {Object.entries(data).map(([key, value]) => (
-          <Fragment key={key}>
-            <span className="font-medium text-[#6B6B6B]">{key}</span>
-            <span className="text-[#2C2C2C]">{String(value)}</span>
-          </Fragment>
-        ))}
-      </div>
-    );
   }
 
   // Render the edit/create form
@@ -1403,108 +1229,20 @@ export function TaskDetailPanel({
                   );
                 })()}
 
-                {/* Activity Section - fills remaining space */}
-                <div className="mt-5 flex-1">
-                  <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                    {t("common.activity")}
-                  </label>
-                  <div className="mt-2 space-y-3">
-                    {isLoadingActivities ? (
-                      <div className="flex items-center justify-center py-4">
-                        <Loader2 className="h-4 w-4 animate-spin text-[#9A9A9A]" />
-                      </div>
-                    ) : activities.length === 0 ? (
-                      <p className="text-sm text-[#9A9A9A] italic">{t("common.noActivity")}</p>
-                    ) : (
-                      activities.map((activity) => (
-                        <div key={activity.uuid} className="flex items-start gap-2.5">
-                          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#F5F2EC]">
-                            <div className={`h-2 w-2 rounded-full ${getActivityDotColor(activity.action)}`} />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-xs text-[#2C2C2C]">
-                              {formatActivityMessage(activity, t)}
-                            </p>
-                            <p className="text-[10px] text-[#9A9A9A]">{formatRelativeTime(activity.createdAt, t)}</p>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                <RunDetailActivity
+                  activities={activities}
+                  isLoading={isLoadingActivities}
+                />
 
-                {/* Comments Section - at bottom */}
-                <div className="mt-5">
-                  <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                    {t("comments.title")}
-                  </label>
-                  <div className="mt-3 space-y-3">
-                    {isLoadingComments ? (
-                      <div className="flex items-center justify-center py-4">
-                        <Loader2 className="h-4 w-4 animate-spin text-[#9A9A9A]" />
-                      </div>
-                    ) : comments.length === 0 ? (
-                      <p className="text-sm text-[#9A9A9A] italic">{t("comments.noComments")}</p>
-                    ) : (
-                      comments.map((c) => (
-                        <div key={c.uuid} className="flex gap-2.5">
-                          <Avatar className="h-6 w-6 shrink-0">
-                            <AvatarFallback className={c.author.type === "agent" ? "bg-[#C67A52] text-white" : "bg-[#E5E0D8] text-[#6B6B6B] text-[10px]"}>
-                              {c.author.type === "agent" ? (
-                                <Bot className="h-3 w-3" />
-                              ) : (
-                                c.author.name.charAt(0).toUpperCase()
-                              )}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-medium text-[#2C2C2C]">{c.author.name}</span>
-                              <span className="text-[10px] text-[#9A9A9A]">{formatRelativeTime(c.createdAt, t)}</span>
-                            </div>
-                            <div className="mt-1 text-xs leading-relaxed text-[#2C2C2C]">
-                              <ContentWithMentions>{c.content}</ContentWithMentions>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  {/* Comment Input */}
-                  <Separator className="my-3 bg-[#F5F2EC]" />
-                  <div className="flex items-start gap-2.5">
-                    <Avatar className="mt-1.5 h-6 w-6">
-                      <AvatarFallback className="bg-[#C67A52] text-white text-[10px]">
-                        <User className="h-3 w-3" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <MentionEditor
-                        ref={editorRef}
-                        value={comment}
-                        onChange={setComment}
-                        onSubmit={handleSubmitComment}
-                        placeholder={t("comments.addComment")}
-                        className="border-none bg-[#FAF8F4] text-sm"
-                        disabled={isSubmittingComment}
-                      />
-                    </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="mt-1 h-7 w-7"
-                      disabled={!comment.trim() || isSubmittingComment}
-                      onClick={handleSubmitComment}
-                    >
-                      {isSubmittingComment ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin text-[#9A9A9A]" />
-                      ) : (
-                        <Send className="h-3.5 w-3.5 text-[#C67A52]" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
+                <RunDetailComments
+                  comment={comment}
+                  comments={comments}
+                  editorRef={editorRef}
+                  isLoading={isLoadingComments}
+                  isSubmitting={isSubmittingComment}
+                  onCommentChange={setComment}
+                  onSubmit={handleSubmitComment}
+                />
               </>
             ) : null}
           </div>
