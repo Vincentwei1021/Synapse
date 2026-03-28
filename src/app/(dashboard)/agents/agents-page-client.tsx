@@ -179,7 +179,8 @@ export function AgentsPageClient({
     }
 
     setEditName(selectedAgent.name);
-    setEditRoles([...selectedAgent.roles]);
+    // Filter out legacy roles — only keep values in ROLES
+    setEditRoles(selectedAgent.roles.filter((r) => (ROLES as readonly string[]).includes(r)));
     setEditPersona(selectedAgent.persona || "");
 
     // Fetch API keys
