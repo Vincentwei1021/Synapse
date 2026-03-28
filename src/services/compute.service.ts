@@ -365,9 +365,11 @@ export function ensureGpuTelemetryPollerStarted() {
   }, GPU_POLL_INTERVAL_MS);
 }
 
-export async function listComputePools(companyUuid: string): Promise<ComputePoolSnapshot[]> {
+export function startGpuTelemetryPoller() {
   ensureGpuTelemetryPollerStarted();
+}
 
+export async function listComputePools(companyUuid: string): Promise<ComputePoolSnapshot[]> {
   const pools = await prisma.computePool.findMany({
     where: { companyUuid },
     orderBy: { createdAt: "asc" },
@@ -418,7 +420,6 @@ export async function listComputePools(companyUuid: string): Promise<ComputePool
 }
 
 export async function listAvailableComputeGpus(companyUuid: string) {
-  ensureGpuTelemetryPollerStarted();
   return prisma.computeGpu.findMany({
     where: {
       companyUuid,

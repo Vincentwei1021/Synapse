@@ -11,6 +11,7 @@ const mockPrisma = vi.hoisted(() => ({
   },
   notificationPreference: {
     findUnique: vi.fn(),
+    findMany: vi.fn(),
     create: vi.fn(),
     upsert: vi.fn(),
   },
@@ -31,6 +32,7 @@ import {
   markAllRead,
   getUnreadCount,
   archive,
+  getPreferencesBatch,
 } from "@/services/notification.service";
 
 // ===== Helpers =====
@@ -71,6 +73,7 @@ function makeNotifRecord(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockPrisma.notificationPreference.findMany.mockResolvedValue([]);
 });
 
 // ===== create =====
@@ -127,6 +130,91 @@ describe("createBatch", () => {
 
     // Same recipient => one emit
     expect(mockEventBus.emit).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ===== getPreferencesBatch =====
+describe("getPreferencesBatch", () => {
+  it("should return existing preferences keyed by owner", async () => {
+    mockPrisma.notificationPreference.findMany.mockResolvedValue([
+      {
+        uuid: "pref-1",
+        companyUuid,
+        ownerType: "user",
+        ownerUuid: recipientUuid,
+        runAssigned: true,
+        runStatusChanged: true,
+        runVerified: true,
+        runReopened: true,
+        designSubmitted: true,
+        designApproved: true,
+        designRejected: true,
+        researchQuestionClaimed: true,
+        commentAdded: true,
+        hypothesisFormulationRequested: true,
+        hypothesisFormulationAnswered: true,
+        mentioned: true,
+      },
+    ]);
+
+    const result = await getPreferencesBatch(companyUuid, [{ type: "user", uuid: recipientUuid }]);
+
+    expect(mockPrisma.notificationPreference.findMany).toHaveBeenCalledTimes(1);
+    expect(result.get(`user:${recipientUuid}`)?.uuid).toBe("pref-1");
+  });
+
+  it("should create defaults for missing owners and return them", async () => {
+    mockPrisma.notificationPreference.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          uuid: "pref-2",
+          companyUuid,
+          ownerType: "agent",
+          ownerUuid: "agent-1",
+          runAssigned: true,
+          runStatusChanged: true,
+          runVerified: true,
+          runReopened: true,
+          designSubmitted: true,
+          designApproved: true,
+          designRejected: true,
+          researchQuestionClaimed: true,
+          commentAdded: true,
+          hypothesisFormulationRequested: true,
+          hypothesisFormulationAnswered: true,
+          mentioned: true,
+        },
+      ]);
+    mockPrisma.notificationPreference.create.mockResolvedValue({
+      uuid: "pref-2",
+      companyUuid,
+      ownerType: "agent",
+      ownerUuid: "agent-1",
+      runAssigned: true,
+      runStatusChanged: true,
+      runVerified: true,
+      runReopened: true,
+      designSubmitted: true,
+      designApproved: true,
+      designRejected: true,
+      researchQuestionClaimed: true,
+      commentAdded: true,
+      hypothesisFormulationRequested: true,
+      hypothesisFormulationAnswered: true,
+      mentioned: true,
+    });
+
+    const result = await getPreferencesBatch(companyUuid, [{ type: "agent", uuid: "agent-1" }]);
+
+    expect(mockPrisma.notificationPreference.create).toHaveBeenCalledWith({
+      data: {
+        companyUuid,
+        ownerType: "agent",
+        ownerUuid: "agent-1",
+      },
+    });
+    expect(result.get("agent:agent-1")?.uuid).toBe("pref-2");
   });
 });
 

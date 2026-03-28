@@ -9,6 +9,7 @@
     "build": "prisma generate && next build",
     "start": "bash ./scripts/start-standalone.sh",
     "start:legacy": "next start",
+    "preflight": "bash ./scripts/preflight.sh",
     "lint": "eslint",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
