@@ -10,10 +10,14 @@ const poolSchema = z.object({
   description: z.string().optional(),
 });
 
+// Restricted to users only — agents must use MCP synapse_list_compute_nodes
 export const GET = withErrorHandler(async (request: NextRequest) => {
   const auth = await getAuthContext(request);
   if (!auth) {
     return errors.unauthorized();
+  }
+  if (!isUser(auth)) {
+    return errors.forbidden("Agents must use MCP synapse_list_compute_nodes for compute access");
   }
 
   const pools = await listComputePools(auth.companyUuid);

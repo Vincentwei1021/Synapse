@@ -14,8 +14,8 @@ function serializeAccess(node: {
   sshUser: string | null;
   sshPort: number | null;
   sshKeyName?: string | null;
-  sshKeyFingerprint?: string | null;
   sshKeySource?: string | null;
+  managedKeyAvailable?: boolean;
   ssmTarget: string | null;
 }) {
   return {
@@ -25,9 +25,8 @@ function serializeAccess(node: {
           user: node.sshUser,
           port: node.sshPort ?? 22,
           keyName: node.sshKeyName ?? null,
-          keyFingerprint: node.sshKeyFingerprint ?? null,
-          keySource: node.sshKeySource ?? null,
-          managedKeyAvailable: Boolean(node.sshHost && node.sshKeySource && node.sshKeySource !== "manual_path"),
+          // sshKeyPath and sshKeyFingerprint intentionally excluded
+          managedKeyAvailable: node.managedKeyAvailable ?? false,
           accessBundleTool: "synapse_get_node_access_bundle",
         }
       : null,

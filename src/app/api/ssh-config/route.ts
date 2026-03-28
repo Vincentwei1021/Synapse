@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { NextRequest } from "next/server";
 import { errors, success } from "@/lib/api-response";
-import { getAuthContext } from "@/lib/auth";
+import { getAuthContext, isUser } from "@/lib/auth";
 
 type SshEntry = {
   alias: string;
@@ -60,10 +60,14 @@ function parseSshConfig(config: string) {
   return entries;
 }
 
+// User-only — reading server SSH config is an admin operation, not for agents
 export async function GET(request: NextRequest) {
   const auth = await getAuthContext(request);
   if (!auth) {
     return errors.unauthorized();
+  }
+  if (!isUser(auth)) {
+    return errors.forbidden("SSH config access is restricted to users");
   }
 
   const sshConfigPath = path.join(os.homedir(), ".ssh", "config");
@@ -74,5 +78,8 @@ export async function GET(request: NextRequest) {
   const contents = fs.readFileSync(sshConfigPath, "utf8");
   const hosts = parseSshConfig(contents);
 
-  return success({ hosts });
+  // Strip identityFile paths — only expose alias/host/user/port
+  const sanitizedHosts = hosts.map(({ identityFile: _removed, ...rest }) => rest);
+
+  return success({ hosts: sanitizedHosts });
 }

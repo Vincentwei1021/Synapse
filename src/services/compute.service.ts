@@ -47,10 +47,10 @@ export interface ComputeNodeSnapshot {
   sshHost: string | null;
   sshUser: string | null;
   sshPort: number | null;
-  sshKeyPath: string | null;
+  // sshKeyPath intentionally omitted — never expose server filesystem paths
   sshKeyName: string | null;
-  sshKeyFingerprint: string | null;
   sshKeySource: string | null;
+  managedKeyAvailable: boolean;
   ssmTarget: string | null;
   notes: string | null;
   lastReportedAt: string | null;
@@ -226,10 +226,10 @@ function serializeNode(node: {
     sshHost: node.sshHost,
     sshUser: node.sshUser,
     sshPort: node.sshPort,
-    sshKeyPath: node.sshKeyPath,
+    // sshKeyPath, sshKeyFingerprint intentionally excluded — server filesystem paths must not leak
     sshKeyName: node.sshKeyName,
-    sshKeyFingerprint: node.sshKeyFingerprint,
     sshKeySource: node.sshKeySource,
+    managedKeyAvailable: Boolean(node.sshHost && node.sshKeyPath && node.sshKeySource && node.sshKeySource !== "manual_path"),
     ssmTarget: node.ssmTarget,
     notes: node.notes,
     lastReportedAt: node.lastReportedAt?.toISOString() ?? null,
