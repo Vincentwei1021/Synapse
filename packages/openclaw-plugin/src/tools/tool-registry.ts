@@ -14,7 +14,7 @@ export interface OpenClawToolDefinition {
   execute: (mcpClient: SynapseMcpClient, args: Record<string, unknown>) => Promise<unknown>;
 }
 
-interface OpenClawToolApi {
+export interface OpenClawToolApi {
   registerTool(definition: {
     name: string;
     description: string;

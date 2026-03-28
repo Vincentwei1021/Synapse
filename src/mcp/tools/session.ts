@@ -2,227 +2,193 @@
 // Agent Session MCP tools (available to all roles)
 // UUID-Based Architecture: All operations use UUIDs
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { AgentAuthContext } from "@/types/auth";
 import * as sessionService from "@/services/session.service";
+import {
+  createMcpTool,
+  defineMcpTools,
+  jsonTextResult,
+  type McpTextResult,
+  registerMcpTools,
+  textResult,
+} from "./tool-registry";
+
+function isOwnedByActor(
+  auth: AgentAuthContext,
+  session: { agentUuid: string }
+) {
+  return session.agentUuid === auth.actorUuid;
+}
 
 export function registerSessionTools(server: McpServer, auth: AgentAuthContext) {
-  // synapse_list_sessions - List current agent's sessions
-  server.registerTool(
-    "synapse_list_sessions",
-    {
+  type OwnedSessionResult =
+    | { ok: true; session: Awaited<ReturnType<typeof sessionService.getSession>> extends infer T ? Exclude<T, null> : never }
+    | { ok: false; error: McpTextResult };
+
+  const getOwnedSession = async (sessionUuid: string) => {
+    const session = await sessionService.getSession(auth.companyUuid, sessionUuid);
+    if (!session) {
+      return { ok: false, error: textResult("Session not found", true) } as OwnedSessionResult;
+    }
+
+    if (!isOwnedByActor(auth, session)) {
+      return { ok: false, error: textResult("No permission to operate this Session", true) } as OwnedSessionResult;
+    }
+
+    return { ok: true, session } as OwnedSessionResult;
+  };
+
+  const sessionTools = defineMcpTools([
+    createMcpTool({
+      name: "synapse_list_sessions",
       description: "List all Sessions for the current Agent",
       inputSchema: z.object({
         status: z.enum(["active", "inactive", "closed"]).optional().describe("Filter by status"),
       }),
-    },
-    async ({ status }) => {
-      const sessions = await sessionService.listAgentSessions(
-        auth.companyUuid,
-        auth.actorUuid,
-        status
-      );
+      async execute({ status }) {
+        const sessions = await sessionService.listAgentSessions(
+          auth.companyUuid,
+          auth.actorUuid,
+          status
+        );
 
-      return {
-        content: [{ type: "text", text: JSON.stringify(sessions, null, 2) }],
-      };
-    }
-  );
-
-  // synapse_get_session - Get session details
-  server.registerTool(
-    "synapse_get_session",
-    {
+        return jsonTextResult(sessions);
+      },
+    }),
+    createMcpTool({
+      name: "synapse_get_session",
       description: "Get Session details and active checkins",
       inputSchema: z.object({
         sessionUuid: z.string().describe("Session UUID"),
       }),
-    },
-    async ({ sessionUuid }) => {
-      const session = await sessionService.getSession(auth.companyUuid, sessionUuid);
-      if (!session) {
-        return { content: [{ type: "text", text: "Session not found" }], isError: true };
-      }
+      async execute({ sessionUuid }) {
+        const session = await sessionService.getSession(auth.companyUuid, sessionUuid);
+        if (!session) {
+          return textResult("Session not found", true);
+        }
 
-      if (session.agentUuid !== auth.actorUuid) {
-        return { content: [{ type: "text", text: "No permission to access this Session" }], isError: true };
-      }
+        if (!isOwnedByActor(auth, session)) {
+          return textResult("No permission to access this Session", true);
+        }
 
-      return {
-        content: [{ type: "text", text: JSON.stringify(session, null, 2) }],
-      };
-    }
-  );
-
-  // synapse_create_session - Create a new session
-  server.registerTool(
-    "synapse_create_session",
-    {
+        return jsonTextResult(session);
+      },
+    }),
+    createMcpTool({
+      name: "synapse_create_session",
       description: "Create a new Agent Session. TIP: Before creating, call synapse_list_sessions first to check for existing sessions that can be reopened with synapse_reopen_session.",
       inputSchema: z.object({
         name: z.string().describe("Session name (e.g. 'frontend-worker')"),
         description: z.string().optional().describe("Session description"),
         expiresAt: z.string().optional().describe("Expiration time (ISO 8601)"),
       }),
-    },
-    async ({ name, description, expiresAt }) => {
-      const session = await sessionService.createSession({
-        companyUuid: auth.companyUuid,
-        agentUuid: auth.actorUuid,
-        name,
-        description,
-        expiresAt: expiresAt ? new Date(expiresAt) : null,
-      });
+      async execute({ name, description, expiresAt }) {
+        const session = await sessionService.createSession({
+          companyUuid: auth.companyUuid,
+          agentUuid: auth.actorUuid,
+          name,
+          description,
+          expiresAt: expiresAt ? new Date(expiresAt) : null,
+        });
 
-      return {
-        content: [{ type: "text", text: JSON.stringify({ uuid: session.uuid, name: session.name, status: session.status }, null, 2) }],
-      };
-    }
-  );
-
-  // synapse_close_session - Close a session
-  server.registerTool(
-    "synapse_close_session",
-    {
+        return jsonTextResult({ uuid: session.uuid, name: session.name, status: session.status });
+      },
+    }),
+    createMcpTool({
+      name: "synapse_close_session",
       description: "Close a Session (batch checkout all checkins)",
       inputSchema: z.object({
         sessionUuid: z.string().describe("Session UUID"),
       }),
-    },
-    async ({ sessionUuid }) => {
-      const session = await sessionService.getSession(auth.companyUuid, sessionUuid);
-      if (!session) {
-        return { content: [{ type: "text", text: "Session not found" }], isError: true };
-      }
+      async execute({ sessionUuid }) {
+        const result = await getOwnedSession(sessionUuid);
+        if (!result.ok) {
+          return result.error;
+        }
 
-      if (session.agentUuid !== auth.actorUuid) {
-        return { content: [{ type: "text", text: "No permission to close this Session" }], isError: true };
-      }
-
-      const closed = await sessionService.closeSession(auth.companyUuid, sessionUuid);
-
-      return {
-        content: [{ type: "text", text: JSON.stringify({ uuid: closed.uuid, status: closed.status }, null, 2) }],
-      };
-    }
-  );
-
-  // synapse_reopen_session - Reopen a closed session
-  server.registerTool(
-    "synapse_reopen_session",
-    {
+        const closed = await sessionService.closeSession(auth.companyUuid, result.session.uuid);
+        return jsonTextResult({ uuid: closed.uuid, status: closed.status });
+      },
+    }),
+    createMcpTool({
+      name: "synapse_reopen_session",
       description: "Reopen a closed Session (closed -> active). Use this to reuse a previous session instead of creating a new one.",
       inputSchema: z.object({
         sessionUuid: z.string().describe("Session UUID"),
       }),
-    },
-    async ({ sessionUuid }) => {
-      const session = await sessionService.getSession(auth.companyUuid, sessionUuid);
-      if (!session) {
-        return { content: [{ type: "text", text: "Session not found" }], isError: true };
-      }
+      async execute({ sessionUuid }) {
+        const result = await getOwnedSession(sessionUuid);
+        if (!result.ok) {
+          return result.error;
+        }
 
-      if (session.agentUuid !== auth.actorUuid) {
-        return { content: [{ type: "text", text: "No permission to reopen this Session" }], isError: true };
-      }
+        if (result.session.status !== "closed") {
+          return textResult(`Session is ${result.session.status}, only closed sessions can be reopened`, true);
+        }
 
-      if (session.status !== "closed") {
-        return { content: [{ type: "text", text: `Session is ${session.status}, only closed sessions can be reopened` }], isError: true };
-      }
-
-      const reopened = await sessionService.reopenSession(auth.companyUuid, sessionUuid);
-
-      return {
-        content: [{ type: "text", text: JSON.stringify({ uuid: reopened.uuid, status: reopened.status }, null, 2) }],
-      };
-    }
-  );
-
-  // synapse_session_checkin_experiment_run - Check in session to an experiment run
-  server.registerTool(
-    "synapse_session_checkin_experiment_run",
-    {
+        const reopened = await sessionService.reopenSession(auth.companyUuid, result.session.uuid);
+        return jsonTextResult({ uuid: reopened.uuid, status: reopened.status });
+      },
+    }),
+    createMcpTool({
+      name: "synapse_session_checkin_experiment_run",
       description: "Check in a Session to a specified Experiment Run",
       inputSchema: z.object({
         sessionUuid: z.string().describe("Session UUID"),
         runUuid: z.string().describe("Experiment Run UUID"),
       }),
-    },
-    async ({ sessionUuid, runUuid }) => {
-      const session = await sessionService.getSession(auth.companyUuid, sessionUuid);
-      if (!session) {
-        return { content: [{ type: "text", text: "Session not found" }], isError: true };
-      }
+      async execute({ sessionUuid, runUuid }) {
+        const result = await getOwnedSession(sessionUuid);
+        if (!result.ok) {
+          return result.error;
+        }
 
-      if (session.agentUuid !== auth.actorUuid) {
-        return { content: [{ type: "text", text: "No permission to operate this Session" }], isError: true };
-      }
+        const checkin = await sessionService.sessionCheckinToRun(
+          auth.companyUuid,
+          result.session.uuid,
+          runUuid
+        );
 
-      const checkin = await sessionService.sessionCheckinToRun(
-        auth.companyUuid,
-        sessionUuid,
-        runUuid
-      );
-
-      return {
-        content: [{ type: "text", text: JSON.stringify({ sessionUuid, runUuid, checkedInAt: checkin.checkinAt }, null, 2) }],
-      };
-    }
-  );
-
-  // synapse_session_checkout_experiment_run - Check out session from an experiment run
-  server.registerTool(
-    "synapse_session_checkout_experiment_run",
-    {
+        return jsonTextResult({ sessionUuid, runUuid, checkedInAt: checkin.checkinAt });
+      },
+    }),
+    createMcpTool({
+      name: "synapse_session_checkout_experiment_run",
       description: "Check out a Session from a specified Experiment Run",
       inputSchema: z.object({
         sessionUuid: z.string().describe("Session UUID"),
         runUuid: z.string().describe("Experiment Run UUID"),
       }),
-    },
-    async ({ sessionUuid, runUuid }) => {
-      const session = await sessionService.getSession(auth.companyUuid, sessionUuid);
-      if (!session) {
-        return { content: [{ type: "text", text: "Session not found" }], isError: true };
-      }
+      async execute({ sessionUuid, runUuid }) {
+        const result = await getOwnedSession(sessionUuid);
+        if (!result.ok) {
+          return result.error;
+        }
 
-      if (session.agentUuid !== auth.actorUuid) {
-        return { content: [{ type: "text", text: "No permission to operate this Session" }], isError: true };
-      }
+        await sessionService.sessionCheckoutFromRun(auth.companyUuid, result.session.uuid, runUuid);
 
-      await sessionService.sessionCheckoutFromRun(auth.companyUuid, sessionUuid, runUuid);
-
-      return {
-        content: [{ type: "text", text: `Successfully checked out from experiment run ${runUuid}` }],
-      };
-    }
-  );
-
-  // synapse_session_heartbeat - Session heartbeat
-  server.registerTool(
-    "synapse_session_heartbeat",
-    {
+        return textResult(`Successfully checked out from experiment run ${runUuid}`);
+      },
+    }),
+    createMcpTool({
+      name: "synapse_session_heartbeat",
       description: "Session heartbeat (updates lastActiveAt)",
       inputSchema: z.object({
         sessionUuid: z.string().describe("Session UUID"),
       }),
-    },
-    async ({ sessionUuid }) => {
-      const session = await sessionService.getSession(auth.companyUuid, sessionUuid);
-      if (!session) {
-        return { content: [{ type: "text", text: "Session not found" }], isError: true };
-      }
+      async execute({ sessionUuid }) {
+        const result = await getOwnedSession(sessionUuid);
+        if (!result.ok) {
+          return result.error;
+        }
 
-      if (session.agentUuid !== auth.actorUuid) {
-        return { content: [{ type: "text", text: "No permission to operate this Session" }], isError: true };
-      }
+        await sessionService.heartbeatSession(auth.companyUuid, result.session.uuid);
+        return textResult(`Heartbeat successful: ${new Date().toISOString()}`);
+      },
+    }),
+  ]);
 
-      await sessionService.heartbeatSession(auth.companyUuid, sessionUuid);
-
-      return {
-        content: [{ type: "text", text: `Heartbeat successful: ${new Date().toISOString()}` }],
-      };
-    }
-  );
+  registerMcpTools(server, sessionTools);
 }

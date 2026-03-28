@@ -17,6 +17,13 @@ import * as baselineService from "@/services/baseline.service";
 import { getAgentByUuid } from "@/services/agent.service";
 import { AlreadyClaimedError, NotClaimedError } from "@/lib/errors";
 import { zArray } from "./schema-utils";
+import {
+  createMcpTool,
+  defineMcpTools,
+  jsonTextResult,
+  registerMcpTools,
+  textResult,
+} from "./tool-registry";
 
 export function registerResearchLeadTools(server: McpServer, auth: AgentAuthContext) {
   // synapse_claim_research_question - Claim a Research Question
@@ -968,72 +975,60 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
     }
   );
 
-  // synapse_move_research_question - Move a Research Question to a different project
-  server.registerTool(
-    "synapse_move_research_question",
-    {
+  const lateStageResearchLeadTools = defineMcpTools([
+    createMcpTool({
+      name: "synapse_move_research_question",
       description: "Move a Research Question to a different research project within the same company. Also moves linked draft/pending Experiment Designs.",
       inputSchema: z.object({
         researchQuestionUuid: z.string().describe("Research Question UUID"),
         targetResearchProjectUuid: z.string().describe("Target Research Project UUID"),
       }),
-    },
-    async ({ researchQuestionUuid, targetResearchProjectUuid }) => {
-      try {
-        const updated = await researchQuestionService.moveResearchQuestion(
-          auth.companyUuid,
-          researchQuestionUuid,
-          targetResearchProjectUuid,
-          auth.actorUuid,
-          auth.type
-        );
+      async execute({ researchQuestionUuid, targetResearchProjectUuid }) {
+        try {
+          const updated = await researchQuestionService.moveResearchQuestion(
+            auth.companyUuid,
+            researchQuestionUuid,
+            targetResearchProjectUuid,
+            auth.actorUuid,
+            auth.type
+          );
 
-        return {
-          content: [{ type: "text", text: JSON.stringify({ uuid: updated.uuid, project: updated.project }, null, 2) }],
-        };
-      } catch (error) {
-        return {
-          content: [{ type: "text", text: `Failed to move Research Question: ${error instanceof Error ? error.message : "Unknown error"}` }],
-          isError: true,
-        };
-      }
-    }
-  );
-
-  // synapse_research_lead_create_research_question - Create a Research Question
-  server.registerTool(
-    "synapse_research_lead_create_research_question",
-    {
+          return jsonTextResult({ uuid: updated.uuid, project: updated.project });
+        } catch (error) {
+          return textResult(
+            `Failed to move Research Question: ${error instanceof Error ? error.message : "Unknown error"}`,
+            true
+          );
+        }
+      },
+    }),
+    createMcpTool({
+      name: "synapse_research_lead_create_research_question",
       description: "Create a Research Question (submits requirements on behalf of humans)",
       inputSchema: z.object({
         researchProjectUuid: z.string().describe("Research Project UUID"),
         title: z.string().describe("Research Question title"),
         content: z.string().optional().describe("Research Question detailed description"),
       }),
-    },
-    async ({ researchProjectUuid, title, content }) => {
-      const exists = await researchProjectExists(auth.companyUuid, researchProjectUuid);
-      if (!exists) {
-        return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
-      }
+      async execute({ researchProjectUuid, title, content }) {
+        const exists = await researchProjectExists(auth.companyUuid, researchProjectUuid);
+        if (!exists) {
+          return textResult("Research Project not found", true);
+        }
 
-      const researchQuestion = await researchQuestionService.createResearchQuestion({
-        companyUuid: auth.companyUuid,
-        researchProjectUuid,
-        title,
-        content: content || null,
-        createdByUuid: auth.actorUuid,
-      });
+        const researchQuestion = await researchQuestionService.createResearchQuestion({
+          companyUuid: auth.companyUuid,
+          researchProjectUuid,
+          title,
+          content: content || null,
+          createdByUuid: auth.actorUuid,
+        });
 
-      return {
-        content: [{ type: "text", text: JSON.stringify({ uuid: researchQuestion.uuid, title: researchQuestion.title }) }],
-      };
-    }
-  );
-
-  server.registerTool(
-    "synapse_research_lead_generate_project_ideas",
-    {
+        return jsonTextResult({ uuid: researchQuestion.uuid, title: researchQuestion.title });
+      },
+    }),
+    createMcpTool({
+      name: "synapse_research_lead_generate_project_ideas",
       description: "Create one or more agent-generated research ideas from a project brief so they enter the human review board.",
       inputSchema: z.object({
         researchProjectUuid: z.string().describe("Research Project UUID"),
@@ -1044,58 +1039,41 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
           })
         ).min(1).max(12),
       }),
-    },
-    async ({ researchProjectUuid, ideas }) => {
-      const project = await getResearchProjectByUuid(auth.companyUuid, researchProjectUuid);
-      if (!project) {
-        return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
-      }
+      async execute({ researchProjectUuid, ideas }) {
+        const project = await getResearchProjectByUuid(auth.companyUuid, researchProjectUuid);
+        if (!project) {
+          return textResult("Research Project not found", true);
+        }
 
-      const created = await Promise.all(
-        ideas.map((idea) =>
-          researchQuestionService.createResearchQuestion({
-            companyUuid: auth.companyUuid,
-            researchProjectUuid,
+        const created = await Promise.all(
+          ideas.map((idea) =>
+            researchQuestionService.createResearchQuestion({
+              companyUuid: auth.companyUuid,
+              researchProjectUuid,
+              title: idea.title,
+              content: idea.content || null,
+              createdByUuid: auth.actorUuid,
+              sourceType: "agent",
+              sourceLabel: `Generated by ${auth.agentName || "agent"} from project brief`,
+              generatedByAgentUuid: auth.actorUuid,
+            })
+          )
+        );
+
+        return jsonTextResult({
+          researchProjectUuid,
+          createdCount: created.length,
+          ideas: created.map((idea) => ({
+            uuid: idea.uuid,
             title: idea.title,
-            content: idea.content || null,
-            createdByUuid: auth.actorUuid,
-            sourceType: "agent",
-            sourceLabel: `Generated by ${auth.agentName || "agent"} from project brief`,
-            generatedByAgentUuid: auth.actorUuid,
-          })
-        )
-      );
-
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(
-              {
-                researchProjectUuid,
-                createdCount: created.length,
-                ideas: created.map((idea) => ({
-                  uuid: idea.uuid,
-                  title: idea.title,
-                  reviewStatus: idea.reviewStatus,
-                  sourceType: idea.sourceType,
-                })),
-              },
-              null,
-              2
-            ),
-          },
-        ],
-      };
-    }
-  );
-
-  // ===== Baseline & RDR Tools =====
-
-  // synapse_create_baseline — Register a baseline result for comparison
-  server.registerTool(
-    "synapse_create_baseline",
-    {
+            reviewStatus: idea.reviewStatus,
+            sourceType: idea.sourceType,
+          })),
+        });
+      },
+    }),
+    createMcpTool({
+      name: "synapse_create_baseline",
       description: "Register a baseline result for comparison in a research project",
       inputSchema: z.object({
         researchProjectUuid: z.string(),
@@ -1103,76 +1081,74 @@ export function registerResearchLeadTools(server: McpServer, auth: AgentAuthCont
         metrics: z.record(z.string(), z.number()),
         experimentUuid: z.string().optional(),
       }),
-    },
-    async (params) => {
-      const result = await baselineService.createBaseline(auth.companyUuid, params);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    }
-  );
-
-  // synapse_list_baselines — List baselines for a project
-  server.registerTool(
-    "synapse_list_baselines",
-    {
+      async execute(params) {
+        const result = await baselineService.createBaseline(auth.companyUuid, params);
+        return jsonTextResult(result);
+      },
+    }),
+    createMcpTool({
+      name: "synapse_list_baselines",
       description: "List all baselines for a research project",
       inputSchema: z.object({
         researchProjectUuid: z.string(),
       }),
-    },
-    async (params) => {
-      const result = await baselineService.listBaselines(auth.companyUuid, params.researchProjectUuid);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    }
-  );
-
-  // synapse_compare_results — Compare experiment results against active baseline
-  server.registerTool(
-    "synapse_compare_results",
-    {
+      async execute({ researchProjectUuid }) {
+        const result = await baselineService.listBaselines(auth.companyUuid, researchProjectUuid);
+        return jsonTextResult(result);
+      },
+    }),
+    createMcpTool({
+      name: "synapse_compare_results",
       description: "Compare experiment run results against the active baseline",
       inputSchema: z.object({
         researchProjectUuid: z.string(),
         experimentResults: z.record(z.string(), z.number()),
       }),
-    },
-    async (params) => {
-      const baseline = await baselineService.getActiveBaseline(auth.companyUuid, params.researchProjectUuid);
-      if (!baseline) {
-        return { content: [{ type: "text", text: JSON.stringify({ error: "No active baseline found" }) }] };
-      }
-      const comparison: Record<string, { baseline: number; experiment: number; delta: number; improved: boolean }> = {};
-      const baselineMetrics = baseline.metrics as Record<string, number>;
-      for (const [key, value] of Object.entries(params.experimentResults)) {
-        if (key in baselineMetrics) {
-          const baseVal = baselineMetrics[key];
-          comparison[key] = { baseline: baseVal, experiment: value, delta: value - baseVal, improved: value > baseVal };
+      async execute({ researchProjectUuid, experimentResults }) {
+        const baseline = await baselineService.getActiveBaseline(auth.companyUuid, researchProjectUuid);
+        if (!baseline) {
+          return jsonTextResult({ error: "No active baseline found" });
         }
-      }
-      return { content: [{ type: "text", text: JSON.stringify({ baseline: baseline.name, comparison }, null, 2) }] };
-    }
-  );
 
-  // synapse_create_rdr — Create a Research Decision Record
-  server.registerTool(
-    "synapse_create_rdr",
-    {
+        const comparison: Record<string, { baseline: number; experiment: number; delta: number; improved: boolean }> = {};
+        const baselineMetrics = baseline.metrics as Record<string, number>;
+        for (const [key, value] of Object.entries(experimentResults)) {
+          if (key in baselineMetrics) {
+            const baseVal = baselineMetrics[key];
+            comparison[key] = {
+              baseline: baseVal,
+              experiment: value,
+              delta: value - baseVal,
+              improved: value > baseVal,
+            };
+          }
+        }
+
+        return jsonTextResult({ baseline: baseline.name, comparison });
+      },
+    }),
+    createMcpTool({
+      name: "synapse_create_rdr",
       description: "Create a Research Decision Record documenting why a particular approach was chosen",
       inputSchema: z.object({
         researchProjectUuid: z.string(),
         title: z.string(),
         content: z.string(),
       }),
-    },
-    async (params) => {
-      const result = await documentService.createDocument({
-        researchProjectUuid: params.researchProjectUuid,
-        type: "rdr",
-        title: params.title,
-        content: params.content,
-        createdByUuid: auth.actorUuid,
-        companyUuid: auth.companyUuid,
-      });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    }
-  );
+      async execute({ researchProjectUuid, title, content }) {
+        const result = await documentService.createDocument({
+          researchProjectUuid,
+          type: "rdr",
+          title,
+          content,
+          createdByUuid: auth.actorUuid,
+          companyUuid: auth.companyUuid,
+        });
+
+        return jsonTextResult(result);
+      },
+    }),
+  ]);
+
+  registerMcpTools(server, lateStageResearchLeadTools);
 }
