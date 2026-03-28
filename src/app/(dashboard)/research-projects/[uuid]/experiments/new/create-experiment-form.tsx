@@ -13,9 +13,11 @@ import { Textarea } from "@/components/ui/textarea";
 export function CreateExperimentForm({
   projectUuid,
   researchQuestions,
+  existingExperiments,
 }: {
   projectUuid: string;
   researchQuestions: Array<{ uuid: string; title: string }>;
+  existingExperiments: Array<{ uuid: string; title: string; description: string | null }>;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -23,6 +25,7 @@ export function CreateExperimentForm({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [description, setDescription] = useState("");
 
   async function handleSubmit(formData: FormData) {
     setError(null);
@@ -58,12 +61,37 @@ export function CreateExperimentForm({
             <Input id="title" name="title" required placeholder={t("experiments.fields.titlePlaceholder")} />
           </div>
 
+          {existingExperiments.length > 0 && (
+            <div className="space-y-2 md:col-span-2">
+              <Label>{t("experiments.fields.copyFromExperiment")}</Label>
+              <select
+                className="w-full rounded-xl border border-[#E5DED3] bg-[#FBF8F3] px-3 py-2 text-sm text-[#2C2C2C]"
+                onChange={(e) => {
+                  const exp = existingExperiments.find((ex) => ex.uuid === e.target.value);
+                  if (exp?.description) {
+                    setDescription(exp.description);
+                  }
+                }}
+                defaultValue=""
+              >
+                <option value="">{t("experiments.fields.writeYourOwn")}</option>
+                {existingExperiments.map((exp) => (
+                  <option key={exp.uuid} value={exp.uuid}>
+                    {exp.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="description">{t("experiments.fields.description")}</Label>
             <Textarea
               id="description"
               name="description"
               rows={5}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               placeholder={t("experiments.fields.descriptionPlaceholder")}
             />
           </div>

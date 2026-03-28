@@ -1139,6 +1139,8 @@
       "computeBudgetHours": "Time Limit",
       "computeBudgetHoursPlaceholder": "Default: Unlimited",
       "computeBudgetHoursHelp": "Maximum runtime for this experiment (hours)",
+      "copyFromExperiment": "Copy from existing experiment",
+      "writeYourOwn": "Write your own",
       "attachments": "Experiment documents",
       "attachmentsHelp": "Upload notes or specs to keep this experiment self-contained."
     },

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getServerAuthContext } from "@/lib/auth-server";
+import { listExperiments } from "@/services/experiment.service";
 import { researchProjectExists } from "@/services/research-project.service";
 import { listResearchQuestions } from "@/services/research-question.service";
 import { CreateExperimentForm } from "./create-experiment-form";
@@ -22,12 +23,20 @@ export default async function NewExperimentPage({ params }: PageProps) {
   }
 
   const t = await getTranslations();
-  const { researchQuestions } = await listResearchQuestions({
-    companyUuid: auth.companyUuid,
-    researchProjectUuid: projectUuid,
-    skip: 0,
-    take: 1000,
-  });
+  const [{ researchQuestions }, { experiments: existingExperiments }] = await Promise.all([
+    listResearchQuestions({
+      companyUuid: auth.companyUuid,
+      researchProjectUuid: projectUuid,
+      skip: 0,
+      take: 1000,
+    }),
+    listExperiments({
+      companyUuid: auth.companyUuid,
+      researchProjectUuid: projectUuid,
+      skip: 0,
+      take: 200,
+    }),
+  ]);
 
   return (
     <div className="space-y-6 p-4 md:p-8">
@@ -41,6 +50,11 @@ export default async function NewExperimentPage({ params }: PageProps) {
         researchQuestions={researchQuestions.map((question) => ({
           uuid: question.uuid,
           title: question.title,
+        }))}
+        existingExperiments={existingExperiments.map((e) => ({
+          uuid: e.uuid,
+          title: e.title,
+          description: e.description,
         }))}
       />
     </div>

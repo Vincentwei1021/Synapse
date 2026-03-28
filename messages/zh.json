@@ -1139,6 +1139,8 @@
       "computeBudgetHours": "时间限制",
       "computeBudgetHoursPlaceholder": "默认无限制",
       "computeBudgetHoursHelp": "实验的最大运行时间（小时）",
+      "copyFromExperiment": "从已有实验复制描述",
+      "writeYourOwn": "自行填写",
       "attachments": "实验文档",
       "attachmentsHelp": "上传说明文档或实验规范，方便后续追溯。"
     },
