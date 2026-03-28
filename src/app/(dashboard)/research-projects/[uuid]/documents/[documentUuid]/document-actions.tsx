@@ -17,7 +17,7 @@ export function DocumentActions({ }: DocumentActionsProps) {
     <div className="flex gap-2">
       <Button
         variant="outline"
-        className="border-[#E5E0D8] text-[#6B6B6B]"
+        className="border-border text-muted-foreground"
         onClick={() => router.back()}
       >
         {t("common.back")}

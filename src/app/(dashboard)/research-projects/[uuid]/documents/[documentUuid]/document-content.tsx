@@ -38,23 +38,23 @@ export function DocumentContent({ documentUuid, projectUuid, initialContent }: D
   };
 
   return (
-    <Card className="flex-1 overflow-auto border-[#E5E0D8] p-6">
+    <Card className="flex-1 overflow-auto border-border p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-medium text-[#2C2C2C]">{t("common.content")}</h2>
+        <h2 className="text-lg font-medium text-foreground">{t("common.content")}</h2>
         {isEditing ? (
           <div className="flex gap-2">
             <Button
               variant="outline"
               onClick={handleCancel}
               disabled={isPending}
-              className="border-[#E5E0D8] text-[#6B6B6B]"
+              className="border-border text-muted-foreground"
             >
               {t("common.cancel")}
             </Button>
             <Button
               onClick={handleSave}
               disabled={isPending}
-              className="bg-[#5A9E6F] hover:bg-[#4A8E5F] text-white"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-600 dark:hover:bg-emerald-700"
             >
               {isPending ? t("common.processing") : t("documents.saveChanges")}
             </Button>
@@ -62,7 +62,7 @@ export function DocumentContent({ documentUuid, projectUuid, initialContent }: D
         ) : (
           <Button
             onClick={() => setIsEditing(true)}
-            className="bg-[#C67A52] hover:bg-[#B56A42] text-white"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -85,15 +85,15 @@ export function DocumentContent({ documentUuid, projectUuid, initialContent }: D
         <textarea
           value={editContent}
           onChange={(e) => setEditContent(e.target.value)}
-          className="h-full w-full resize-none rounded-lg border border-[#E5E0D8] p-4 font-mono text-sm focus:border-[#C67A52] focus:outline-none focus:ring-1 focus:ring-[#C67A52]"
+          className="h-full w-full resize-none rounded-lg border border-border bg-background p-4 font-mono text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           placeholder={t("documents.documentContent")}
         />
       ) : (
-        <div className="prose prose-sm max-w-none text-[#2C2C2C]">
+        <div className="prose prose-sm dark:prose-invert max-w-none text-foreground">
           {initialContent ? (
             <Streamdown plugins={{ code }}>{initialContent}</Streamdown>
           ) : (
-            <span className="text-[#9A9A9A] italic">{t("common.noContent")}</span>
+            <span className="text-muted-foreground italic">{t("common.noContent")}</span>
           )}
         </div>
       )}
