@@ -6,6 +6,7 @@ import * as activityService from "@/services/activity.service";
 import * as computeService from "@/services/compute.service";
 import * as experimentService from "@/services/experiment.service";
 import * as experimentRunService from "@/services/experiment-run.service";
+import { createProgressLog } from "@/services/experiment-progress.service";
 import * as sessionService from "@/services/session.service";
 
 function serializeAccess(node: {
@@ -544,6 +545,39 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
 
       return {
         content: [{ type: "text", text: JSON.stringify({ run: updated, released: true }, null, 2) }],
+      };
+    }
+  );
+
+  server.registerTool(
+    "synapse_report_experiment_progress",
+    {
+      description:
+        "Report a progress update for an in-progress experiment. The message appears on the experiment card in real-time and is logged in the progress timeline.",
+      inputSchema: z.object({
+        experimentUuid: z.string(),
+        message: z
+          .string()
+          .describe("Short status message, e.g. 'Training epoch 3/10, loss=0.42'"),
+        phase: z
+          .string()
+          .optional()
+          .describe("Optional phase label, e.g. 'data_download', 'training', 'evaluation'"),
+      }),
+    },
+    async ({ experimentUuid, message, phase }) => {
+      const log = await createProgressLog({
+        companyUuid: auth.companyUuid,
+        experimentUuid,
+        message,
+        phase,
+        actorUuid: auth.actorUuid,
+      });
+
+      return {
+        content: [
+          { type: "text", text: JSON.stringify({ success: true, logUuid: log.uuid }) },
+        ],
       };
     }
   );
