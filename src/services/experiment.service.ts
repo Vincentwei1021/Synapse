@@ -92,7 +92,7 @@ const VALID_TRANSITIONS: Record<ExperimentStatus, ExperimentStatus[]> = {
   pending_review: ["draft", "pending_start"],
   pending_start: ["in_progress"],
   in_progress: ["completed"],
-  completed: ["completed"],
+  completed: [],
 };
 
 const EXPERIMENT_PRIORITY_ORDER: Record<ExperimentPriority, number> = {

@@ -93,10 +93,10 @@ export function CreateExperimentForm({
               defaultValue="medium"
               className="w-full rounded-xl border border-[#E5DED3] bg-[#FBF8F3] px-3 py-2 text-sm text-[#2C2C2C]"
             >
-              <option value="immediate">{t("priority.immediate")}</option>
               <option value="low">{t("priority.low")}</option>
               <option value="medium">{t("priority.medium")}</option>
               <option value="high">{t("priority.high")}</option>
+              <option value="immediate">{t("priority.immediate")}</option>
             </select>
           </div>
 

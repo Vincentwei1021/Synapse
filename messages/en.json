@@ -380,6 +380,7 @@
     "submit": "Submit",
     "editResearchQuestion": "Edit Research Question",
     "saveChanges": "Save Changes",
+    "completed": "Completed",
     "titleRequired": "Title is required",
     "updateFailed": "Failed to update research question",
     "deleteResearchQuestion": "Delete Research Question",

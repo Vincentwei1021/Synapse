@@ -500,6 +500,7 @@ export async function createComputeNode(input: {
 }
 
 export async function syncNodeInventory(input: {
+  companyUuid?: string;
   nodeUuid: string;
   ec2InstanceId?: string | null;
   instanceType?: string | null;
@@ -516,6 +517,10 @@ export async function syncNodeInventory(input: {
   });
 
   if (!node) {
+    throw new Error("Compute node not found");
+  }
+
+  if (input.companyUuid && node.companyUuid !== input.companyUuid) {
     throw new Error("Compute node not found");
   }
 
@@ -617,6 +622,10 @@ export async function reserveGpusForRun(input: {
           where: { releasedAt: null },
           select: { uuid: true },
         },
+        experimentReservations: {
+          where: { releasedAt: null },
+          select: { uuid: true },
+        },
       },
     });
 
@@ -624,7 +633,12 @@ export async function reserveGpusForRun(input: {
       throw new Error("Some GPUs could not be found");
     }
 
-    const unavailable = gpus.find((gpu) => gpu.lifecycle !== GPU_AVAILABLE || gpu.reservations.length > 0);
+    const unavailable = gpus.find(
+      (gpu) =>
+        gpu.lifecycle !== GPU_AVAILABLE ||
+        gpu.reservations.length > 0 ||
+        gpu.experimentReservations.length > 0,
+    );
     if (unavailable) {
       throw new Error(`GPU ${unavailable.slotIndex} on node ${unavailable.nodeUuid} is not available`);
     }

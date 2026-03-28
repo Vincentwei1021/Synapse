@@ -26,6 +26,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     companyUuid: auth.companyUuid,
     skip,
     take,
+    ownerUuid: auth.actorUuid,
   });
 
   const data = agents.map((a) => ({

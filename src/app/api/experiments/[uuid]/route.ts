@@ -49,31 +49,46 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return errors.validationError(parsed.error.flatten().fieldErrors);
   }
 
+  // Handle assignment if assignee fields are provided
   if (parsed.data.assigneeType && parsed.data.assigneeUuid) {
-    const experiment = await assignExperiment({
+    await assignExperiment({
       companyUuid: auth.companyUuid,
       experimentUuid: uuid,
       assigneeType: parsed.data.assigneeType,
       assigneeUuid: parsed.data.assigneeUuid,
       assignedByUuid: auth.actorUuid,
     });
+  }
+
+  // Apply remaining field updates (even if assignment was also performed)
+  const hasFieldUpdates =
+    parsed.data.title !== undefined ||
+    parsed.data.description !== undefined ||
+    parsed.data.status !== undefined ||
+    parsed.data.priority !== undefined ||
+    parsed.data.computeBudgetHours !== undefined ||
+    parsed.data.outcome !== undefined ||
+    parsed.data.results !== undefined;
+
+  if (hasFieldUpdates) {
+    const experiment = await updateExperiment(
+      auth.companyUuid,
+      uuid,
+      {
+        title: parsed.data.title,
+        description: parsed.data.description,
+        status: parsed.data.status,
+        priority: parsed.data.priority,
+        computeBudgetHours: parsed.data.computeBudgetHours,
+        outcome: parsed.data.outcome,
+        results: parsed.data.results,
+      },
+      { actorType: "user", actorUuid: auth.actorUuid },
+    );
     return success({ experiment });
   }
 
-  const experiment = await updateExperiment(
-    auth.companyUuid,
-    uuid,
-    {
-      title: parsed.data.title,
-      description: parsed.data.description,
-      status: parsed.data.status,
-      priority: parsed.data.priority,
-      computeBudgetHours: parsed.data.computeBudgetHours,
-      outcome: parsed.data.outcome,
-      results: parsed.data.results,
-    },
-    { actorType: "user", actorUuid: auth.actorUuid },
-  );
-
+  // If only assignment was done, re-fetch to return the updated experiment
+  const experiment = await getExperiment(auth.companyUuid, uuid);
   return success({ experiment });
 }

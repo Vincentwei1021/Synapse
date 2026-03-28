@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,8 +16,10 @@ interface Stats {
 
 export default function AdminDashboardPage() {
   const t = useTranslations();
+  const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
     fetchStats();
@@ -25,10 +28,15 @@ export default function AdminDashboardPage() {
   const fetchStats = async () => {
     try {
       const response = await fetch("/api/admin/stats");
+      if (response.status === 401 || response.status === 403) {
+        router.replace("/login");
+        return;
+      }
       const data = await response.json();
 
       if (data.success) {
         setStats(data.data);
+        setAuthorized(true);
       }
     } catch (error) {
       console.error("Failed to fetch stats:", error);
@@ -36,6 +44,14 @@ export default function AdminDashboardPage() {
       setLoading(false);
     }
   };
+
+  if (loading) {
+    return <div className="flex min-h-full items-center justify-center text-muted-foreground">Loading...</div>;
+  }
+
+  if (!authorized) {
+    return null;
+  }
 
   return (
     <div className="min-h-full bg-background px-8 py-6">

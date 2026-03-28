@@ -28,7 +28,7 @@ describe("GET /api/admin/stats", () => {
   });
 
   it("returns aggregated company stats", async () => {
-    const response = await GET(new NextRequest(new URL("/api/admin/stats", "http://localhost:3000")));
+    const response = await GET(new NextRequest(new URL("/api/admin/stats", "http://localhost:3000")), { params: Promise.resolve({}) });
     const body = await response.json();
 
     expect(response.status).toBe(200);

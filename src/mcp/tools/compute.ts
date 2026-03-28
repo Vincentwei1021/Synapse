@@ -203,10 +203,13 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
       }
 
       if (workingNotes?.trim()) {
+        const current = await experimentService.getExperiment(auth.companyUuid, experimentUuid);
+        const existingDescription = current?.description ?? "";
+        const separator = existingDescription ? "\n\n---\n\n" : "";
         await experimentService.updateExperiment(
           auth.companyUuid,
           experimentUuid,
-          { description: workingNotes.trim() },
+          { description: existingDescription + separator + workingNotes.trim() },
           { actorType: "agent", actorUuid: auth.actorUuid },
         );
       }
@@ -267,6 +270,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
     },
     async ({ nodeUuid, ec2InstanceId, instanceType, region, gpus }) => {
       const node = await computeService.syncNodeInventory({
+        companyUuid: auth.companyUuid,
         nodeUuid,
         ec2InstanceId,
         instanceType,

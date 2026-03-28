@@ -189,6 +189,7 @@ describe("agent management routes", () => {
       companyUuid,
       skip: 0,
       take: 20,
+      ownerUuid: "user-uuid-1",
     });
   });
 

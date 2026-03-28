@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
+import { withErrorHandler } from "@/lib/api-handler";
 import { errors, success } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
 import { createComputePool, listComputePools } from "@/services/compute.service";
@@ -9,7 +10,7 @@ const poolSchema = z.object({
   description: z.string().optional(),
 });
 
-export async function GET(request: NextRequest) {
+export const GET = withErrorHandler(async (request: NextRequest) => {
   const auth = await getAuthContext(request);
   if (!auth) {
     return errors.unauthorized();
@@ -17,9 +18,9 @@ export async function GET(request: NextRequest) {
 
   const pools = await listComputePools(auth.companyUuid);
   return success({ pools });
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withErrorHandler(async (request: NextRequest) => {
   const auth = await getAuthContext(request);
   if (!auth) {
     return errors.unauthorized();
@@ -40,4 +41,4 @@ export async function POST(request: NextRequest) {
   });
 
   return success({ pool });
-}
+});

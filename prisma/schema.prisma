@@ -92,7 +92,7 @@ model ApiKey {
   agentUuid   String // Agent's UUID
   agent       Agent     @relation(fields: [agentUuid], references: [uuid], onDelete: Cascade)
   keyHash     String    @unique // API Key stored as hash
-  keyPrefix   String // Key prefix for display (e.g., "cho_xxx...")
+  keyPrefix   String // Key prefix for display (e.g., "syn_xxx...")
   name        String? // Optional descriptive name
   lastUsed    DateTime?
   expiresAt   DateTime?
@@ -395,7 +395,7 @@ model Comment {
   uuid        String   @unique @default(uuid())
   companyUuid String
   company     Company  @relation(fields: [companyUuid], references: [uuid])
-  targetType  String // idea | proposal | task | document
+  targetType  String // research_question | experiment | experiment_design | experiment_run | document
   targetUuid  String // UUID of target entity
   content     String
   authorType  String // user | agent
@@ -416,7 +416,7 @@ model Activity {
   researchProjectUuid String          @map("projectUuid")
   researchProject     ResearchProject @relation(fields: [researchProjectUuid], references: [uuid], onDelete: Cascade)
   // Target entity (generic design)
-  targetType          String // idea | task | proposal | document
+  targetType          String // research_question | experiment | experiment_design | experiment_run | document
   targetUuid          String // Target entity UUID
   // Action info
   actorType           String // user | agent

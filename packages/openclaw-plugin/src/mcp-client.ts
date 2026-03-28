@@ -137,7 +137,7 @@ export class SynapseMcpClient {
   private isSessionExpiredError(err: unknown): boolean {
     if (err instanceof Error) {
       const msg = err.message.toLowerCase();
-      return msg.includes("404") || msg.includes("session") || msg.includes("not found");
+      return msg.includes("404") || msg.includes("session expired") || msg.includes("session not found");
     }
     return false;
   }

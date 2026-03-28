@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import path from "node:path";
 import { NextRequest } from "next/server";
 import { z } from "zod";
+import { withErrorHandler } from "@/lib/api-handler";
 import { errors, paginated, success } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
 import { createExperiment, listExperiments, updateExperiment, type ExperimentAttachment } from "@/services/experiment.service";
@@ -52,7 +53,7 @@ async function persistAttachment(
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
-export async function GET(request: NextRequest, context: RouteContext) {
+export const GET = withErrorHandler<{ uuid: string }>(async (request: NextRequest, context: RouteContext) => {
   const auth = await getAuthContext(request);
   if (!auth) {
     return errors.unauthorized();
@@ -78,9 +79,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
   });
 
   return paginated(result.experiments, page, pageSize, result.total);
-}
+});
 
-export async function POST(request: NextRequest, context: RouteContext) {
+export const POST = withErrorHandler<{ uuid: string }>(async (request: NextRequest, context: RouteContext) => {
   const auth = await getAuthContext(request);
   if (!auth) {
     return errors.unauthorized();
@@ -131,4 +132,4 @@ export async function POST(request: NextRequest, context: RouteContext) {
     : experiment;
 
   return success({ experiment: updated });
-}
+});

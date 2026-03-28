@@ -9,6 +9,7 @@ export interface AgentListParams {
   companyUuid: string;
   skip: number;
   take: number;
+  ownerUuid?: string;
 }
 
 export interface AgentCreateParams {
@@ -35,10 +36,11 @@ export interface ApiKeyCreateParams {
 }
 
 // List agents query
-export async function listAgents({ companyUuid, skip, take }: AgentListParams) {
+export async function listAgents({ companyUuid, skip, take, ownerUuid }: AgentListParams) {
+  const where = { companyUuid, ...(ownerUuid ? { ownerUuid } : {}) };
   const [agents, total] = await Promise.all([
     prisma.agent.findMany({
-      where: { companyUuid },
+      where,
       skip,
       take,
       orderBy: { createdAt: "desc" },
@@ -53,7 +55,7 @@ export async function listAgents({ companyUuid, skip, take }: AgentListParams) {
         _count: { select: { apiKeys: true } },
       },
     }),
-    prisma.agent.count({ where: { companyUuid } }),
+    prisma.agent.count({ where }),
   ]);
 
   return { agents, total };
