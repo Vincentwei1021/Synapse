@@ -5,8 +5,7 @@ import { ArrowRight, FileText, FlaskConical, Lightbulb, Sparkles } from "lucide-
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { prisma } from "@/lib/prisma";
-import { getResearchProject, getResearchProjectStats } from "@/services/research-project.service";
+import { getResearchProjectDashboardData } from "@/services/research-project.service";
 
 interface PageProps {
   params: Promise<{ uuid: string }>;
@@ -21,40 +20,11 @@ export default async function DashboardPage({ params }: PageProps) {
   const { uuid: projectUuid } = await params;
   const t = await getTranslations();
 
-  const project = await getResearchProject(auth.companyUuid, projectUuid);
-  if (!project) {
+  const dashboardData = await getResearchProjectDashboardData(auth.companyUuid, projectUuid);
+  if (!dashboardData) {
     redirect("/research-projects");
   }
-
-  const [stats, recentExperiments, recentQuestions] = await Promise.all([
-    getResearchProjectStats(auth.companyUuid, projectUuid),
-    prisma.experiment.findMany({
-      where: { companyUuid: auth.companyUuid, researchProjectUuid: projectUuid },
-      orderBy: { updatedAt: "desc" },
-      take: 5,
-      select: {
-        uuid: true,
-        title: true,
-        status: true,
-        outcome: true,
-      },
-    }),
-    prisma.researchQuestion.findMany({
-      where: {
-        companyUuid: auth.companyUuid,
-        researchProjectUuid: projectUuid,
-        reviewStatus: { not: "rejected" },
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 5,
-      select: {
-        uuid: true,
-        title: true,
-        status: true,
-        reviewStatus: true,
-      },
-    }),
-  ]);
+  const { project, stats, recentExperiments, recentQuestions } = dashboardData;
 
   const statCards = [
     {

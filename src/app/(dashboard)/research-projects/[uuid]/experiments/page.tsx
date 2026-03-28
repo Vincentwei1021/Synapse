@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Plus } from "lucide-react";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { prisma } from "@/lib/prisma";
+import { listAgentSummaries } from "@/services/agent.service";
 import { researchProjectExists } from "@/services/research-project.service";
 import { listExperiments } from "@/services/experiment.service";
 import { ExperimentsBoard } from "./experiments-board";
@@ -35,11 +35,7 @@ export default async function ExperimentsPage({ params, searchParams }: PageProp
       skip: 0,
       take: 1000,
     }),
-    prisma.agent.findMany({
-      where: { companyUuid: auth.companyUuid },
-      select: { uuid: true, name: true, roles: true },
-      orderBy: { createdAt: "asc" },
-    }),
+    listAgentSummaries(auth.companyUuid),
   ]);
 
   return (

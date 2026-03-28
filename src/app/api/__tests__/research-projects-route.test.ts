@@ -4,6 +4,9 @@ import { NextRequest } from "next/server";
 const mockGetAuthContext = vi.fn();
 const mockListResearchProjectsWithStats = vi.fn();
 const mockGetResearchProject = vi.fn();
+const mockGetResearchProjectDetailRef = vi.fn();
+const mockUpdateResearchProject = vi.fn();
+const mockDeleteResearchProject = vi.fn();
 const mockGetProjectMetricsSnapshot = vi.fn();
 const mockToProjectCompatibilityCounts = vi.fn();
 
@@ -15,6 +18,9 @@ vi.mock("@/lib/auth", () => ({
 vi.mock("@/services/research-project.service", () => ({
   listResearchProjectsWithStats: (...args: unknown[]) => mockListResearchProjectsWithStats(...args),
   getResearchProject: (...args: unknown[]) => mockGetResearchProject(...args),
+  getResearchProjectDetailRef: (...args: unknown[]) => mockGetResearchProjectDetailRef(...args),
+  updateResearchProject: (...args: unknown[]) => mockUpdateResearchProject(...args),
+  deleteResearchProject: (...args: unknown[]) => mockDeleteResearchProject(...args),
 }));
 
 vi.mock("@/services/project-metrics.service", () => ({
@@ -25,12 +31,16 @@ vi.mock("@/services/project-metrics.service", () => ({
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     projectGroup: { findFirst: vi.fn() },
-    researchProject: { create: vi.fn(), findFirst: vi.fn(), update: vi.fn(), delete: vi.fn() },
+    researchProject: { create: vi.fn() },
   },
 }));
 
 import { GET as listProjects } from "@/app/api/research-projects/route";
-import { GET as getProjectDetail } from "@/app/api/research-projects/[uuid]/route";
+import {
+  DELETE as deleteProjectDetail,
+  GET as getProjectDetail,
+  PATCH as patchProjectDetail,
+} from "@/app/api/research-projects/[uuid]/route";
 
 const companyUuid = "company-0000-0000-0000-000000000001";
 const projectUuid = "project-0000-0000-0000-000000000001";
@@ -64,6 +74,7 @@ describe("research projects routes", () => {
       doneTasks: 4,
       proposals: 2,
     });
+    mockGetResearchProjectDetailRef.mockResolvedValue({ uuid: projectUuid });
   });
 
   it("GET /api/research-projects returns paginated projects with compatibility counts", async () => {
@@ -147,5 +158,48 @@ describe("research projects routes", () => {
     });
 
     expect(response.status).toBe(401);
+  });
+
+  it("PATCH /api/research-projects/[uuid] updates project through service layer", async () => {
+    mockUpdateResearchProject.mockResolvedValue({
+      uuid: projectUuid,
+      name: "Renamed Project",
+      description: "Updated description",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const response = await patchProjectDetail(
+      new NextRequest(new URL(`/api/research-projects/${projectUuid}`, "http://localhost:3000"), {
+        method: "PATCH",
+        body: JSON.stringify({ name: "Renamed Project", description: " Updated description " }),
+        headers: { "content-type": "application/json" },
+      }),
+      makeContext(projectUuid),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(mockGetResearchProjectDetailRef).toHaveBeenCalledWith(companyUuid, projectUuid);
+    expect(mockUpdateResearchProject).toHaveBeenCalledWith(projectUuid, {
+      name: "Renamed Project",
+      description: "Updated description",
+    });
+  });
+
+  it("DELETE /api/research-projects/[uuid] deletes project through service layer", async () => {
+    const response = await deleteProjectDetail(
+      new NextRequest(new URL(`/api/research-projects/${projectUuid}`, "http://localhost:3000"), {
+        method: "DELETE",
+      }),
+      makeContext(projectUuid),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(mockGetResearchProjectDetailRef).toHaveBeenCalledWith(companyUuid, projectUuid);
+    expect(mockDeleteResearchProject).toHaveBeenCalledWith(projectUuid);
   });
 });

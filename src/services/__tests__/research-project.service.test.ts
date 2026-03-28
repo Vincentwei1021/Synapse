@@ -13,6 +13,7 @@ const mockPrisma = vi.hoisted(() => ({
   experiment: {
     count: vi.fn(),
     groupBy: vi.fn(),
+    findMany: vi.fn(),
   },
   experimentDesign: {
     groupBy: vi.fn(),
@@ -23,6 +24,7 @@ const mockPrisma = vi.hoisted(() => ({
   researchQuestion: {
     count: vi.fn(),
     groupBy: vi.fn(),
+    findMany: vi.fn(),
   },
   document: {
     count: vi.fn(),
@@ -34,11 +36,13 @@ vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 import {
   listResearchProjects,
   getResearchProject,
+  getResearchProjectDetailRef,
   createResearchProject,
   updateResearchProject,
   deleteResearchProject,
   researchProjectExists,
   getResearchProjectByUuid,
+  getResearchProjectDashboardData,
   getCompanyOverviewStats,
   getResearchProjectStats,
   listResearchProjectsWithStats,
@@ -122,6 +126,20 @@ describe("getResearchProject", () => {
 
     const result = await getResearchProject(companyUuid, "nonexistent");
     expect(result).toBeNull();
+  });
+});
+
+describe("getResearchProjectDetailRef", () => {
+  it("should return project uuid when project exists", async () => {
+    mockPrisma.researchProject.findFirst.mockResolvedValue({ uuid: researchProjectUuid });
+
+    const result = await getResearchProjectDetailRef(companyUuid, researchProjectUuid);
+
+    expect(result).toEqual({ uuid: researchProjectUuid });
+    expect(mockPrisma.researchProject.findFirst).toHaveBeenCalledWith({
+      where: { uuid: researchProjectUuid, companyUuid },
+      select: { uuid: true },
+    });
   });
 });
 
@@ -213,6 +231,35 @@ describe("researchProjectExists", () => {
 
     const result = await researchProjectExists(companyUuid, "missing");
     expect(result).toBe(false);
+  });
+});
+
+describe("getResearchProjectDashboardData", () => {
+  it("should return project, stats, recent experiments, and recent questions", async () => {
+    mockPrisma.researchProject.findFirst.mockResolvedValue(makeProject());
+    mockPrisma.experiment.findMany = vi.fn().mockResolvedValue([
+      { uuid: "exp-1", title: "Recent experiment", status: "in_progress", outcome: null },
+    ]);
+    mockPrisma.researchQuestion.findMany = vi.fn().mockResolvedValue([
+      { uuid: "rq-1", title: "Recent question", status: "open", reviewStatus: "approved" },
+    ]);
+
+    const result = await getResearchProjectDashboardData(companyUuid, researchProjectUuid);
+
+    expect(result).not.toBeNull();
+    expect(result!.project.uuid).toBe(researchProjectUuid);
+    expect(result!.recentExperiments).toHaveLength(1);
+    expect(result!.recentQuestions).toHaveLength(1);
+  });
+
+  it("should return null when project does not exist", async () => {
+    mockPrisma.researchProject.findFirst.mockResolvedValue(null);
+    mockPrisma.experiment.findMany = vi.fn().mockResolvedValue([]);
+    mockPrisma.researchQuestion.findMany = vi.fn().mockResolvedValue([]);
+
+    const result = await getResearchProjectDashboardData(companyUuid, "missing");
+
+    expect(result).toBeNull();
   });
 });
 

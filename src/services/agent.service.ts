@@ -240,6 +240,18 @@ export async function getAgentsByOwner(companyUuid: string, ownerUuid: string) {
   });
 }
 
+export async function listAgentSummaries(companyUuid: string) {
+  return prisma.agent.findMany({
+    where: { companyUuid },
+    select: {
+      uuid: true,
+      name: true,
+      roles: true,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
 // Get Agents by role (for assignment)
 // Supports two role formats: "researcher" and "researcher_agent"
 // ownerUuid: when provided, only returns Agents created by this user

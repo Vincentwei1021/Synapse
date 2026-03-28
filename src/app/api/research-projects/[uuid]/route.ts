@@ -3,11 +3,15 @@
 // UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { withErrorHandler, parseBody } from "@/lib/api-handler";
 import { success, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
-import { getResearchProject } from "@/services/research-project.service";
+import {
+  deleteResearchProject,
+  getResearchProject,
+  getResearchProjectDetailRef,
+  updateResearchProject,
+} from "@/services/research-project.service";
 import { getProjectMetricsSnapshot, toProjectCompatibilityCounts } from "@/services/project-metrics.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
@@ -58,10 +62,7 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
   const { uuid } = await context.params;
 
   // Validate research project exists and belongs to the current company (query by UUID)
-  const existing = await prisma.researchProject.findFirst({
-    where: { uuid, companyUuid: auth.companyUuid },
-    select: { uuid: true },
-  });
+  const existing = await getResearchProjectDetailRef(auth.companyUuid, uuid);
 
   if (!existing) {
     return errors.notFound("Research Project");
@@ -86,17 +87,7 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
     updateData.description = body.description?.trim() || null;
   }
 
-  const researchProject = await prisma.researchProject.update({
-    where: { uuid: existing.uuid },
-    data: updateData,
-    select: {
-      uuid: true,
-      name: true,
-      description: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+  const researchProject = await updateResearchProject(existing.uuid, updateData);
 
   return success({
     uuid: researchProject.uuid,
@@ -122,19 +113,14 @@ export const DELETE = withErrorHandler(async (request: NextRequest, context: Rou
   const { uuid } = await context.params;
 
   // Validate research project exists and belongs to the current company (query by UUID)
-  const existing = await prisma.researchProject.findFirst({
-    where: { uuid, companyUuid: auth.companyUuid },
-    select: { uuid: true },
-  });
+  const existing = await getResearchProjectDetailRef(auth.companyUuid, uuid);
 
   if (!existing) {
     return errors.notFound("Research Project");
   }
 
   // Delete research project (Prisma handles cascade deletes at the application level)
-  await prisma.researchProject.delete({
-    where: { uuid: existing.uuid },
-  });
+  await deleteResearchProject(existing.uuid);
 
   return success({ deleted: true });
 });

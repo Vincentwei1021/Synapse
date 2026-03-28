@@ -30,6 +30,23 @@ export interface ResearchProjectUpdateParams {
   evaluationMethods?: string[] | null;
 }
 
+export interface ResearchProjectDashboardData {
+  project: NonNullable<Awaited<ReturnType<typeof getResearchProject>>>;
+  stats: Awaited<ReturnType<typeof getResearchProjectStats>>;
+  recentExperiments: Array<{
+    uuid: string;
+    title: string;
+    status: string;
+    outcome: string | null;
+  }>;
+  recentQuestions: Array<{
+    uuid: string;
+    title: string;
+    status: string;
+    reviewStatus: string;
+  }>;
+}
+
 export async function listResearchProjects({ companyUuid, skip, take }: ResearchProjectListParams) {
   const [projects, total] = await Promise.all([
     prisma.researchProject.findMany({
@@ -93,11 +110,15 @@ export async function getResearchProject(companyUuid: string, uuid: string) {
   });
 }
 
-export async function researchProjectExists(companyUuid: string, researchProjectUuid: string): Promise<boolean> {
-  const project = await prisma.researchProject.findFirst({
-    where: { uuid: researchProjectUuid, companyUuid },
+export async function getResearchProjectDetailRef(companyUuid: string, uuid: string) {
+  return prisma.researchProject.findFirst({
+    where: { uuid, companyUuid },
     select: { uuid: true },
   });
+}
+
+export async function researchProjectExists(companyUuid: string, researchProjectUuid: string): Promise<boolean> {
+  const project = await getResearchProjectDetailRef(companyUuid, researchProjectUuid);
   return !!project;
 }
 
@@ -272,5 +293,52 @@ export async function getResearchProjectStats(companyUuid: string, researchProje
     },
     documents: { total: metrics.documents.total },
     completionRate: metrics.completionRate,
+  };
+}
+
+export async function getResearchProjectDashboardData(
+  companyUuid: string,
+  researchProjectUuid: string,
+): Promise<ResearchProjectDashboardData | null> {
+  const [project, stats, recentExperiments, recentQuestions] = await Promise.all([
+    getResearchProject(companyUuid, researchProjectUuid),
+    getResearchProjectStats(companyUuid, researchProjectUuid),
+    prisma.experiment.findMany({
+      where: { companyUuid, researchProjectUuid },
+      orderBy: { updatedAt: "desc" },
+      take: 5,
+      select: {
+        uuid: true,
+        title: true,
+        status: true,
+        outcome: true,
+      },
+    }),
+    prisma.researchQuestion.findMany({
+      where: {
+        companyUuid,
+        researchProjectUuid,
+        reviewStatus: { not: "rejected" },
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 5,
+      select: {
+        uuid: true,
+        title: true,
+        status: true,
+        reviewStatus: true,
+      },
+    }),
+  ]);
+
+  if (!project) {
+    return null;
+  }
+
+  return {
+    project,
+    stats,
+    recentExperiments,
+    recentQuestions,
   };
 }
