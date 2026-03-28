@@ -39,45 +39,50 @@ type PreferenceKey = keyof NotificationPreferences;
 
 interface PreferenceGroup {
   labelKey: string;
+  placeholder?: boolean;
   items: { key: PreferenceKey; labelKey: string }[];
 }
 
 const PREFERENCE_GROUPS: PreferenceGroup[] = [
   {
-    labelKey: "taskEvents",
+    labelKey: "preResearch",
+    placeholder: true,
+    items: [],
+  },
+  {
+    labelKey: "research",
     items: [
-      { key: "taskAssigned", labelKey: "taskAssigned" },
-      { key: "taskStatusChanged", labelKey: "taskStatusChanged" },
-      { key: "taskVerified", labelKey: "taskVerified" },
-      { key: "taskReopened", labelKey: "taskReopened" },
+      { key: "ideaClaimed", labelKey: "researchQuestionClaimed" },
+      {
+        key: "elaborationRequested",
+        labelKey: "hypothesisFormulationRequested",
+      },
+      { key: "elaborationAnswered", labelKey: "hypothesisFormulationAnswered" },
     ],
   },
   {
-    labelKey: "proposalEvents",
+    labelKey: "experiment",
     items: [
-      { key: "proposalSubmitted", labelKey: "proposalSubmitted" },
-      { key: "proposalApproved", labelKey: "proposalApproved" },
-      { key: "proposalRejected", labelKey: "proposalRejected" },
+      { key: "taskAssigned", labelKey: "experimentAssigned" },
+      { key: "taskStatusChanged", labelKey: "experimentStatusChanged" },
+      { key: "taskVerified", labelKey: "experimentVerified" },
+      { key: "taskReopened", labelKey: "experimentReopened" },
+      { key: "proposalSubmitted", labelKey: "designSubmitted" },
+      { key: "proposalApproved", labelKey: "designApproved" },
+      { key: "proposalRejected", labelKey: "designRejected" },
     ],
   },
   {
-    labelKey: "ideaEvents",
-    items: [{ key: "ideaClaimed", labelKey: "ideaClaimed" }],
+    labelKey: "report",
+    placeholder: true,
+    items: [],
   },
   {
-    labelKey: "elaborationEvents",
+    labelKey: "general",
     items: [
-      { key: "elaborationRequested", labelKey: "elaborationRequested" },
-      { key: "elaborationAnswered", labelKey: "elaborationAnswered" },
+      { key: "commentAdded", labelKey: "commentAdded" },
+      { key: "mentioned", labelKey: "mentioned" },
     ],
-  },
-  {
-    labelKey: "commentEvents",
-    items: [{ key: "commentAdded", labelKey: "commentAdded" }],
-  },
-  {
-    labelKey: "mentionEvents",
-    items: [{ key: "mentioned", labelKey: "mentioned" }],
   },
 ];
 
@@ -173,28 +178,32 @@ export function NotificationPreferencesForm() {
           <h3 className="text-sm font-medium text-foreground">
             {t(group.labelKey)}
           </h3>
-          <div className="space-y-3">
-            {group.items.map((item) => (
-              <div
-                key={item.key}
-                className="flex items-center justify-between"
-              >
-                <Label
-                  htmlFor={item.key}
-                  className="text-sm text-muted-foreground cursor-pointer"
+          {group.placeholder ? (
+            <p className="text-xs text-muted-foreground">{t("comingSoon")}</p>
+          ) : (
+            <div className="space-y-3">
+              {group.items.map((item) => (
+                <div
+                  key={item.key}
+                  className="flex items-center justify-between"
                 >
-                  {t(item.labelKey)}
-                </Label>
-                <Switch
-                  id={item.key}
-                  checked={preferences[item.key]}
-                  onCheckedChange={(checked) =>
-                    handleToggle(item.key, checked)
-                  }
-                />
-              </div>
-            ))}
-          </div>
+                  <Label
+                    htmlFor={item.key}
+                    className="text-sm text-muted-foreground cursor-pointer"
+                  >
+                    {t(item.labelKey)}
+                  </Label>
+                  <Switch
+                    id={item.key}
+                    checked={preferences[item.key]}
+                    onCheckedChange={(checked) =>
+                      handleToggle(item.key, checked)
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ))}
     </div>

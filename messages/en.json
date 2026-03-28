@@ -129,7 +129,8 @@
     "logout": "Sign out",
     "newResearchProject": "New Research Project",
     "backToResearchProjects": "Research Projects",
-    "openMenu": "Open menu"
+    "openMenu": "Open menu",
+    "agents": "Agents"
   },
   "priority": {
     "immediate": "Immediate",
@@ -307,6 +308,11 @@
   "researchProjects": {
     "title": "Research Projects",
     "subtitle": "Manage your research projects and track progress",
+    "editProject": "Edit Project",
+    "projectName": "Project Name",
+    "description": "Description",
+    "datasets": "Datasets",
+    "evaluationMethods": "Evaluation Methods",
     "newResearchProject": "New Research Project",
     "noResearchProjects": "No research projects yet",
     "noResearchProjectsDesc": "Create your first research project to start collaborating with AI agents.",
@@ -708,6 +714,31 @@
     "updateSuccess": "Agent updated successfully",
     "updateFailed": "Failed to update agent"
   },
+  "agents": {
+    "title": "Agents",
+    "subtitle": "Manage your AI agents and their permissions",
+    "create": "Create Agent",
+    "noAgents": "No agents yet",
+    "noAgentsDesc": "Create your first AI agent to get started",
+    "permissions": {
+      "preResearch": "Pre-research",
+      "research": "Research",
+      "experiment": "Experiment",
+      "report": "Report"
+    },
+    "fields": {
+      "name": "Agent Name",
+      "persona": "Persona",
+      "personaPlaceholder": "Brief description of this agent's personality and approach",
+      "permissions": "Permissions"
+    },
+    "detail": {
+      "apiKeys": "API Keys",
+      "sessions": "Sessions",
+      "noSessions": "No sessions",
+      "lastActive": "Last active"
+    }
+  },
   "login": {
     "title": "Synapse",
     "subtitle": "AI-Human Research Collaboration Platform",
@@ -821,38 +852,24 @@
     "preferences": {
     "title": "Notification Preferences",
     "description": "Configure which events trigger notifications",
-    "experimentRunEvents": "Experiment Run Events",
-    "experimentDesignEvents": "Experiment Design Events",
-    "researchQuestionEvents": "Research Question Events",
-    "taskEvents": "Experiment Run Events",
-    "proposalEvents": "Experiment Design Events",
-    "ideaEvents": "Research Question Events",
-    "elaborationEvents": "Hypothesis Formulation Events",
-    "commentEvents": "Comment Events",
-    "experimentRunAssigned": "Experiment run assigned",
-    "experimentRunStatusChanged": "Experiment run status changed",
-    "experimentRunVerified": "Experiment run verified",
-    "experimentRunReopened": "Experiment run reopened",
-    "taskAssigned": "Experiment run assigned",
-    "taskStatusChanged": "Experiment run status changed",
-    "taskVerified": "Experiment run verified",
-    "taskReopened": "Experiment run reopened",
-    "experimentDesignSubmitted": "Experiment design submitted",
-    "experimentDesignApproved": "Experiment design approved",
-    "experimentDesignRejected": "Experiment design rejected",
-    "proposalSubmitted": "Experiment design submitted",
-    "proposalApproved": "Experiment design approved",
-    "proposalRejected": "Experiment design rejected",
-    "researchQuestionClaimed": "Research question claimed",
-    "ideaClaimed": "Research question claimed",
-    "commentAdded": "Comment added",
-    "hypothesisFormulationEvents": "Hypothesis Formulation Events",
+    "preResearch": "Pre-research",
+    "research": "Research",
+    "experiment": "Experiment",
+    "report": "Report",
+    "general": "General",
+    "comingSoon": "Coming soon",
+    "researchQuestionClaimed": "Research question assigned",
     "hypothesisFormulationRequested": "Hypothesis formulation requested",
     "hypothesisFormulationAnswered": "Hypothesis formulation answered",
-    "elaborationRequested": "Hypothesis formulation requested",
-    "elaborationAnswered": "Hypothesis formulation answered",
-    "mentionEvents": "Mention Events",
-    "mentioned": "Mentioned in comment or content"
+    "experimentAssigned": "Experiment assigned",
+    "experimentStatusChanged": "Experiment status changed",
+    "experimentVerified": "Experiment verified",
+    "experimentReopened": "Experiment reopened",
+    "designSubmitted": "Experiment design submitted",
+    "designApproved": "Experiment design approved",
+    "designRejected": "Experiment design rejected",
+    "commentAdded": "Comment added",
+    "mentioned": "Mentioned"
   }
   },
   "hypothesisFormulation": {

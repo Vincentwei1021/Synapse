@@ -129,7 +129,8 @@
     "logout": "退出登录",
     "newResearchProject": "新建研究项目",
     "backToResearchProjects": "研究项目",
-    "openMenu": "打开菜单"
+    "openMenu": "打开菜单",
+    "agents": "智能体"
   },
   "priority": {
     "immediate": "立即执行",
@@ -307,6 +308,11 @@
   "researchProjects": {
     "title": "研究项目",
     "subtitle": "管理您的研究项目并跟踪进度",
+    "editProject": "编辑项目",
+    "projectName": "项目名称",
+    "description": "项目描述",
+    "datasets": "数据集",
+    "evaluationMethods": "评估方式",
     "newResearchProject": "新建研究项目",
     "noResearchProjects": "暂无研究项目",
     "noResearchProjectsDesc": "创建您的第一个研究项目，开始与 AI 智能体协作。",
@@ -708,6 +714,31 @@
     "updateSuccess": "智能体更新成功",
     "updateFailed": "更新智能体失败"
   },
+  "agents": {
+    "title": "智能体",
+    "subtitle": "管理你的 AI 智能体和权限",
+    "create": "创建智能体",
+    "noAgents": "暂无智能体",
+    "noAgentsDesc": "创建你的第一个 AI 智能体",
+    "permissions": {
+      "preResearch": "预研",
+      "research": "研究",
+      "experiment": "实验",
+      "report": "报告"
+    },
+    "fields": {
+      "name": "智能体名称",
+      "persona": "人格描述",
+      "personaPlaceholder": "简述此智能体的个性和工作方式",
+      "permissions": "权限"
+    },
+    "detail": {
+      "apiKeys": "API 密钥",
+      "sessions": "会话",
+      "noSessions": "暂无会话",
+      "lastActive": "上次活跃"
+    }
+  },
   "login": {
     "title": "Synapse",
     "subtitle": "AI 与人类研究协作平台",
@@ -821,38 +852,24 @@
     "preferences": {
     "title": "通知偏好",
     "description": "配置哪些事件触发通知",
-    "experimentRunEvents": "实验运行事件",
-    "experimentDesignEvents": "实验设计事件",
-    "researchQuestionEvents": "研究问题事件",
-    "taskEvents": "实验运行事件",
-    "proposalEvents": "实验设计事件",
-    "ideaEvents": "研究问题事件",
-    "elaborationEvents": "假说构建事件",
-    "commentEvents": "评论事件",
-    "experimentRunAssigned": "实验运行分配",
-    "experimentRunStatusChanged": "实验运行状态变更",
-    "experimentRunVerified": "实验运行验证",
-    "experimentRunReopened": "实验运行重新打开",
-    "taskAssigned": "实验运行分配",
-    "taskStatusChanged": "实验运行状态变更",
-    "taskVerified": "实验运行验证",
-    "taskReopened": "实验运行重新打开",
-    "experimentDesignSubmitted": "实验设计提交",
-    "experimentDesignApproved": "实验设计通过",
-    "experimentDesignRejected": "实验设计拒绝",
-    "proposalSubmitted": "实验设计提交",
-    "proposalApproved": "实验设计通过",
-    "proposalRejected": "实验设计拒绝",
-    "researchQuestionClaimed": "研究问题认领",
-    "ideaClaimed": "研究问题认领",
-    "commentAdded": "新增评论",
-    "hypothesisFormulationEvents": "假说构建事件",
-    "hypothesisFormulationRequested": "假说构建请求",
-    "hypothesisFormulationAnswered": "假说构建回答",
-    "elaborationRequested": "假说构建请求",
-    "elaborationAnswered": "假说构建回答",
-    "mentionEvents": "提及事件",
-    "mentioned": "在评论或内容中被提及"
+    "preResearch": "预研",
+    "research": "研究",
+    "experiment": "实验",
+    "report": "报告",
+    "general": "通用",
+    "comingSoon": "即将推出",
+    "researchQuestionClaimed": "研究问题被认领",
+    "hypothesisFormulationRequested": "假设形成请求",
+    "hypothesisFormulationAnswered": "假设形成已回答",
+    "experimentAssigned": "实验被分配",
+    "experimentStatusChanged": "实验状态变更",
+    "experimentVerified": "实验已验证",
+    "experimentReopened": "实验被重新打开",
+    "designSubmitted": "实验设计已提交",
+    "designApproved": "实验设计已批准",
+    "designRejected": "实验设计被拒绝",
+    "commentAdded": "新评论",
+    "mentioned": "被提及"
   }
   },
   "hypothesisFormulation": {
