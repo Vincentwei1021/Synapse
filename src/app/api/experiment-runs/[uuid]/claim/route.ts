@@ -3,11 +3,11 @@
 // UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { withErrorHandler, parseBody } from "@/lib/api-handler";
 import { success, errors } from "@/lib/api-response";
-import { getAuthContext, isUser, isAgent, isResearcher } from "@/lib/auth";
+import { getAuthContext, isResearcher, isUser } from "@/lib/auth";
 import { getExperimentRunByUuid, claimExperimentRun } from "@/services/experiment-run.service";
+import { resolveAssignmentTarget } from "@/services/assignment-policy.service";
 import { AlreadyClaimedError } from "@/lib/errors";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
@@ -27,58 +27,36 @@ export const POST = withErrorHandler<{ uuid: string }>(
       return errors.notFound("Experiment Run");
     }
 
-    let assigneeType: string;
-    let assigneeUuid: string;
-    let assignedByUuid: string | null = null;
+    const body = isUser(auth)
+      ? await parseBody<{
+          assignToSelf?: boolean;
+          agentUuid?: string;
+        }>(request)
+      : undefined;
 
-    if (isAgent(auth)) {
-      // Agent claim - Researcher Agents can claim
-      if (!isResearcher(auth)) {
-        return errors.forbidden("Only researcher agents can claim experiment runs");
-      }
-      assigneeType = "agent";
-      assigneeUuid = auth.actorUuid;
-    } else if (isUser(auth)) {
-      // User claim - can choose to assign to self or a specific Agent
-      const body = await parseBody<{
-        assignToSelf?: boolean;
-        agentUuid?: string;
-      }>(request);
+    const assignment = await resolveAssignmentTarget({
+      auth,
+      companyUuid: auth.companyUuid,
+      body,
+      allowAgentClaim: isResearcher,
+      agentClaimForbiddenMessage: "Only researcher agents can claim experiment runs",
+      assignableAgentRole: "developer",
+      assignableAgentLabel: "Researcher Agent",
+    });
 
-      if (body.agentUuid) {
-        // Assign to a specific Agent (by UUID)
-        const agent = await prisma.agent.findFirst({
-          where: {
-            uuid: body.agentUuid,
-            companyUuid: auth.companyUuid,
-            roles: { has: "developer" }, // Can only assign to Researcher Agents
-          },
-        });
-
-        if (!agent) {
-          return errors.notFound("Researcher Agent");
-        }
-
-        assigneeType = "agent";
-        assigneeUuid = agent.uuid;
-        assignedByUuid = auth.actorUuid;
-      } else {
-        // Assign to self (all owned Researcher Agents can handle it)
-        assigneeType = "user";
-        assigneeUuid = auth.actorUuid;
-        assignedByUuid = auth.actorUuid;
-      }
-    } else {
-      return errors.forbidden("Invalid authentication context");
+    if (!assignment.ok) {
+      return assignment.error === "not_found"
+        ? errors.notFound("Researcher Agent")
+        : errors.forbidden(assignment.message);
     }
 
     try {
       const updated = await claimExperimentRun({
         runUuid: experimentRun.uuid,
         companyUuid: auth.companyUuid,
-        assigneeType,
-        assigneeUuid,
-        assignedByUuid,
+        assigneeType: assignment.target.assigneeType,
+        assigneeUuid: assignment.target.assigneeUuid,
+        assignedByUuid: assignment.target.assignedByUuid,
       });
 
       return success(updated);

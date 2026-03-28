@@ -3,11 +3,11 @@
 // UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { withErrorHandler, parseBody } from "@/lib/api-handler";
 import { success, errors } from "@/lib/api-response";
-import { getAuthContext, isUser, isAgent, isResearchLead } from "@/lib/auth";
+import { getAuthContext, isResearchLead, isUser } from "@/lib/auth";
 import { getResearchQuestionByUuid, claimResearchQuestion } from "@/services/research-question.service";
+import { resolveAssignmentTarget } from "@/services/assignment-policy.service";
 import { AlreadyClaimedError } from "@/lib/errors";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
@@ -27,58 +27,36 @@ export const POST = withErrorHandler<{ uuid: string }>(
       return errors.notFound("Research Question");
     }
 
-    let assigneeType: string;
-    let assigneeUuid: string;
-    let assignedByUuid: string | null = null;
+    const body = isUser(auth)
+      ? await parseBody<{
+          assignToSelf?: boolean;
+          agentUuid?: string;
+        }>(request)
+      : undefined;
 
-    if (isAgent(auth)) {
-      // Agent claim - must be a Research Lead Agent
-      if (!isResearchLead(auth)) {
-        return errors.forbidden("Only research lead agents can claim research questions");
-      }
-      assigneeType = "agent";
-      assigneeUuid = auth.actorUuid;
-    } else if (isUser(auth)) {
-      // User claim - can choose to assign to self or a specific Agent
-      const body = await parseBody<{
-        assignToSelf?: boolean;
-        agentUuid?: string;
-      }>(request);
+    const assignment = await resolveAssignmentTarget({
+      auth,
+      companyUuid: auth.companyUuid,
+      body,
+      allowAgentClaim: isResearchLead,
+      agentClaimForbiddenMessage: "Only research lead agents can claim research questions",
+      assignableAgentRole: "pm",
+      assignableAgentLabel: "Research Lead Agent",
+    });
 
-      if (body.agentUuid) {
-        // Assign to a specific Agent (by UUID)
-        const agent = await prisma.agent.findFirst({
-          where: {
-            uuid: body.agentUuid,
-            companyUuid: auth.companyUuid,
-            roles: { has: "pm" }, // Can only assign to Research Lead Agents
-          },
-        });
-
-        if (!agent) {
-          return errors.notFound("Research Lead Agent");
-        }
-
-        assigneeType = "agent";
-        assigneeUuid = agent.uuid;
-        assignedByUuid = auth.actorUuid;
-      } else {
-        // Assign to self (all owned Research Lead Agents can handle it)
-        assigneeType = "user";
-        assigneeUuid = auth.actorUuid;
-        assignedByUuid = auth.actorUuid;
-      }
-    } else {
-      return errors.forbidden("Invalid authentication context");
+    if (!assignment.ok) {
+      return assignment.error === "not_found"
+        ? errors.notFound("Research Lead Agent")
+        : errors.forbidden(assignment.message);
     }
 
     try {
       const updated = await claimResearchQuestion({
         researchQuestionUuid: researchQuestion.uuid,
         companyUuid: auth.companyUuid,
-        assigneeType,
-        assigneeUuid,
-        assignedByUuid,
+        assigneeType: assignment.target.assigneeType,
+        assigneeUuid: assignment.target.assigneeUuid,
+        assignedByUuid: assignment.target.assignedByUuid,
       });
 
       return success(updated);
