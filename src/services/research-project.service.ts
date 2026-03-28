@@ -30,6 +30,11 @@ export interface ResearchProjectUpdateParams {
   datasets?: string[] | null;
   evaluationMethods?: string[] | null;
   computePoolUuid?: string | null;
+  autonomousLoopEnabled?: boolean;
+  autonomousLoopAgentUuid?: string | null;
+  autoSearchEnabled?: boolean;
+  autoSearchAgentUuid?: string | null;
+  deepResearchDocUuid?: string | null;
 }
 
 export interface ResearchProjectDashboardData {
@@ -236,6 +241,19 @@ export async function updateResearchProject(uuid: string, data: ResearchProjectU
     updateData.computePoolUuid = data.computePoolUuid ?? null;
   }
 
+  // Allow clearing agent UUID bindings by passing null
+  if (data.autonomousLoopAgentUuid !== undefined) {
+    updateData.autonomousLoopAgentUuid = data.autonomousLoopAgentUuid ?? null;
+  }
+
+  if (data.autoSearchAgentUuid !== undefined) {
+    updateData.autoSearchAgentUuid = data.autoSearchAgentUuid ?? null;
+  }
+
+  if (data.deepResearchDocUuid !== undefined) {
+    updateData.deepResearchDocUuid = data.deepResearchDocUuid ?? null;
+  }
+
   return prisma.researchProject.update({
     where: { uuid },
     data: updateData,
@@ -247,6 +265,11 @@ export async function updateResearchProject(uuid: string, data: ResearchProjectU
       datasets: true,
       evaluationMethods: true,
       computePoolUuid: true,
+      autonomousLoopEnabled: true,
+      autonomousLoopAgentUuid: true,
+      autoSearchEnabled: true,
+      autoSearchAgentUuid: true,
+      deepResearchDocUuid: true,
       latestSynthesisAt: true,
       latestSynthesisIdeaCount: true,
       latestSynthesisSummary: true,

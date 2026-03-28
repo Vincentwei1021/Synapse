@@ -218,11 +218,16 @@ For the current research workflow, the main tools are the experiment-oriented on
 - `synapse_get_assigned_experiments`
 - `synapse_start_experiment`
 - `synapse_submit_experiment_results`
-- `synapse_report_experiment_progress` (NEW — agents report step-by-step progress)
+- `synapse_report_experiment_progress` — agents report step-by-step progress
 - `synapse_list_compute_nodes`
 - `synapse_get_node_access_bundle`
 - `synapse_add_comment`
 - `synapse_get_comments`
+- `synapse_get_project_full_context` — full project context for autonomous analysis
+- `synapse_propose_experiment` — agent proposes draft experiment (autonomous loop only)
+- `synapse_search_papers` — search Semantic Scholar for academic papers
+- `synapse_add_related_work` — add a paper to project's related works
+- `synapse_get_related_works` — list all related works for a project
 
 Default to these tools for new work. Do not prefer legacy `experiment_run` tools unless the task is explicitly about that older flow.
 
@@ -257,6 +262,26 @@ Research projects can optionally bind to a compute pool via `computePoolUuid`. W
 - GPU reservations are validated: only GPUs from nodes in the bound pool are allowed
 - `synapse_list_compute_nodes` can be filtered by `researchProjectUuid` to show only the bound pool
 - `null` means no constraint (any pool's GPUs can be used)
+
+### Autonomous Loop
+
+Research projects can enable an autonomous loop via `autonomousLoopEnabled` + `autonomousLoopAgentUuid`:
+
+- Toggle on the Experiments page header (three-state: OFF → ON waiting → Active)
+- When enabled and all experiment queues are empty (draft=0, pending_review=0, pending_start=0), completing an experiment triggers the assigned agent
+- Agent receives full project context and can propose new experiments (as `draft`) via `synapse_propose_experiment`
+- Human reviews proposed experiments on the board before they execute
+- This creates a self-sustaining research cycle: execute → analyze → propose → review → execute
+
+### Related Works
+
+New project-level page at `/research-projects/[uuid]/related-works`:
+
+- Manual paper addition (paste arXiv URL → auto-fetch metadata) or auto-search via `pre_research` agent
+- Auto-search toggle (three-state with agent selector) — agent uses `synapse_search_papers` + `synapse_add_related_work`
+- Deep Research action — user selects agent + clicks Generate → agent produces `literature_review` Document
+- Papers are stored in the `RelatedWork` model, linked to project
+- Literature tools: `synapse_search_papers` (Semantic Scholar API), `synapse_add_related_work`, `synapse_get_related_works`
 
 ### Declarative MCP / plugin tool registration
 

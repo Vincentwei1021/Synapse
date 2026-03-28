@@ -61,16 +61,42 @@ function prettyJson(value: unknown) {
   }
 }
 
+function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors ${
+        checked ? "bg-primary" : "bg-muted-foreground/30"
+      }`}
+    >
+      <span
+        className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+          checked ? "translate-x-4" : "translate-x-0.5"
+        } mt-0.5`}
+      />
+    </button>
+  );
+}
+
 export function ExperimentsBoard({
   experiments,
   agents,
   initialSelectedExperimentUuid = null,
   viewerUuid,
+  projectUuid,
+  autonomousLoopEnabled,
+  autonomousLoopAgentUuid,
 }: {
   experiments: ExperimentResponse[];
   agents: Array<{ uuid: string; name: string }>;
   initialSelectedExperimentUuid?: string | null;
   viewerUuid: string;
+  projectUuid: string;
+  autonomousLoopEnabled: boolean;
+  autonomousLoopAgentUuid: string | null;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -78,7 +104,20 @@ export function ExperimentsBoard({
   const [selectedExperimentUuid, setSelectedExperimentUuid] = useState<string | null>(initialSelectedExperimentUuid);
   const [isPending, startTransition] = useTransition();
   const [progressLogs, setProgressLogs] = useState<Array<{uuid: string; message: string; phase: string | null; createdAt: string}>>([]);
+  const [loopEnabled, setLoopEnabled] = useState(autonomousLoopEnabled);
+  const [loopAgentUuid, setLoopAgentUuid] = useState(autonomousLoopAgentUuid ?? "");
   useRealtimeRefresh();
+
+  async function updateAutonomousLoop(enabled: boolean, agentUuid: string) {
+    await fetch(`/api/research-projects/${projectUuid}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        autonomousLoopEnabled: enabled && agentUuid !== "",
+        autonomousLoopAgentUuid: agentUuid || null,
+      }),
+    });
+  }
 
   useEffect(() => {
     if (!experiments.some((experiment) => experiment.uuid === selectedExperimentUuid)) {
@@ -261,8 +300,75 @@ export function ExperimentsBoard({
     return null;
   };
 
+  const activeAgentName = loopEnabled && loopAgentUuid
+    ? agents.find((a) => a.uuid === loopAgentUuid)?.name ?? ""
+    : "";
+
   return (
     <>
+      {/* Autonomous Loop toggle */}
+      <div
+        className={`mb-4 rounded-2xl border p-3 ${
+          loopEnabled && loopAgentUuid
+            ? "border-primary/30 bg-primary/5"
+            : "border-border bg-card"
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <ToggleSwitch
+              checked={loopEnabled}
+              onChange={(v) => {
+                setLoopEnabled(v);
+                if (!v) {
+                  setLoopAgentUuid("");
+                  void updateAutonomousLoop(false, "");
+                }
+              }}
+            />
+            <div>
+              <p
+                className={`text-sm font-medium ${
+                  loopEnabled ? "text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                {t("experiments.autonomousLoop")}
+              </p>
+              {!loopEnabled ? (
+                <p className="text-xs text-muted-foreground">
+                  {t("experiments.autonomousLoopDesc")}
+                </p>
+              ) : loopAgentUuid ? (
+                <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                  {t("experiments.autonomousActive", { agent: activeAgentName })}
+                </p>
+              ) : (
+                <p className="text-xs text-primary">
+                  {t("experiments.selectAgentToActivate")}
+                </p>
+              )}
+            </div>
+          </div>
+          {loopEnabled ? (
+            <select
+              value={loopAgentUuid}
+              onChange={(e) => {
+                setLoopAgentUuid(e.target.value);
+                void updateAutonomousLoop(true, e.target.value);
+              }}
+              className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm"
+            >
+              <option value="">{t("experiments.selectAgent")}</option>
+              {agents.map((a) => (
+                <option key={a.uuid} value={a.uuid}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          ) : null}
+        </div>
+      </div>
+
       <div className="pb-4">
         <div className="grid gap-3 xl:grid-cols-5">
           {columns.map((column) => (

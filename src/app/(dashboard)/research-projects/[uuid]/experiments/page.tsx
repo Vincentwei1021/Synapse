@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Plus } from "lucide-react";
 import { getServerAuthContext } from "@/lib/auth-server";
+import { prisma } from "@/lib/prisma";
 import { listAgentSummaries } from "@/services/agent.service";
 import { researchProjectExists } from "@/services/research-project.service";
 import { listExperiments } from "@/services/experiment.service";
@@ -28,7 +29,7 @@ export default async function ExperimentsPage({ params, searchParams }: PageProp
   }
 
   const t = await getTranslations();
-  const [{ experiments }, agents] = await Promise.all([
+  const [{ experiments }, agents, project] = await Promise.all([
     listExperiments({
       companyUuid: auth.companyUuid,
       researchProjectUuid: projectUuid,
@@ -36,6 +37,10 @@ export default async function ExperimentsPage({ params, searchParams }: PageProp
       take: 1000,
     }),
     listAgentSummaries(auth.companyUuid),
+    prisma.researchProject.findFirst({
+      where: { uuid: projectUuid, companyUuid: auth.companyUuid },
+      select: { autonomousLoopEnabled: true, autonomousLoopAgentUuid: true },
+    }),
   ]);
 
   return (
@@ -58,6 +63,9 @@ export default async function ExperimentsPage({ params, searchParams }: PageProp
         agents={agents.map((agent) => ({ uuid: agent.uuid, name: agent.name }))}
         initialSelectedExperimentUuid={resolvedSearchParams?.selected || null}
         viewerUuid={auth.actorUuid}
+        projectUuid={projectUuid}
+        autonomousLoopEnabled={project?.autonomousLoopEnabled ?? false}
+        autonomousLoopAgentUuid={project?.autonomousLoopAgentUuid ?? null}
       />
     </div>
   );

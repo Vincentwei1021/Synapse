@@ -580,4 +580,81 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
       };
     }
   );
+
+  server.registerTool(
+    "synapse_get_project_full_context",
+    {
+      description: "Get full research context for a project: brief, datasets, evaluation methods, all research questions, all experiments with outcomes, and related works count. Use for autonomous research analysis.",
+      inputSchema: z.object({
+        researchProjectUuid: z.string(),
+      }),
+    },
+    async ({ researchProjectUuid }) => {
+      const project = await prisma.researchProject.findFirst({
+        where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid },
+        select: {
+          uuid: true, name: true, description: true, goal: true,
+          datasets: true, evaluationMethods: true,
+          researchQuestions: {
+            select: { uuid: true, title: true, content: true, status: true, reviewStatus: true },
+            orderBy: { createdAt: "asc" },
+          },
+          experiments: {
+            select: { uuid: true, title: true, description: true, status: true, priority: true, outcome: true, results: true, completedAt: true },
+            orderBy: { createdAt: "asc" },
+          },
+          _count: { select: { relatedWorks: true } },
+        },
+      });
+      if (!project) {
+        return { content: [{ type: "text", text: "Project not found" }], isError: true };
+      }
+      return {
+        content: [{ type: "text", text: JSON.stringify({ project }, null, 2) }],
+      };
+    }
+  );
+
+  server.registerTool(
+    "synapse_propose_experiment",
+    {
+      description: "Propose a new experiment for human review. Created in 'draft' status. Only usable when autonomous loop is active for this project and you are the assigned agent.",
+      inputSchema: z.object({
+        researchProjectUuid: z.string(),
+        title: z.string(),
+        description: z.string(),
+        researchQuestionUuid: z.string().optional(),
+        priority: z.enum(["low", "medium", "high", "immediate"]).default("medium"),
+      }),
+    },
+    async ({ researchProjectUuid, title, description, researchQuestionUuid, priority }) => {
+      const project = await prisma.researchProject.findFirst({
+        where: {
+          uuid: researchProjectUuid,
+          companyUuid: auth.companyUuid,
+          autonomousLoopEnabled: true,
+          autonomousLoopAgentUuid: auth.actorUuid,
+        },
+        select: { uuid: true },
+      });
+      if (!project) {
+        return { content: [{ type: "text", text: "Autonomous loop is not enabled for this project or you are not the assigned agent" }], isError: true };
+      }
+
+      const experiment = await experimentService.createExperiment({
+        companyUuid: auth.companyUuid,
+        researchProjectUuid,
+        title,
+        description,
+        researchQuestionUuid: researchQuestionUuid || null,
+        priority,
+        createdByUuid: auth.actorUuid,
+        createdByType: "agent",
+      });
+
+      return {
+        content: [{ type: "text", text: JSON.stringify({ experiment, note: "Experiment created as draft. Human review required before execution." }, null, 2) }],
+      };
+    }
+  );
 }

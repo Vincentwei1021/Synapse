@@ -893,6 +893,42 @@ export async function completeExperiment(input: {
     actorUuid: input.actorUuid,
   });
 
+  // Check autonomous loop trigger
+  try {
+    const loopProject = await prisma.researchProject.findFirst({
+      where: { uuid: updated.researchProjectUuid, companyUuid: input.companyUuid },
+      select: { autonomousLoopEnabled: true, autonomousLoopAgentUuid: true, name: true },
+    });
+    if (loopProject?.autonomousLoopEnabled && loopProject.autonomousLoopAgentUuid) {
+      const queueCount = await prisma.experiment.count({
+        where: {
+          researchProjectUuid: updated.researchProjectUuid,
+          companyUuid: input.companyUuid,
+          status: { in: ["draft", "pending_review", "pending_start"] },
+        },
+      });
+      if (queueCount === 0) {
+        await notificationService.create({
+          companyUuid: input.companyUuid,
+          researchProjectUuid: updated.researchProjectUuid,
+          recipientType: "agent",
+          recipientUuid: loopProject.autonomousLoopAgentUuid,
+          entityType: "experiment",
+          entityUuid: updated.researchProjectUuid,
+          entityTitle: loopProject.name,
+          projectName: loopProject.name,
+          action: "autonomous_loop_triggered",
+          message: "Experiment queue is empty. Analyze the project and propose next experiments.",
+          actorType: "user",
+          actorUuid: "system",
+          actorName: "Synapse",
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Autonomous loop trigger check failed:", err);
+  }
+
   return formatExperiment(input.companyUuid, updated);
 }
 

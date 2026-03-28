@@ -74,6 +74,10 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
     datasets?: string[];
     evaluationMethods?: string[];
     computePoolUuid?: string | null;
+    autonomousLoopEnabled?: boolean;
+    autonomousLoopAgentUuid?: string | null;
+    autoSearchEnabled?: boolean;
+    autoSearchAgentUuid?: string | null;
   }>(request);
 
   // Build update data
@@ -83,6 +87,10 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
     datasets?: string[] | null;
     evaluationMethods?: string[] | null;
     computePoolUuid?: string | null;
+    autonomousLoopEnabled?: boolean;
+    autonomousLoopAgentUuid?: string | null;
+    autoSearchEnabled?: boolean;
+    autoSearchAgentUuid?: string | null;
   } = {};
 
   if (body.name !== undefined) {
@@ -110,6 +118,22 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
 
   if (body.computePoolUuid !== undefined) {
     updateData.computePoolUuid = body.computePoolUuid || null;
+  }
+
+  if (body.autonomousLoopEnabled !== undefined) {
+    updateData.autonomousLoopEnabled = body.autonomousLoopEnabled;
+  }
+
+  if (body.autonomousLoopAgentUuid !== undefined) {
+    updateData.autonomousLoopAgentUuid = body.autonomousLoopAgentUuid || null;
+  }
+
+  if (body.autoSearchEnabled !== undefined) {
+    updateData.autoSearchEnabled = body.autoSearchEnabled;
+  }
+
+  if (body.autoSearchAgentUuid !== undefined) {
+    updateData.autoSearchAgentUuid = body.autoSearchAgentUuid || null;
   }
 
   const researchProject = await updateResearchProject(existing.uuid, updateData);
