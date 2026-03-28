@@ -9,12 +9,20 @@ import { getAuthContext, isUser } from "@/lib/auth";
 import { createExperiment, listExperiments, updateExperiment, type ExperimentAttachment } from "@/services/experiment.service";
 import { researchProjectExists } from "@/services/research-project.service";
 
+const optionalNumber = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((value) => {
+    if (value === "" || value === null || value === undefined) {
+      return undefined;
+    }
+    return value;
+  }, schema.optional());
+
 const createExperimentSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   researchQuestionUuid: z.string().optional(),
   priority: z.string().default("medium"),
-  computeBudgetHours: z.coerce.number().min(0).optional(),
+  computeBudgetHours: optionalNumber(z.coerce.number().min(0)),
 });
 
 function sanitizeFileName(name: string) {

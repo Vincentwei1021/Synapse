@@ -57,6 +57,7 @@ export default async function ExperimentsPage({ params, searchParams }: PageProp
         experiments={experiments}
         agents={agents.map((agent) => ({ uuid: agent.uuid, name: agent.name }))}
         initialSelectedExperimentUuid={resolvedSearchParams?.selected || null}
+        viewerUuid={auth.actorUuid}
       />
     </div>
   );

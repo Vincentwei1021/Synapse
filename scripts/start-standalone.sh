@@ -23,4 +23,5 @@ if [ -d "${PUBLIC_SRC}" ]; then
 fi
 
 cd "${STANDALONE_DIR}"
+export HOSTNAME="${SYNAPSE_HOSTNAME:-127.0.0.1}"
 exec node server.js

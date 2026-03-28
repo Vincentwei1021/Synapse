@@ -195,7 +195,10 @@ export class SynapseEventRouter {
 
   private async handleTaskAssigned(n: NotificationDetail): Promise<void> {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
-    const mentionGuidance = this.buildMentionGuidance(n, "experiment run");
+    const mentionGuidance = this.buildMentionGuidance(
+      n,
+      n.entityType === "experiment" ? "experiment" : "experiment run",
+    );
 
     if (n.entityType === "experiment") {
       let experiment: ExperimentDetail | null = null;
@@ -230,7 +233,7 @@ export class SynapseEventRouter {
         project ? `Evaluation methods: ${this.formatList(project.evaluationMethods)}` : null,
         experiment?.description ? `Experiment description: ${experiment.description}` : null,
         experiment?.researchQuestion?.title ? `Linked research question: ${experiment.researchQuestion.title}` : null,
-        experiment?.computeBudgetHours != null ? `Compute budget (hours): ${experiment.computeBudgetHours}` : null,
+        experiment?.computeBudgetHours != null ? `Compute budget (hours): ${experiment.computeBudgetHours}` : "Compute budget (hours): Unlimited",
         experiment?.attachments?.length
           ? `Attached files: ${experiment.attachments.map((item) => item.originalName).join(", ")}`
           : null,

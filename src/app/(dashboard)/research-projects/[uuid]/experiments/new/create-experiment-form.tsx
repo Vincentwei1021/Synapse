@@ -102,7 +102,15 @@ export function CreateExperimentForm({
 
           <div className="space-y-2">
             <Label htmlFor="computeBudgetHours">{t("experiments.fields.computeBudgetHours")}</Label>
-            <Input id="computeBudgetHours" name="computeBudgetHours" type="number" min="0" step="0.5" />
+            <Input
+              id="computeBudgetHours"
+              name="computeBudgetHours"
+              type="number"
+              min="0"
+              step="0.5"
+              placeholder={t("experiments.fields.computeBudgetHoursPlaceholder")}
+            />
+            <p className="text-xs text-muted-foreground">{t("experiments.fields.computeBudgetHoursHelp")}</p>
           </div>
 
           <div className="space-y-2 md:col-span-2">

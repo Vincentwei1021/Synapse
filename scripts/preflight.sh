@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STANDALONE_SERVER="${ROOT_DIR}/.next/standalone/server.js"
 PORT="${PORT:-3000}"
+ENV_FILE="${ROOT_DIR}/.env"
 
 status=0
 
@@ -38,6 +39,31 @@ check_optional_env() {
     warn "${description}"
   fi
 }
+
+if [ -f "${ENV_FILE}" ]; then
+  while IFS= read -r line || [ -n "${line}" ]; do
+    case "${line}" in
+      ''|\#*)
+        continue
+        ;;
+    esac
+
+    if [[ "${line}" != *=* ]]; then
+      continue
+    fi
+
+    name="${line%%=*}"
+    value="${line#*=}"
+
+    if [[ "${value}" == \"*\" && "${value}" == *\" ]]; then
+      value="${value:1:${#value}-2}"
+    elif [[ "${value}" == \'*\' && "${value}" == *\' ]]; then
+      value="${value:1:${#value}-2}"
+    fi
+
+    export "${name}=${value}"
+  done < "${ENV_FILE}"
+fi
 
 check_required_env "DATABASE_URL"
 check_optional_env "REDIS_URL" "REDIS_URL is not set; runtime will fall back to in-memory pub/sub if supported."

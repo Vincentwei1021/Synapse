@@ -162,7 +162,7 @@ function formatExperimentDocumentContent(experiment: {
     `- Status: ${experiment.status}`,
     `- Priority: ${normalizeExperimentPriority(experiment.priority)}`,
     `- Linked research question: ${experiment.researchQuestion?.title ?? "None"}`,
-    `- Compute budget (hours): ${experiment.computeBudgetHours ?? "Not set"}`,
+    `- Compute budget (hours): ${experiment.computeBudgetHours ?? "Unlimited"}`,
     `- Compute used (hours): ${experiment.computeUsedHours ?? "Not reported"}`,
     "",
     "## Description",
@@ -238,6 +238,35 @@ async function syncExperimentResultDocument(input: {
 function assertTransition(from: ExperimentStatus, to: ExperimentStatus) {
   if (!VALID_TRANSITIONS[from]?.includes(to)) {
     throw new Error(`Invalid experiment status transition: ${from} -> ${to}`);
+  }
+}
+
+function canActOnAssignedExperiment(
+  experiment: { assigneeType: string | null; assigneeUuid: string | null },
+  actorType: string,
+  actorUuid: string,
+  ownerUuid?: string | null,
+) {
+  if (!experiment.assigneeType || !experiment.assigneeUuid) {
+    return true;
+  }
+
+  if (experiment.assigneeType === actorType && experiment.assigneeUuid === actorUuid) {
+    return true;
+  }
+
+  return actorType === "agent" && experiment.assigneeType === "user" && ownerUuid === experiment.assigneeUuid;
+}
+
+function assertAssignedActorAccess(
+  experiment: { assigneeType: string | null; assigneeUuid: string | null },
+  actorType: string,
+  actorUuid: string,
+  action: "start" | "complete",
+  ownerUuid?: string | null,
+) {
+  if (!canActOnAssignedExperiment(experiment, actorType, actorUuid, ownerUuid)) {
+    throw new Error(`Only the assigned actor can ${action} this experiment`);
   }
 }
 
@@ -671,6 +700,7 @@ export async function startExperiment(input: {
   experimentUuid: string;
   actorType: string;
   actorUuid: string;
+  ownerUuid?: string | null;
 }) {
   const existing = await prisma.experiment.findFirst({
     where: { uuid: input.experimentUuid, companyUuid: input.companyUuid },
@@ -683,6 +713,7 @@ export async function startExperiment(input: {
     throw new Error("Experiment not found");
   }
 
+  assertAssignedActorAccess(existing, input.actorType, input.actorUuid, "start", input.ownerUuid);
   assertTransition(existing.status as ExperimentStatus, "in_progress");
 
   const updated = await prisma.experiment.update({
@@ -747,6 +778,7 @@ export async function completeExperiment(input: {
   experimentUuid: string;
   actorType: string;
   actorUuid: string;
+  ownerUuid?: string | null;
   outcome?: string | null;
   results?: unknown;
   computeUsedHours?: number | null;
@@ -764,6 +796,7 @@ export async function completeExperiment(input: {
     throw new Error("Experiment not found");
   }
 
+  assertAssignedActorAccess(existing, input.actorType, input.actorUuid, "complete", input.ownerUuid);
   assertTransition(existing.status as ExperimentStatus, "completed");
 
   const updated = await prisma.experiment.update({

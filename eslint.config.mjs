@@ -12,7 +12,17 @@ const compat = new FlatCompat({
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
-    ignores: [".next/**", "out/**", "build/**", "src/generated/**", "src/**/__tests__/**", "src/**/*.test.ts", "src/**/*.test.tsx"],
+    ignores: [
+      ".next/**",
+      "out/**",
+      "build/**",
+      "next-env.d.ts",
+      "src/generated/**",
+      "src/**/__tests__/**",
+      "src/**/*.test.ts",
+      "src/**/*.test.tsx",
+      "packages/synapse-cdk/**/*.js",
+    ],
   },
 ];
 

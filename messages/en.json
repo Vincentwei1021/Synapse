@@ -1136,6 +1136,8 @@
       "noQuestion": "No linked research question",
       "priority": "Priority",
       "computeBudgetHours": "Compute budget (hours)",
+      "computeBudgetHoursPlaceholder": "Leave blank for unlimited",
+      "computeBudgetHoursHelp": "Leave empty to allow the experiment to use compute without a fixed hour cap.",
       "attachments": "Experiment documents",
       "attachmentsHelp": "Upload notes or specs to keep this experiment self-contained."
     },
@@ -1143,6 +1145,7 @@
       "noDescription": "No description provided yet.",
       "computeBudget": "Compute budget",
       "notSet": "Not set",
+      "unlimited": "Unlimited",
       "outcome": "Outcome summary",
       "noOutcome": "No outcome has been recorded yet.",
       "attachments": "Linked experiment documents",

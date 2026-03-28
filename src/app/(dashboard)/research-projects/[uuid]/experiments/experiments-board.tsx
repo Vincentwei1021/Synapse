@@ -49,10 +49,12 @@ export function ExperimentsBoard({
   experiments,
   agents,
   initialSelectedExperimentUuid = null,
+  viewerUuid,
 }: {
   experiments: ExperimentResponse[];
   agents: Array<{ uuid: string; name: string }>;
   initialSelectedExperimentUuid?: string | null;
+  viewerUuid: string;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -202,6 +204,14 @@ export function ExperimentsBoard({
     }
 
     if (experiment.status === "in_progress") {
+      const canComplete =
+        !experiment.assignee ||
+        (experiment.assignee.type === "user" && experiment.assignee.uuid === viewerUuid);
+
+      if (!canComplete) {
+        return null;
+      }
+
       return (
         <Button
           size="sm"
@@ -338,7 +348,7 @@ export function ExperimentsBoard({
                   <Card className="rounded-2xl border-border bg-secondary/50 p-4 shadow-none">
                     <p className="text-xs text-muted-foreground">{t("experiments.detail.computeBudget")}</p>
                     <p className="mt-2 text-sm font-medium text-foreground">
-                      {selectedExperiment.computeBudgetHours ?? t("experiments.detail.notSet")}
+                      {selectedExperiment.computeBudgetHours ?? t("experiments.detail.unlimited")}
                     </p>
                   </Card>
                 </div>

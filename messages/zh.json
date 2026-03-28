@@ -1137,6 +1137,8 @@
       "noQuestion": "不关联研究问题",
       "priority": "优先级",
       "computeBudgetHours": "算力预算（小时）",
+      "computeBudgetHoursPlaceholder": "留空表示不设上限",
+      "computeBudgetHoursHelp": "留空时，这个实验的算力预算默认不限时长。",
       "attachments": "实验文档",
       "attachmentsHelp": "上传说明文档或实验规范，方便后续追溯。"
     },
@@ -1144,6 +1146,7 @@
       "noDescription": "暂未填写实验描述。",
       "computeBudget": "算力预算",
       "notSet": "未设置",
+      "unlimited": "不设上限",
       "outcome": "结果摘要",
       "noOutcome": "尚未记录实验结论。",
       "attachments": "关联实验文档",

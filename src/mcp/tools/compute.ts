@@ -33,6 +33,21 @@ function serializeAccess(node: {
   };
 }
 
+function isAssignedToActor(
+  assignee: { type: string; uuid: string } | null,
+  auth: AgentAuthContext,
+) {
+  if (!assignee) {
+    return true;
+  }
+
+  if (assignee.type === "agent" && assignee.uuid === auth.actorUuid) {
+    return true;
+  }
+
+  return assignee.type === "user" && assignee.uuid === auth.ownerUuid;
+}
+
 export function registerComputeTools(server: McpServer, auth: AgentAuthContext) {
   server.registerTool(
     "synapse_list_compute_nodes",
@@ -176,7 +191,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
         return { content: [{ type: "text", text: "Experiment not found" }], isError: true };
       }
 
-      if (experiment.assignee?.uuid && experiment.assignee.uuid !== auth.actorUuid) {
+      if (!isAssignedToActor(experiment.assignee, auth)) {
         return { content: [{ type: "text", text: "Experiment is assigned to another actor" }], isError: true };
       }
 
@@ -185,14 +200,6 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
           content: [{ type: "text", text: `Experiment must be pending_start or in_progress, current status: ${experiment.status}` }],
           isError: true,
         };
-      }
-
-      if (gpuUuids.length > 0) {
-        await computeService.reserveGpusForExperiment({
-          companyUuid: auth.companyUuid,
-          experimentUuid,
-          gpuUuids,
-        });
       }
 
       if (workingNotes?.trim()) {
@@ -212,7 +219,16 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
               experimentUuid,
               actorType: "agent",
               actorUuid: auth.actorUuid,
+              ownerUuid: auth.ownerUuid,
             });
+
+      if (gpuUuids.length > 0) {
+        await computeService.reserveGpusForExperiment({
+          companyUuid: auth.companyUuid,
+          experimentUuid,
+          gpuUuids,
+        });
+      }
 
       const availableNodes = await computeService.listComputePools(auth.companyUuid);
       const selectedNodes = availableNodes
@@ -426,7 +442,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
           return { content: [{ type: "text", text: "Experiment not found" }], isError: true };
         }
 
-        if (experiment.assignee?.uuid !== auth.actorUuid) {
+        if (!isAssignedToActor(experiment.assignee, auth)) {
           return { content: [{ type: "text", text: "Only the assigned agent can submit results" }], isError: true };
         }
 
@@ -435,6 +451,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
           experimentUuid,
           actorType: "agent",
           actorUuid: auth.actorUuid,
+          ownerUuid: auth.ownerUuid,
           outcome,
           results: experimentResults,
         });
