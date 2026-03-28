@@ -192,6 +192,19 @@ export default function DashboardLayout({
     });
   }, [projectNavItems, router]);
 
+  // Proactive token refresh — prevent logout during long form stays
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(async () => {
+      try {
+        await fetch("/api/auth/refresh", { method: "POST" });
+      } catch {
+        // Refresh failed silently — next API call will handle redirect
+      }
+    }, 45 * 60 * 1000); // every 45 minutes
+    return () => clearInterval(interval);
+  }, [user]);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
