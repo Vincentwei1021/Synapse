@@ -25,6 +25,7 @@
     "cdk:deploy": "pnpm -C packages/synapse-cdk exec cdk deploy",
     "cdk:diff": "pnpm --filter @synapse/cdk run diff",
     "cdk:destroy": "pnpm --filter @synapse/cdk run destroy",
+    "perf:sample:remote": "bash ./scripts/perf-sample-remote.sh",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
