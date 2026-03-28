@@ -57,8 +57,7 @@ export class SynapseMcpClient {
       this.opts.logger.info("MCP connection established");
     } catch (err) {
       this._status = "disconnected";
-      this.client = null;
-      this.transport = null;
+      await this.cleanupConnection();
       throw err;
     }
   }
@@ -80,8 +79,7 @@ export class SynapseMcpClient {
       if (this.isSessionExpiredError(err)) {
         this.opts.logger.warn("MCP session expired, reconnecting...");
         this._status = "reconnecting";
-        this.client = null;
-        this.transport = null;
+        await this.cleanupConnection();
         await this.connect();
         return await this._doCallTool(name, args);
       }
@@ -91,17 +89,22 @@ export class SynapseMcpClient {
 
   /** Graceful disconnect. */
   async disconnect(): Promise<void> {
+    await this.cleanupConnection();
+    this._status = "disconnected";
+    this.opts.logger.info("MCP connection closed");
+  }
+
+  private async cleanupConnection(): Promise<void> {
     if (this.client) {
       try {
         await this.client.close();
       } catch {
-        // Ignore close errors
+        // Ignore close errors during cleanup
       }
     }
+
     this.client = null;
     this.transport = null;
-    this._status = "disconnected";
-    this.opts.logger.info("MCP connection closed");
   }
 
   private async _doCallTool(name: string, args: Record<string, unknown>): Promise<unknown> {
