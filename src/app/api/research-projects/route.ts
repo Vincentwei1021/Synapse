@@ -7,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { withErrorHandler, parseBody, parsePagination } from "@/lib/api-handler";
 import { success, paginated, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
+import { listResearchProjectsWithStats } from "@/services/research-project.service";
+import { toProjectCompatibilityCounts } from "@/services/project-metrics.service";
 
 function normalizeStringArray(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -34,42 +36,11 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   const { page, pageSize, skip, take } = parsePagination(request);
 
-  const [researchProjects, total] = await Promise.all([
-    prisma.researchProject.findMany({
-      where: { companyUuid: auth.companyUuid },
-      skip,
-      take,
-      orderBy: { updatedAt: "desc" },
-      select: {
-        uuid: true,
-        name: true,
-        description: true,
-        goal: true,
-        datasets: true,
-        evaluationMethods: true,
-        latestSynthesisAt: true,
-        latestSynthesisIdeaCount: true,
-        latestSynthesisSummary: true,
-        groupUuid: true,
-        createdAt: true,
-        updatedAt: true,
-        _count: {
-          select: {
-            researchQuestions: true,
-            documents: true,
-            experiments: true,
-          },
-        },
-        experiments: {
-          where: { status: "completed" },
-          select: { uuid: true },
-        },
-      },
-    }),
-    prisma.researchProject.count({
-      where: { companyUuid: auth.companyUuid },
-    }),
-  ]);
+  const { projects: researchProjects, total } = await listResearchProjectsWithStats({
+    companyUuid: auth.companyUuid,
+    skip,
+    take,
+  });
 
   // Transform to API response format
   const data = researchProjects.map((p) => ({
@@ -85,15 +56,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     groupUuid: p.groupUuid,
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
-    counts: {
-      researchQuestions: p._count.researchQuestions,
-      documents: p._count.documents,
-      experiments: p._count.experiments,
-      doneExperiments: p.experiments.length,
-      tasks: p._count.experiments,
-      doneTasks: p.experiments.length,
-      proposals: 0,
-    },
+    counts: toProjectCompatibilityCounts(p.metrics),
   }));
 
   return paginated(data, page, pageSize, total);

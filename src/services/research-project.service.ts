@@ -4,6 +4,7 @@
 
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getProjectMetricsSnapshot, getProjectMetricsSnapshots } from "@/services/project-metrics.service";
 
 export interface ResearchProjectListParams {
   companyUuid: string;
@@ -214,86 +215,62 @@ export async function getCompanyOverviewStats(companyUuid: string) {
 
 export async function listResearchProjectsWithStats({ companyUuid, skip, take }: ResearchProjectListParams) {
   const { projects, total } = await listResearchProjects({ companyUuid, skip, take });
-
   const researchProjectUuids = projects.map((project) => project.uuid);
-  const doneCounts = researchProjectUuids.length
-    ? await prisma.experiment.groupBy({
-        by: ["researchProjectUuid"],
-        where: { companyUuid, researchProjectUuid: { in: researchProjectUuids }, status: "completed" },
-        _count: true,
-      })
-    : [];
-  const doneMap = new Map(doneCounts.map((count) => [count.researchProjectUuid, count._count]));
+  const metrics = await getProjectMetricsSnapshots(companyUuid, researchProjectUuids);
 
   return {
-    projects: projects.map((project) => ({
-      ...project,
-      experimentRunsDone: doneMap.get(project.uuid) || 0,
-    })),
+    projects: projects.map((project) => {
+      const projectMetrics = metrics.get(project.uuid) ?? {
+        researchProjectUuid: project.uuid,
+        researchQuestions: { total: 0, open: 0, elaborating: 0, proposalCreated: 0, completed: 0, closed: 0 },
+        experiments: { total: 0, draft: 0, pendingReview: 0, pendingStart: 0, inProgress: 0, completed: 0 },
+        experimentDesigns: { total: 0, draft: 0, pending: 0, approved: 0, rejected: 0, closed: 0, active: 0 },
+        experimentRuns: { total: 0, open: 0, assigned: 0, inProgress: 0, toVerify: 0, done: 0, closed: 0, completed: 0 },
+        documents: { total: 0 },
+        completionRate: 0,
+      };
+
+      return {
+        ...project,
+        experimentRunsDone: projectMetrics.experiments.completed,
+        metrics: projectMetrics,
+      };
+    }),
     total,
   };
 }
 
 export async function getResearchProjectStats(companyUuid: string, researchProjectUuid: string) {
-  const [researchQuestionStats, experimentStats, documentsCount] = await Promise.all([
-    prisma.researchQuestion.groupBy({
-      by: ["status"],
-      where: { researchProjectUuid, companyUuid },
-      _count: true,
-    }),
-    prisma.experiment.groupBy({
-      by: ["status"],
-      where: { researchProjectUuid, companyUuid },
-      _count: true,
-    }),
-    prisma.document.count({
-      where: { researchProjectUuid, companyUuid },
-    }),
-  ]);
-
-  const researchQuestionStatusMap = new Map(researchQuestionStats.map((stat) => [stat.status, stat._count]));
-  const experimentStatusMap = new Map(experimentStats.map((stat) => [stat.status, stat._count]));
-
-  const researchQuestionsTotal = researchQuestionStats.reduce((sum, stat) => sum + stat._count, 0);
-  const researchQuestionsOpen =
-    (researchQuestionStatusMap.get("open") || 0) + (researchQuestionStatusMap.get("elaborating") || 0);
-
-  const experimentsTotal = experimentStats.reduce((sum, stat) => sum + stat._count, 0);
-  const experimentsDraft = experimentStatusMap.get("draft") || 0;
-  const experimentsPendingReview = experimentStatusMap.get("pending_review") || 0;
-  const experimentsPendingStart = experimentStatusMap.get("pending_start") || 0;
-  const experimentsInProgress = experimentStatusMap.get("in_progress") || 0;
-  const experimentsDone = experimentStatusMap.get("completed") || 0;
+  const metrics = await getProjectMetricsSnapshot(companyUuid, researchProjectUuid);
 
   return {
     researchQuestions: {
-      total: researchQuestionsTotal,
-      open: researchQuestionsOpen,
-      elaborating: researchQuestionStatusMap.get("elaborating") || 0,
-      proposalCreated:
-        (researchQuestionStatusMap.get("proposal_created") || 0) +
-        (researchQuestionStatusMap.get("experiment_created") || 0),
-      completed: researchQuestionStatusMap.get("completed") || 0,
+      total: metrics.researchQuestions.total,
+      open: metrics.researchQuestions.open + metrics.researchQuestions.elaborating,
+      elaborating: metrics.researchQuestions.elaborating,
+      proposalCreated: metrics.researchQuestions.proposalCreated,
+      completed: metrics.researchQuestions.completed,
     },
     experimentRuns: {
-      total: experimentsTotal,
-      inProgress: experimentsInProgress,
-      todo: experimentsDraft,
-      toVerify: experimentsPendingReview + experimentsPendingStart,
-      done: experimentsDone,
+      total: metrics.experiments.total,
+      inProgress: metrics.experiments.inProgress,
+      todo: metrics.experiments.draft,
+      toVerify: metrics.experiments.pendingReview + metrics.experiments.pendingStart,
+      done: metrics.experiments.completed,
     },
     experimentDesigns: {
-      total: experimentsTotal,
-      pending: experimentsPendingReview,
+      total: metrics.experiments.total,
+      pending: metrics.experiments.pendingReview,
     },
     experiments: {
-      total: experimentsTotal,
-      draft: experimentsDraft,
-      pendingReview: experimentsPendingReview,
-      pendingStart: experimentsPendingStart,
-      inProgress: experimentsInProgress,
-      completed: experimentsDone,
+      total: metrics.experiments.total,
+      draft: metrics.experiments.draft,
+      pendingReview: metrics.experiments.pendingReview,
+      pendingStart: metrics.experiments.pendingStart,
+      inProgress: metrics.experiments.inProgress,
+      completed: metrics.experiments.completed,
     },
-    documents: { total: documentsCount },
+    documents: { total: metrics.documents.total },
+    completionRate: metrics.completionRate,
   };
 }

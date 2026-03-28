@@ -7,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { withErrorHandler, parseBody } from "@/lib/api-handler";
 import { success, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
+import { getResearchProject } from "@/services/research-project.service";
+import { getProjectMetricsSnapshot, toProjectCompatibilityCounts } from "@/services/project-metrics.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
@@ -19,27 +21,10 @@ export const GET = withErrorHandler(async (request: NextRequest, context: RouteC
 
   const { uuid } = await context.params;
 
-  const researchProject = await prisma.researchProject.findFirst({
-    where: {
-      uuid,
-      companyUuid: auth.companyUuid,
-    },
-    select: {
-      uuid: true,
-      name: true,
-      description: true,
-      createdAt: true,
-      updatedAt: true,
-      _count: {
-        select: {
-          researchQuestions: true,
-          documents: true,
-          experiments: true,
-          activities: true,
-        },
-      },
-    },
-  });
+  const [researchProject, metrics] = await Promise.all([
+    getResearchProject(auth.companyUuid, uuid),
+    getProjectMetricsSnapshot(auth.companyUuid, uuid),
+  ]);
 
   if (!researchProject) {
     return errors.notFound("Research Project");
@@ -52,11 +37,7 @@ export const GET = withErrorHandler(async (request: NextRequest, context: RouteC
     createdAt: researchProject.createdAt.toISOString(),
     updatedAt: researchProject.updatedAt.toISOString(),
     counts: {
-      researchQuestions: researchProject._count.researchQuestions,
-      documents: researchProject._count.documents,
-      experiments: researchProject._count.experiments,
-      tasks: researchProject._count.experiments,
-      proposals: 0,
+      ...toProjectCompatibilityCounts(metrics),
       activities: researchProject._count.activities,
     },
   });

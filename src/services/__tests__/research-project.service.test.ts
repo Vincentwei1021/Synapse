@@ -14,12 +14,19 @@ const mockPrisma = vi.hoisted(() => ({
     count: vi.fn(),
     groupBy: vi.fn(),
   },
+  experimentDesign: {
+    groupBy: vi.fn(),
+  },
+  experimentRun: {
+    groupBy: vi.fn(),
+  },
   researchQuestion: {
     count: vi.fn(),
     groupBy: vi.fn(),
   },
   document: {
     count: vi.fn(),
+    groupBy: vi.fn(),
   },
 }));
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
@@ -63,6 +70,11 @@ function makeProject(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockPrisma.researchQuestion.groupBy.mockResolvedValue([]);
+  mockPrisma.experiment.groupBy.mockResolvedValue([]);
+  mockPrisma.experimentDesign.groupBy.mockResolvedValue([]);
+  mockPrisma.experimentRun.groupBy.mockResolvedValue([]);
+  mockPrisma.document.groupBy.mockResolvedValue([]);
 });
 
 // ===== listResearchProjects =====
@@ -271,19 +283,19 @@ describe("getCompanyOverviewStats", () => {
 describe("getResearchProjectStats", () => {
   it("should return per-project stats grouped by status", async () => {
     mockPrisma.researchQuestion.groupBy.mockResolvedValue([
-      { status: "open", _count: 5 },
-      { status: "elaborating", _count: 3 },
-      { status: "proposal_created", _count: 2 },
-      { status: "completed", _count: 1 },
+      { researchProjectUuid, status: "open", _count: { _all: 5 } },
+      { researchProjectUuid, status: "elaborating", _count: { _all: 3 } },
+      { researchProjectUuid, status: "proposal_created", _count: { _all: 2 } },
+      { researchProjectUuid, status: "completed", _count: { _all: 1 } },
     ]);
     mockPrisma.experiment.groupBy.mockResolvedValue([
-      { status: "draft", _count: 2 },
-      { status: "pending_review", _count: 1 },
-      { status: "pending_start", _count: 2 },
-      { status: "in_progress", _count: 4 },
-      { status: "completed", _count: 6 },
+      { researchProjectUuid, status: "draft", _count: { _all: 2 } },
+      { researchProjectUuid, status: "pending_review", _count: { _all: 1 } },
+      { researchProjectUuid, status: "pending_start", _count: { _all: 2 } },
+      { researchProjectUuid, status: "in_progress", _count: { _all: 4 } },
+      { researchProjectUuid, status: "completed", _count: { _all: 6 } },
     ]);
-    mockPrisma.document.count.mockResolvedValue(8);
+    mockPrisma.document.groupBy.mockResolvedValue([{ researchProjectUuid, _count: { _all: 8 } }]);
 
     const result = await getResearchProjectStats(companyUuid, researchProjectUuid);
 
@@ -317,8 +329,8 @@ describe("listResearchProjectsWithStats", () => {
     mockPrisma.researchProject.findMany.mockResolvedValue([project1, project2]);
     mockPrisma.researchProject.count.mockResolvedValue(2);
     mockPrisma.experiment.groupBy.mockResolvedValue([
-      { researchProjectUuid: "project-0000-0000-0000-000000000001", _count: 5 },
-      { researchProjectUuid: "project-0000-0000-0000-000000000002", _count: 3 },
+      { researchProjectUuid: "project-0000-0000-0000-000000000001", status: "completed", _count: { _all: 5 } },
+      { researchProjectUuid: "project-0000-0000-0000-000000000002", status: "completed", _count: { _all: 3 } },
     ]);
 
     const result = await listResearchProjectsWithStats({ companyUuid, skip: 0, take: 20 });
@@ -328,13 +340,12 @@ describe("listResearchProjectsWithStats", () => {
     expect(result.projects[0].experimentRunsDone).toBe(5);
     expect(result.projects[1].experimentRunsDone).toBe(3);
     expect(mockPrisma.experiment.groupBy).toHaveBeenCalledWith({
-      by: ["researchProjectUuid"],
+      by: ["researchProjectUuid", "status"],
       where: {
         companyUuid,
         researchProjectUuid: { in: [project1.uuid, project2.uuid] },
-        status: "completed",
       },
-      _count: true,
+      _count: { _all: true },
     });
   });
 
@@ -342,7 +353,7 @@ describe("listResearchProjectsWithStats", () => {
     const project = makeProject();
     mockPrisma.researchProject.findMany.mockResolvedValue([project]);
     mockPrisma.researchProject.count.mockResolvedValue(1);
-    mockPrisma.experiment.groupBy.mockResolvedValue([]);
+    mockPrisma.experiment.groupBy.mockResolvedValue([{ researchProjectUuid, status: "draft", _count: { _all: 10 } }]);
 
     const result = await listResearchProjectsWithStats({ companyUuid, skip: 0, take: 20 });
 

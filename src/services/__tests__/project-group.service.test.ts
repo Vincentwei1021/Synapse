@@ -17,15 +17,23 @@ const mockPrisma = vi.hoisted(() => ({
     updateMany: vi.fn(),
     update: vi.fn(),
   },
+  experiment: {
+    groupBy: vi.fn(),
+  },
   experimentRun: {
     count: vi.fn(),
     groupBy: vi.fn(),
   },
   researchQuestion: {
     count: vi.fn(),
+    groupBy: vi.fn(),
   },
   experimentDesign: {
     count: vi.fn(),
+    groupBy: vi.fn(),
+  },
+  document: {
+    groupBy: vi.fn(),
   },
   activity: {
     findMany: vi.fn(),
@@ -79,6 +87,11 @@ function makeProject(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockPrisma.experiment.groupBy.mockResolvedValue([]);
+  mockPrisma.experimentRun.groupBy.mockResolvedValue([]);
+  mockPrisma.researchQuestion.groupBy.mockResolvedValue([]);
+  mockPrisma.experimentDesign.groupBy.mockResolvedValue([]);
+  mockPrisma.document.groupBy.mockResolvedValue([]);
 });
 
 // ===== createProjectGroup =====
@@ -470,25 +483,21 @@ describe("getGroupDashboard", () => {
     mockPrisma.projectGroup.findFirst.mockResolvedValue(group);
     mockPrisma.researchProject.findMany.mockResolvedValue([project1, project2]);
 
-    // Task stats
-    mockPrisma.experimentRun.count
-      .mockResolvedValueOnce(20) // total tasks
-      .mockResolvedValueOnce(12); // completed tasks
-
-    // Idea and proposal stats
-    mockPrisma.researchQuestion.count.mockResolvedValue(5);
-    mockPrisma.experimentDesign.count.mockResolvedValue(3);
-
-    // Per-project stats
     mockPrisma.experimentRun.groupBy
       .mockResolvedValueOnce([
-        { researchProjectUuid: "proj-1", _count: { _all: 10 } },
-        { researchProjectUuid: "proj-2", _count: { _all: 10 } },
-      ])
-      .mockResolvedValueOnce([
-        { researchProjectUuid: "proj-1", _count: { _all: 6 } },
-        { researchProjectUuid: "proj-2", _count: { _all: 6 } },
+        { researchProjectUuid: "proj-1", status: "done", _count: { _all: 6 } },
+        { researchProjectUuid: "proj-1", status: "open", _count: { _all: 4 } },
+        { researchProjectUuid: "proj-2", status: "closed", _count: { _all: 6 } },
+        { researchProjectUuid: "proj-2", status: "assigned", _count: { _all: 4 } },
       ]);
+    mockPrisma.researchQuestion.groupBy.mockResolvedValue([
+      { researchProjectUuid: "proj-1", status: "open", _count: { _all: 3 } },
+      { researchProjectUuid: "proj-2", status: "elaborating", _count: { _all: 2 } },
+    ]);
+    mockPrisma.experimentDesign.groupBy.mockResolvedValue([
+      { researchProjectUuid: "proj-1", status: "draft", _count: { _all: 1 } },
+      { researchProjectUuid: "proj-2", status: "pending", _count: { _all: 2 } },
+    ]);
 
     mockPrisma.activity.findMany.mockResolvedValue([
       {
@@ -549,14 +558,6 @@ describe("getGroupDashboard", () => {
 
     mockPrisma.projectGroup.findFirst.mockResolvedValue(group);
     mockPrisma.researchProject.findMany.mockResolvedValue([project]);
-    mockPrisma.experimentRun.count
-      .mockResolvedValueOnce(0)
-      .mockResolvedValueOnce(0);
-    mockPrisma.researchQuestion.count.mockResolvedValue(0);
-    mockPrisma.experimentDesign.count.mockResolvedValue(0);
-    mockPrisma.experimentRun.groupBy
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([]);
     mockPrisma.activity.findMany.mockResolvedValue([]);
 
     const result = await getGroupDashboard(companyUuid, groupUuid);
@@ -570,10 +571,6 @@ describe("getGroupDashboard", () => {
 
     mockPrisma.projectGroup.findFirst.mockResolvedValue(group);
     mockPrisma.researchProject.findMany.mockResolvedValue([project]);
-    mockPrisma.experimentRun.count.mockResolvedValue(0);
-    mockPrisma.researchQuestion.count.mockResolvedValue(0);
-    mockPrisma.experimentDesign.count.mockResolvedValue(0);
-    mockPrisma.experimentRun.groupBy.mockResolvedValue([]);
     mockPrisma.activity.findMany.mockResolvedValue([]);
 
     await getGroupDashboard(companyUuid, groupUuid);
@@ -591,10 +588,6 @@ describe("getGroupDashboard", () => {
 
     mockPrisma.projectGroup.findFirst.mockResolvedValue(group);
     mockPrisma.researchProject.findMany.mockResolvedValue([project]);
-    mockPrisma.experimentRun.count.mockResolvedValue(0);
-    mockPrisma.researchQuestion.count.mockResolvedValue(0);
-    mockPrisma.experimentDesign.count.mockResolvedValue(0);
-    mockPrisma.experimentRun.groupBy.mockResolvedValue([]);
     mockPrisma.activity.findMany.mockResolvedValue([
       {
         uuid: "act-1",
@@ -620,10 +613,6 @@ describe("getGroupDashboard", () => {
 
     mockPrisma.projectGroup.findFirst.mockResolvedValue(group);
     mockPrisma.researchProject.findMany.mockResolvedValue([project]);
-    mockPrisma.experimentRun.count.mockResolvedValue(0);
-    mockPrisma.researchQuestion.count.mockResolvedValue(0);
-    mockPrisma.experimentDesign.count.mockResolvedValue(0);
-    mockPrisma.experimentRun.groupBy.mockResolvedValue([]);
     mockPrisma.activity.findMany.mockResolvedValue([
       {
         uuid: "act-1",
