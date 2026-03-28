@@ -99,11 +99,15 @@ export async function fetchArxivMetadata(url: string): Promise<{
   const arxivId = match[1];
 
   try {
-    const resp = await fetch(
-      `http://export.arxiv.org/api/query?id_list=${arxivId}`,
-      { signal: AbortSignal.timeout(10000) },
+    // Use curl for reliability — Node fetch has issues with arXiv's redirect + rate limiting
+    const { execFile } = await import("node:child_process");
+    const { promisify } = await import("node:util");
+    const execFileAsync = promisify(execFile);
+    const { stdout: xml } = await execFileAsync(
+      "curl",
+      ["-sL", "--max-time", "20", `https://export.arxiv.org/api/query?id_list=${arxivId}`],
+      { timeout: 25000, maxBuffer: 1024 * 1024 },
     );
-    const xml = await resp.text();
 
     // Parse XML — arXiv API returns Atom feed with entries
     const entries = xml.split("<entry>");
