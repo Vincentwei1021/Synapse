@@ -132,6 +132,11 @@ model ResearchProject {
   latestSynthesisSummary String?
   groupUuid            String? // nullable FK -> ProjectGroup.uuid
   computePoolUuid      String?
+  autonomousLoopEnabled    Boolean  @default(false)
+  autonomousLoopAgentUuid  String?
+  autoSearchEnabled        Boolean  @default(false)
+  autoSearchAgentUuid      String?
+  deepResearchDocUuid      String?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -140,6 +145,7 @@ model ResearchProject {
   experiments       Experiment[]
   experimentRuns    ExperimentRun[]
   experimentDesigns ExperimentDesign[]
+  relatedWorks      RelatedWork[]
   activities        Activity[]
 
   @@index([companyUuid])
@@ -583,6 +589,26 @@ model ExperimentProgressLog {
 
   @@index([experimentUuid, createdAt])
   @@index([companyUuid])
+}
+
+model RelatedWork {
+  id                  Int             @id @default(autoincrement())
+  uuid                String          @unique @default(uuid())
+  companyUuid         String
+  researchProjectUuid String
+  researchProject     ResearchProject @relation(fields: [researchProjectUuid], references: [uuid], onDelete: Cascade)
+  title               String
+  authors             String?
+  abstract            String?
+  url                 String
+  arxivId             String?
+  source              String
+  addedBy             String
+  addedByAgentUuid    String?
+  createdAt           DateTime        @default(now())
+
+  @@index([companyUuid])
+  @@index([researchProjectUuid])
 }
 
 // Session-Run checkin relation (many-to-many)
