@@ -51,6 +51,7 @@ import {
   updateProjectGroup,
   deleteProjectGroup,
   getProjectGroup,
+  getProjectGroupRef,
   listProjectGroups,
   moveProjectToGroup,
   getGroupDashboard,
@@ -330,6 +331,20 @@ describe("getProjectGroup", () => {
         orderBy: { updatedAt: "desc" },
       })
     );
+  });
+});
+
+describe("getProjectGroupRef", () => {
+  it("should return group uuid when group exists", async () => {
+    mockPrisma.projectGroup.findFirst.mockResolvedValue({ uuid: groupUuid });
+
+    const result = await getProjectGroupRef(companyUuid, groupUuid);
+
+    expect(result).toEqual({ uuid: groupUuid });
+    expect(mockPrisma.projectGroup.findFirst).toHaveBeenCalledWith({
+      where: { uuid: groupUuid, companyUuid },
+      select: { uuid: true },
+    });
   });
 });
 

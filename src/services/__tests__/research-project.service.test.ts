@@ -189,6 +189,38 @@ describe("createResearchProject", () => {
       })
     );
   });
+
+  it("should pass normalized optional fields through to prisma", async () => {
+    mockPrisma.researchProject.create.mockResolvedValue(makeProject({
+      description: null,
+      goal: null,
+      datasets: [],
+      evaluationMethods: [],
+      groupUuid: null,
+    }));
+
+    await createResearchProject({
+      companyUuid,
+      name: "Minimal Project",
+      description: null,
+      goal: null,
+      datasets: [],
+      evaluationMethods: [],
+      groupUuid: null,
+    });
+
+    expect(mockPrisma.researchProject.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          description: null,
+          goal: null,
+          datasets: [],
+          evaluationMethods: [],
+          groupUuid: null,
+        }),
+      })
+    );
+  });
 });
 
 // ===== updateResearchProject =====

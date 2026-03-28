@@ -179,6 +179,13 @@ export async function getProjectGroup(
   };
 }
 
+export async function getProjectGroupRef(companyUuid: string, groupUuid: string) {
+  return prisma.projectGroup.findFirst({
+    where: { uuid: groupUuid, companyUuid },
+    select: { uuid: true },
+  });
+}
+
 export async function listProjectGroups(
   companyUuid: string
 ): Promise<{ groups: ProjectGroupResponse[]; total: number; ungroupedCount: number }> {

@@ -289,6 +289,16 @@ export async function getResearchQuestionByUuid(companyUuid: string, uuid: strin
   });
 }
 
+export async function getResearchQuestionProjectRef(companyUuid: string, uuid: string) {
+  return prisma.researchQuestion.findFirst({
+    where: { uuid, companyUuid },
+    select: {
+      uuid: true,
+      researchProjectUuid: true,
+    },
+  });
+}
+
 // Create Idea
 export async function createResearchQuestion(params: ResearchQuestionCreateParams): Promise<ResearchQuestionResponse> {
   if (params.parentQuestionUuid) {

@@ -3,11 +3,11 @@
 // UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { withErrorHandler, parseBody, parsePagination } from "@/lib/api-handler";
 import { success, paginated, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
-import { listResearchProjectsWithStats } from "@/services/research-project.service";
+import { getProjectGroupRef } from "@/services/project-group.service";
+import { createResearchProject, listResearchProjectsWithStats } from "@/services/research-project.service";
 import { toProjectCompatibilityCounts } from "@/services/project-metrics.service";
 
 function normalizeStringArray(value: unknown): string[] {
@@ -90,34 +90,20 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   // Validate groupUuid belongs to the same company if provided
   if (body.groupUuid) {
-    const group = await prisma.projectGroup.findFirst({
-      where: { uuid: body.groupUuid, companyUuid: auth.companyUuid },
-    });
+    const group = await getProjectGroupRef(auth.companyUuid, body.groupUuid);
     if (!group) {
       return errors.notFound("Project Group");
     }
   }
 
-  const researchProject = await prisma.researchProject.create({
-    data: {
-      companyUuid: auth.companyUuid,
-      name: body.name.trim(),
-      description: body.description?.trim() || null,
-      goal: body.goal?.trim() || null,
-      datasets: normalizeStringArray(body.datasets),
-      evaluationMethods: normalizeStringArray(body.evaluationMethods),
-      groupUuid: body.groupUuid || null,
-    },
-    select: {
-      uuid: true,
-      name: true,
-      description: true,
-      goal: true,
-      datasets: true,
-      evaluationMethods: true,
-      createdAt: true,
-      updatedAt: true,
-    },
+  const researchProject = await createResearchProject({
+    companyUuid: auth.companyUuid,
+    name: body.name.trim(),
+    description: body.description?.trim() || null,
+    goal: body.goal?.trim() || null,
+    datasets: normalizeStringArray(body.datasets),
+    evaluationMethods: normalizeStringArray(body.evaluationMethods),
+    groupUuid: body.groupUuid || null,
   });
 
   return success({

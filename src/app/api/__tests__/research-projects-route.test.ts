@@ -3,12 +3,14 @@ import { NextRequest } from "next/server";
 
 const mockGetAuthContext = vi.fn();
 const mockListResearchProjectsWithStats = vi.fn();
+const mockCreateResearchProject = vi.fn();
 const mockGetResearchProject = vi.fn();
 const mockGetResearchProjectDetailRef = vi.fn();
 const mockUpdateResearchProject = vi.fn();
 const mockDeleteResearchProject = vi.fn();
 const mockGetProjectMetricsSnapshot = vi.fn();
 const mockToProjectCompatibilityCounts = vi.fn();
+const mockGetProjectGroupRef = vi.fn();
 
 vi.mock("@/lib/auth", () => ({
   getAuthContext: (...args: unknown[]) => mockGetAuthContext(...args),
@@ -17,10 +19,15 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("@/services/research-project.service", () => ({
   listResearchProjectsWithStats: (...args: unknown[]) => mockListResearchProjectsWithStats(...args),
+  createResearchProject: (...args: unknown[]) => mockCreateResearchProject(...args),
   getResearchProject: (...args: unknown[]) => mockGetResearchProject(...args),
   getResearchProjectDetailRef: (...args: unknown[]) => mockGetResearchProjectDetailRef(...args),
   updateResearchProject: (...args: unknown[]) => mockUpdateResearchProject(...args),
   deleteResearchProject: (...args: unknown[]) => mockDeleteResearchProject(...args),
+}));
+
+vi.mock("@/services/project-group.service", () => ({
+  getProjectGroupRef: (...args: unknown[]) => mockGetProjectGroupRef(...args),
 }));
 
 vi.mock("@/services/project-metrics.service", () => ({
@@ -28,14 +35,7 @@ vi.mock("@/services/project-metrics.service", () => ({
   toProjectCompatibilityCounts: (...args: unknown[]) => mockToProjectCompatibilityCounts(...args),
 }));
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    projectGroup: { findFirst: vi.fn() },
-    researchProject: { create: vi.fn() },
-  },
-}));
-
-import { GET as listProjects } from "@/app/api/research-projects/route";
+import { GET as listProjects, POST as createProject } from "@/app/api/research-projects/route";
 import {
   DELETE as deleteProjectDetail,
   GET as getProjectDetail,
@@ -59,6 +59,17 @@ describe("research projects routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetAuthContext.mockResolvedValue(mockAuth);
+    mockCreateResearchProject.mockResolvedValue({
+      uuid: projectUuid,
+      name: "Created Project",
+      description: "Created description",
+      goal: null,
+      datasets: ["dataset-a"],
+      evaluationMethods: ["pass@1"],
+      createdAt: now,
+      updatedAt: now,
+    });
+    mockGetProjectGroupRef.mockResolvedValue({ uuid: "group-uuid-1" });
     mockToProjectCompatibilityCounts.mockReturnValue({
       researchQuestions: 8,
       openResearchQuestions: 5,
@@ -158,6 +169,55 @@ describe("research projects routes", () => {
     });
 
     expect(response.status).toBe(401);
+  });
+
+  it("POST /api/research-projects creates a project through service layer", async () => {
+    const response = await createProject(
+      new NextRequest(new URL("/api/research-projects", "http://localhost:3000"), {
+        method: "POST",
+        body: JSON.stringify({
+          name: " Created Project ",
+          description: " Created description ",
+          datasets: "dataset-a",
+          evaluationMethods: "pass@1",
+          groupUuid: "group-uuid-1",
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+      { params: Promise.resolve({}) },
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(mockGetProjectGroupRef).toHaveBeenCalledWith(companyUuid, "group-uuid-1");
+    expect(mockCreateResearchProject).toHaveBeenCalledWith({
+      companyUuid,
+      name: "Created Project",
+      description: "Created description",
+      goal: null,
+      datasets: ["dataset-a"],
+      evaluationMethods: ["pass@1"],
+      groupUuid: "group-uuid-1",
+    });
+  });
+
+  it("POST /api/research-projects returns 404 when group is missing", async () => {
+    mockGetProjectGroupRef.mockResolvedValueOnce(null);
+
+    const response = await createProject(
+      new NextRequest(new URL("/api/research-projects", "http://localhost:3000"), {
+        method: "POST",
+        body: JSON.stringify({ name: "Created Project", groupUuid: "missing-group" }),
+        headers: { "content-type": "application/json" },
+      }),
+      { params: Promise.resolve({}) },
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(body.error.code).toBe("NOT_FOUND");
+    expect(mockCreateResearchProject).not.toHaveBeenCalled();
   });
 
   it("PATCH /api/research-projects/[uuid] updates project through service layer", async () => {
