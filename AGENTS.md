@@ -1,4 +1,4 @@
-# CLAUDE.md — Synapse Working Guide
+# AGENTS.md — Synapse Working Guide
 
 ## What Synapse Is
 
