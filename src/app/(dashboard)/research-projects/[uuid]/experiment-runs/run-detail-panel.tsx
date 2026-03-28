@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { X, Pencil, CheckCircle, Play, Eye, Bot, User, FileText, Loader2, Check, Trash2, GitBranch, Plus, ArrowRight, CircleCheck, Timer, CircleX, AlertTriangle, FlaskConical, XCircle, Clock, Shield } from "lucide-react";
+import { X, Pencil, Bot, FileText, FlaskConical, Shield, GitBranch, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,20 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { updateExperimentRunStatusAction, createExperimentRunAction, updateExperimentRunFieldsAction, deleteExperimentRunAction } from "./[runUuid]/actions";
-import { markCriteriaAction, resetCriterionAction } from "./[runUuid]/criteria-actions";
 import {
   getExperimentRunCommentsAction,
   createExperimentRunCommentAction,
@@ -59,6 +47,9 @@ import { getExperimentRegistryAction } from "./[runUuid]/registry-actions";
 import type { ExperimentRegistry } from "@/generated/prisma/client";
 import { RunDetailActivity } from "./run-detail-panel-activity";
 import { RunDetailComments } from "./run-detail-panel-comments";
+import { RunDetailCriteria } from "./run-detail-panel-criteria";
+import { RunDetailDependencies } from "./run-detail-panel-dependencies";
+import { RunDetailFooter } from "./run-detail-panel-footer";
 import {
   JsonKeyValue,
   formatRelativeTime,
@@ -401,18 +392,6 @@ export function TaskDetailPanel({
     t => !pendingDeps.some(d => d.uuid === t.uuid)
   );
 
-  // Evaluate Go/No-Go metric operator
-  function evaluateOperator(actual: number, op: string, threshold: number): boolean {
-    switch (op) {
-      case ">=": return actual >= threshold;
-      case "<=": return actual <= threshold;
-      case ">": return actual > threshold;
-      case "<": return actual < threshold;
-      case "==": return actual === threshold;
-      default: return false;
-    }
-  }
-
   // Render the edit/create form
   const renderEditForm = () => (
     <div className="space-y-5">
@@ -737,143 +716,16 @@ export function TaskDetailPanel({
                   </div>
                 )}
 
-                {/* Dependencies Section */}
-                <div className="mt-5">
-                  <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                    {t("tasks.dependencies")}
-                  </label>
-
-                  {depError && (
-                    <div className="mt-2 rounded-lg bg-destructive/10 p-2.5 text-xs text-destructive">
-                      {depError}
-                    </div>
-                  )}
-
-                  {isLoadingDeps ? (
-                    <div className="mt-2 flex items-center justify-center py-4">
-                      <Loader2 className="h-4 w-4 animate-spin text-[#9A9A9A]" />
-                    </div>
-                  ) : (
-                    <>
-                      {/* Depends On */}
-                      {dependsOn.length > 0 && (
-                        <div className="mt-2">
-                          <div className="flex items-center gap-1.5 mb-1.5">
-                            <ArrowRight className="h-3 w-3 text-[#9A9A9A]" />
-                            <span className="text-[10px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                              {t("tasks.dependsOn")}
-                            </span>
-                          </div>
-                          <div className="space-y-1.5">
-                            {dependsOn.map((dep) => (
-                              <div
-                                key={dep.uuid}
-                                className="group flex items-center justify-between rounded-lg bg-[#FAF8F4] p-3"
-                              >
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <GitBranch className="h-3.5 w-3.5 shrink-0 text-[#C67A52]" />
-                                  <span className="text-xs text-[#2C2C2C] truncate">
-                                    {dep.title}
-                                  </span>
-                                  <Badge className={`shrink-0 text-[10px] ${statusColors[dep.status] || ""}`}>
-                                    {t(`status.${statusI18nKeys[dep.status] || dep.status}`)}
-                                  </Badge>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0"
-                                  onClick={() => handleRemoveDependency(dep.uuid)}
-                                >
-                                  <X className="h-3.5 w-3.5 text-[#9A9A9A] hover:text-[#D32F2F]" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Depended By (blocked by this) */}
-                      {dependedBy.length > 0 && (
-                        <div className="mt-3">
-                          <div className="flex items-center gap-1.5 mb-1.5">
-                            <ArrowRight className="h-3 w-3 rotate-180 text-[#9A9A9A]" />
-                            <span className="text-[10px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                              {t("tasks.blockedByThis")}
-                            </span>
-                          </div>
-                          <div className="space-y-1.5">
-                            {dependedBy.map((dep) => (
-                              <div
-                                key={dep.uuid}
-                                className="group flex items-center justify-between rounded-lg bg-[#FAF8F4] p-3"
-                              >
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <GitBranch className="h-3.5 w-3.5 shrink-0 text-[#6B6B6B]" />
-                                  <span className="text-xs text-[#2C2C2C] truncate">
-                                    {dep.title}
-                                  </span>
-                                  <Badge className={`shrink-0 text-[10px] ${statusColors[dep.status] || ""}`}>
-                                    {t(`status.${statusI18nKeys[dep.status] || dep.status}`)}
-                                  </Badge>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0"
-                                  onClick={() => handleRemoveDependedBy(dep.uuid)}
-                                >
-                                  <X className="h-3.5 w-3.5 text-[#9A9A9A] hover:text-[#D32F2F]" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {dependsOn.length === 0 && dependedBy.length === 0 && (
-                        <p className="mt-2 text-sm italic text-[#9A9A9A]">{t("tasks.noDependencies")}</p>
-                      )}
-
-                      {/* Add Dependency */}
-                      {availableDepsForAdd.length > 0 && (
-                        <div className="mt-3">
-                          <Select
-                            key={dependsOn.length}
-                            onValueChange={(uuid) => handleAddDependency(uuid)}
-                          >
-                            <SelectTrigger className="h-8 border-[#E5E0D8] text-xs text-[#6B6B6B] focus:ring-[#C67A52]">
-                              <div className="flex items-center gap-1.5">
-                                <Plus className="h-3 w-3" />
-                                <SelectValue placeholder={t("tasks.addDependency")} />
-                              </div>
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableDepsForAdd.map((t) => (
-                                <SelectItem key={t.uuid} value={t.uuid}>
-                                  <span className="truncate">{t.title}</span>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-
-                {/* Early Stop Warning Banner */}
-                {task.earlyStopTriggered && (
-                  <Card className="border-amber-300 bg-amber-50 p-4 mb-4">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
-                      <div>
-                        <p className="font-semibold text-amber-800 text-sm">Early Stop Triggered</p>
-                        <p className="text-amber-700 text-xs mt-0.5">One or more early-stop criteria failed. Review the Go/No-Go criteria and decide whether to close this run.</p>
-                      </div>
-                    </div>
-                  </Card>
-                )}
+                <RunDetailDependencies
+                  availableDepsForAdd={availableDepsForAdd}
+                  dependedBy={dependedBy}
+                  dependsOn={dependsOn}
+                  error={depError}
+                  isLoading={isLoadingDeps}
+                  onAddDependency={handleAddDependency}
+                  onRemoveDependency={handleRemoveDependency}
+                  onRemoveDependedBy={handleRemoveDependedBy}
+                />
 
                 {/* Experiment Configuration Section */}
                 {task.experimentConfig && (
@@ -971,263 +823,7 @@ export function TaskDetailPanel({
                   </div>
                 )}
 
-                {/* Go/No-Go Criteria Checklist */}
-                {task.acceptanceCriteriaItems && task.acceptanceCriteriaItems.length > 0 && (() => {
-                  const goNoGoItems = task.acceptanceCriteriaItems!.filter(
-                    (item) => item.metricName !== null && item.metricName !== undefined
-                  );
-
-                  if (goNoGoItems.length === 0) return null;
-
-                  // Evaluate each criterion
-                  const evaluated = goNoGoItems.map((item) => {
-                    let result: "passed" | "failed" | "pending" = "pending";
-                    if (
-                      item.actualValue !== null &&
-                      item.actualValue !== undefined &&
-                      item.operator !== null &&
-                      item.threshold !== null
-                    ) {
-                      result = evaluateOperator(item.actualValue, item.operator, item.threshold)
-                        ? "passed"
-                        : "failed";
-                    }
-                    return { ...item, evalResult: result };
-                  });
-
-                  // Count among required criteria only
-                  const requiredEvaluated = evaluated.filter((e) => e.required);
-                  const passedCount = requiredEvaluated.filter((e) => e.evalResult === "passed").length;
-                  const failedCount = requiredEvaluated.filter((e) => e.evalResult === "failed").length;
-                  const pendingCount = requiredEvaluated.filter((e) => e.evalResult === "pending").length;
-
-                  // Suggested outcome
-                  let suggestedOutcome: "Accepted" | "Rejected" | "Inconclusive" = "Inconclusive";
-                  if (failedCount > 0) {
-                    suggestedOutcome = "Rejected";
-                  } else if (pendingCount === 0 && passedCount > 0) {
-                    suggestedOutcome = "Accepted";
-                  }
-
-                  const outcomeBadgeColor =
-                    suggestedOutcome === "Accepted"
-                      ? "bg-green-50 text-green-700"
-                      : suggestedOutcome === "Rejected"
-                        ? "bg-red-50 text-red-700"
-                        : "bg-yellow-50 text-yellow-700";
-
-                  return (
-                    <div className="mt-5">
-                      <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                        Go/No-Go Criteria
-                      </label>
-
-                      {/* Summary bar */}
-                      <div className="mt-2 flex items-center gap-2 flex-wrap rounded-lg bg-[#FAF8F4] p-3">
-                        <span className="text-xs text-[#2C2C2C]">
-                          {passedCount} passed, {failedCount} failed, {pendingCount} pending
-                        </span>
-                        <span className="text-xs text-[#9A9A9A]">&mdash;</span>
-                        <span className="text-xs text-[#6B6B6B]">Suggested:</span>
-                        <Badge className={outcomeBadgeColor}>{suggestedOutcome}</Badge>
-                      </div>
-
-                      {/* Criteria list */}
-                      <div className="mt-2 space-y-2">
-                        {evaluated.map((item) => {
-                          const statusIcon =
-                            item.evalResult === "passed" ? (
-                              <CheckCircle className="h-4 w-4 text-green-600" />
-                            ) : item.evalResult === "failed" ? (
-                              <XCircle className="h-4 w-4 text-red-600" />
-                            ) : (
-                              <Clock className="h-4 w-4 text-yellow-600" />
-                            );
-
-                          return (
-                            <Card key={item.uuid} className="p-3">
-                              <div className="flex items-start gap-2">
-                                <div className="mt-0.5 shrink-0">{statusIcon}</div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-xs font-bold text-[#2C2C2C]">
-                                      {item.metricName}
-                                    </span>
-                                    {item.operator && item.threshold !== null && (
-                                      <span className="text-xs text-[#6B6B6B]">
-                                        {item.operator} {item.threshold}
-                                      </span>
-                                    )}
-                                    <span className="text-xs text-[#2C2C2C]">
-                                      Actual: {item.actualValue !== null && item.actualValue !== undefined ? item.actualValue : "\u2014"}
-                                    </span>
-                                    {item.isEarlyStop && (
-                                      <span className="flex items-center gap-1 text-[10px] text-yellow-700">
-                                        <AlertTriangle className="h-3 w-3" />
-                                        Early Stop
-                                      </span>
-                                    )}
-                                    {!item.required && (
-                                      <span className="text-[10px] text-[#9A9A9A]">(optional)</span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </Card>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Structured Acceptance Criteria Section */}
-                {task && task.acceptanceCriteriaItems && task.acceptanceCriteriaItems.length > 0 && (() => {
-                  const items = task.acceptanceCriteriaItems!;
-                  const summary = task.acceptanceSummary;
-
-                  const criterionStatusIcon = (status: string) => {
-                    if (status === "passed") return <CircleCheck className="h-4 w-4 text-green-600" />;
-                    if (status === "failed") return <CircleX className="h-4 w-4 text-red-600" />;
-                    return <Timer className="h-4 w-4 text-yellow-600" />;
-                  };
-
-                  const criterionStatusColor = (status: string) => {
-                    if (status === "passed") return "bg-green-50 text-green-700";
-                    if (status === "failed") return "bg-red-50 text-red-700";
-                    return "bg-yellow-50 text-yellow-700";
-                  };
-
-                  const handleMarkCriterion = async (criterionUuid: string, newStatus: "passed" | "failed") => {
-                    const result = await markCriteriaAction(task.uuid, [{ uuid: criterionUuid, status: newStatus }]);
-                    if (result.success) {
-                      router.refresh();
-                    }
-                  };
-
-                  return (
-                    <div className="mt-5">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                          {t("acceptanceCriteria.title")}
-                        </label>
-                        {summary && (
-                          <Badge className={criterionStatusColor(task.acceptanceStatus || "pending")} variant="secondary">
-                            {t("acceptanceCriteria.progress", { passed: summary.passed, total: summary.total })}
-                          </Badge>
-                        )}
-                      </div>
-
-                      <div className="mt-2 space-y-2">
-                        {items.map((item) => (
-                          <Card key={item.uuid} className="p-3">
-                            <div className="flex items-start gap-2">
-                              <div className="mt-0.5 shrink-0">
-                                {criterionStatusIcon(item.status)}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-xs text-[#2C2C2C]">{item.description}</span>
-                                  <Badge variant="outline" className="text-[10px] shrink-0">
-                                    {item.required ? t("acceptanceCriteria.required") : t("acceptanceCriteria.optional")}
-                                  </Badge>
-                                </div>
-
-                                {/* Dual-track rows */}
-                                <div className="mt-2 space-y-1">
-                                  <div className="flex items-center gap-2 text-[10px]">
-                                    <span className="text-[#9A9A9A] w-20 shrink-0">{t("acceptanceCriteria.devSelfCheck")}</span>
-                                    <Badge className={`text-[10px] ${criterionStatusColor(item.devStatus)}`} variant="secondary">
-                                      {criterionStatusIcon(item.devStatus)}
-                                      <span className="ml-1">{t(`acceptanceCriteria.status.${item.devStatus}`)}</span>
-                                    </Badge>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-[10px]">
-                                    <span className="text-[#9A9A9A] w-20 shrink-0">{t("acceptanceCriteria.verification")}</span>
-                                    <Badge className={`text-[10px] ${criterionStatusColor(item.status)}`} variant="secondary">
-                                      {criterionStatusIcon(item.status)}
-                                      <span className="ml-1">{t(`acceptanceCriteria.status.${item.status}`)}</span>
-                                    </Badge>
-                                  </div>
-                                </div>
-
-                                {/* Evidence — show both tracks separately */}
-                                {item.devEvidence && (
-                                  <div className="mt-2 rounded bg-[#FAF8F4] p-2">
-                                    <span className="text-[10px] font-medium text-[#9A9A9A]">{t("acceptanceCriteria.devEvidence")}</span>
-                                    <p className="text-[11px] text-[#2C2C2C] mt-0.5">{item.devEvidence}</p>
-                                  </div>
-                                )}
-                                {item.evidence && (
-                                  <div className="mt-2 rounded bg-[#FAF8F4] p-2">
-                                    <span className="text-[10px] font-medium text-[#9A9A9A]">{t("acceptanceCriteria.verifyEvidence")}</span>
-                                    <p className="text-[11px] text-[#2C2C2C] mt-0.5">{item.evidence}</p>
-                                  </div>
-                                )}
-
-                                {/* Admin action buttons */}
-                                {item.status === "pending" ? (
-                                  <div className="mt-2 flex gap-2">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 min-h-[44px] sm:min-h-0 flex-1 sm:flex-none text-xs text-green-700 border-green-200 hover:bg-green-50"
-                                      onClick={() => handleMarkCriterion(item.uuid, "passed")}
-                                    >
-                                      <CircleCheck className="h-3.5 w-3.5 mr-1" />
-                                      {t("acceptanceCriteria.pass")}
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 min-h-[44px] sm:min-h-0 flex-1 sm:flex-none text-xs text-red-700 border-red-200 hover:bg-red-50"
-                                      onClick={() => handleMarkCriterion(item.uuid, "failed")}
-                                    >
-                                      <CircleX className="h-3.5 w-3.5 mr-1" />
-                                      {t("acceptanceCriteria.fail")}
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <div className="mt-2">
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-7 min-h-[44px] sm:min-h-0 text-xs text-[#9A9A9A] hover:text-[#2C2C2C]"
-                                      onClick={async () => {
-                                        const result = await resetCriterionAction(task.uuid, item.uuid);
-                                        if (result.success) router.refresh();
-                                      }}
-                                    >
-                                      {t("acceptanceCriteria.undoVerification")}
-                                    </Button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </Card>
-                        ))}
-
-                        {/* Gate warning */}
-                        {summary && (summary.requiredPending > 0 || summary.requiredFailed > 0) && (
-                          <div className="flex items-center gap-2 rounded-lg bg-yellow-50 p-3 mt-2">
-                            <AlertTriangle className="h-4 w-4 text-yellow-600 shrink-0" />
-                            <span className="text-xs text-yellow-700">
-                              {t("acceptanceCriteria.gateBlocked", { count: summary.requiredPending + summary.requiredFailed })}
-                            </span>
-                          </div>
-                        )}
-                        {summary && summary.requiredPending === 0 && summary.requiredFailed === 0 && summary.required > 0 && (
-                          <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3 mt-2">
-                            <CircleCheck className="h-4 w-4 text-green-600 shrink-0" />
-                            <span className="text-xs text-green-700">
-                              {t("acceptanceCriteria.gateReady")}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
+                <RunDetailCriteria task={task} />
 
                 <RunDetailActivity
                   activities={activities}
@@ -1248,128 +844,23 @@ export function TaskDetailPanel({
           </div>
         </ScrollArea>
 
-        {/* Panel Footer */}
-        <div className="border-t border-[#F5F2EC] px-6 py-4">
-          <div className="flex items-center gap-3">
-            {isEditing ? (
-              <>
-                <Button
-                  variant="outline"
-                  className="border-[#E5E0D8]"
-                  onClick={handleCancelEdit}
-                  disabled={isSaving}
-                >
-                  {t("common.cancel")}
-                </Button>
-                <Button
-                  className="bg-[#C67A52] hover:bg-[#B56A42] text-white"
-                  onClick={handleSaveEdit}
-                  disabled={isSaving || !editTitle.trim()}
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t("common.saving")}
-                    </>
-                  ) : (
-                    <>
-                      <Check className="mr-2 h-4 w-4" />
-                      {isCreateMode ? t("common.create") : t("tasks.saveChanges")}
-                    </>
-                  )}
-                </Button>
-              </>
-            ) : task ? (
-              <>
-                {/* Assign button - always available except for done/closed */}
-                {task.status !== "done" && task.status !== "closed" && (
-                  <Button
-                    variant="outline"
-                    className="border-[#E5E0D8]"
-                    onClick={() => setShowAssignModal(true)}
-                    disabled={isLoading}
-                  >
-                    <User className="mr-2 h-4 w-4" />
-                    {t("common.assign")}
-                  </Button>
-                )}
-                {canStart && (
-                  <Button
-                    className="flex-1 bg-[#1976D2] hover:bg-[#1565C0] text-white"
-                    onClick={() => handleStatusChange("in_progress")}
-                    disabled={isLoading}
-                  >
-                    <Play className="mr-2 h-4 w-4" />
-                    {t("tasks.startWork")}
-                  </Button>
-                )}
-                {canMarkToVerify && (
-                  <Button
-                    className="flex-1 bg-[#7B1FA2] hover:bg-[#6A1B9A] text-white"
-                    onClick={() => handleStatusChange("to_verify")}
-                    disabled={isLoading}
-                  >
-                    <Eye className="mr-2 h-4 w-4" />
-                    {t("tasks.submitForReview")}
-                  </Button>
-                )}
-                {canMarkDone && (
-                  <Button
-                    className="flex-1 bg-[#22C55E] hover:bg-[#16A34A] text-white"
-                    onClick={() => handleStatusChange("done")}
-                    disabled={isLoading}
-                  >
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    {t("tasks.markAsVerified")}
-                  </Button>
-                )}
-                {(task.status === "done" || task.status === "closed") && (
-                  <div className="text-sm text-[#9A9A9A] text-center w-full">
-                    {t("tasks.taskCompleted")}
-                  </div>
-                )}
-                <div className="ml-auto">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-9 w-9 border-[#E5E0D8] text-[#D32F2F] hover:bg-[#FFEBEE] hover:text-[#D32F2F] hover:border-[#D32F2F]"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{t("tasks.deleteExperimentRun")}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {t("tasks.deleteExperimentRunConfirm", { title: task.title })}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                        <AlertDialogAction
-                          variant="destructive"
-                          onClick={handleDelete}
-                          disabled={isDeleting}
-                        >
-                          {isDeleting ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              {t("common.delete")}
-                            </>
-                          ) : (
-                            t("common.delete")
-                          )}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </>
-            ) : null}
-          </div>
-        </div>
+        <RunDetailFooter
+          canMarkDone={canMarkDone}
+          canMarkToVerify={canMarkToVerify}
+          canStart={canStart}
+          editTitle={editTitle}
+          isCreateMode={isCreateMode}
+          isDeleting={isDeleting}
+          isEditing={isEditing}
+          isLoading={isLoading}
+          isSaving={isSaving}
+          onCancelEdit={handleCancelEdit}
+          onDelete={handleDelete}
+          onOpenAssign={() => setShowAssignModal(true)}
+          onSaveEdit={handleSaveEdit}
+          onStatusChange={handleStatusChange}
+          task={task}
+        />
       </div>
 
       {/* Assign Task Modal */}
