@@ -158,6 +158,12 @@ export class SynapseEventRouter {
         case "run_reopened":
           this.handleTaskReopened(notification);
           break;
+        case "autonomous_loop_triggered":
+          this.handleAutonomousLoopTriggered(notification);
+          break;
+        case "deep_research_requested":
+          this.handleDeepResearchRequested(notification);
+          break;
         default:
           this.logger.info(`Unhandled notification action: "${notification.action}"`);
           break;
@@ -371,6 +377,37 @@ export class SynapseEventRouter {
       `After reviewing, @mention the answerer to ask if they have any further questions before you proceed.\n` +
       mentionGuidance,
       { notificationUuid: n.uuid, action: "elaboration_answered", entityUuid: n.entityUuid, projectUuid }
+    );
+  }
+
+  private handleAutonomousLoopTriggered(n: NotificationDetail): void {
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
+
+    this.triggerAgent(
+      `[Synapse] Autonomous research loop triggered for project "${n.entityTitle}" (projectUuid: ${projectUuid}).
+
+The experiment queue is empty. Your task:
+1. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to review all project details, research questions, and experiment results
+2. Analyze: What questions remain unanswered? What experiments could yield new insights? Are there gaps in the research?
+3. If you identify valuable next steps, use synapse_propose_experiment to create draft experiments for human review
+4. If the research objectives appear to be met, you may choose not to propose any new experiments
+
+Proposed experiments will enter "draft" status and require human approval before execution.`,
+      { notificationUuid: n.uuid, action: "autonomous_loop_triggered", entityUuid: n.entityUuid, projectUuid }
+    );
+  }
+
+  private handleDeepResearchRequested(n: NotificationDetail): void {
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
+
+    this.triggerAgent(
+      `[Synapse] Deep research literature review requested for project (projectUuid: ${projectUuid}).
+
+1. Use synapse_get_related_works with researchProjectUuid "${projectUuid}" to read all collected papers
+2. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to understand the research objectives
+3. Analyze how each paper relates to the project's goals — identify key methods, findings, and gaps in the literature
+4. Create a comprehensive literature review document summarizing your analysis`,
+      { notificationUuid: n.uuid, action: "deep_research_requested", entityUuid: n.entityUuid, projectUuid }
     );
   }
 }
