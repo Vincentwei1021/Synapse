@@ -1308,6 +1308,8 @@
       "datasetsHelp": "You can enter a public dataset name, an S3 path your agent can access, or a local path. Add a short note on the same line if needed.",
       "evaluationLabel": "Evaluation methods",
       "evaluationPlaceholder": "Metrics, baselines, or evaluation methods",
+      "computePool": "Compute Pool",
+      "noComputePool": "None (no constraint)",
       "initialIdeas": "Initial Ideas (Optional)",
       "initialIdeasDesc": "Seed the board with a few hypotheses or directions if you already know where to begin.",
       "ideaPlaceholder": "Describe an initial idea, hypothesis, or experiment direction...",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
@@ -27,6 +27,11 @@ import {
   CollapsibleContent,
 } from "@/components/ui/collapsible";
 
+interface ComputePool {
+  uuid: string;
+  name: string;
+}
+
 interface UploadedFile {
   name: string;
   size: number;
@@ -44,12 +49,25 @@ export default function NewProjectPage() {
     description: "",
     datasets: "",
     evaluationMethods: "",
+    computePoolUuid: null as string | null,
   });
+  const [pools, setPools] = useState<ComputePool[]>([]);
   const [ideas, setIdeas] = useState<string[]>([""]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [ideasOpen, setIdeasOpen] = useState(false);
   const [documentsOpen, setDocumentsOpen] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/compute-pools")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.pools) setPools(data.pools);
+      })
+      .catch(() => {
+        // Pools are optional; ignore fetch errors
+      });
+  }, []);
 
   const handleAddIdea = () => {
     setIdeas([...ideas, ""]);
@@ -149,6 +167,7 @@ export default function NewProjectPage() {
           .split(/\r?\n/)
           .map((item) => item.trim())
           .filter(Boolean),
+        computePoolUuid: formData.computePoolUuid,
         ideas: ideas,
         documents,
       });
@@ -291,6 +310,25 @@ export default function NewProjectPage() {
                     rows={4}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="computePoolUuid">{t("projects.createNew.computePool")}</Label>
+                <select
+                  id="computePoolUuid"
+                  value={formData.computePoolUuid || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, computePoolUuid: e.target.value || null })
+                  }
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                >
+                  <option value="">{t("projects.createNew.noComputePool")}</option>
+                  {pools.map((pool) => (
+                    <option key={pool.uuid} value={pool.uuid}>
+                      {pool.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </CardContent>
           </Card>

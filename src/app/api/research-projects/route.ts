@@ -81,6 +81,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     datasets?: string[] | string;
     evaluationMethods?: string[] | string;
     groupUuid?: string;
+    computePoolUuid?: string;
   }>(request);
 
   // Validate required fields
@@ -104,6 +105,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     datasets: normalizeStringArray(body.datasets),
     evaluationMethods: normalizeStringArray(body.evaluationMethods),
     groupUuid: body.groupUuid || null,
+    computePoolUuid: body.computePoolUuid || null,
   });
 
   return success({

@@ -1308,6 +1308,8 @@
       "datasetsHelp": "可以填写公开数据集名称，也可以填写你的 agent 能访问的 S3 路径或本地路径。每行可附上一句简短说明。",
       "evaluationLabel": "评估方式",
       "evaluationPlaceholder": "指标，基准或评估方法",
+      "computePool": "算力池",
+      "noComputePool": "无（不限制）",
       "initialIdeas": "初始想法（可选）",
       "initialIdeasDesc": "如果你已经有一些假设或方向，可以先放几条到看板里作为起点。",
       "ideaPlaceholder": "描述一个初始想法、假设或实验方向...",

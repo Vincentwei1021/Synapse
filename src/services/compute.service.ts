@@ -602,6 +602,27 @@ export async function updateGpuStatuses(input: {
   });
 }
 
+async function validatePoolBinding(companyUuid: string, researchProjectUuid: string, gpuUuids: string[]) {
+  if (gpuUuids.length === 0) return;
+
+  const project = await prisma.researchProject.findFirst({
+    where: { uuid: researchProjectUuid, companyUuid },
+    select: { computePoolUuid: true },
+  });
+
+  if (!project?.computePoolUuid) return; // no constraint
+
+  const gpus = await prisma.computeGpu.findMany({
+    where: { uuid: { in: gpuUuids } },
+    include: { node: { select: { poolUuid: true } } },
+  });
+
+  const invalidGpu = gpus.find(gpu => gpu.node.poolUuid !== project.computePoolUuid);
+  if (invalidGpu) {
+    throw new Error("GPU does not belong to the compute pool bound to this project");
+  }
+}
+
 export async function reserveGpusForRun(input: {
   companyUuid: string;
   runUuid: string;
@@ -609,6 +630,15 @@ export async function reserveGpusForRun(input: {
 }) {
   if (input.gpuUuids.length === 0) {
     return [];
+  }
+
+  // Validate pool binding
+  const run = await prisma.experimentRun.findFirst({
+    where: { uuid: input.runUuid, companyUuid: input.companyUuid },
+    select: { researchProjectUuid: true },
+  });
+  if (run) {
+    await validatePoolBinding(input.companyUuid, run.researchProjectUuid, input.gpuUuids);
   }
 
   return prisma.$transaction(async (tx) => {
@@ -677,6 +707,15 @@ export async function reserveGpusForExperiment(input: {
 }) {
   if (input.gpuUuids.length === 0) {
     return [];
+  }
+
+  // Validate pool binding
+  const experiment = await prisma.experiment.findFirst({
+    where: { uuid: input.experimentUuid, companyUuid: input.companyUuid },
+    select: { researchProjectUuid: true },
+  });
+  if (experiment) {
+    await validatePoolBinding(input.companyUuid, experiment.researchProjectUuid, input.gpuUuids);
   }
 
   return prisma.$transaction(async (tx) => {

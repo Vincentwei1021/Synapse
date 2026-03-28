@@ -71,10 +71,19 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
   const body = await parseBody<{
     name?: string;
     description?: string;
+    datasets?: string[];
+    evaluationMethods?: string[];
+    computePoolUuid?: string | null;
   }>(request);
 
   // Build update data
-  const updateData: { name?: string; description?: string | null } = {};
+  const updateData: {
+    name?: string;
+    description?: string | null;
+    datasets?: string[] | null;
+    evaluationMethods?: string[] | null;
+    computePoolUuid?: string | null;
+  } = {};
 
   if (body.name !== undefined) {
     if (body.name.trim() === "") {
@@ -85,6 +94,22 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
 
   if (body.description !== undefined) {
     updateData.description = body.description?.trim() || null;
+  }
+
+  if (body.datasets !== undefined) {
+    updateData.datasets = Array.isArray(body.datasets) && body.datasets.length > 0
+      ? body.datasets
+      : null;
+  }
+
+  if (body.evaluationMethods !== undefined) {
+    updateData.evaluationMethods = Array.isArray(body.evaluationMethods) && body.evaluationMethods.length > 0
+      ? body.evaluationMethods
+      : null;
+  }
+
+  if (body.computePoolUuid !== undefined) {
+    updateData.computePoolUuid = body.computePoolUuid || null;
   }
 
   const researchProject = await updateResearchProject(existing.uuid, updateData);

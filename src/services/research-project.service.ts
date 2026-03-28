@@ -20,6 +20,7 @@ export interface ResearchProjectCreateParams {
   datasets?: string[] | null;
   evaluationMethods?: string[] | null;
   groupUuid?: string | null;
+  computePoolUuid?: string | null;
 }
 
 export interface ResearchProjectUpdateParams {
@@ -28,6 +29,7 @@ export interface ResearchProjectUpdateParams {
   goal?: string | null;
   datasets?: string[] | null;
   evaluationMethods?: string[] | null;
+  computePoolUuid?: string | null;
 }
 
 export interface ResearchProjectDashboardData {
@@ -189,6 +191,7 @@ export async function createResearchProject({
   datasets,
   evaluationMethods,
   groupUuid,
+  computePoolUuid,
 }: ResearchProjectCreateParams) {
   return prisma.researchProject.create({
     data: {
@@ -199,6 +202,7 @@ export async function createResearchProject({
       datasets: datasets ?? [],
       evaluationMethods: evaluationMethods ?? [],
       groupUuid: groupUuid ?? null,
+      computePoolUuid: computePoolUuid ?? null,
     },
     select: {
       uuid: true,
@@ -208,6 +212,7 @@ export async function createResearchProject({
       datasets: true,
       evaluationMethods: true,
       groupUuid: true,
+      computePoolUuid: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -226,6 +231,11 @@ export async function updateResearchProject(uuid: string, data: ResearchProjectU
       data.evaluationMethods === null ? Prisma.JsonNull : data.evaluationMethods;
   }
 
+  // Allow clearing the compute pool binding by passing null
+  if (data.computePoolUuid !== undefined) {
+    updateData.computePoolUuid = data.computePoolUuid ?? null;
+  }
+
   return prisma.researchProject.update({
     where: { uuid },
     data: updateData,
@@ -236,6 +246,7 @@ export async function updateResearchProject(uuid: string, data: ResearchProjectU
       goal: true,
       datasets: true,
       evaluationMethods: true,
+      computePoolUuid: true,
       latestSynthesisAt: true,
       latestSynthesisIdeaCount: true,
       latestSynthesisSummary: true,

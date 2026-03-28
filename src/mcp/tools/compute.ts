@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { AgentAuthContext } from "@/types/auth";
+import { prisma } from "@/lib/prisma";
 import * as activityService from "@/services/activity.service";
 import * as computeService from "@/services/compute.service";
 import * as experimentService from "@/services/experiment.service";
@@ -55,10 +56,21 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
       description: "List compute pools, nodes, SSH/SSM access details, and the status of every GPU.",
       inputSchema: z.object({
         onlyAvailable: z.boolean().default(false),
+        researchProjectUuid: z.string().optional(),
       }),
     },
-    async ({ onlyAvailable }) => {
-      const pools = await computeService.listComputePools(auth.companyUuid);
+    async ({ onlyAvailable, researchProjectUuid }) => {
+      let pools = await computeService.listComputePools(auth.companyUuid);
+
+      if (researchProjectUuid) {
+        const project = await prisma.researchProject.findFirst({
+          where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid },
+          select: { computePoolUuid: true },
+        });
+        if (project?.computePoolUuid) {
+          pools = pools.filter(pool => pool.uuid === project.computePoolUuid);
+        }
+      }
       const serializeNodeForMcp = (node: (typeof pools)[number]["nodes"][number]) => ({
         uuid: node.uuid,
         label: node.label,
@@ -149,6 +161,12 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
         statuses,
       });
 
+      for (const exp of experiments) {
+        if ((exp as { liveStatus?: string }).liveStatus === "sent") {
+          await experimentService.updateExperimentLiveStatus(exp.uuid, "ack");
+        }
+      }
+
       return {
         content: [{ type: "text", text: JSON.stringify({ experiments }, null, 2) }],
       };
@@ -214,6 +232,8 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
         );
       }
 
+      await experimentService.updateExperimentLiveStatus(experimentUuid, "checking_resources");
+
       const updated =
         experiment.status === "in_progress"
           ? await experimentService.getExperiment(auth.companyUuid, experimentUuid)
@@ -232,6 +252,8 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
           gpuUuids,
         });
       }
+
+      await experimentService.updateExperimentLiveStatus(experimentUuid, "running");
 
       const availableNodes = await computeService.listComputePools(auth.companyUuid);
       const selectedNodes = availableNodes
@@ -461,6 +483,8 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
         });
 
         await computeService.releaseGpuReservationsForExperiment(auth.companyUuid, experimentUuid);
+
+        await experimentService.updateExperimentLiveStatus(experimentUuid, null, null);
 
         await activityService.createActivity({
           companyUuid: auth.companyUuid,

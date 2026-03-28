@@ -18,6 +18,7 @@ interface CreateProjectInput {
   goal?: string;
   datasets?: string[];
   evaluationMethods?: string[];
+  computePoolUuid?: string | null;
   ideas: string[];
   documents?: UploadedDocument[];
 }
@@ -37,6 +38,7 @@ export async function createResearchProjectAction(input: CreateProjectInput) {
       goal: input.goal,
       datasets: input.datasets,
       evaluationMethods: input.evaluationMethods,
+      computePoolUuid: input.computePoolUuid,
     });
 
     // Create ideas if any

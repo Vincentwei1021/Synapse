@@ -199,6 +199,7 @@ describe("research projects routes", () => {
       datasets: ["dataset-a"],
       evaluationMethods: ["pass@1"],
       groupUuid: "group-uuid-1",
+      computePoolUuid: null,
     });
   });
 
