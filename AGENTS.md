@@ -64,8 +64,8 @@ Important:
 
 - After every `prisma/schema.prisma` change, run `pnpm db:generate`
 - Restart the running app after schema changes
-- The standalone start path depends on `scripts/start-standalone.sh`, which copies static assets into `.next/standalone` before launch
-- `scripts/preflight.sh` is the canonical startup/env sanity check
+- The standalone start path depends on `scripts/start-standalone.sh`, which copies static assets into `.next/standalone` before launch and binds `HOSTNAME` from `SYNAPSE_HOSTNAME` (default `127.0.0.1`)
+- `scripts/preflight.sh` is the canonical startup/env sanity check and now loads repo-root `.env` before validating the environment
 
 ## Current Project Structure
 
@@ -190,6 +190,11 @@ Requests resolve to an auth context with:
 
 Agents authenticate with API keys. Users use session/cookie-based auth.
 
+For user-managed agents, API keys, and agent sessions:
+
+- scope by `companyUuid` and `ownerUuid`
+- do not let one user inspect, mutate, or revoke another user's agents, keys, or sessions inside the same company
+
 ### Realtime model
 
 Activities are emitted through the `EventBus`.
@@ -279,6 +284,11 @@ Agent-triggered document behavior:
 - `synapse_submit_experiment_results` updates the experiment and its result document
 - Completing experiments also refreshes the project-level synthesis document
 
+`Experiment.computeBudgetHours` is nullable:
+
+- `null` means unlimited budget
+- blank create-form input should stay `null`, not coerce to `0`
+
 So if an agent runs an experiment correctly, Synapse should update both:
 
 - the `Experiment`
@@ -322,6 +332,7 @@ Notes:
   - `pending_start`
   - `in_progress`
   - `completed`
+- `Settings` is a user-owned management surface for that user's agents, API keys, and agent sessions
 
 Human-created experiments should normally land in `pending_start`, not sit in `draft`, unless explicitly created as drafts.
 
@@ -444,3 +455,9 @@ Recent examples:
 
 13. Bypassing declarative tool registries
    Before adding a new MCP or OpenClaw tool by hand, check the existing registry helpers and `*-tool-definitions.ts` files first.
+
+14. Missing owner scoping in Settings
+   Agent management under `Settings` must enforce both `companyUuid` and `ownerUuid`; same-company visibility alone is not sufficient.
+
+15. Misreading blank compute budget
+   For `Experiment`, an empty `computeBudgetHours` input means unlimited (`null`), not zero.
