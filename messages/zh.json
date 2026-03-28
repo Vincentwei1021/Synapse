@@ -1228,7 +1228,7 @@
     },
     "register": {
       "title": "注册机器",
-      "description": "可以直接读取服务器端 `.ssh/config`，也可以从浏览器上传 PEM，或者引用服务器现有密钥路径。",
+      "description": "可以直接读取服务器端 `.ssh/config`，也可以从浏览器上传 PEM。",
       "pool": "资源池",
       "label": "显示名称",
       "labelPlaceholder": "可选的机器名称",
@@ -1243,6 +1243,7 @@
       "user": "用户",
       "port": "端口",
       "key": "密钥",
+      "serverResolvedKey": "在服务器端安全解析",
       "keyPath": "服务器密钥路径",
       "pemFile": "PEM 文件",
       "choosePem": "选择 .pem 文件",

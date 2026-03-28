@@ -108,7 +108,6 @@ async function parsePayload(request: NextRequest, companyUuid: string) {
   if (contentType.includes("multipart/form-data")) {
     const formData = await request.formData();
     const sshHost = String(formData.get("sshHost") || "");
-    const sshKeyPath = String(formData.get("sshKeyPath") || "");
     const pemFile = formData.get("pemFile");
 
     let pemMeta:

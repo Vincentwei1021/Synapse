@@ -1228,7 +1228,7 @@
     },
     "register": {
       "title": "Register machine",
-      "description": "Choose an existing SSH config entry, upload a PEM file from your browser, or reference a server-side key path.",
+      "description": "Choose an existing SSH config entry or upload a PEM file from your browser.",
       "pool": "Pool",
       "label": "Display label",
       "labelPlaceholder": "Optional machine label",
@@ -1243,6 +1243,7 @@
       "user": "User",
       "port": "Port",
       "key": "Key",
+      "serverResolvedKey": "Resolved securely on server",
       "keyPath": "Server key path",
       "pemFile": "PEM file",
       "choosePem": "Choose a .pem file",

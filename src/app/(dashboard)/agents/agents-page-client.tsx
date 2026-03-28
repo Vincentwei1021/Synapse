@@ -45,7 +45,9 @@ import {
   closeSessionAction,
   reopenSessionAction,
 } from "@/app/(dashboard)/settings/actions";
+import { useLocale } from "@/contexts/locale-context";
 import type { SessionResponse } from "@/services/session.service";
+import { formatAgentApiKeyCreatedAt } from "./agents-page-client.helpers";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -132,6 +134,7 @@ export function AgentsPageClient({
   initialAgents: AgentSummary[];
 }) {
   const t = useTranslations();
+  const { locale } = useLocale();
 
   // Agent list
   const [agents, setAgents] = useState<AgentSummary[]>(initialAgents);
@@ -711,7 +714,7 @@ export function AgentsPageClient({
                               </div>
                               <div className="text-[11px] text-muted-foreground">
                                 {t("settings.created")}{" "}
-                                {new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "numeric" }).format(new Date(key.createdAt))}
+                                {formatAgentApiKeyCreatedAt(key.createdAt, locale)}
                               </div>
                             </div>
                           </div>

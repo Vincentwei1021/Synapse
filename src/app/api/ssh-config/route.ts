@@ -79,7 +79,12 @@ export async function GET(request: NextRequest) {
   const hosts = parseSshConfig(contents);
 
   // Strip identityFile paths — only expose alias/host/user/port
-  const sanitizedHosts = hosts.map(({ identityFile: _removed, ...rest }) => rest);
+  const sanitizedHosts = hosts.map((host) => ({
+    alias: host.alias,
+    hostName: host.hostName,
+    user: host.user,
+    port: host.port,
+  }));
 
   return success({ hosts: sanitizedHosts });
 }

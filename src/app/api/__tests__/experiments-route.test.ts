@@ -5,6 +5,7 @@ const mockGetAuthContext = vi.fn();
 const mockResearchProjectExists = vi.fn();
 const mockCreateExperiment = vi.fn();
 const mockUpdateExperiment = vi.fn();
+const mockAssignExperiment = vi.fn();
 const mockGetExperiment = vi.fn();
 const mockStartExperiment = vi.fn();
 const mockCompleteExperiment = vi.fn();
@@ -42,6 +43,7 @@ vi.mock("@/services/research-project.service", () => ({
 vi.mock("@/services/experiment.service", () => ({
   createExperiment: (...args: unknown[]) => mockCreateExperiment(...args),
   updateExperiment: (...args: unknown[]) => mockUpdateExperiment(...args),
+  assignExperiment: (...args: unknown[]) => mockAssignExperiment(...args),
   getExperiment: (...args: unknown[]) => mockGetExperiment(...args),
   startExperiment: (...args: unknown[]) => mockStartExperiment(...args),
   completeExperiment: (...args: unknown[]) => mockCompleteExperiment(...args),
@@ -53,6 +55,7 @@ vi.mock("@/services/compute.service", () => ({
 }));
 
 import { POST as createExperimentRoute } from "@/app/api/research-projects/[uuid]/experiments/route";
+import { PATCH as patchExperimentRoute } from "@/app/api/experiments/[uuid]/route";
 import { POST as startExperimentRoute } from "@/app/api/experiments/[uuid]/start/route";
 import { POST as completeExperimentRoute } from "@/app/api/experiments/[uuid]/complete/route";
 
@@ -71,6 +74,7 @@ describe("experiment routes", () => {
     mockResearchProjectExists.mockResolvedValue(true);
     mockCreateExperiment.mockResolvedValue({ uuid: experimentUuid });
     mockUpdateExperiment.mockResolvedValue({ uuid: experimentUuid });
+    mockAssignExperiment.mockResolvedValue({ uuid: experimentUuid });
     mockGetExperiment.mockResolvedValue({
       uuid: experimentUuid,
       status: "pending_start",
@@ -187,5 +191,50 @@ describe("experiment routes", () => {
     expect(response.status).toBe(403);
     expect(mockCompleteExperiment).not.toHaveBeenCalled();
     expect(mockReleaseGpuReservationsForExperiment).not.toHaveBeenCalled();
+  });
+
+  it("rejects generic PATCH requests that only contain non-updatable fields", async () => {
+    const response = await patchExperimentRoute(
+      new NextRequest(new URL(`/api/experiments/${experimentUuid}`, "http://localhost:3000"), {
+        method: "PATCH",
+        body: JSON.stringify({
+          outcome: "should fail",
+          results: { passed: false },
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+      makeContext(experimentUuid),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error.message).toContain("No updatable fields provided");
+    expect(mockAssignExperiment).not.toHaveBeenCalled();
+    expect(mockUpdateExperiment).not.toHaveBeenCalled();
+  });
+
+  it("allows draft to pending_review updates through generic PATCH", async () => {
+    const response = await patchExperimentRoute(
+      new NextRequest(new URL(`/api/experiments/${experimentUuid}`, "http://localhost:3000"), {
+        method: "PATCH",
+        body: JSON.stringify({
+          status: "pending_review",
+          title: "Reviewed Experiment",
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+      makeContext(experimentUuid),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockUpdateExperiment).toHaveBeenCalledWith(
+      companyUuid,
+      experimentUuid,
+      expect.objectContaining({
+        status: "pending_review",
+        title: "Reviewed Experiment",
+      }),
+      { actorType: "user", actorUuid: "user-uuid-1" },
+    );
   });
 });

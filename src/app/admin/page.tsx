@@ -22,28 +22,28 @@ export default function AdminDashboardPage() {
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    fetchStats();
-  }, []);
+    async function fetchStats() {
+      try {
+        const response = await fetch("/api/admin/stats");
+        if (response.status === 401 || response.status === 403) {
+          router.replace("/login");
+          return;
+        }
+        const data = await response.json();
 
-  const fetchStats = async () => {
-    try {
-      const response = await fetch("/api/admin/stats");
-      if (response.status === 401 || response.status === 403) {
-        router.replace("/login");
-        return;
+        if (data.success) {
+          setStats(data.data);
+          setAuthorized(true);
+        }
+      } catch (error) {
+        console.error("Failed to fetch stats:", error);
+      } finally {
+        setLoading(false);
       }
-      const data = await response.json();
-
-      if (data.success) {
-        setStats(data.data);
-        setAuthorized(true);
-      }
-    } catch (error) {
-      console.error("Failed to fetch stats:", error);
-    } finally {
-      setLoading(false);
     }
-  };
+
+    void fetchStats();
+  }, [router]);
 
   if (loading) {
     return <div className="flex min-h-full items-center justify-center text-muted-foreground">Loading...</div>;

@@ -3,14 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
-import { KeyRound, Server, Upload } from "lucide-react";
+import { Server, Upload } from "lucide-react";
 
 type SshConfigHost = {
   alias: string;
   hostName?: string;
   user?: string;
   port?: number;
-  identityFile?: string;
 };
 
 type SourceMode = "ssh_config" | "upload";
@@ -31,7 +30,6 @@ export function ComputeNodeForm({
   const [manualHost, setManualHost] = useState("");
   const [manualUser, setManualUser] = useState("ubuntu");
   const [manualPort, setManualPort] = useState("22");
-  const [manualKeyPath, setManualKeyPath] = useState("");
   const [selectedPem, setSelectedPem] = useState<File | null>(null);
 
   useEffect(() => {
@@ -109,7 +107,6 @@ export function ComputeNodeForm({
     setManualHost("");
     setManualUser("ubuntu");
     setManualPort("22");
-    setManualKeyPath("");
     setSelectedPem(null);
     router.refresh();
   }
@@ -212,7 +209,7 @@ export function ComputeNodeForm({
             <p>{t("compute.register.host")}: {selectedHost.hostName || "-"}</p>
             <p>{t("compute.register.user")}: {selectedHost.user || "ubuntu"}</p>
             <p>{t("compute.register.port")}: {selectedHost.port ?? 22}</p>
-            <p>{t("compute.register.key")}: {selectedHost.identityFile || t("compute.register.noKeyInConfig")}</p>
+            <p>{t("compute.register.key")}: {t("compute.register.serverResolvedKey")}</p>
           </div>
           <label className="mt-3 block space-y-2">
             <span className="text-sm text-muted-foreground">{t("compute.register.configAlias")}</span>
