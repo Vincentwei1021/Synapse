@@ -737,6 +737,12 @@
       "sessions": "会话",
       "noSessions": "暂无会话",
       "lastActive": "上次活跃"
+    },
+    "time": {
+      "justNow": "刚刚",
+      "minsAgo": "{mins}分钟前",
+      "hoursAgo": "{hours}小时前",
+      "daysAgo": "{days}天前"
     }
   },
   "login": {

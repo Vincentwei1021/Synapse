@@ -130,9 +130,10 @@ export async function POST(request: NextRequest) {
     key:
       node.sshKeyPath && (node.sshKeyName || node.sshKeySource)
         ? {
-            path: node.sshKeyPath,
+            // Never expose server filesystem path to clients
             name: node.sshKeyName,
             source: node.sshKeySource,
+            fingerprint: node.sshKeyFingerprint,
           }
         : null,
   });

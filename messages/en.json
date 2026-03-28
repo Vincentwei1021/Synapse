@@ -737,6 +737,12 @@
       "sessions": "Sessions",
       "noSessions": "No sessions",
       "lastActive": "Last active"
+    },
+    "time": {
+      "justNow": "just now",
+      "minsAgo": "{mins}m ago",
+      "hoursAgo": "{hours}h ago",
+      "daysAgo": "{days}d ago"
     }
   },
   "login": {

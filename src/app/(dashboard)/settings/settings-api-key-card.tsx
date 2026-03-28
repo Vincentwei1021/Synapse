@@ -78,7 +78,7 @@ export function SettingsApiKeyCard({
             </div>
             <div className="text-xs text-muted-foreground">
               {apiKey.keyPrefix}... · {t("settings.created")}{" "}
-              {new Date(apiKey.createdAt).toLocaleDateString()}
+              {new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "numeric" }).format(new Date(apiKey.createdAt))}
             </div>
           </div>
         </div>

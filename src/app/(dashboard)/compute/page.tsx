@@ -13,7 +13,7 @@ function formatAccess(node: {
   sshUser: string | null;
   sshPort: number | null;
   sshKeyName?: string | null;
-  sshKeyPath: string | null;
+  sshKeySource?: string | null;
   ssmTarget: string | null;
 }) {
   const parts: string[] = [];
@@ -23,10 +23,11 @@ function formatAccess(node: {
   if (node.ssmTarget) {
     parts.push(`SSM ${node.ssmTarget}`);
   }
+  // Show key name or source label — never expose server filesystem paths
   if (node.sshKeyName) {
     parts.push(node.sshKeyName);
-  } else if (node.sshKeyPath) {
-    parts.push(node.sshKeyPath);
+  } else if (node.sshKeySource && node.sshKeySource !== "manual_path") {
+    parts.push(node.sshKeySource);
   }
   return parts.join(" · ");
 }

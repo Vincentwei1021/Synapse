@@ -111,17 +111,17 @@ const ROLE_I18N_KEY: Record<string, string> = {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function formatRelativeTime(date: Date | string | null): string {
+function formatRelativeTime(date: Date | string | null, t: ReturnType<typeof useTranslations>): string {
   if (!date) return "";
   const d = typeof date === "string" ? new Date(date) : date;
   const diff = Date.now() - d.getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return t("agents.time.justNow");
+  if (mins < 60) return t("agents.time.minsAgo", { mins });
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t("agents.time.hoursAgo", { hours });
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return t("agents.time.daysAgo", { days });
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -418,7 +418,7 @@ export function AgentsPageClient({
                       {agent.lastActiveAt && (
                         <div className="text-[11px] text-muted-foreground">
                           {t("agents.detail.lastActive")}{" "}
-                          {formatRelativeTime(agent.lastActiveAt)}
+                          {formatRelativeTime(agent.lastActiveAt, t)}
                         </div>
                       )}
                     </div>
@@ -605,7 +605,7 @@ export function AgentsPageClient({
                 </SheetTitle>
                 <SheetDescription>
                   {selectedAgent.lastActiveAt
-                    ? `${t("agents.detail.lastActive")} ${formatRelativeTime(selectedAgent.lastActiveAt)}`
+                    ? `${t("agents.detail.lastActive")} ${formatRelativeTime(selectedAgent.lastActiveAt, t)}`
                     : ""}
                 </SheetDescription>
               </SheetHeader>
@@ -711,7 +711,7 @@ export function AgentsPageClient({
                               </div>
                               <div className="text-[11px] text-muted-foreground">
                                 {t("settings.created")}{" "}
-                                {new Date(key.createdAt).toLocaleDateString()}
+                                {new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "numeric" }).format(new Date(key.createdAt))}
                               </div>
                             </div>
                           </div>

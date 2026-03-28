@@ -6,14 +6,18 @@ import { assignExperiment, getExperiment, updateExperiment } from "@/services/ex
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
+// PATCH allows safe metadata updates + the draft→pending_review transition.
+// Dangerous transitions (start/complete) and their side effects MUST go through
+// dedicated lifecycle routes:
+//   POST /api/experiments/[uuid]/review   (pending_review -> pending_start or -> draft)
+//   POST /api/experiments/[uuid]/start    (pending_start -> in_progress)
+//   POST /api/experiments/[uuid]/complete (in_progress -> completed)
 const patchSchema = z.object({
   title: z.string().optional(),
   description: z.string().nullable().optional(),
-  status: z.enum(["draft", "pending_review", "pending_start", "in_progress", "completed"]).optional(),
+  status: z.enum(["pending_review"]).optional(), // only draft→pending_review allowed
   priority: z.string().optional(),
   computeBudgetHours: z.coerce.number().nullable().optional(),
-  outcome: z.string().nullable().optional(),
-  results: z.unknown().optional(),
   assigneeType: z.string().optional(),
   assigneeUuid: z.string().optional(),
 });
@@ -66,9 +70,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     parsed.data.description !== undefined ||
     parsed.data.status !== undefined ||
     parsed.data.priority !== undefined ||
-    parsed.data.computeBudgetHours !== undefined ||
-    parsed.data.outcome !== undefined ||
-    parsed.data.results !== undefined;
+    parsed.data.computeBudgetHours !== undefined;
 
   if (hasFieldUpdates) {
     const experiment = await updateExperiment(
@@ -80,8 +82,6 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         status: parsed.data.status,
         priority: parsed.data.priority,
         computeBudgetHours: parsed.data.computeBudgetHours,
-        outcome: parsed.data.outcome,
-        results: parsed.data.results,
       },
       { actorType: "user", actorUuid: auth.actorUuid },
     );
