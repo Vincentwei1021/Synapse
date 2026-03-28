@@ -73,6 +73,7 @@ Important:
 src/
   app/
     (dashboard)/
+      agents/                     # Agent management page (NEW)
       research-projects/
         [uuid]/
           dashboard/
@@ -84,7 +85,7 @@ src/
           experiment-designs/      # legacy / compatibility
           experiment-runs/         # legacy / compatibility
       compute/
-      settings/
+      settings/                   # Language, theme, notification preferences only
       project-groups/
     api/
       mcp/
@@ -92,11 +93,13 @@ src/
       compute-nodes/
       compute-pools/
       experiments/
+        [uuid]/progress/          # Experiment progress log API (NEW)
       research-projects/
       research-questions/
       notifications/
       events/notifications/
   services/
+    experiment-progress.service.ts # Progress log service (NEW)
   lib/
   mcp/
   components/
@@ -121,7 +124,7 @@ Important implementation notes:
 
 ## Data Model Reality
 
-The schema currently contains `29` Prisma models.
+The schema currently contains `30` Prisma models.
 
 The most important active models are:
 
@@ -130,10 +133,11 @@ The most important active models are:
 - `Agent`
 - `ApiKey`
 - `ProjectGroup`
-- `ResearchProject`
+- `ResearchProject` (now has optional `computePoolUuid` for compute pool binding)
 - `ResearchQuestion`
 - `Document`
-- `Experiment`
+- `Experiment` (now has `liveStatus`, `liveMessage`, `liveUpdatedAt` for real-time tracking)
+- `ExperimentProgressLog` (NEW — agent progress message timeline)
 - `ComputePool`
 - `ComputeNode`
 - `ComputeGpu`
@@ -214,12 +218,45 @@ For the current research workflow, the main tools are the experiment-oriented on
 - `synapse_get_assigned_experiments`
 - `synapse_start_experiment`
 - `synapse_submit_experiment_results`
+- `synapse_report_experiment_progress` (NEW — agents report step-by-step progress)
 - `synapse_list_compute_nodes`
 - `synapse_get_node_access_bundle`
 - `synapse_add_comment`
 - `synapse_get_comments`
 
 Default to these tools for new work. Do not prefer legacy `experiment_run` tools unless the task is explicitly about that older flow.
+
+### Agent permission model
+
+Agents use 4 composable permissions stored in the `roles` field:
+
+- `pre_research`: literature search, research project context reading
+- `research`: research question CRUD, hypothesis formulation
+- `experiment`: experiment start/complete/submit, compute tools
+- `report`: document CRUD, synthesis tools
+
+These replace the old roles (`researcher_agent`, `research_lead_agent`, `pi_agent`). Old role values are still accepted for backward compatibility but new agents should use the new permission names. An agent can have any combination of permissions.
+
+### Experiment live status
+
+Experiments now track real-time sub-status via `liveStatus`:
+
+- `sent` → set when experiment is assigned to an agent
+- `ack` → set when agent fetches its assigned experiments
+- `checking_resources` → set when agent checks GPU availability
+- `queuing` → set if no GPUs are available
+- `running` → set when experiment is actively running
+- `null` → cleared on completion
+
+Agents report progress via `synapse_report_experiment_progress`, which updates `liveMessage` on the experiment and creates an `ExperimentProgressLog` entry. The experiment card on the board shows the live status badge and latest message.
+
+### Compute pool binding
+
+Research projects can optionally bind to a compute pool via `computePoolUuid`. When set:
+
+- GPU reservations are validated: only GPUs from nodes in the bound pool are allowed
+- `synapse_list_compute_nodes` can be filtered by `researchProjectUuid` to show only the bound pool
+- `null` means no constraint (any pool's GPUs can be used)
 
 ### Declarative MCP / plugin tool registration
 
@@ -316,25 +353,42 @@ Primary project navigation today is:
 - Insights
 - Documents
 
-Other important surfaces:
+Global navigation (sidebar):
 
+- `Research Projects`
 - `Compute`
-- `Settings`
-- `Project Groups`
+- `Agents` (NEW — agent management with 4 composable permissions)
+- `Settings` (language, theme, notification preferences only — agents moved to /agents)
+
+Project-level navigation:
+
+- Overview (research questions on left, experiment pipeline on right)
+- Research Questions
+- Experiments
+- Insights
+- Documents
 
 Notes:
 
 - `Insights` is the project-level synthesis surface
 - `Research Questions` uses a canvas-style hierarchy view
-- `Experiments` is a five-column board:
+- `Experiments` is a five-column board with live status badges on cards:
   - `draft`
   - `pending_review`
   - `pending_start`
   - `in_progress`
   - `completed`
-- `Settings` is a user-owned management surface for that user's agents, API keys, and agent sessions
+- Experiment cards show `liveStatus` badge (sent/ack/checking/queuing/running) and `liveMessage` when available
+- Experiment detail panel includes a progress log timeline
+- Project dashboard has an Edit button to modify project details (name, description, datasets, evaluation methods, compute pool)
+- Create experiment form includes a "Copy from existing experiment" dropdown
 
 Human-created experiments should normally land in `pending_start`, not sit in `draft`, unless explicitly created as drafts.
+
+Create project form:
+- No Goal field (removed — use description for research direction, objectives, constraints)
+- Compute Pool dropdown (required field, "None" means no constraint)
+- Sections 2 ("Initial Ideas") and 3 ("Reference Documents") are collapsible, default collapsed
 
 ## i18n Rules
 
@@ -456,8 +510,17 @@ Recent examples:
 13. Bypassing declarative tool registries
    Before adding a new MCP or OpenClaw tool by hand, check the existing registry helpers and `*-tool-definitions.ts` files first.
 
-14. Missing owner scoping in Settings
-   Agent management under `Settings` must enforce both `companyUuid` and `ownerUuid`; same-company visibility alone is not sufficient.
+14. Missing owner scoping in agent management
+   Agent management (now at `/agents`) must enforce both `companyUuid` and `ownerUuid`; same-company visibility alone is not sufficient.
 
-15. Misreading blank compute budget
-   For `Experiment`, an empty `computeBudgetHours` input means unlimited (`null`), not zero.
+15. Misreading blank time limit
+   For `Experiment`, an empty `computeBudgetHours` input means unlimited (`null`), not zero. The UI label is "Time Limit" but the field name remains `computeBudgetHours`.
+
+16. Using old agent roles
+   New agents should use `pre_research`, `research`, `experiment`, `report` — not the old `researcher_agent`, `research_lead_agent`, `pi_agent`. Old values are accepted for backward compat but should not be used for new agents.
+
+17. Forgetting compute pool binding validation
+   When a project has `computePoolUuid` set, GPU reservations must be from that pool. The `validatePoolBinding` helper in `compute.service.ts` handles this.
+
+18. Session token expiry during long forms
+   The dashboard layout has a proactive 45-minute token refresh interval. Do not remove it — it prevents logout during long form sessions.
