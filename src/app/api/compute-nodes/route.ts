@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
-import { chmod, mkdir, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import fs from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import { NextRequest } from "next/server";
@@ -26,14 +27,58 @@ const nodeSchema = z.object({
   sshHost: z.string().optional(),
   sshUser: z.string().optional(),
   sshPort: optionalNumber(z.coerce.number().int().min(1).max(65535)),
-  sshKeyPath: z.string().optional(),
-  sshKeySource: z.enum(["ssh_config", "upload", "manual_path"]).optional(),
+  sshConfigAlias: z.string().optional(), // SSH config alias — server resolves to host/user/port/keyPath
+  sshKeySource: z.enum(["ssh_config", "upload"]).optional(), // manual_path removed
   ssmTarget: z.string().optional(),
   notes: z.string().optional(),
-}).refine((value) => Boolean(value.sshHost || value.ssmTarget), {
-  message: "Either SSH host or SSM target is required.",
+}).refine((value) => Boolean(value.sshHost || value.ssmTarget || value.sshConfigAlias), {
+  message: "Either SSH host, SSH config alias, or SSM target is required.",
   path: ["sshHost"],
 });
+
+interface SshConfigEntry {
+  hostName: string;
+  user: string;
+  port: number;
+  identityFile: string | null;
+}
+
+/** Resolve an SSH config alias to connection details, server-side only */
+function resolveSshConfigAlias(alias: string): SshConfigEntry | null {
+  const configPath = path.join(homedir(), ".ssh", "config");
+  if (!fs.existsSync(configPath)) return null;
+
+  const content = fs.readFileSync(configPath, "utf8");
+  const lines = content.split(/\r?\n/);
+  let matched = false;
+  let hostName: string | undefined;
+  let user: string | undefined;
+  let port: number | undefined;
+  let identityFile: string | undefined;
+
+  for (const rawLine of lines) {
+    const trimmed = rawLine.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const spaceIdx = trimmed.search(/\s/);
+    if (spaceIdx === -1) continue;
+    const directive = trimmed.slice(0, spaceIdx).toLowerCase();
+    const value = trimmed.slice(spaceIdx).trim();
+
+    if (directive === "host") {
+      if (matched) break; // we already found our block, stop
+      matched = value.split(/\s+/)[0] === alias;
+      continue;
+    }
+    if (!matched) continue;
+    if (directive === "hostname") hostName = value;
+    else if (directive === "user") user = value;
+    else if (directive === "port") port = Number(value) || undefined;
+    else if (directive === "identityfile") identityFile = value.replace(/^~\//, `${homedir()}/`);
+  }
+
+  if (!hostName) return null;
+  return { hostName, user: user ?? "ubuntu", port: port ?? 22, identityFile: identityFile ?? null };
+}
 
 function sanitizeFileName(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]/g, "-");
@@ -89,11 +134,12 @@ async function parsePayload(request: NextRequest, companyUuid: string) {
       sshHost,
       sshUser: String(formData.get("sshUser") || ""),
       sshPort: String(formData.get("sshPort") || ""),
-      sshKeyPath: pemMeta?.sshKeyPath || sshKeyPath,
-      sshKeyName: pemMeta?.sshKeyName,
-      sshKeyFingerprint: pemMeta?.sshKeyFingerprint,
+      sshConfigAlias: String(formData.get("sshConfigAlias") || ""),
+      pemKeyPath: pemMeta?.sshKeyPath,
+      pemKeyName: pemMeta?.sshKeyName,
+      pemKeyFingerprint: pemMeta?.sshKeyFingerprint,
       sshKeySource:
-        pemMeta?.sshKeySource || (String(formData.get("sshKeySource") || "") as "ssh_config" | "manual_path" | ""),
+        pemMeta?.sshKeySource || (String(formData.get("sshKeySource") || "") as "ssh_config" | ""),
       ssmTarget: String(formData.get("ssmTarget") || ""),
       notes: String(formData.get("notes") || ""),
     };
@@ -117,24 +163,68 @@ export async function POST(request: NextRequest) {
     return errors.validationError(parsed.error.flatten().fieldErrors);
   }
 
+  // Resolve SSH config alias server-side — frontend never sees identityFile paths
+  let resolvedSshKeyPath: string | undefined;
+  let resolvedSshKeyName: string | undefined;
+  let resolvedSshKeyFingerprint: string | undefined;
+  let finalSshHost = parsed.data.sshHost;
+  let finalSshUser = parsed.data.sshUser;
+  let finalSshPort = parsed.data.sshPort;
+
+  if (parsed.data.sshConfigAlias && parsed.data.sshKeySource === "ssh_config") {
+    const resolved = resolveSshConfigAlias(parsed.data.sshConfigAlias);
+    if (!resolved) {
+      return errors.badRequest(`SSH config alias "${parsed.data.sshConfigAlias}" not found`);
+    }
+    finalSshHost = finalSshHost || resolved.hostName;
+    finalSshUser = finalSshUser || resolved.user;
+    finalSshPort = finalSshPort ?? resolved.port;
+    if (resolved.identityFile) {
+      resolvedSshKeyPath = resolved.identityFile;
+      resolvedSshKeyName = path.basename(resolved.identityFile);
+      try {
+        const keyContent = await readFile(resolved.identityFile);
+        resolvedSshKeyFingerprint = createHash("sha256").update(keyContent).digest("hex");
+      } catch {
+        // Key file not readable — node will be created but managedKeyAvailable = false
+      }
+    }
+  }
+
+  // For PEM upload, use the persisted file metadata
+  if (body.pemKeyPath) {
+    resolvedSshKeyPath = body.pemKeyPath;
+    resolvedSshKeyName = body.pemKeyName;
+    resolvedSshKeyFingerprint = body.pemKeyFingerprint;
+  }
+
   const node = await createComputeNode({
     companyUuid: auth.companyUuid,
-    ...parsed.data,
-    sshKeyName: typeof body.sshKeyName === "string" ? body.sshKeyName : undefined,
-    sshKeyFingerprint: typeof body.sshKeyFingerprint === "string" ? body.sshKeyFingerprint : undefined,
-    label: parsed.data.label?.trim() || parsed.data.sshHost || parsed.data.ssmTarget || "research-machine",
+    poolUuid: parsed.data.poolUuid,
+    label: parsed.data.label?.trim() || finalSshHost || parsed.data.ssmTarget || "research-machine",
+    ec2InstanceId: parsed.data.ec2InstanceId,
+    instanceType: parsed.data.instanceType,
+    region: parsed.data.region,
+    lifecycle: parsed.data.lifecycle,
+    sshHost: finalSshHost,
+    sshUser: finalSshUser,
+    sshPort: finalSshPort,
+    sshKeyPath: resolvedSshKeyPath,
+    sshKeyName: resolvedSshKeyName,
+    sshKeyFingerprint: resolvedSshKeyFingerprint,
+    sshKeySource: parsed.data.sshKeySource,
+    ssmTarget: parsed.data.ssmTarget,
+    notes: parsed.data.notes,
   });
 
   return success({
-    node,
-    key:
-      node.sshKeyPath && (node.sshKeyName || node.sshKeySource)
-        ? {
-            // Never expose server filesystem path to clients
-            name: node.sshKeyName,
-            source: node.sshKeySource,
-            fingerprint: node.sshKeyFingerprint,
-          }
-        : null,
+    node: {
+      uuid: node.uuid,
+      label: node.label,
+      lifecycle: node.lifecycle,
+    },
+    key: resolvedSshKeyPath
+      ? { name: resolvedSshKeyName, source: parsed.data.sshKeySource }
+      : null,
   });
 }

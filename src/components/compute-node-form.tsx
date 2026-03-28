@@ -13,7 +13,7 @@ type SshConfigHost = {
   identityFile?: string;
 };
 
-type SourceMode = "ssh_config" | "upload" | "manual_path";
+type SourceMode = "ssh_config" | "upload";
 
 export function ComputeNodeForm({
   pools,
@@ -79,21 +79,17 @@ export function ComputeNodeForm({
     payload.set("lifecycle", String(formData.get("lifecycle") || "idle"));
 
     if (sourceMode === "ssh_config" && selectedHost) {
+      // Only send alias — server resolves host/user/port/keyPath from SSH config
       payload.set("label", String(formData.get("label") || "").trim() || selectedHost.alias);
+      payload.set("sshConfigAlias", selectedHost.alias);
       payload.set("sshHost", selectedHost.hostName || "");
       payload.set("sshUser", selectedHost.user || "ubuntu");
       payload.set("sshPort", String(selectedHost.port ?? 22));
-      payload.set("sshKeyPath", selectedHost.identityFile || "");
       payload.set("sshKeySource", "ssh_config");
     } else {
       payload.set("sshHost", manualHost);
       payload.set("sshUser", manualUser || "ubuntu");
       payload.set("sshPort", manualPort || "22");
-
-      if (sourceMode === "manual_path") {
-        payload.set("sshKeyPath", manualKeyPath);
-        payload.set("sshKeySource", "manual_path");
-      }
 
       if (sourceMode === "upload" && selectedPem) {
         payload.set("pemFile", selectedPem);
@@ -138,12 +134,7 @@ export function ComputeNodeForm({
       description: t("compute.register.uploadPemDesc"),
       icon: Upload,
     },
-    {
-      mode: "manual_path",
-      title: t("compute.register.manualPath"),
-      description: t("compute.register.manualPathDesc"),
-      icon: KeyRound,
-    },
+    // manual_path removed — server-side key paths must not be exposed to frontend
   ];
 
   return (
@@ -240,7 +231,7 @@ export function ComputeNodeForm({
         </div>
       ) : null}
 
-      {(sourceMode === "upload" || sourceMode === "manual_path") ? (
+      {sourceMode === "upload" ? (
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-2 text-sm">
             <span className="text-muted-foreground">{t("compute.register.host")}</span>
@@ -270,38 +261,26 @@ export function ComputeNodeForm({
             />
           </label>
 
-          {sourceMode === "manual_path" ? (
-            <label className="space-y-2 text-sm">
-              <span className="text-muted-foreground">{t("compute.register.keyPath")}</span>
-              <input
-                value={manualKeyPath}
-                onChange={(event) => setManualKeyPath(event.target.value)}
-                placeholder="~/.ssh/id_rsa"
-                className="w-full rounded-2xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
-              />
-            </label>
-          ) : (
-            <div className="space-y-2 text-sm md:col-span-1">
-              <span className="block text-muted-foreground">{t("compute.register.pemFile")}</span>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex w-full items-center justify-between rounded-2xl border border-dashed border-border bg-background px-4 py-3 text-left"
-              >
-                <span className="text-sm text-foreground">
-                  {selectedPem?.name || t("compute.register.choosePem")}
-                </span>
-                <Upload className="h-4 w-4 text-muted-foreground" />
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pem"
-                className="hidden"
-                onChange={(event) => setSelectedPem(event.target.files?.[0] || null)}
-              />
-            </div>
-          )}
+          <div className="space-y-2 text-sm md:col-span-1">
+            <span className="block text-muted-foreground">{t("compute.register.pemFile")}</span>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex w-full items-center justify-between rounded-2xl border border-dashed border-border bg-background px-4 py-3 text-left"
+            >
+              <span className="text-sm text-foreground">
+                {selectedPem?.name || t("compute.register.choosePem")}
+              </span>
+              <Upload className="h-4 w-4 text-muted-foreground" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pem"
+              className="hidden"
+              onChange={(event) => setSelectedPem(event.target.files?.[0] || null)}
+            />
+          </div>
         </div>
       ) : null}
 

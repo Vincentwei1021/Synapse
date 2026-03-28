@@ -53,24 +53,29 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return errors.validationError(parsed.error.flatten().fieldErrors);
   }
 
-  // Handle assignment if assignee fields are provided
-  if (parsed.data.assigneeType && parsed.data.assigneeUuid) {
-    await assignExperiment({
-      companyUuid: auth.companyUuid,
-      experimentUuid: uuid,
-      assigneeType: parsed.data.assigneeType,
-      assigneeUuid: parsed.data.assigneeUuid,
-      assignedByUuid: auth.actorUuid,
-    });
-  }
-
-  // Apply remaining field updates (even if assignment was also performed)
+  const hasAssignment = parsed.data.assigneeType && parsed.data.assigneeUuid;
   const hasFieldUpdates =
     parsed.data.title !== undefined ||
     parsed.data.description !== undefined ||
     parsed.data.status !== undefined ||
     parsed.data.priority !== undefined ||
     parsed.data.computeBudgetHours !== undefined;
+
+  // Reject requests with no actionable fields (e.g. only outcome/results which were stripped)
+  if (!hasAssignment && !hasFieldUpdates) {
+    return errors.badRequest("No updatable fields provided. Use dedicated routes for status transitions, outcomes, and results.");
+  }
+
+  // Handle assignment if assignee fields are provided
+  if (hasAssignment) {
+    await assignExperiment({
+      companyUuid: auth.companyUuid,
+      experimentUuid: uuid,
+      assigneeType: parsed.data.assigneeType!,
+      assigneeUuid: parsed.data.assigneeUuid!,
+      assignedByUuid: auth.actorUuid,
+    });
+  }
 
   if (hasFieldUpdates) {
     const experiment = await updateExperiment(

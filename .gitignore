@@ -65,3 +65,4 @@ dev-story-demo/
 e2e-*.png
 e2e-*.md
 output/
+.chorus/.mcp_headers.*
