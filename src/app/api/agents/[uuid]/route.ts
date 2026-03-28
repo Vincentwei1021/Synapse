@@ -25,7 +25,7 @@ export const GET = withErrorHandler<{ uuid: string }>(
 
     const { uuid } = await context.params;
 
-    const agent = await getAgent(auth.companyUuid, uuid);
+    const agent = await getAgent(auth.companyUuid, uuid, auth.actorUuid);
 
     if (!agent) {
       return errors.notFound("Agent");
@@ -67,7 +67,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
 
     const { uuid } = await context.params;
 
-    const agent = await getAgentByUuid(auth.companyUuid, uuid);
+    const agent = await getAgentByUuid(auth.companyUuid, uuid, auth.actorUuid);
 
     if (!agent) {
       return errors.notFound("Agent");
@@ -149,7 +149,7 @@ export const DELETE = withErrorHandler<{ uuid: string }>(
 
     const { uuid } = await context.params;
 
-    const agent = await getAgentByUuid(auth.companyUuid, uuid);
+    const agent = await getAgentByUuid(auth.companyUuid, uuid, auth.actorUuid);
 
     if (!agent) {
       return errors.notFound("Agent");

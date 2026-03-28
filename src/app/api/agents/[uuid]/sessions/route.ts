@@ -26,7 +26,7 @@ export const GET = withErrorHandler<{ uuid: string }>(
     const { uuid } = await context.params;
 
     // Verify agent belongs to company
-    const agent = await getAgentByUuid(auth.companyUuid, uuid);
+    const agent = await getAgentByUuid(auth.companyUuid, uuid, auth.actorUuid);
 
     if (!agent) {
       return errors.notFound("Agent");

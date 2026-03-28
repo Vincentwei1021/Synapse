@@ -13,6 +13,7 @@ const mockCreateApiKey = vi.fn();
 const mockGetApiKey = vi.fn();
 const mockRevokeApiKey = vi.fn();
 const mockListAgentSessions = vi.fn();
+const mockGetSession = vi.fn();
 
 vi.mock("@/lib/auth", () => ({
   getAuthContext: (...args: unknown[]) => mockGetAuthContext(...args),
@@ -34,6 +35,7 @@ vi.mock("@/services/agent.service", () => ({
 
 vi.mock("@/services/session.service", () => ({
   listAgentSessions: (...args: unknown[]) => mockListAgentSessions(...args),
+  getSession: (...args: unknown[]) => mockGetSession(...args),
 }));
 
 import { GET as listAgentsRoute, POST as createAgentRoute } from "@/app/api/agents/route";
@@ -112,6 +114,7 @@ describe("agent management routes", () => {
       uuid: agentUuid,
       name: "Test Agent",
       roles: ["researcher_agent"],
+      ownerUuid: "user-uuid-1",
     });
     mockUpdateAgent.mockResolvedValue({
       uuid: agentUuid,
@@ -155,6 +158,18 @@ describe("agent management routes", () => {
       revokedAt: null,
     });
     mockListAgentSessions.mockResolvedValue([{ uuid: "session-1", status: "running" }]);
+    mockGetSession.mockResolvedValue({
+      uuid: "session-1",
+      agentUuid,
+      name: "Worker Session",
+      description: null,
+      status: "active",
+      lastActiveAt: now.toISOString(),
+      expiresAt: null,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+      checkins: [],
+    });
   });
 
   it("GET /api/agents returns paginated agent data through service layer", async () => {
@@ -211,7 +226,7 @@ describe("agent management routes", () => {
 
     expect(response.status).toBe(200);
     expect(body.data.apiKeys[0].prefix).toBe("syn_abc");
-    expect(mockGetAgent).toHaveBeenCalledWith(companyUuid, agentUuid);
+    expect(mockGetAgent).toHaveBeenCalledWith(companyUuid, agentUuid, "user-uuid-1");
   });
 
   it("PATCH /api/agents/[uuid] updates an agent through service layer", async () => {
@@ -232,7 +247,7 @@ describe("agent management routes", () => {
 
     expect(response.status).toBe(200);
     expect(body.data.name).toBe("Renamed Agent");
-    expect(mockGetAgentByUuid).toHaveBeenCalledWith(companyUuid, agentUuid);
+    expect(mockGetAgentByUuid).toHaveBeenCalledWith(companyUuid, agentUuid, "user-uuid-1");
     expect(mockUpdateAgent).toHaveBeenCalledWith(agentUuid, {
       name: "Renamed Agent",
       roles: ["research_lead_agent"],
@@ -262,7 +277,7 @@ describe("agent management routes", () => {
 
     expect(response.status).toBe(200);
     expect(body.data).toEqual([{ uuid: "session-1", status: "running" }]);
-    expect(mockGetAgentByUuid).toHaveBeenCalledWith(companyUuid, agentUuid);
+    expect(mockGetAgentByUuid).toHaveBeenCalledWith(companyUuid, agentUuid, "user-uuid-1");
     expect(mockListAgentSessions).toHaveBeenCalledWith(companyUuid, agentUuid, "running");
   });
 
@@ -274,7 +289,7 @@ describe("agent management routes", () => {
 
     expect(response.status).toBe(200);
     expect(body.data[0].agent.uuid).toBe(agentUuid);
-    expect(mockListApiKeys).toHaveBeenCalledWith(companyUuid, 0, 20);
+    expect(mockListApiKeys).toHaveBeenCalledWith(companyUuid, 0, 20, "user-uuid-1");
   });
 
   it("POST /api/api-keys creates a key through service layer", async () => {
@@ -294,7 +309,7 @@ describe("agent management routes", () => {
 
     expect(response.status).toBe(200);
     expect(body.data.key).toBe("syn_test_key");
-    expect(mockGetAgentByUuid).toHaveBeenCalledWith(companyUuid, agentUuid);
+    expect(mockGetAgentByUuid).toHaveBeenCalledWith(companyUuid, agentUuid, "user-uuid-1");
     expect(mockCreateApiKey).toHaveBeenCalledWith({
       companyUuid,
       agentUuid,
@@ -312,7 +327,7 @@ describe("agent management routes", () => {
 
     expect(response.status).toBe(200);
     expect(body.data).toEqual({ revoked: true });
-    expect(mockGetApiKey).toHaveBeenCalledWith(companyUuid, apiKeyUuid);
+    expect(mockGetApiKey).toHaveBeenCalledWith(companyUuid, apiKeyUuid, "user-uuid-1");
     expect(mockRevokeApiKey).toHaveBeenCalledWith(apiKeyUuid);
   });
 });

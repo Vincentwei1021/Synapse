@@ -60,9 +60,9 @@ export async function listAgents({ companyUuid, skip, take }: AgentListParams) {
 }
 
 // Get Agent details
-export async function getAgent(companyUuid: string, uuid: string) {
+export async function getAgent(companyUuid: string, uuid: string, ownerUuid?: string) {
   return prisma.agent.findFirst({
-    where: { uuid, companyUuid },
+    where: { uuid, companyUuid, ...(ownerUuid ? { ownerUuid } : {}) },
     include: {
       apiKeys: {
         where: { revokedAt: null },
@@ -80,10 +80,10 @@ export async function getAgent(companyUuid: string, uuid: string) {
 }
 
 // Get Agent by UUID (for validation)
-export async function getAgentByUuid(companyUuid: string, uuid: string) {
+export async function getAgentByUuid(companyUuid: string, uuid: string, ownerUuid?: string) {
   return prisma.agent.findFirst({
-    where: { uuid, companyUuid },
-    select: { uuid: true, name: true, roles: true },
+    where: { uuid, companyUuid, ...(ownerUuid ? { ownerUuid } : {}) },
+    select: { uuid: true, name: true, roles: true, ownerUuid: true },
   });
 }
 

@@ -22,7 +22,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   const { page, pageSize, skip, take } = parsePagination(request);
 
-  const { apiKeys, total } = await listApiKeys(auth.companyUuid, skip, take);
+  const { apiKeys, total } = await listApiKeys(auth.companyUuid, skip, take, auth.actorUuid);
 
   const data = apiKeys.map((k) => ({
     uuid: k.uuid,
@@ -65,7 +65,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   }
 
   // Validate Agent exists (query by UUID)
-  const agent = await getAgentByUuid(auth.companyUuid, body.agentUuid);
+  const agent = await getAgentByUuid(auth.companyUuid, body.agentUuid, auth.actorUuid);
 
   if (!agent) {
     return errors.notFound("Agent");

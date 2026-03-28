@@ -25,7 +25,7 @@ export const DELETE = withErrorHandler<{ uuid: string }>(
 
     const { uuid } = await context.params;
 
-    const apiKey = await getApiKey(auth.companyUuid, uuid);
+    const apiKey = await getApiKey(auth.companyUuid, uuid, auth.actorUuid);
 
     if (!apiKey) {
       return errors.notFound("API Key");
