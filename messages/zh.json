@@ -1173,7 +1173,16 @@
       "parentContext": "继承的父问题上下文",
       "noParentContext": "这个实验当前没有继承任何父问题直属实验。",
       "results": "结构化结果",
-      "noResults": "尚未写入结构化结果。"
+      "noResults": "尚未写入结构化结果。",
+      "progressLog": "进度日志",
+      "noProgress": "暂无进度更新"
+    },
+    "liveStatus": {
+      "sent": "已发送",
+      "ack": "已接收",
+      "checking_resources": "检查资源中",
+      "queuing": "排队中",
+      "running": "运行中"
     }
   },
   "insights": {

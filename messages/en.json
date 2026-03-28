@@ -1173,7 +1173,16 @@
       "parentContext": "Inherited parent-question context",
       "noParentContext": "This experiment does not inherit any direct parent-question experiments.",
       "results": "Structured results",
-      "noResults": "No structured results have been captured yet."
+      "noResults": "No structured results have been captured yet.",
+      "progressLog": "Progress Log",
+      "noProgress": "No progress updates yet"
+    },
+    "liveStatus": {
+      "sent": "Sent",
+      "ack": "Received",
+      "checking_resources": "Checking Resources",
+      "queuing": "Queuing",
+      "running": "Running"
     }
   },
   "insights": {

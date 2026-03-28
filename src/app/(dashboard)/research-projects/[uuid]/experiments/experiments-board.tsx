@@ -37,6 +37,22 @@ function priorityBadgeClasses(priority: string) {
   }
 }
 
+function liveStatusBadge(t: ReturnType<typeof useTranslations>, status: string | null) {
+  if (!status) return null;
+  const colors: Record<string, string> = {
+    sent: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
+    ack: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+    checking_resources: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
+    queuing: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+    running: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  };
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${colors[status] || ""}`}>
+      {t(`experiments.liveStatus.${status}` as Parameters<typeof t>[0])}
+    </span>
+  );
+}
+
 function prettyJson(value: unknown) {
   try {
     return JSON.stringify(value, null, 2);
@@ -61,6 +77,7 @@ export function ExperimentsBoard({
   const [assignments, setAssignments] = useState<Record<string, string>>({});
   const [selectedExperimentUuid, setSelectedExperimentUuid] = useState<string | null>(initialSelectedExperimentUuid);
   const [isPending, startTransition] = useTransition();
+  const [progressLogs, setProgressLogs] = useState<Array<{uuid: string; message: string; phase: string | null; createdAt: string}>>([]);
   useRealtimeRefresh();
 
   useEffect(() => {
@@ -70,6 +87,17 @@ export function ExperimentsBoard({
         : null);
     }
   }, [experiments, initialSelectedExperimentUuid, selectedExperimentUuid]);
+
+  useEffect(() => {
+    if (!selectedExperimentUuid) {
+      setProgressLogs([]);
+      return;
+    }
+    fetch(`/api/experiments/${selectedExperimentUuid}/progress`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setProgressLogs(d.data.logs || []); })
+      .catch(() => setProgressLogs([]));
+  }, [selectedExperimentUuid]);
 
   const grouped = useMemo(() => {
     return Object.fromEntries(
@@ -299,6 +327,15 @@ export function ExperimentsBoard({
                         ) : null}
                       </div>
 
+                      {experiment.liveStatus ? (
+                        <div className="flex items-center gap-2">
+                          {liveStatusBadge(t, experiment.liveStatus)}
+                          {experiment.liveMessage ? (
+                            <span className="truncate text-[11px] text-muted-foreground">{experiment.liveMessage}</span>
+                          ) : null}
+                        </div>
+                      ) : null}
+
                       {renderActionBlock(experiment)}
                     </Card>
                   ))
@@ -412,6 +449,29 @@ export function ExperimentsBoard({
                       </pre>
                     ) : (
                       <p className="text-sm text-muted-foreground">{t("experiments.detail.noResults")}</p>
+                    )}
+                  </Card>
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.progressLog")}</h3>
+                  <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
+                    {progressLogs.length ? (
+                      <div className="space-y-3">
+                        {progressLogs.map((log) => (
+                          <div key={log.uuid} className="flex gap-3 text-xs">
+                            <span className="shrink-0 text-muted-foreground">
+                              {new Date(log.createdAt).toLocaleTimeString()}
+                            </span>
+                            {log.phase ? (
+                              <Badge variant="outline" className="shrink-0 text-[10px]">{log.phase}</Badge>
+                            ) : null}
+                            <span className="text-foreground">{log.message}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{t("experiments.detail.noProgress")}</p>
                     )}
                   </Card>
                 </div>
