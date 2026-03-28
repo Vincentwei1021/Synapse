@@ -24,15 +24,11 @@ export default function AdminDashboardPage() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch("/api/admin/companies?pageSize=1");
+      const response = await fetch("/api/admin/stats");
       const data = await response.json();
 
       if (data.success) {
-        setStats({
-          totalCompanies: data.meta?.total || 0,
-          totalUsers: 0,
-          totalAgents: 0,
-        });
+        setStats(data.data);
       }
     } catch (error) {
       console.error("Failed to fetch stats:", error);
