@@ -126,47 +126,7 @@ export default async function DashboardPage({ params }: PageProps) {
         })}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
-        <Card className="rounded-[28px] border-border bg-card p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">{t("dashboard.pipelineTitle")}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{t("dashboard.pipelineSubtitle")}</p>
-            </div>
-            <Link href={`/research-projects/${projectUuid}/experiments`} className="text-sm text-primary">
-              {t("common.viewAll")}
-            </Link>
-          </div>
-
-          <div className="mt-5 grid gap-3 md:grid-cols-5">
-            <PipelineCell title={t("experiments.columns.draft")} value={stats.experiments.draft} />
-            <PipelineCell title={t("experiments.columns.pendingReview")} value={stats.experiments.pendingReview} />
-            <PipelineCell title={t("experiments.columns.pendingStart")} value={stats.experiments.pendingStart} />
-            <PipelineCell title={t("experiments.columns.inProgress")} value={stats.experiments.inProgress} />
-            <PipelineCell title={t("experiments.columns.completed")} value={stats.experiments.completed} />
-          </div>
-
-          <div className="mt-5 space-y-3">
-            {recentExperiments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("dashboard.noExperiments")}</p>
-            ) : (
-              recentExperiments.map((experiment) => (
-                <div key={experiment.uuid} className="flex items-center justify-between rounded-2xl bg-secondary/60 px-4 py-3">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{experiment.title}</p>
-                    {experiment.outcome ? (
-                      <p className="mt-1 text-xs text-muted-foreground">{experiment.outcome}</p>
-                    ) : null}
-                  </div>
-                  <span className="rounded-full bg-background px-2.5 py-1 text-xs text-muted-foreground">
-                    {t(`experiments.columns.${statusKey(experiment.status)}`)}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </Card>
-
+      <div className="grid gap-6 xl:grid-cols-[1fr_1.2fr]">
         <Card className="rounded-[28px] border-border bg-card p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -207,6 +167,46 @@ export default async function DashboardPage({ params }: PageProps) {
             </div>
             <ArrowRight className="h-4 w-4 text-primary" />
           </Link>
+        </Card>
+
+        <Card className="rounded-[28px] border-border bg-card p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">{t("dashboard.pipelineTitle")}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{t("dashboard.pipelineSubtitle")}</p>
+            </div>
+            <Link href={`/research-projects/${projectUuid}/experiments`} className="text-sm text-primary">
+              {t("common.viewAll")}
+            </Link>
+          </div>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-5">
+            <PipelineCell title={t("experiments.columns.draft")} value={stats.experiments.draft} />
+            <PipelineCell title={t("experiments.columns.pendingReview")} value={stats.experiments.pendingReview} />
+            <PipelineCell title={t("experiments.columns.pendingStart")} value={stats.experiments.pendingStart} />
+            <PipelineCell title={t("experiments.columns.inProgress")} value={stats.experiments.inProgress} />
+            <PipelineCell title={t("experiments.columns.completed")} value={stats.experiments.completed} />
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {recentExperiments.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t("dashboard.noExperiments")}</p>
+            ) : (
+              recentExperiments.map((experiment) => (
+                <div key={experiment.uuid} className="flex items-center justify-between rounded-2xl bg-secondary/60 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{experiment.title}</p>
+                    {experiment.outcome ? (
+                      <p className="mt-1 text-xs text-muted-foreground">{experiment.outcome}</p>
+                    ) : null}
+                  </div>
+                  <span className="rounded-full bg-background px-2.5 py-1 text-xs text-muted-foreground">
+                    {t(`experiments.columns.${statusKey(experiment.status)}`)}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
         </Card>
       </div>
     </div>
