@@ -24,7 +24,7 @@ import { useNotification } from "@/contexts/notification-context";
 
 interface Notification {
   uuid: string;
-  projectUuid: string;
+  researchProjectUuid: string;
   projectName: string;
   entityType: string;
   entityUuid: string;
@@ -110,8 +110,8 @@ function useRelativeTime(t: ReturnType<typeof useTranslations>) {
 // ===== Entity navigation =====
 
 function getEntityPath(notification: Notification): string {
-  const { entityType, entityUuid, projectUuid } = notification;
-  const base = `/research-projects/${projectUuid}`;
+  const { entityType, entityUuid, researchProjectUuid } = notification;
+  const base = `/research-projects/${researchProjectUuid}`;
   switch (entityType) {
     case "experiment":
       return `${base}/experiments?selected=${entityUuid}`;
@@ -226,7 +226,7 @@ export function NotificationPopup({ onClose }: NotificationPopupProps) {
 
   const renderItem = (notification: Notification) => {
     const { Icon, color } = getTypeIcon(notification.action);
-    const projectColor = hashProjectColor(notification.projectUuid);
+    const projectColor = hashProjectColor(notification.researchProjectUuid);
     const isUnread = !notification.readAt;
 
     return (

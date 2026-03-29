@@ -499,24 +499,6 @@ export function ExperimentsBoard({
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.attachments")}</h3>
-                  <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
-                    {selectedExperiment.attachments?.length ? (
-                      <ul className="space-y-2 text-sm text-foreground">
-                        {selectedExperiment.attachments.map((attachment) => (
-                          <li key={attachment.storedPath} className="flex items-center justify-between gap-3">
-                            <span className="truncate">{attachment.originalName}</span>
-                            <span className="shrink-0 text-xs text-muted-foreground">{attachment.mimeType}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{t("experiments.detail.noAttachments")}</p>
-                    )}
-                  </Card>
-                </div>
-
-                <div className="space-y-2">
                   <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.parentContext")}</h3>
                   <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
                     {selectedExperiment.parentQuestionExperiments.length ? (
@@ -571,6 +553,24 @@ export function ExperimentsBoard({
                       </pre>
                     ) : (
                       <p className="text-sm text-muted-foreground">{t("experiments.detail.noResults")}</p>
+                    )}
+                  </Card>
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.attachments")}</h3>
+                  <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
+                    {selectedExperiment.attachments?.length ? (
+                      <ul className="space-y-2 text-sm text-foreground">
+                        {selectedExperiment.attachments.map((attachment) => (
+                          <li key={attachment.storedPath} className="flex items-center justify-between gap-3">
+                            <span className="truncate">{attachment.originalName}</span>
+                            <span className="shrink-0 text-xs text-muted-foreground">{attachment.mimeType}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{t("experiments.detail.noAttachments")}</p>
                     )}
                   </Card>
                 </div>
