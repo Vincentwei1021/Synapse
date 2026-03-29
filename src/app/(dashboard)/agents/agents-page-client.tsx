@@ -552,19 +552,6 @@ export function AgentsPageClient({
                     </div>
                   </div>
 
-                  {/* Persona */}
-                  <div className="space-y-2">
-                    <Label htmlFor="agentPersona" className="text-[13px]">
-                      {t("agents.fields.persona")}
-                    </Label>
-                    <Textarea
-                      id="agentPersona"
-                      value={createPersona}
-                      onChange={(e) => setCreatePersona(e.target.value)}
-                      placeholder={t("agents.fields.personaPlaceholder")}
-                      rows={3}
-                    />
-                  </div>
                 </div>
 
                 <div className="flex justify-end gap-3 border-t border-border px-6 py-4">
