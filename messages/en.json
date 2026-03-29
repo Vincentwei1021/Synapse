@@ -161,7 +161,8 @@
     "manual": "manual",
     "auto": "auto",
     "deletePaper": "Delete",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "addPaperError": "Failed to add paper. Please provide a title if auto-fetch is unavailable."
   },
   "priority": {
     "immediate": "Immediate",

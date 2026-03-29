@@ -453,9 +453,9 @@ export function ExperimentsBoard({
       </div>
 
       <Sheet open={Boolean(selectedExperiment)} onOpenChange={(open) => !open && setSelectedExperimentUuid(null)}>
-        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[560px]">
+        <SheetContent side="right" className="w-full sm:max-w-[560px]">
           {selectedExperiment ? (
-            <>
+            <div className="h-full overflow-y-auto">
               <SheetHeader className="border-b border-border px-6 py-5">
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -582,7 +582,7 @@ export function ExperimentsBoard({
                   </Card>
                 </div>
               </div>
-            </>
+            </div>
           ) : null}
         </SheetContent>
       </Sheet>

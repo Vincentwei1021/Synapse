@@ -230,9 +230,9 @@ export function AgentsPageClient({
         const res = await fetch("/api/agents?take=100");
         if (res.ok) {
           const json = await res.json();
-          if (json.success && json.data?.data) {
+          if (json.success && json.data) {
             setAgents(
-              json.data.data.map((a: Record<string, unknown>) => ({
+              json.data.map((a: Record<string, unknown>) => ({
                 ...a,
                 lastActiveAt: a.lastActiveAt
                   ? new Date(a.lastActiveAt as string)

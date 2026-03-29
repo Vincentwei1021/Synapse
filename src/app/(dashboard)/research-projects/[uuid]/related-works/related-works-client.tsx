@@ -67,6 +67,7 @@ export function RelatedWorksClient({
   const [paperAbstract, setPaperAbstract] = useState("");
   const [fetchingMeta, setFetchingMeta] = useState(false);
   const [addingPaper, setAddingPaper] = useState(false);
+  const [addPaperError, setAddPaperError] = useState<string | null>(null);
 
   // Realtime refresh — auto-refreshes server data on SSE events
   useRealtimeRefresh();
@@ -163,6 +164,7 @@ export function RelatedWorksClient({
   const handleAddPaper = useCallback(async () => {
     if (!paperUrl) return;
     setAddingPaper(true);
+    setAddPaperError(null);
     try {
       const res = await fetch(
         `/api/research-projects/${projectUuid}/related-works`,
@@ -180,16 +182,26 @@ export function RelatedWorksClient({
       const data = await res.json();
       if (data.success && data.data?.relatedWork) {
         setWorks((prev) => [data.data.relatedWork, ...prev]);
+        setDialogOpen(false);
+        setPaperUrl("");
+        setPaperTitle("");
+        setPaperAuthors("");
+        setPaperAbstract("");
+        setAddPaperError(null);
+      } else {
+        // Show server validation error (e.g. title could not be auto-fetched)
+        const errorMsg =
+          data.error?.details?.title ||
+          data.error?.message ||
+          t("addPaperError");
+        setAddPaperError(typeof errorMsg === "string" ? errorMsg : String(errorMsg));
       }
-      setDialogOpen(false);
-      setPaperUrl("");
-      setPaperTitle("");
-      setPaperAuthors("");
-      setPaperAbstract("");
+    } catch {
+      setAddPaperError(t("addPaperError"));
     } finally {
       setAddingPaper(false);
     }
-  }, [projectUuid, paperUrl, paperTitle, paperAuthors, paperAbstract]);
+  }, [projectUuid, paperUrl, paperTitle, paperAuthors, paperAbstract, t]);
 
   // --- Delete paper ---
   const handleDeletePaper = useCallback(
@@ -216,7 +228,7 @@ export function RelatedWorksClient({
           <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
         <Button
-          onClick={() => setDialogOpen(true)}
+          onClick={() => { setAddPaperError(null); setDialogOpen(true); }}
           className="bg-primary text-primary-foreground hover:bg-primary/90"
         >
           <Plus className="mr-2 h-4 w-4" />
@@ -487,6 +499,9 @@ export function RelatedWorksClient({
               />
             </div>
           </div>
+          {addPaperError && (
+            <p className="text-sm text-destructive">{addPaperError}</p>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               {t("cancel")}
