@@ -427,10 +427,6 @@ export function AgentsPageClient({
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Key className="h-3 w-3" />
-                    <span>{agent._count.apiKeys}</span>
-                  </div>
                 </div>
 
                 {/* Role badges */}
@@ -599,7 +595,7 @@ export function AgentsPageClient({
           if (!open) setSelectedAgent(null);
         }}
       >
-        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+        <SheetContent className="w-full overflow-y-auto px-6 sm:max-w-lg">
           {selectedAgent && (
             <>
               <SheetHeader>
@@ -657,19 +653,6 @@ export function AgentsPageClient({
                       </label>
                     ))}
                   </div>
-                </div>
-
-                {/* Persona */}
-                <div className="space-y-2">
-                  <Label className="text-[13px]">
-                    {t("agents.fields.persona")}
-                  </Label>
-                  <Textarea
-                    value={editPersona}
-                    onChange={(e) => setEditPersona(e.target.value)}
-                    placeholder={t("agents.fields.personaPlaceholder")}
-                    rows={3}
-                  />
                 </div>
 
                 {/* Save button */}
