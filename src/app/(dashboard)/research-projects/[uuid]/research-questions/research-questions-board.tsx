@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import {
@@ -244,7 +242,6 @@ export function ResearchQuestionsBoard({
   experiments: ExperimentResponse[];
 }) {
   const t = useTranslations();
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [selectedQuestionUuid, setSelectedQuestionUuid] = useState<string | null>(researchQuestions[0]?.uuid ?? null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -332,47 +329,8 @@ export function ResearchQuestionsBoard({
       }
     }
 
-    if (selectedQuestionUuid) {
-      const selectedPosition = positions.get(selectedQuestionUuid);
-      if (selectedPosition) {
-        const count = selectedExperiments.length;
-        selectedExperiments.forEach((experiment, index) => {
-          nodes.push({
-            id: `e-${experiment.uuid}`,
-            type: "experiment",
-            position: {
-              x: selectedPosition.x + COLUMN_GAP,
-              y: selectedPosition.y - ((count - 1) * 164) / 2 + index * 164,
-            },
-            draggable: false,
-            data: {
-              nodeKind: "experiment",
-              title: experiment.title,
-              statusLabel: statusLabelForExperiment(t, experiment),
-              outcome: experiment.outcome,
-              updatedLabel: `${t("experiments.card.updatedAt")} ${new Date(experiment.updatedAt).toLocaleDateString()}`,
-              parentContextLabel:
-                experiment.parentQuestionExperiments.length > 0
-                  ? `${t("experiments.card.parentContext")} ${experiment.parentQuestionExperiments.length}`
-                  : null,
-            },
-          });
-
-          edges.push({
-            id: `question-experiment-${selectedQuestionUuid}-${experiment.uuid}`,
-            source: `q-${selectedQuestionUuid}`,
-            target: `e-${experiment.uuid}`,
-            sourceHandle: "experiment-source",
-            targetHandle: "question-target",
-            type: "straight",
-            style: { stroke: "#2F7D5D", strokeWidth: 1.8 },
-          });
-        });
-      }
-    }
-
     return { nodes, edges };
-  }, [researchQuestions, selectedExperiments, selectedQuestionUuid, t]);
+  }, [researchQuestions, selectedQuestionUuid, t]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<CanvasNodeData>>(flow.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(flow.edges);
@@ -385,10 +343,7 @@ export function ResearchQuestionsBoard({
   const handleNodeClick = (_event: React.MouseEvent, node: Node<CanvasNodeData>) => {
     if (node.data.nodeKind === "question") {
       setSelectedQuestionUuid(node.id.replace("q-", ""));
-      return;
     }
-
-    router.push(`/research-projects/${projectUuid}/experiments?selected=${node.id.replace("e-", "")}`);
   };
 
   const runStatusAction = (status: "elaborating" | "proposal_created" | "completed") => {
@@ -541,9 +496,6 @@ export function ResearchQuestionsBoard({
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
-                <Button asChild variant="outline">
-                  <Link href={`/research-projects/${projectUuid}/experiments`}>{t("ideas.viewExperiments")}</Link>
-                </Button>
               </div>
             </div>
 
