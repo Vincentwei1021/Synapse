@@ -1188,7 +1188,8 @@
       "startElaboration": "Start elaboration",
       "markExperimentCreated": "Mark experiment ready",
       "backToElaboration": "Back to elaboration",
-      "markCompleted": "Mark complete"
+      "markCompleted": "Mark complete",
+      "backToExperimentCreated": "Revert to previous status"
     }
   },
   "experiments": {

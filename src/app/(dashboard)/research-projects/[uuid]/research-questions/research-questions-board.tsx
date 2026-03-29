@@ -525,76 +525,96 @@ export function ResearchQuestionsBoard({
               <p className="mt-4 text-xs leading-6 text-muted-foreground">{t("ideas.inheritsParentExperiments")}</p>
             ) : null}
 
-            {/* Status actions — always visible, allows forward and backward transitions */}
+            {/* Status actions — original step-by-step flow + completed can rollback */}
             <div className="mt-5 space-y-3 border-t border-border pt-5">
-              <h3 className="text-sm font-semibold text-foreground">{t("ideas.changeStatus")}</h3>
-              <div className="flex flex-wrap gap-2">
-                {selectedQuestion.reviewStatus === "pending" ? (
-                  <>
-                    <Button
-                      size="sm"
-                      className="bg-primary text-primary-foreground hover:bg-primary/90"
-                      disabled={isPending}
-                      onClick={() =>
-                        startTransition(() => {
-                          void reviewResearchQuestionAction({
-                            projectUuid,
-                            questionUuid: selectedQuestion.uuid,
-                            reviewStatus: "accepted",
-                          });
-                        })
-                      }
-                    >
-                      <Check className="mr-1.5 h-3.5 w-3.5" />
-                      {t("common.approve")}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isPending}
-                      onClick={() =>
-                        startTransition(() => {
-                          void reviewResearchQuestionAction({
-                            projectUuid,
-                            questionUuid: selectedQuestion.uuid,
-                            reviewStatus: "rejected",
-                          });
-                        })
-                      }
-                    >
-                      {t("common.reject")}
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    {selectedQuestion.status !== "open" && (
-                      <Button size="sm" variant="outline" disabled={isPending} onClick={() => runStatusAction("open")}>
-                        {t("ideas.status.open")}
-                      </Button>
-                    )}
-                    {selectedQuestion.status !== "elaborating" && (
-                      <Button size="sm" variant="outline" disabled={isPending} onClick={() => runStatusAction("elaborating")}>
-                        {t("ideas.status.elaborating")}
-                      </Button>
-                    )}
-                    {selectedQuestion.status !== "proposal_created" && selectedQuestion.status !== "experiment_created" && (
-                      <Button size="sm" variant="outline" disabled={isPending} onClick={() => runStatusAction("proposal_created")}>
-                        {t("ideas.status.experimentCreated")}
-                      </Button>
-                    )}
-                    {selectedQuestion.status !== "completed" && (
-                      <Button size="sm" className="bg-emerald-700 text-white hover:bg-emerald-600" disabled={isPending} onClick={() => runStatusAction("completed")}>
-                        <Check className="mr-1.5 h-3.5 w-3.5" />
-                        {t("ideas.status.completed")}
-                      </Button>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
+              {selectedQuestion.reviewStatus === "pending" ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    disabled={isPending}
+                    onClick={() =>
+                      startTransition(() => {
+                        void reviewResearchQuestionAction({
+                          projectUuid,
+                          questionUuid: selectedQuestion.uuid,
+                          reviewStatus: "accepted",
+                        });
+                      })
+                    }
+                  >
+                    <Check className="mr-2 h-4 w-4" />
+                    {t("common.approve")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={isPending}
+                    onClick={() =>
+                      startTransition(() => {
+                        void reviewResearchQuestionAction({
+                          projectUuid,
+                          questionUuid: selectedQuestion.uuid,
+                          reviewStatus: "rejected",
+                        });
+                      })
+                    }
+                  >
+                    {t("common.reject")}
+                  </Button>
+                </div>
+              ) : null}
 
-            {/* Linked experiments */}
-            <div className="mt-5 space-y-3 border-t border-border pt-5">
+              {selectedQuestion.reviewStatus === "accepted" && selectedQuestion.status === "open" ? (
+                <Button
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                  disabled={isPending}
+                  onClick={() => runStatusAction("elaborating")}
+                >
+                  <PlayCircle className="mr-2 h-4 w-4" />
+                  {t("ideas.actions.startElaboration")}
+                </Button>
+              ) : null}
+
+              {selectedQuestion.reviewStatus === "accepted" && selectedQuestion.status === "elaborating" ? (
+                <Button
+                  className="w-full bg-emerald-700 text-white hover:bg-emerald-600"
+                  disabled={isPending}
+                  onClick={() => runStatusAction("proposal_created")}
+                >
+                  <FlaskConical className="mr-2 h-4 w-4" />
+                  {t("ideas.actions.markExperimentCreated")}
+                </Button>
+              ) : null}
+
+              {selectedQuestion.reviewStatus === "accepted" &&
+              (selectedQuestion.status === "proposal_created" || selectedQuestion.status === "experiment_created") ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button variant="outline" disabled={isPending} onClick={() => runStatusAction("elaborating")}>
+                    <CornerUpLeft className="mr-2 h-4 w-4" />
+                    {t("ideas.actions.backToElaboration")}
+                  </Button>
+                  <Button
+                    className="bg-emerald-700 text-white hover:bg-emerald-600"
+                    disabled={isPending}
+                    onClick={() => runStatusAction("completed")}
+                  >
+                    <Check className="mr-2 h-4 w-4" />
+                    {t("ideas.actions.markCompleted")}
+                  </Button>
+                </div>
+              ) : null}
+
+              {selectedQuestion.reviewStatus === "accepted" && selectedQuestion.status === "completed" ? (
+                <Button variant="outline" disabled={isPending} onClick={() => runStatusAction("proposal_created")}>
+                  <CornerUpLeft className="mr-2 h-4 w-4" />
+                  {t("ideas.actions.backToExperimentCreated")}
+                </Button>
+              ) : null}
+            </div>
+          </Card>
+
+          {/* Right card — linked experiments only */}
+          <Card className="rounded-[28px] border-border bg-card p-6 shadow-none">
+            <div className="space-y-3">
               <h3 className="text-sm font-semibold text-foreground">{t("ideas.linkedExperiments")}</h3>
               {selectedExperiments.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border bg-secondary/40 px-4 py-6 text-sm text-muted-foreground">

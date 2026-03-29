@@ -1188,7 +1188,8 @@
       "startElaboration": "开始分析",
       "markExperimentCreated": "标记为已生成实验",
       "backToElaboration": "退回分析中",
-      "markCompleted": "标记完成"
+      "markCompleted": "标记完成",
+      "backToExperimentCreated": "回退到上一状态"
     }
   },
   "experiments": {
