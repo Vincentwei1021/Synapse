@@ -27,6 +27,7 @@ const mockPrisma = vi.hoisted(() => ({
     count: vi.fn(),
     groupBy: vi.fn(),
     findMany: vi.fn(),
+    updateMany: vi.fn(),
   },
   document: {
     count: vi.fn(),
@@ -244,10 +245,15 @@ describe("updateResearchProject", () => {
 // ===== deleteResearchProject =====
 describe("deleteResearchProject", () => {
   it("should delete project by uuid", async () => {
+    mockPrisma.researchQuestion.updateMany.mockResolvedValue({ count: 0 });
     mockPrisma.researchProject.delete.mockResolvedValue(makeProject());
 
     await deleteResearchProject(researchProjectUuid);
 
+    expect(mockPrisma.researchQuestion.updateMany).toHaveBeenCalledWith({
+      where: { researchProjectUuid, parentQuestionUuid: { not: null } },
+      data: { parentQuestionUuid: null },
+    });
     expect(mockPrisma.researchProject.delete).toHaveBeenCalledWith({
       where: { uuid: researchProjectUuid },
     });
