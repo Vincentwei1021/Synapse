@@ -113,10 +113,12 @@ function getEntityPath(notification: Notification): string {
   const { entityType, entityUuid, projectUuid } = notification;
   const base = `/research-projects/${projectUuid}`;
   switch (entityType) {
+    case "experiment":
+      return `${base}/experiments?selected=${entityUuid}`;
     case "experiment_run":
       return `${base}/experiment-runs/${entityUuid}`;
     case "research_question":
-      return `${base}/research-questions/${entityUuid}`;
+      return `${base}/research-questions`;
     case "experiment_design":
       return `${base}/experiment-designs/${entityUuid}`;
     case "document":

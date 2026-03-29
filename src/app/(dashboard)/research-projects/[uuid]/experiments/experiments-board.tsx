@@ -412,16 +412,9 @@ export function ExperimentsBoard({
                             {formatPriorityLabel(t, experiment.priority)}
                           </Badge>
                         </div>
-                        {experiment.description ? (
-                          <p className="line-clamp-3 text-xs leading-5 text-muted-foreground">{experiment.description}</p>
-                        ) : null}
                       </div>
 
                       <div className="space-y-1 text-xs text-muted-foreground">
-                        <p>
-                          {t("experiments.card.question")}:{" "}
-                          {experiment.researchQuestion?.title || t("experiments.card.unlinked")}
-                        </p>
                         <p>
                           {t("experiments.card.assignee")}:{" "}
                           {experiment.assignee?.name || t("experiments.card.unassigned")}
@@ -547,19 +540,6 @@ export function ExperimentsBoard({
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.results")}</h3>
-                  <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
-                    {selectedExperiment.results ? (
-                      <pre className="overflow-x-auto whitespace-pre-wrap text-xs leading-6 text-muted-foreground">
-                        {prettyJson(selectedExperiment.results)}
-                      </pre>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{t("experiments.detail.noResults")}</p>
-                    )}
-                  </Card>
-                </div>
-
-                <div className="space-y-2">
                   <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.progressLog")}</h3>
                   <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
                     {progressLogs.length ? (
@@ -578,6 +558,19 @@ export function ExperimentsBoard({
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground">{t("experiments.detail.noProgress")}</p>
+                    )}
+                  </Card>
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.results")}</h3>
+                  <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
+                    {selectedExperiment.results ? (
+                      <pre className="overflow-x-auto whitespace-pre-wrap text-xs leading-6 text-muted-foreground">
+                        {prettyJson(selectedExperiment.results)}
+                      </pre>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{t("experiments.detail.noResults")}</p>
                     )}
                   </Card>
                 </div>
