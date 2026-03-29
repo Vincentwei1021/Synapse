@@ -164,6 +164,9 @@ export class SynapseEventRouter {
         case "deep_research_requested":
           this.handleDeepResearchRequested(notification);
           break;
+        case "experiment_report_requested":
+          this.handleExperimentReportRequested(notification);
+          break;
         default:
           this.logger.info(`Unhandled notification action: "${notification.action}"`);
           break;
@@ -408,6 +411,30 @@ Proposed experiments will enter "draft" status and require human approval before
 3. Analyze how each paper relates to the project's goals — identify key methods, findings, and gaps in the literature
 4. Create a comprehensive literature review document summarizing your analysis`,
       { notificationUuid: n.uuid, action: "deep_research_requested", entityUuid: n.entityUuid, projectUuid }
+    );
+  }
+
+  private handleExperimentReportRequested(n: NotificationDetail): void {
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
+
+    this.triggerAgent(
+      `[Synapse] You just completed experiment "${n.entityTitle}" (experimentUuid: ${n.entityUuid}, projectUuid: ${projectUuid}).
+
+Write a detailed experiment report document for this experiment. Follow these steps:
+
+1. Use synapse_get_experiment with experimentUuid "${n.entityUuid}" to read the full experiment details (description, outcome, results, compute usage)
+2. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to understand the broader research context
+3. Write a comprehensive experiment report that includes:
+   - Experiment objective and setup
+   - Methodology and approach
+   - Results and key findings
+   - Analysis and interpretation
+   - Conclusions and next steps
+4. Write the report in the same language as the project description.
+5. Use synapse_add_comment to post the report as a comment on the experiment (targetType: "experiment", targetUuid: "${n.entityUuid}")
+
+Keep the report focused on THIS experiment only — do not summarize the entire project.`,
+      { notificationUuid: n.uuid, action: "experiment_report_requested", entityUuid: n.entityUuid, projectUuid }
     );
   }
 }

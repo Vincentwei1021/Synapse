@@ -864,25 +864,33 @@ export async function completeExperiment(input: {
     value: { outcome: input.outcome ?? null },
   });
 
-  await syncExperimentResultDocument({
-    companyUuid: input.companyUuid,
-    actorUuid: input.actorUuid,
-    experiment: {
-      uuid: updated.uuid,
-      researchProjectUuid: updated.researchProjectUuid,
-      title: updated.title,
-      description: updated.description,
-      status: updated.status,
-      priority: updated.priority,
-      outcome: updated.outcome,
-      computeBudgetHours: updated.computeBudgetHours,
-      computeUsedHours: updated.computeUsedHours,
-      results: updated.results,
-      researchQuestion: updated.researchQuestion,
-    },
-  });
-
-  await refreshProjectSynthesis(input.companyUuid, updated.researchProjectUuid, input.actorUuid);
+  // Trigger the completing agent to write its own experiment report document
+  // (replaces template-based syncExperimentResultDocument)
+  if (input.actorType === "agent") {
+    try {
+      const projectForReport = await prisma.researchProject.findFirst({
+        where: { uuid: updated.researchProjectUuid, companyUuid: input.companyUuid },
+        select: { name: true },
+      });
+      await notificationService.create({
+        companyUuid: input.companyUuid,
+        researchProjectUuid: updated.researchProjectUuid,
+        recipientType: "agent",
+        recipientUuid: input.actorUuid,
+        entityType: "experiment",
+        entityUuid: updated.uuid,
+        entityTitle: updated.title,
+        projectName: projectForReport?.name ?? "",
+        action: "experiment_report_requested",
+        message: `Write an experiment report document for "${updated.title}".`,
+        actorType: "user",
+        actorUuid: "system",
+        actorName: "Synapse",
+      });
+    } catch (err) {
+      console.error("Failed to trigger experiment report:", err);
+    }
+  }
 
   eventBus.emitChange({
     companyUuid: input.companyUuid,
