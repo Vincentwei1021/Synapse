@@ -86,6 +86,12 @@ export default function DashboardLayout({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Refresh project list when navigating (e.g. after deleting a project)
+  useEffect(() => {
+    fetchProjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
   const checkSession = async () => {
     try {
       // Use authFetch which adds OIDC Authorization header if available.
