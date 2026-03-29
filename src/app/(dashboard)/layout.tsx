@@ -177,11 +177,12 @@ export default function DashboardLayout({
 
     return [
       { href: `/research-projects/${currentProjectUuid}/dashboard`, label: t("nav.overview"), icon: LayoutDashboard },
+      { href: `/research-projects/${currentProjectUuid}/related-works`, label: t("nav.relatedWorks"), icon: BookOpen },
       { href: `/research-projects/${currentProjectUuid}/research-questions`, label: t("nav.researchQuestions"), icon: Lightbulb },
       { href: `/research-projects/${currentProjectUuid}/experiments`, label: t("nav.experiments"), icon: CheckSquare },
       { href: `/research-projects/${currentProjectUuid}/insights`, label: t("nav.insights"), icon: LineChart },
-      { href: `/research-projects/${currentProjectUuid}/related-works`, label: t("nav.relatedWorks"), icon: BookOpen },
       { href: `/research-projects/${currentProjectUuid}/documents`, label: t("nav.documents"), icon: FileText },
+      { href: `/research-projects/${currentProjectUuid}/settings`, label: t("nav.projectSettings"), icon: Settings },
     ];
   }, [currentProjectUuid, t]);
 

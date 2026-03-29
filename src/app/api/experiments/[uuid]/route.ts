@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { errors, success } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
-import { assignExperiment, getExperiment, updateExperiment } from "@/services/experiment.service";
+import { assignExperiment, deleteExperiment, getExperiment, updateExperiment } from "@/services/experiment.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
@@ -96,4 +96,23 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   // If only assignment was done, re-fetch to return the updated experiment
   const experiment = await getExperiment(auth.companyUuid, uuid);
   return success({ experiment });
+}
+
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  const auth = await getAuthContext(request);
+  if (!auth) {
+    return errors.unauthorized();
+  }
+  if (!isUser(auth)) {
+    return errors.forbidden("Only users can delete experiments");
+  }
+
+  const { uuid } = await context.params;
+  const experiment = await getExperiment(auth.companyUuid, uuid);
+  if (!experiment) {
+    return errors.notFound("Experiment");
+  }
+
+  await deleteExperiment(auth.companyUuid, uuid);
+  return success({ deleted: true });
 }
