@@ -280,6 +280,12 @@ export async function updateResearchProject(uuid: string, data: ResearchProjectU
 }
 
 export async function deleteResearchProject(uuid: string) {
+  // Clear self-referencing parent links on research questions first
+  // (parentQuestionUuid has onDelete: Restrict which blocks cascade)
+  await prisma.researchQuestion.updateMany({
+    where: { researchProjectUuid: uuid, parentQuestionUuid: { not: null } },
+    data: { parentQuestionUuid: null },
+  });
   return prisma.researchProject.delete({ where: { uuid } });
 }
 
