@@ -258,7 +258,9 @@ export class SynapseEventRouter {
         `[Synapse] Experiment assigned: ${n.entityTitle}. Experiment UUID: ${n.entityUuid}, Project UUID: ${projectUuid}.`,
         ...contextLines,
         "Use synapse_get_assigned_experiments to inspect your current queue. Execute the highest-priority item first; experiments with priority 'immediate' must jump to the front of the queue, and experiments with the same priority should be handled FIFO.",
-        `Then use synapse_get_experiment with experimentUuid "${n.entityUuid}" to inspect full details, use synapse_list_compute_nodes to inspect available machines and GPUs, call synapse_start_experiment when you begin execution, and call synapse_submit_experiment_results with experimentUuid "${n.entityUuid}" when you finish so Synapse can update the experiment and its document.`,
+        `Then use synapse_get_experiment with experimentUuid "${n.entityUuid}" to inspect full details, use synapse_list_compute_nodes to inspect available machines and GPUs, call synapse_start_experiment when you begin execution.`,
+        `During execution, call synapse_report_experiment_progress with experimentUuid "${n.entityUuid}" at each major step (e.g. data download, training start, evaluation) to update the live status on the experiment card.`,
+        `When finished, call synapse_submit_experiment_results with experimentUuid "${n.entityUuid}" to complete the experiment.`,
         mentionGuidance,
       ].join("\n");
 
