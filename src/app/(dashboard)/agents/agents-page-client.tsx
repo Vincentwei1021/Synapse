@@ -595,10 +595,10 @@ export function AgentsPageClient({
           if (!open) setSelectedAgent(null);
         }}
       >
-        <SheetContent className="w-full overflow-y-auto px-6 sm:max-w-lg">
+        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
           {selectedAgent && (
-            <>
-              <SheetHeader>
+            <div className="px-6">
+              <SheetHeader className="px-0">
                 <SheetTitle className="flex items-center gap-2">
                   <Bot className="h-5 w-5 text-primary" />
                   {selectedAgent.name}
@@ -830,8 +830,28 @@ export function AgentsPageClient({
                     </div>
                   )}
                 </div>
+                {/* Delete Agent */}
+                <div className="border-t border-border pt-6">
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={() => {
+                      if (!selectedAgent) return;
+                      if (!confirm(t("agents.deleteConfirm", { name: selectedAgent.name }))) return;
+                      fetch(`/api/agents/${selectedAgent.uuid}`, { method: "DELETE" })
+                        .then((res) => {
+                          if (res.ok) {
+                            setAgents((prev) => prev.filter((a) => a.uuid !== selectedAgent.uuid));
+                            setSelectedAgent(null);
+                          }
+                        });
+                    }}
+                  >
+                    {t("agents.deleteAgent")}
+                  </Button>
+                </div>
               </div>
-            </>
+            </div>
           )}
         </SheetContent>
       </Sheet>

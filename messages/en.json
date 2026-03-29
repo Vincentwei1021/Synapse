@@ -785,6 +785,8 @@
     "create": "Create Agent",
     "noAgents": "No agents yet",
     "noAgentsDesc": "Create your first AI agent to get started",
+    "deleteAgent": "Delete Agent",
+    "deleteConfirm": "Are you sure you want to delete agent \"{name}\"? This will also revoke its API key. This action cannot be undone.",
     "permissions": {
       "preResearch": "Pre-research",
       "research": "Research",
