@@ -73,14 +73,16 @@ Important:
 src/
   app/
     (dashboard)/
-      agents/                     # Agent management page (NEW)
+      agents/                     # Agent management page (composable permissions)
       research-projects/
         [uuid]/
           dashboard/
+          related-works/           # Literature search + deep research reports
           research-questions/
           experiments/
           insights/
           documents/
+          settings/                # Project settings (edit info, delete entities)
           activity/                # still present, not a primary nav surface
           experiment-designs/      # legacy / compatibility
           experiment-runs/         # legacy / compatibility
@@ -89,17 +91,19 @@ src/
       project-groups/
     api/
       mcp/
+      admin/stats/                # Super-admin statistics
       comments/
       compute-nodes/
       compute-pools/
       experiments/
-        [uuid]/progress/          # Experiment progress log API (NEW)
+        [uuid]/progress/          # Experiment progress log API
       research-projects/
+        [uuid]/related-works/     # Related works CRUD API
       research-questions/
       notifications/
       events/notifications/
   services/
-    experiment-progress.service.ts # Progress log service (NEW)
+    experiment-progress.service.ts # Progress log service
   lib/
   mcp/
   components/
@@ -124,20 +128,21 @@ Important implementation notes:
 
 ## Data Model Reality
 
-The schema currently contains `30` Prisma models.
+The schema currently contains `31` Prisma models.
 
 The most important active models are:
 
 - `Company`
 - `User`
-- `Agent`
+- `Agent` (has composable `roles`: `pre_research`, `research`, `experiment`, `report`)
 - `ApiKey`
 - `ProjectGroup`
-- `ResearchProject` (now has optional `computePoolUuid` for compute pool binding)
+- `ResearchProject` (has `computePoolUuid`, `autonomousLoopEnabled/AgentUuid`, `autoSearchEnabled/AgentUuid`)
 - `ResearchQuestion`
 - `Document`
-- `Experiment` (now has `liveStatus`, `liveMessage`, `liveUpdatedAt` for real-time tracking)
-- `ExperimentProgressLog` (NEW — agent progress message timeline)
+- `Experiment` (has `liveStatus`, `liveMessage`, `liveUpdatedAt` for real-time tracking)
+- `ExperimentProgressLog` (agent progress message timeline)
+- `RelatedWork` (academic papers linked to a project, with Semantic Scholar metadata)
 - `ComputePool`
 - `ComputeNode`
 - `ComputeGpu`
@@ -370,43 +375,40 @@ For current research work, prefer commenting directly on `experiment` instead of
 
 ## UI / Product Reality
 
-Primary project navigation today is:
-
-- Overview
-- Research Questions
-- Experiments
-- Insights
-- Documents
-
 Global navigation (sidebar):
 
 - `Research Projects`
 - `Compute`
-- `Agents` (NEW — agent management with 4 composable permissions)
+- `Agents` (agent management with 4 composable permissions)
 - `Settings` (language, theme, notification preferences only — agents moved to /agents)
 
 Project-level navigation:
 
 - Overview (research questions on left, experiment pipeline on right)
+- Related Works (literature search, paper collection, deep research reports)
 - Research Questions
 - Experiments
 - Insights
 - Documents
+- Project Settings (edit project info, delete experiments/questions/project)
 
 Notes:
 
 - `Insights` is the project-level synthesis surface
 - `Research Questions` uses a canvas-style hierarchy view
+- `Related Works` collects papers (manual arXiv URL + auto-search via Semantic Scholar), supports deep research report generation
 - `Experiments` is a five-column board with live status badges on cards:
   - `draft`
   - `pending_review`
   - `pending_start`
   - `in_progress`
   - `completed`
-- Experiment cards show `liveStatus` badge (sent/ack/checking/queuing/running) and `liveMessage` when available
+- Experiment cards show `liveStatus` badge (sent/ack/checking/queuing/running) and `liveMessage` when available, no description or question shown on cards
 - Experiment detail panel includes a progress log timeline
+- On experiment completion, the assigned agent writes its own report (replaces the old template approach)
 - Project dashboard has an Edit button to modify project details (name, description, datasets, evaluation methods, compute pool)
 - Create experiment form includes a "Copy from existing experiment" dropdown
+- Project groups are editable (name, description) from the projects list page
 
 Human-created experiments should normally land in `pending_start`, not sit in `draft`, unless explicitly created as drafts.
 
@@ -549,3 +551,12 @@ Recent examples:
 
 18. Session token expiry during long forms
    The dashboard layout has a proactive 45-minute token refresh interval. Do not remove it — it prevents logout during long form sessions.
+
+19. Leaking SSH key paths in API responses
+   SSH key file paths must be stripped from all API responses. Only expose `managedKeyAvailable` (boolean) and the access bundle endpoint. Never return server-side key paths to clients.
+
+20. Bypassing experiment status restrictions via PATCH
+   Experiment PATCH is locked down — callers cannot change `status`, `outcome`, or `results` directly. These fields are only modifiable through the dedicated start/complete/submit endpoints.
+
+21. Forgetting notification permission grouping
+   Notification preferences in Settings are grouped by the 4 agent permission categories (pre_research, research, experiment, report). Keep new notification types in the correct group.

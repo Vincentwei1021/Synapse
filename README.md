@@ -15,7 +15,9 @@
 
 <p align="center"><a href="README.zh.md">中文</a></p>
 
-Synapse is an agent harness — the infrastructure that wraps around LLM agents to manage session lifecycle, task state, sub-agent orchestration, observability, and failure recovery. It lets multiple AI Agents (PM, Developer, Admin) and humans collaborate on a shared platform through the full workflow from requirements to delivery.
+Synapse is a research orchestration platform for human researchers and AI agents. It manages the full research lifecycle — from literature review and question formulation through experiment execution and synthesis — with built-in agent management, compute orchestration, and real-time observability.
+
+Key capabilities: composable agent permissions, autonomous research loops, literature search with Semantic Scholar integration, live experiment tracking, and agent-generated reports.
 
 Inspired by the **[AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle/)** methodology. Core philosophy: **Reversed Conversation** — AI proposes, humans verify.
 
@@ -168,6 +170,34 @@ In-app notifications with real-time SSE delivery and Redis Pub/Sub for cross-ins
 - **MCP tool** — `synapse_search_mentionables` for agents to look up UUIDs before writing mentions
 
 > **[@Mention System Design Doc →](src/app/api/mentionables/README.md)**
+
+### Agent Management with Composable Permissions
+
+Dedicated `/agents` page for managing AI agents with 4 composable permissions: `pre_research` (literature search), `research` (question formulation), `experiment` (execution and compute), and `report` (document synthesis). Any combination of permissions can be assigned to an agent.
+
+### Related Works & Literature Search
+
+Project-level literature management at `/research-projects/[uuid]/related-works`:
+- **Manual addition** — paste an arXiv URL to auto-fetch metadata
+- **Auto-search** — assign a `pre_research` agent to search Semantic Scholar and collect papers
+- **Deep Research** — generate a comprehensive literature review document via agent
+
+### Autonomous Research Loop
+
+Enable a self-sustaining research cycle on any project:
+- Toggle on the Experiments page header
+- When all experiment queues are empty after completion, the assigned agent analyzes the full project context
+- Agent proposes new experiments (as drafts) via `synapse_propose_experiment`
+- Human reviews proposed experiments before execution begins
+- Cycle: execute → analyze → propose → review → execute
+
+### Live Experiment Tracking
+
+Real-time sub-status on experiment cards: `sent` → `ack` → `checking_resources` → `queuing` → `running`. Agents report step-by-step progress via the `synapse_report_experiment_progress` MCP tool, with a timeline visible in the experiment detail panel.
+
+### Agent-Generated Reports
+
+On experiment completion, the assigned agent writes its own report document, replacing the previous template-based approach. This produces richer, context-aware experiment documentation.
 
 ### Activity Stream
 
@@ -414,6 +444,11 @@ Based on the [AI-DLC methodology](https://aws.amazon.com/blogs/devops/ai-driven-
 - [x] **Notification System** — In-app notifications + SSE push + Redis Pub/Sub + per-user preferences + MCP tools
 - [x] **@Mention** — Tiptap autocomplete editor + mention notifications + `synapse_search_mentionables` MCP tool + permission-scoped search
 - [x] **Requirements Elaboration** — Structured Q&A on Ideas before Proposal creation, with elaboration gate enforcing clarification
+- [x] **Agent Management** — Dedicated `/agents` page with 4 composable permissions (pre_research, research, experiment, report)
+- [x] **Related Works** — Literature search via Semantic Scholar, manual arXiv import, deep research report generation
+- [x] **Autonomous Loop** — Self-sustaining research cycle: agent analyzes → proposes experiments → human reviews → agent executes
+- [x] **Live Experiment Tracking** — Real-time sub-status (sent/ack/checking/queuing/running) + progress log timeline
+- [x] **Agent-Generated Reports** — Agents write their own experiment reports on completion
 
 ### Partially Implemented
 
