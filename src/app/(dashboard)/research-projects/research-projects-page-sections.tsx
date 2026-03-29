@@ -390,11 +390,11 @@ export function GroupSection({
                     <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
                   )}
                 </CollapsibleTrigger>
-                <div className={`grid grid-cols-2 gap-2 md:flex md:items-center ${isOpen ? "grid" : "hidden md:flex"}`}>
+                <div className="flex items-center gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="w-full text-xs text-muted-foreground hover:text-foreground md:w-auto"
+                    className="text-xs text-muted-foreground hover:text-foreground"
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowEditDialog(true);
