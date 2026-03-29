@@ -51,7 +51,8 @@ const PROJECT_COLORS = [
   { bg: "bg-indigo-100 dark:bg-indigo-900/30", text: "text-indigo-800 dark:text-indigo-300" },
 ];
 
-function hashProjectColor(projectUuid: string) {
+function hashProjectColor(projectUuid: string | undefined | null) {
+  if (!projectUuid) return PROJECT_COLORS[0];
   let hash = 0;
   for (let i = 0; i < projectUuid.length; i++) {
     hash = (hash * 31 + projectUuid.charCodeAt(i)) | 0;
