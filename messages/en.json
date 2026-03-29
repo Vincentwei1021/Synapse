@@ -131,7 +131,8 @@
     "backToResearchProjects": "Research Projects",
     "openMenu": "Open menu",
     "agents": "Agents",
-    "relatedWorks": "Related Works"
+    "relatedWorks": "Related Works",
+    "projectSettings": "Settings"
   },
   "relatedWorks": {
     "title": "Related Works",
@@ -334,6 +335,40 @@
     "dangerZone": "Danger zone",
     "deleteTitle": "Delete this research project",
     "deleteDescription": "Permanently remove this research project and all its data. This action cannot be undone."
+  },
+  "projectSettings": {
+    "title": "Project Settings",
+    "editInfo": "Project Information",
+    "projectName": "Project Name",
+    "description": "Description",
+    "datasets": "Datasets",
+    "datasetsPlaceholder": "One dataset per line",
+    "evaluationMethods": "Evaluation Methods",
+    "evaluationMethodsPlaceholder": "One method per line",
+    "computePool": "Compute Pool",
+    "noComputePool": "None (unrestricted)",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "saved": "Changes saved",
+    "saveFailed": "Failed to save changes",
+    "basicInfo": "Basic Information",
+    "projectName2": "Project Name",
+    "experiments": "Experiments",
+    "experimentCount": "{count} experiments",
+    "researchQuestions": "Research Questions",
+    "questionCount": "{count} research questions",
+    "dangerZone": "Danger Zone",
+    "deleteProject": "Delete Project",
+    "deleteProjectDesc": "Permanently delete this project and all its data. This action cannot be undone.",
+    "deleteProjectConfirm": "Are you sure you want to delete this project?",
+    "deleteProjectWarn": "All experiments, research questions, documents, and related works will be permanently deleted.",
+    "typeToConfirm": "Type the project name to confirm:",
+    "deleteExperiment": "Delete experiment",
+    "deleteExperimentConfirm": "Are you sure you want to delete \"{title}\"? This cannot be undone.",
+    "deleteQuestion": "Delete research question",
+    "deleteQuestionConfirm": "Are you sure you want to delete \"{title}\"? This cannot be undone.",
+    "noExperiments": "No experiments",
+    "noQuestions": "No research questions"
   },
   "researchProjects": {
     "title": "Research Projects",
@@ -1403,6 +1438,10 @@
     "moveTitle": "Move project",
     "moveDescription": "Move {projectName} from {sourceGroupName} to {targetGroupName}?",
     "confirmMove": "Confirm move",
-    "manageGroup": "Manage group"
+    "manageGroup": "Manage group",
+    "editGroup": "Edit Group",
+    "groupDescription": "Description",
+    "saving": "Saving...",
+    "saveChanges": "Save changes"
   }
 }

@@ -108,6 +108,7 @@ export default function ProjectsPage() {
                     group={group}
                     projects={groupProjects}
                     stats={stats}
+                    onGroupUpdated={refresh}
                   />
                 );
               })}

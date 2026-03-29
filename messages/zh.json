@@ -131,7 +131,8 @@
     "backToResearchProjects": "研究项目",
     "openMenu": "打开菜单",
     "agents": "智能体",
-    "relatedWorks": "相关文献"
+    "relatedWorks": "相关文献",
+    "projectSettings": "项目设置"
   },
   "relatedWorks": {
     "title": "相关文献",
@@ -334,6 +335,40 @@
     "dangerZone": "危险区域",
     "deleteTitle": "删除此研究项目",
     "deleteDescription": "永久删除此研究项目及其所有数据，此操作无法撤销。"
+  },
+  "projectSettings": {
+    "title": "项目设置",
+    "editInfo": "项目信息",
+    "projectName": "项目名称",
+    "description": "描述",
+    "datasets": "数据集",
+    "datasetsPlaceholder": "每行一个数据集",
+    "evaluationMethods": "评估方式",
+    "evaluationMethodsPlaceholder": "每行一个评估方式",
+    "computePool": "算力池",
+    "noComputePool": "无（不限制）",
+    "saveChanges": "保存更改",
+    "saving": "保存中...",
+    "saved": "已保存",
+    "saveFailed": "保存更改失败",
+    "basicInfo": "基本信息",
+    "projectName2": "项目名称",
+    "experiments": "实验",
+    "experimentCount": "{count} 个实验",
+    "researchQuestions": "研究问题",
+    "questionCount": "{count} 个研究问题",
+    "dangerZone": "危险区域",
+    "deleteProject": "删除项目",
+    "deleteProjectDesc": "永久删除此项目及其所有数据，此操作不可撤销。",
+    "deleteProjectConfirm": "确定要删除这个项目吗？",
+    "deleteProjectWarn": "所有实验、研究问题、文档和相关文献将被永久删除。",
+    "typeToConfirm": "输入项目名称以确认：",
+    "deleteExperiment": "删除实验",
+    "deleteExperimentConfirm": "确定要删除「{title}」吗？此操作不可撤销。",
+    "deleteQuestion": "删除研究问题",
+    "deleteQuestionConfirm": "确定要删除「{title}」吗？此操作不可撤销。",
+    "noExperiments": "暂无实验",
+    "noQuestions": "暂无研究问题"
   },
   "researchProjects": {
     "title": "研究项目",
@@ -1403,6 +1438,10 @@
     "moveTitle": "移动项目",
     "moveDescription": "确定要把 {projectName} 从 {sourceGroupName} 移动到 {targetGroupName} 吗？",
     "confirmMove": "确认移动",
-    "manageGroup": "管理分组"
+    "manageGroup": "管理分组",
+    "editGroup": "编辑分组",
+    "groupDescription": "描述",
+    "saving": "保存中...",
+    "saveChanges": "保存更改"
   }
 }

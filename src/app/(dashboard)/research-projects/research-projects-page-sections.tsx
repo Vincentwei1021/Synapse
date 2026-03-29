@@ -15,6 +15,15 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import {
   ArrowRight,
@@ -25,8 +34,10 @@ import {
   Folder,
   FolderOpen,
   Lightbulb,
+  Pencil,
   Plus,
 } from "lucide-react";
+import { authFetch } from "@/lib/auth-client";
 import type {
   GroupStats,
   ProjectData,
@@ -214,23 +225,130 @@ export function ProjectsEmptyState() {
   );
 }
 
+function EditGroupDialog({
+  open,
+  onOpenChange,
+  groupUuid,
+  groupName,
+  groupDescription,
+  onUpdated,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  groupUuid: string;
+  groupName: string;
+  groupDescription: string | null;
+  onUpdated: () => void;
+}) {
+  const t = useTranslations();
+  const [name, setName] = useState(groupName);
+  const [description, setDescription] = useState(groupDescription ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      setName(groupName);
+      setDescription(groupDescription ?? "");
+    }
+    onOpenChange(nextOpen);
+  };
+
+  const handleSave = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      const res = await authFetch(`/api/project-groups/${groupUuid}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          description: description.trim() || null,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        onOpenChange(false);
+        onUpdated();
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const hasChanges =
+    name.trim() !== groupName ||
+    (description.trim() || "") !== (groupDescription ?? "");
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-[480px]">
+        <DialogHeader>
+          <DialogTitle>{t("projectGroups.editGroup")}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium">{t("projectGroups.groupName")}</Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t("projectGroups.groupNamePlaceholder")}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium">
+              {t("projectGroups.groupDescription")}
+            </Label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              placeholder={t("projectGroups.descriptionPlaceholder")}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={saving || !name.trim() || !hasChanges}
+            >
+              {saving ? t("projectGroups.saving") : t("projectGroups.saveChanges")}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function GroupSection({
   group,
   projects,
   stats,
+  onGroupUpdated,
 }: {
   group: ProjectGroupData;
   projects: ProjectData[];
   stats: GroupStats;
+  onGroupUpdated?: () => void;
 }) {
   const t = useTranslations();
   const [isOpen, setIsOpen] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const completionRate =
     stats.totalTasks > 0
       ? Math.round((stats.completedTasks / stats.totalTasks) * 100)
       : 0;
 
   return (
+    <>
     <Droppable droppableId={group.uuid}>
       {(provided, snapshot) => (
         <div ref={provided.innerRef} {...provided.droppableProps}>
@@ -273,6 +391,18 @@ export function GroupSection({
                   )}
                 </CollapsibleTrigger>
                 <div className={`grid grid-cols-2 gap-2 md:flex md:items-center ${isOpen ? "grid" : "hidden md:flex"}`}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs text-muted-foreground hover:text-foreground md:w-auto"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowEditDialog(true);
+                    }}
+                  >
+                    <Pencil className="mr-1 h-3 w-3" />
+                    {t("projectGroups.editGroup")}
+                  </Button>
                   <Link href={`/project-groups/${group.uuid}`} className="md:w-auto">
                     <Button
                       variant="ghost"
@@ -314,6 +444,16 @@ export function GroupSection({
         </div>
       )}
     </Droppable>
+
+      <EditGroupDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        groupUuid={group.uuid}
+        groupName={group.name}
+        groupDescription={group.description}
+        onUpdated={() => onGroupUpdated?.()}
+      />
+    </>
   );
 }
 
