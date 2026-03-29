@@ -1162,6 +1162,13 @@
     "linkedExperiments": "直属实验",
     "noLinkedExperiments": "这个研究问题下还没有直属实验。",
     "inheritsParentExperiments": "其子问题实验可继承这里的直属实验上下文",
+    "changeStatus": "修改状态",
+    "status": {
+      "open": "待处理",
+      "elaborating": "分析中",
+      "experimentCreated": "实验已创建",
+      "completed": "已完成"
+    },
     "viewExperiments": "查看实验看板",
     "deleteResearchQuestion": "删除研究问题",
     "deleteResearchQuestionCascadeConfirm": "确定要删除「{title}」吗？这会同时永久删除该问题下的所有子问题及其关联实验，且无法撤销。",

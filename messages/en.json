@@ -1162,6 +1162,13 @@
     "linkedExperiments": "Direct experiments",
     "noLinkedExperiments": "There are no direct experiments under this question yet.",
     "inheritsParentExperiments": "Child-question experiments can inherit context from this question's direct experiments",
+    "changeStatus": "Change Status",
+    "status": {
+      "open": "Open",
+      "elaborating": "Elaborating",
+      "experimentCreated": "Experiment Created",
+      "completed": "Completed"
+    },
     "viewExperiments": "Open experiments board",
     "deleteResearchQuestion": "Delete research question",
     "deleteResearchQuestionCascadeConfirm": "Are you sure you want to delete \"{title}\"? This will permanently remove the question, every child question underneath it, and their linked experiments. This action cannot be undone.",

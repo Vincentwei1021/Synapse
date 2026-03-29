@@ -346,7 +346,7 @@ export function ResearchQuestionsBoard({
     }
   };
 
-  const runStatusAction = (status: "elaborating" | "proposal_created" | "completed") => {
+  const runStatusAction = (status: string) => {
     if (!selectedQuestion) return;
 
     startTransition(() => {
@@ -524,118 +524,97 @@ export function ResearchQuestionsBoard({
             {selectedQuestion.experimentCount > 0 ? (
               <p className="mt-4 text-xs leading-6 text-muted-foreground">{t("ideas.inheritsParentExperiments")}</p>
             ) : null}
-          </Card>
 
-          <Card className="rounded-[28px] border-border bg-card p-6 shadow-none">
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-base font-semibold text-foreground">{t("ideas.inspectorTitle")}</h2>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">{t("ideas.parallelHint")}</p>
-              </div>
-
-              {selectedQuestion.reviewStatus === "pending" ? (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <Button
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
-                    disabled={isPending}
-                    onClick={() =>
-                      startTransition(() => {
-                        void reviewResearchQuestionAction({
-                          projectUuid,
-                          questionUuid: selectedQuestion.uuid,
-                          reviewStatus: "accepted",
-                        });
-                      })
-                    }
-                  >
-                    <Check className="mr-2 h-4 w-4" />
-                    {t("common.approve")}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    disabled={isPending}
-                    onClick={() =>
-                      startTransition(() => {
-                        void reviewResearchQuestionAction({
-                          projectUuid,
-                          questionUuid: selectedQuestion.uuid,
-                          reviewStatus: "rejected",
-                        });
-                      })
-                    }
-                  >
-                    {t("common.reject")}
-                  </Button>
-                </div>
-              ) : null}
-
-              {selectedQuestion.reviewStatus === "accepted" && selectedQuestion.status === "open" ? (
-                <Button
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                  disabled={isPending}
-                  onClick={() => runStatusAction("elaborating")}
-                >
-                  <PlayCircle className="mr-2 h-4 w-4" />
-                  {t("ideas.actions.startElaboration")}
-                </Button>
-              ) : null}
-
-              {selectedQuestion.reviewStatus === "accepted" && selectedQuestion.status === "elaborating" ? (
-                <Button
-                  className="w-full bg-emerald-700 text-white hover:bg-emerald-600"
-                  disabled={isPending}
-                  onClick={() => runStatusAction("proposal_created")}
-                >
-                  <FlaskConical className="mr-2 h-4 w-4" />
-                  {t("ideas.actions.markExperimentCreated")}
-                </Button>
-              ) : null}
-
-              {selectedQuestion.reviewStatus === "accepted" &&
-              (selectedQuestion.status === "proposal_created" || selectedQuestion.status === "experiment_created") ? (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <Button variant="outline" disabled={isPending} onClick={() => runStatusAction("elaborating")}>
-                    <CornerUpLeft className="mr-2 h-4 w-4" />
-                    {t("ideas.actions.backToElaboration")}
-                  </Button>
-                  <Button
-                    className="bg-emerald-700 text-white hover:bg-emerald-600"
-                    disabled={isPending}
-                    onClick={() => runStatusAction("completed")}
-                  >
-                    <Check className="mr-2 h-4 w-4" />
-                    {t("ideas.actions.markCompleted")}
-                  </Button>
-                </div>
-              ) : null}
-
-              <div className="space-y-3 border-t border-border pt-4">
-                <h3 className="text-sm font-semibold text-foreground">{t("ideas.linkedExperiments")}</h3>
-                {selectedExperiments.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-border bg-secondary/40 px-4 py-6 text-sm text-muted-foreground">
-                    {t("ideas.noLinkedExperiments")}
-                  </div>
+            {/* Status actions — always visible, allows forward and backward transitions */}
+            <div className="mt-5 space-y-3 border-t border-border pt-5">
+              <h3 className="text-sm font-semibold text-foreground">{t("ideas.changeStatus")}</h3>
+              <div className="flex flex-wrap gap-2">
+                {selectedQuestion.reviewStatus === "pending" ? (
+                  <>
+                    <Button
+                      size="sm"
+                      className="bg-primary text-primary-foreground hover:bg-primary/90"
+                      disabled={isPending}
+                      onClick={() =>
+                        startTransition(() => {
+                          void reviewResearchQuestionAction({
+                            projectUuid,
+                            questionUuid: selectedQuestion.uuid,
+                            reviewStatus: "accepted",
+                          });
+                        })
+                      }
+                    >
+                      <Check className="mr-1.5 h-3.5 w-3.5" />
+                      {t("common.approve")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isPending}
+                      onClick={() =>
+                        startTransition(() => {
+                          void reviewResearchQuestionAction({
+                            projectUuid,
+                            questionUuid: selectedQuestion.uuid,
+                            reviewStatus: "rejected",
+                          });
+                        })
+                      }
+                    >
+                      {t("common.reject")}
+                    </Button>
+                  </>
                 ) : (
-                  <div className="space-y-3">
-                    {selectedExperiments.map((experiment) => (
-                      <div
-                        key={experiment.uuid}
-                        className="rounded-2xl border border-border bg-background px-4 py-3"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{experiment.title}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {statusLabelForExperiment(t, experiment)}
-                            </p>
-                          </div>
-                          {experiment.outcome ? <Badge variant="outline">{experiment.outcome}</Badge> : null}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <>
+                    {selectedQuestion.status !== "open" && (
+                      <Button size="sm" variant="outline" disabled={isPending} onClick={() => runStatusAction("open")}>
+                        {t("ideas.status.open")}
+                      </Button>
+                    )}
+                    {selectedQuestion.status !== "elaborating" && (
+                      <Button size="sm" variant="outline" disabled={isPending} onClick={() => runStatusAction("elaborating")}>
+                        {t("ideas.status.elaborating")}
+                      </Button>
+                    )}
+                    {selectedQuestion.status !== "proposal_created" && selectedQuestion.status !== "experiment_created" && (
+                      <Button size="sm" variant="outline" disabled={isPending} onClick={() => runStatusAction("proposal_created")}>
+                        {t("ideas.status.experimentCreated")}
+                      </Button>
+                    )}
+                    {selectedQuestion.status !== "completed" && (
+                      <Button size="sm" className="bg-emerald-700 text-white hover:bg-emerald-600" disabled={isPending} onClick={() => runStatusAction("completed")}>
+                        <Check className="mr-1.5 h-3.5 w-3.5" />
+                        {t("ideas.status.completed")}
+                      </Button>
+                    )}
+                  </>
                 )}
               </div>
+            </div>
+
+            {/* Linked experiments */}
+            <div className="mt-5 space-y-3 border-t border-border pt-5">
+              <h3 className="text-sm font-semibold text-foreground">{t("ideas.linkedExperiments")}</h3>
+              {selectedExperiments.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border bg-secondary/40 px-4 py-6 text-sm text-muted-foreground">
+                  {t("ideas.noLinkedExperiments")}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {selectedExperiments.map((experiment) => (
+                    <div key={experiment.uuid} className="rounded-2xl border border-border bg-background px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{experiment.title}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{statusLabelForExperiment(t, experiment)}</p>
+                        </div>
+                        {experiment.outcome ? <Badge variant="outline">{experiment.outcome}</Badge> : null}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </Card>
         </div>
