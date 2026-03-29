@@ -403,16 +403,6 @@ export function GroupSection({
                     <Pencil className="mr-1 h-3 w-3" />
                     {t("projectGroups.editGroup")}
                   </Button>
-                  <Link href={`/project-groups/${group.uuid}`} className="md:w-auto">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-xs text-primary hover:text-primary/80"
-                    >
-                      {t("projectGroups.viewDashboard")}
-                      <ArrowRight className="ml-1 h-3 w-3" />
-                    </Button>
-                  </Link>
                   <Button
                     variant="outline"
                     size="sm"
