@@ -98,18 +98,42 @@ export async function fetchArxivMetadata(url: string): Promise<{
   if (!match) return null;
   const arxivId = match[1];
 
+  // Strategy 1: Semantic Scholar (fast, reliable, has arXiv paper data)
   try {
-    // Use curl for reliability — Node fetch has issues with arXiv's redirect + rate limiting
+    const ssResp = await fetch(
+      `https://api.semanticscholar.org/graph/v1/paper/ArXiv:${arxivId}?fields=title,abstract,authors`,
+      { signal: AbortSignal.timeout(10000) },
+    );
+    if (ssResp.ok) {
+      const data = await ssResp.json() as {
+        title?: string;
+        abstract?: string;
+        authors?: Array<{ name: string }>;
+      };
+      if (data.title) {
+        return {
+          title: data.title,
+          authors: (data.authors ?? []).map((a) => a.name).join(", "),
+          abstract: data.abstract ?? "",
+          arxivId,
+        };
+      }
+    }
+  } catch {
+    // Semantic Scholar failed, try arXiv directly
+  }
+
+  // Strategy 2: arXiv API via curl (slower, rate-limited)
+  try {
     const { execFile } = await import("node:child_process");
     const { promisify } = await import("node:util");
     const execFileAsync = promisify(execFile);
     const { stdout: xml } = await execFileAsync(
       "curl",
-      ["-sL", "--max-time", "20", `https://export.arxiv.org/api/query?id_list=${arxivId}`],
-      { timeout: 25000, maxBuffer: 1024 * 1024 },
+      ["-sL", "--max-time", "15", `https://export.arxiv.org/api/query?id_list=${arxivId}`],
+      { timeout: 20000, maxBuffer: 1024 * 1024 },
     );
 
-    // Parse XML — arXiv API returns Atom feed with entries
     const entries = xml.split("<entry>");
     if (entries.length < 2) return null;
     const entry = entries[1];
