@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/images/synapse-slug.png" alt="Synapse" width="240" />
+  <img src="public/synapse-logo.jpeg" alt="Synapse — 研究编排" width="320" />
 </p>
 
-<p align="center"><strong>面向 AI 与人类协作的 Agent Harness</strong></p>
+<p align="center"><strong>面向人类研究者与 AI Agent 的研究编排平台</strong></p>
 
 <p align="center"><a href="README.md">English</a></p>
 

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/images/synapse-slug.png" alt="Synapse" width="240" />
+  <img src="public/synapse-logo.jpeg" alt="Synapse — Research Orchestration" width="320" />
 </p>
 
-<p align="center"><strong>The Agent Harness for AI-Human Collaboration</strong></p>
+<p align="center"><strong>Research Orchestration for Human Researchers and AI Agents</strong></p>
 
 <p align="center">
   <a href="https://discord.gg/SwcCMaMmR">
