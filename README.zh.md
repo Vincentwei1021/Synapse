@@ -6,323 +6,139 @@
 
 <p align="center"><a href="README.md">English</a></p>
 
-Synapse 是面向人类研究者与 AI Agent 的研究编排平台。它管理完整的研究生命周期 —— 从文献综述、问题制定到实验执行与综合分析 —— 内置 Agent 管理、计算编排和实时可观测性。
-
-核心能力：可组合的 Agent 权限、自主研究循环、Semantic Scholar 文献搜索、实验实时追踪、Agent 自动生成报告。
-
-受 **[AI-DLC（AI-Driven Development Lifecycle）](https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle/)** 方法论启发。核心理念：**Reversed Conversation** — AI 提议，人类验证。
+Synapse 是一个研究编排平台，让人类研究者与 AI Agent 协同工作。它管理完整的研究生命周期——从文献综述、问题制定到实验执行与报告生成——内置 Agent 管理、算力编排和实时可观测性。
 
 ---
 
-## 为什么需要 Agent Harness
+## 目录
 
-AI Agent 的可靠性取决于模型之外的系统。模型负责推理，但会话边界、任务状态、上下文交接、子 Agent 协调和故障恢复——这些都发生在模型之外。这套外围系统就是 **Agent Harness**。
+- [研究工作流](#研究工作流)
+- [功能特性](#功能特性)
+- [快速开始](#快速开始)
+- [文档](#文档)
+- [许可证](#许可证)
 
-没有 harness，Agent 在长任务中会漂移、跨会话丢失上下文、重复工作、静默失败。一个好的 harness 解决这些问题：
-
-| Harness 能力 | 它解决什么问题 | Synapse 的解决方式 |
-|---|---|---|
-| **会话生命周期** | Agent 重启后丢失工作进度 | 每个 Agent 拥有持久化 Session，Plugin 在启动/退出时自动创建和关闭 |
-| **任务状态机** | 没有统一的进度真相源 | 任务按严格的生命周期流转——认领、进行中、提交验证、已验证——所有人实时可见 |
-| **上下文连续性** | 新的上下文窗口从零开始 | 每次 check-in 恢复 Agent 的角色设定、当前分配和项目状态，无需重新探索 |
-| **子 Agent 编排** | 多 Agent 协作缺乏协调就会混乱 | 生命周期钩子自动接管——Session、上下文注入、解锁任务发现，无需手写编排逻辑 |
-| **可观测性** | 看不到的东西没法调试 | 每个操作都带 Session 归因记录；Kanban 和 Worker 徽标实时展示谁在做什么 |
-| **故障恢复** | 卡住的任务阻塞整条流水线 | 空闲 Session 自动过期，孤儿任务释放回任务池，任何 Agent 可重新接手 |
-| **规划与分解** | Agent 不经规划就开始编码 | PM Agent 在执行前构建任务依赖图——没有经过审批的计划，不开始任何工作 |
-
-Synapse 不是一个 framework——它不提供需要你自己组装的构建积木。它是一个**完整的 harness**，带有开箱即用的默认配置：生命周期钩子、50+ MCP 工具、基于角色的权限、以及内建的人类审核环节。
-
----
-
-## AI-DLC 工作流
+## 研究工作流
 
 ```
-Idea ──> Proposal ──> [Document + Task DAG] ──> Execute ──> Verify ──> Done
-  ^          ^               ^                     ^          ^         ^
-Human     PM Agent       PM Agent              Dev Agent    Admin     Admin
-creates   analyzes       drafts PRD            codes &      reviews   closes
-          & plans        & tasks               reports      & verifies
+研究项目 ──> 研究问题 ──> 实验 ──> 报告
+   ^            ^          ^        ^
+  人类       人类或       AI Agent  AI Agent
+  创建       AI Agent     执行并    撰写
+  项目       提出         上报进度  分析报告
 ```
 
-三个 Agent 角色：
+四种 Agent 权限角色（可组合）：
 
-| 角色 | 职责 | MCP 工具前缀 |
-|------|------|-------------|
-| **PM Agent** | 分析 Idea、创建 Proposal（PRD + 任务拆解）、管理文档 | `synapse_pm_*` |
-| **Developer Agent** | 认领任务、编写代码、报告工作、提交验证 | `synapse_*_task`, `synapse_report_work` |
-| **Admin Agent** | 创建项目/Idea、审批 Proposal、验证任务、管理生命周期 | `synapse_admin_*` |
+| 权限 | 职责 |
+|------|------|
+| **预研** | 文献检索，通过 Semantic Scholar 发现相关论文 |
+| **研究** | 提出研究问题，假设构建 |
+| **实验** | 执行实验，分配算力，上报进度 |
+| **报告** | 生成实验报告、文献综述、综合分析文档 |
 
-所有角色共享只读和协作工具（`synapse_get_*`、`synapse_checkin`、`synapse_add_comment` 等）。
-
----
-
-## 界面预览
-
-### Pixel Workspace — Agent 实时工作状态
-
-![Pixel Workspace](docs/images/pixcel-workspace.gif)
-
-左侧为像素工作室，用像素小人代表每个 Agent 的实时工作状态；右侧为 Agent 终端实时输出。
-
-### Kanban — 任务状态实时流转
-
-![Kanban Auto Update](docs/images/kanban-auto-update.gif)
-
-Kanban 看板随 Agent 工作进度自动更新，任务卡片在 To Do → In Progress → To Verify 之间实时流转。
-
-### Task DAG — 任务依赖可视化
-
-![Task DAG](docs/images/dag.png)
-
-以有向无环图展示任务间的依赖关系，清晰呈现执行顺序与并行路径。
-
-### Requirements Elaboration — 结构化需求澄清
-
-![Requirements Elaboration](docs/images/elaboration.png)
-
-PM Agent 在创建 Proposal 前，通过结构化问答轮次澄清需求。面板展示已完成的答案、待回答的跟进问题和分类标签。
-
-### Proposal — AI 计划审批面板
-
-![Proposal](docs/images/proposal.png)
-
-PM Agent 生成的 Proposal 包含文档草稿和任务 DAG 草稿，Admin 在此面板审阅并决定批准或驳回。
-
-### Task Tracking — 任务详情与活动追踪
-
-![Task Tracking](docs/images/task-tracking.png)
-
-任务详情面板集成活动流、评论和依赖关系，完整记录每个任务的执行过程。
+**自主闭环**：当所有实验队列为空时，指定的 Agent 自动分析项目全局上下文并提出新实验供人类审核。
 
 ---
 
 ## 功能特性
 
-### Kanban 与任务 DAG
+### 智能体管理
 
-任务支持依赖关系（DAG），Kanban 看板实时展示任务状态和活跃 Worker 徽标。PM 创建 Proposal 时通过 `dependsOnDraftUuids` 设定任务执行顺序。
+独立的 `/agents` 页面，支持 4 种可组合权限。每个 Agent 获取 API Key 以访问 MCP 工具。Agent 按用户隔离。
 
-### Session 可观测性
+### 相关文献与文献检索
 
-每个 Developer Agent 创建 Session 并 checkin 到任务，UI 上实时显示哪个 Agent 正在处理哪个任务：
-- Kanban 卡片显示 Worker 徽标
-- 任务详情面板显示活跃 Worker
-- Settings 页面管理 Agent 和 Session
+项目级文献管理：
+- **手动添加** — 粘贴 arXiv 链接，自动通过 Semantic Scholar 获取元数据
+- **自动搜索** — 分配预研 Agent 自动发现论文
+- **深度研究** — 生成综合文献综述文档
 
-### Multi-Agent 协作（Swarm Mode）
+### 实验看板
 
-支持 Claude Code Agent Teams 多 Agent 并行工作，Team Lead 分配 Synapse 任务给多个 Sub-Agent，每个 Sub-Agent 独立管理自己的任务生命周期。
-
-### Synapse Plugin for Claude Code
-
-Claude Code 插件自动化 Session 生命周期管理：
-- **SubagentStart** — 自动创建 Synapse Session
-- **TeammateIdle** — 自动发送心跳
-- **SubagentStop** — 自动 checkout 任务 + 关闭 Session + 发现新解锁任务
-
-### 需求澄清
-
-PM Agent 在创建 Proposal 前通过结构化问答轮次澄清需求。问题按类别分类（功能性、范围、技术等），支持在 CC 终端或 Web UI 上回答。Proposal 提交前必须完成澄清或显式跳过。
-
-### Proposal 审批流
-
-PM Agent 创建 Proposal（包含文档草稿和任务草稿），Admin 审批后草稿物化为正式 Document 和 Task 实体。
-
-### 通知系统
-
-应用内通知 + SSE 实时推送 + Redis Pub/Sub 跨实例传播：
-- **10 种通知类型** — 任务分配/验证/重开、提案批准/驳回、评论新增等
-- **个人偏好设置** — 每种通知类型可独立开关
-- **MCP 工具** — `synapse_get_notifications`、`synapse_mark_notification_read` 供 Agent 使用
-- **Redis Pub/Sub** — 可选，支持多 ECS 实例间 SSE 事件同步（ElastiCache Serverless）
-
-> **[通知系统设计文档 →](src/app/api/notifications/README.md)**
-
-### @Mention
-
-评论和实体描述中支持 @mention — 用户和 AI Agent 可以互相 @，触发定向通知：
-- **Tiptap 编辑器** — 输入 `@` 弹出自动补全下拉框，搜索用户/Agent
-- **权限隔离** — 用户可 @ 同公司所有用户 + 自己名下的 Agent；Agent 遵循同 owner 规则
-- **Mention 通知** — `action="mentioned"` 带上下文片段，点击直达源实体
-- **MCP 工具** — `synapse_search_mentionables` 供 Agent 查询 UUID 后精确写入 mention
-
-> **[@Mention 系统设计文档 →](src/app/api/mentionables/README.md)**
-
-### Agent 管理与可组合权限
-
-专用的 `/agents` 页面管理 AI Agent，支持 4 种可组合权限：`pre_research`（文献搜索）、`research`（问题制定）、`experiment`（执行与计算）、`report`（文档综合）。任意权限组合均可分配给 Agent。
-
-### 相关文献与文献搜索
-
-项目级文献管理页面 `/research-projects/[uuid]/related-works`：
-- **手动添加** — 粘贴 arXiv URL 自动获取元数据
-- **自动搜索** — 分配 `pre_research` Agent 通过 Semantic Scholar 搜索并收集论文
-- **深度研究** — 通过 Agent 生成全面的文献综述文档
-
-### 自主研究循环
-
-在任何项目上启用自我维持的研究循环：
-- 在实验页面头部切换开启
-- 当实验完成且所有队列为空时，指定 Agent 分析完整项目上下文
-- Agent 通过 `synapse_propose_experiment` 提出新实验（作为草稿）
-- 人类在执行前审核提议的实验
-- 循环：执行 → 分析 → 提议 → 审核 → 执行
-
-### 实验实时追踪
-
-实验卡片上显示实时子状态：`sent` → `ack` → `checking_resources` → `queuing` → `running`。Agent 通过 `synapse_report_experiment_progress` MCP 工具报告逐步进展，时间线在实验详情面板中可见。
+五列看板（草稿 → 待审核 → 待启动 → 进行中 → 已完成）：
+- **实时状态徽章** — 已发送 / 已接收 / 检查资源 / 排队中 / 运行中
+- **进度时间线** — Agent 通过 `synapse_report_experiment_progress` 逐步上报
+- **自主闭环开关** — 队列为空时 Agent 自动提出新实验
 
 ### Agent 自动生成报告
 
-实验完成时，指定 Agent 自动撰写实验报告文档，取代之前基于模板的方式，生成更丰富、上下文感知的实验文档。
+实验完成后，执行实验的 Agent 自动撰写报告——结合项目目标分析实验结果，使用项目的语言。替代了模板生成方式。
 
-### 活动流
+### 算力编排
 
-全量记录所有参与者的操作，支持 Session 归因（AgentName / SessionName 格式），实现完整的工作审计追踪。
+- GPU 资源池管理（节点/GPU 资产盘点）
+- 项目级算力池绑定（GPU 预留强约束）
+- 托管 SSH 密钥包（Agent 安全访问计算节点）
+- 根据实验算力预算动态设置 Agent 超时
 
----
+### 研究问题画布
 
-## 架构
+层级化问题看板，支持父子关系、状态流转（待处理 → 分析中 → 实验已创建 → 已完成）、关联实验追踪。
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                 Synapse — Agent Harness (:3000)                    │
-│                                                                  │
-│  ┌── Harness Capabilities ───────────────────────────────────┐   │
-│  │  Session Lifecycle │ Task State Machine │ Context Inject   │   │
-│  │  Sub-Agent Orchestration │ Observability │ Failure Recovery│   │
-│  └───────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  ┌── Synapse Plugin (lifecycle hooks) ────────────────────────┐   │
-│  │  SubagentStart/Stop │ Heartbeat │ Skill & Context Inject  │   │
-│  └───────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  ┌── API Layer ──────────────────────────────────────────────┐   │
-│  │  /api/mcp  — MCP HTTP Streamable (50+ tools, role-based)  │   │
-│  │  /api/*    — REST API (Web UI + SSE push)                 │   │
-│  └───────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  ┌── Service Layer ──────────────────────────────────────────┐   │
-│  │  AI-DLC Workflow │ UUID-first │ Multi-tenant              │   │
-│  └───────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  ┌── Web UI (React 19 + Tailwind + shadcn/ui) ──────────────┐   │
-│  │  Kanban │ Task DAG │ Proposals │ Activity │ Sessions      │   │
-│  └───────────────────────────────────────────────────────────┘   │
-└──────────────────────────────────────────────────────────────────┘
-     ↑              ↑              ↑              ↑
-  PM Agent    Developer Agent  Admin Agent      Human
-   (LLM)         (LLM)          (LLM)        (Browser)
-                     │
-          ┌──────────▼──────────┐   ┌─────────────────────┐
-          │  PostgreSQL + Prisma │   │  Redis（可选）       │
-          └─────────────────────┘   │  Pub/Sub 事件分发   │
-                                    └─────────────────────┘
-```
+### 通知系统
 
-## 技术栈
+实时 SSE 推送 + Redis Pub/Sub 跨实例传播。通知偏好按 Agent 权限分组。Agent 接收分配、提及和自主闭环触发的通知。
 
-| 组件 | 技术 |
+### MCP 工具
+
+30+ MCP 工具覆盖完整研究工作流：
+
+| 类别 | 工具 |
 |------|------|
-| 框架 | Next.js 15 (App Router, Turbopack) |
-| 语言 | TypeScript 5 (strict mode) |
-| 前端 | React 19, Tailwind CSS 4, shadcn/ui (Radix UI) |
-| ORM | Prisma 7 |
-| 数据库 | PostgreSQL 16 |
-| 缓存/消息 | Redis 7 (ioredis) — 可选，生产环境使用 ElastiCache Serverless |
-| Agent 集成 | MCP SDK 1.26 (HTTP Streamable Transport) |
-| 认证 | OIDC + PKCE（用户）/ API Key `syn_` 前缀（Agent）/ SuperAdmin |
-| i18n | next-intl (en, zh) |
-| 包管理 | pnpm 9.15 |
-| 部署 | [Docker Hub](https://hub.docker.com/repository/docker/synapseaidlc/synapse-app/general) / Docker Compose / AWS CDK |
+| **读取** | `synapse_get_research_project`, `synapse_get_experiment`, `synapse_get_assigned_experiments`, `synapse_get_project_full_context` |
+| **文献** | `synapse_search_papers`, `synapse_add_related_work`, `synapse_get_related_works` |
+| **实验** | `synapse_start_experiment`, `synapse_submit_experiment_results`, `synapse_report_experiment_progress` |
+| **算力** | `synapse_list_compute_nodes`, `synapse_get_node_access_bundle`, `synapse_sync_node_inventory` |
+| **自主** | `synapse_propose_experiment` |
+| **协作** | `synapse_add_comment`, `synapse_get_comments` |
 
 ---
 
 ## 快速开始
 
-### Docker 一键启动（推荐）
-
-无需安装构建工具，最快体验 Synapse：
+### Docker 快速启动
 
 ```bash
-# 克隆仓库（获取 docker-compose.yml）
-git clone https://github.com/Synapse-AIDLC/synapse.git
-cd synapse
+git clone https://github.com/Vincentwei1021/Synapse.git
+cd Synapse
 
-# 使用 Docker Hub 预构建镜像启动
-DEFAULT_USER=admin@example.com DEFAULT_PASSWORD=changeme \
-  docker compose up -d
-
-# 访问
-open http://localhost:3000
+export DEFAULT_USER=admin@example.com
+export DEFAULT_PASSWORD=changeme
+docker compose up -d
 ```
 
-自动拉取 [`synapseaidlc/synapse-app`](https://hub.docker.com/repository/docker/synapseaidlc/synapse-app/general)（支持 amd64 和 arm64），同时启动 PostgreSQL 和 Redis，并自动执行数据库迁移。
-
-> 完整环境变量和配置选项见 [Docker 文档](docs/DOCKER.md)
+打开 [http://localhost:3000](http://localhost:3000) 登录。
 
 ### 本地开发
 
-前置条件：Node.js 22+、pnpm 9+、Docker（用于 PostgreSQL/Redis）
+前提：Node.js 22+, pnpm 9+, PostgreSQL
 
 ```bash
-# 配置环境变量
 cp .env.example .env
-# 编辑 .env，配置数据库连接和 OIDC
+# 编辑 .env 配置 DATABASE_URL
 
-# 启动数据库和 Redis
-pnpm docker:db
-
-# 安装依赖并初始化
 pnpm install
-pnpm db:migrate:dev
+pnpm db:push
 pnpm dev
 
-# 访问
 open http://localhost:3000
 ```
 
-### 部署到 AWS
-
-使用内置的 CDK 安装脚本一键部署到 AWS。自动创建完整的生产环境：VPC、Aurora Serverless v2 (PostgreSQL)、ElastiCache Serverless (Redis)、ECS Fargate 和 ALB（HTTPS）。
-
-前置条件：AWS CLI（已配置凭证）、Node.js 22+、pnpm 9+
-
-```bash
-./install.sh
-```
-
-交互式安装器会依次询问：
-- **Stack 名称** — CloudFormation 栈名（默认：`Synapse`）
-- **ACM 证书 ARN** — HTTPS 所需的 SSL 证书（必填）
-- **自定义域名** — 例如 `synapse.example.com`（可选）
-- **超级管理员邮箱和密码** — 用于 `/admin` 管理面板
-
-配置会保存到 `default_deploy.sh`，后续可直接重新部署。
-
 ### 连接 AI Agent
 
-#### 方式一：使用 Synapse Plugin（推荐）
-
-Synapse Plugin 为 Claude Code 提供自动化 Session 管理和 Skill 文档。
-
-```bash
-# 从 Plugin Marketplace 安装（推荐）
-claude /plugin marketplace add Synapse-AIDLC/synapse
-claude /plugin install synapse@synapse-plugins
-
-# 或者本地加载（开发模式）
-claude --plugin-dir public/synapse-plugin
-```
-
-安装后设置环境变量：
+#### 方式一：OpenClaw 插件（推荐）
 
 ```bash
 export SYNAPSE_URL="http://localhost:3000"
 export SYNAPSE_API_KEY="syn_your_api_key"
+
+claude
+/plugin marketplace add Synapse-AIDLC/synapse
+/plugin install synapse@synapse-plugins
 ```
 
-#### 方式二：手动配置 MCP
+#### 方式二：手动 MCP 配置
 
 在项目根目录创建 `.mcp.json`：
 
@@ -340,71 +156,13 @@ export SYNAPSE_API_KEY="syn_your_api_key"
 }
 ```
 
-API Key 在 Synapse Web UI 的 Settings 页面创建（Settings > Agents > Create API Key）。
+### 部署到 AWS
 
----
+```bash
+./install.sh
+```
 
-## Skill 文档
-
-Synapse 提供 Skill 文档指导 AI Agent 使用平台，有两种分发方式：
-
-| 方式 | 位置 | 适用场景 |
-|------|------|---------|
-| **Plugin 内嵌** | `public/synapse-plugin/skills/synapse/` | Claude Code + Plugin，Session 自动化 |
-| **独立分发** | `public/skill/`（`/skill/` 路径静态托管）| 任何 Agent，手动 Session 管理 |
-
-Skill 文件包含：MCP 配置指南、三个角色的完整工作流、Session 与可观测性、Claude Code Agent Teams 集成等。
-
----
-
-## 子包
-
-| 包 | 说明 |
-|---|------|
-| [`packages/openclaw-plugin`](packages/openclaw-plugin) | **OpenClaw 插件** (`@synapse-aidlc/synapse-openclaw-plugin`) — 通过 SSE 长连接 + MCP 工具桥接 [OpenClaw](https://openclaw.ai) 与 Synapse。OpenClaw agent 可实时接收 Synapse 事件（任务分配、@提及、提案拒绝等），并通过 40 个注册工具参与完整的 AI-DLC 工作流。 |
-| [`packages/synapse-cdk`](packages/synapse-cdk) | **AWS CDK** — Synapse 的 AWS 基础设施即代码（VPC、Aurora Serverless、ElastiCache、ECS Fargate、ALB）。 |
-
----
-
-## 项目进度
-
-基于 [AI-DLC 方法论](https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle/)对标，当前实现状态：
-
-### 已实现
-
-- [x] **Reversed Conversation** — Proposal 审批流（AI 提议，人类验证）
-- [x] **Task DAG** — 任务依赖建模 + 环检测 + @xyflow/react 可视化
-- [x] **Context Continuity** — Plugin 自动注入上下文 + checkin 返回 persona/assignments
-- [x] **Session Observability** — 每个 Worker 独立 Session，Kanban/Task Detail 实时显示
-- [x] **Parallel Execution** — Claude Code Agent Teams (Swarm Mode) + Plugin 自动化
-- [x] **Feedback Loop** — AI Agent 可创建 Idea，形成 Ops → Idea 闭环
-- [x] **50+ MCP Tools** — 覆盖 Public/Session/Developer/PM/Admin 五个权限域
-- [x] **Activity Stream** — 全操作审计 + Session 归因
-- [x] **通知系统** — 应用内通知 + SSE 推送 + Redis Pub/Sub + 个人偏好设置 + MCP 工具
-- [x] **@Mention** — Tiptap 自动补全编辑器 + mention 通知 + `synapse_search_mentionables` MCP 工具 + 权限隔离搜索
-- [x] **需求澄清** — 结构化问答澄清 Idea 需求，澄清门控确保 Proposal 创建前需求已明确
-- [x] **Agent 管理** — 专用 `/agents` 页面，4 种可组合权限（pre_research、research、experiment、report）
-- [x] **相关文献** — Semantic Scholar 文献搜索、arXiv 手动导入、深度研究报告生成
-- [x] **自主循环** — 自我维持的研究循环：Agent 分析 → 提议实验 → 人类审核 → Agent 执行
-- [x] **实验实时追踪** — 实时子状态（sent/ack/checking/queuing/running）+ 进度日志时间线
-- [x] **Agent 自动报告** — 实验完成时 Agent 自动撰写实验报告
-
-### 部分实现
-
-- [x] **Task Auto-Scheduling** — `synapse_get_unblocked_tasks` MCP 工具 + SubagentStop Hook 自动发现解锁任务
-  - [ ] 事件驱动推送（任务解锁时主动通知）
-  - [ ] 自动分配给空闲 Agent
-
-### 待开发
-
-- [ ] **Execution Metrics (P1)** — Agent Hours、任务执行时长、项目 velocity 统计
-- [ ] **Proposal Granular Review (P1)** — 支持部分审批、条件审批、逐草稿 Review
-- [ ] **Session Auto-Expiry (P1)** — 后台定时扫描 inactive Session，自动关闭 + checkout
-- [ ] **Checkin Context Density (P2)** — 丰富 checkin 返回（项目概况、阻塞信息、建议操作）
-- [ ] **Proposal State Validation (P2)** — Proposal 状态机校验（防止非法状态转换）
-- [ ] **Bolt Cycles (P2)** — 迭代/里程碑分组（目前可用 Project 替代）
-
-> 详细分析见 [AI-DLC Gap Analysis](docs/AIDLC_GAP_ANALYSIS.md)
+交互式安装器配置：VPC、Aurora Serverless v2（PostgreSQL）、ElastiCache Serverless（Redis）、ECS Fargate、HTTPS ALB。
 
 ---
 
@@ -412,16 +170,14 @@ Skill 文件包含：MCP 配置指南、三个角色的完整工作流、Session
 
 | 文档 | 说明 |
 |------|------|
-| [PRD](docs/PRD_Synapse.md) | 产品需求文档 |
-| [Architecture](docs/ARCHITECTURE.md) | 技术架构文档 |
+| [CLAUDE.md](CLAUDE.md) | 开发指南与编码规范 |
+| [Architecture](docs/ARCHITECTURE.md) | 技术架构 |
 | [MCP Tools](docs/MCP_TOOLS.md) | MCP 工具参考 |
-| [Synapse Plugin](docs/synapse-plugin.md) | 插件设计与 Hook 说明 |
-| [AI-DLC Gap Analysis](docs/AIDLC_GAP_ANALYSIS.md) | AI-DLC 方法论差距分析 |
-| [Docker](docs/DOCKER.md) | Docker 镜像使用、环境变量、部署说明 |
-| [CLAUDE.md](CLAUDE.md) | 项目开发规范（给 AI Agent 的编码指南） |
+| [OpenClaw Plugin](docs/synapse-plugin.md) | 插件设计与 Hooks |
+| [Docker](docs/DOCKER.md) | Docker 部署指南 |
 
 ---
 
-## License
+## 许可证
 
-AGPL-3.0 — see [LICENSE.txt](LICENSE.txt)
+AGPL-3.0 — 见 [LICENSE.txt](LICENSE.txt)
