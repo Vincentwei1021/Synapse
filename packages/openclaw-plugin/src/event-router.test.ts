@@ -18,7 +18,7 @@ describe("SynapseEventRouter", () => {
     vi.clearAllMocks();
   });
 
-  it("routes experiment assignments with experiment-specific mention guidance and unlimited budget text", async () => {
+  it("routes experiment assignments with full context and unlimited budget text", async () => {
     callTool
       .mockResolvedValueOnce({
         notifications: [
@@ -78,6 +78,7 @@ describe("SynapseEventRouter", () => {
     expect(prompt).toContain("Compute budget (hours): Unlimited");
     expect(prompt).toContain("post a comment on this experiment");
     expect(prompt).toContain("@[Alice](user:user-1)");
+    expect(prompt).toContain("synapse_report_experiment_progress");
     expect(metadata).toMatchObject({
       action: "task_assigned",
       entityType: "experiment",
@@ -121,5 +122,144 @@ describe("SynapseEventRouter", () => {
     expect(triggerAgent).not.toHaveBeenCalled();
     expect(callTool).toHaveBeenCalledTimes(1);
     expect(logger.info).toHaveBeenCalledWith("Notification for project project-2 filtered out");
+  });
+
+  it("routes autonomous loop triggered events", async () => {
+    callTool.mockResolvedValueOnce({
+      notifications: [
+        {
+          uuid: "notification-3",
+          researchProjectUuid: "project-1",
+          entityType: "research_project",
+          entityUuid: "project-1",
+          entityTitle: "My Project",
+          action: "autonomous_loop_triggered",
+          message: "Queue empty",
+          actorType: "system",
+          actorUuid: "system",
+          actorName: "Synapse",
+        },
+      ],
+    });
+
+    const router = new SynapseEventRouter({
+      mcpClient: { callTool } as never,
+      config: {
+        synapseUrl: "http://synapse.local",
+        apiKey: "syn_key",
+        autoStart: true,
+        projectUuids: [],
+      },
+      triggerAgent,
+      logger,
+    });
+
+    await (router as unknown as { fetchAndRoute: (notificationUuid: string) => Promise<void> }).fetchAndRoute("notification-3");
+
+    expect(triggerAgent).toHaveBeenCalledTimes(1);
+    const [prompt, metadata] = triggerAgent.mock.calls[0];
+    expect(prompt).toContain("Autonomous research loop triggered");
+    expect(prompt).toContain("synapse_propose_experiment");
+    expect(metadata).toMatchObject({
+      action: "autonomous_loop_triggered",
+      projectUuid: "project-1",
+    });
+  });
+
+  it("routes experiment report requested events", async () => {
+    callTool.mockResolvedValueOnce({
+      notifications: [
+        {
+          uuid: "notification-4",
+          researchProjectUuid: "project-1",
+          entityType: "experiment",
+          entityUuid: "experiment-1",
+          entityTitle: "Baseline experiment",
+          action: "experiment_report_requested",
+          message: "Write report",
+          actorType: "system",
+          actorUuid: "system",
+          actorName: "Synapse",
+        },
+      ],
+    });
+
+    const router = new SynapseEventRouter({
+      mcpClient: { callTool } as never,
+      config: {
+        synapseUrl: "http://synapse.local",
+        apiKey: "syn_key",
+        autoStart: true,
+        projectUuids: [],
+      },
+      triggerAgent,
+      logger,
+    });
+
+    await (router as unknown as { fetchAndRoute: (notificationUuid: string) => Promise<void> }).fetchAndRoute("notification-4");
+
+    expect(triggerAgent).toHaveBeenCalledTimes(1);
+    const [prompt] = triggerAgent.mock.calls[0];
+    expect(prompt).toContain("Baseline experiment");
+    expect(prompt).toContain("synapse_add_comment");
+  });
+
+  it("routes @mention events with entity context", async () => {
+    callTool.mockResolvedValueOnce({
+      notifications: [
+        {
+          uuid: "notification-5",
+          researchProjectUuid: "project-1",
+          entityType: "experiment",
+          entityUuid: "experiment-1",
+          entityTitle: "Recall test",
+          action: "mentioned",
+          message: "@Agent please review",
+          actorType: "user",
+          actorUuid: "user-1",
+          actorName: "Alice",
+        },
+      ],
+    });
+
+    const router = new SynapseEventRouter({
+      mcpClient: { callTool } as never,
+      config: {
+        synapseUrl: "http://synapse.local",
+        apiKey: "syn_key",
+        autoStart: true,
+        projectUuids: [],
+      },
+      triggerAgent,
+      logger,
+    });
+
+    await (router as unknown as { fetchAndRoute: (notificationUuid: string) => Promise<void> }).fetchAndRoute("notification-5");
+
+    expect(triggerAgent).toHaveBeenCalledTimes(1);
+    const [prompt] = triggerAgent.mock.calls[0];
+    expect(prompt).toContain("@mentioned");
+    expect(prompt).toContain("synapse_get_comments");
+    expect(prompt).toContain("@[Alice](user:user-1)");
+  });
+
+  it("ignores non-new_notification event types", () => {
+    const router = new SynapseEventRouter({
+      mcpClient: { callTool } as never,
+      config: {
+        synapseUrl: "http://synapse.local",
+        apiKey: "syn_key",
+        autoStart: true,
+        projectUuids: [],
+      },
+      triggerAgent,
+      logger,
+    });
+
+    router.dispatch({ type: "count_update", unreadCount: 5 } as unknown as import("./sse-listener.js").SseNotificationEvent);
+
+    expect(triggerAgent).not.toHaveBeenCalled();
+    expect(callTool).not.toHaveBeenCalled();
+    expect(logger.info).toHaveBeenCalledWith('SSE event type "count_update" ignored');
   });
 });

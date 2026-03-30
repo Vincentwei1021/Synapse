@@ -5,10 +5,7 @@ import { synapseConfigSchema, type SynapsePluginConfig, validateConfigWithWarnin
 import { SynapseMcpClient } from "./mcp-client.js";
 import { SynapseSseListener } from "./sse-listener.js";
 import { SynapseEventRouter } from "./event-router.js";
-import { registerPmTools } from "./tools/pm-tools.js";
-import { registerDevTools } from "./tools/dev-tools.js";
 import { registerCommonTools } from "./tools/common-tools.js";
-import { registerAdminTools } from "./tools/admin-tools.js";
 import { registerSynapseCommands } from "./commands.js";
 
 /**
@@ -54,7 +51,7 @@ const plugin = {
   id: "synapse-openclaw-plugin",
   name: "Synapse",
   description:
-    "Synapse AI-DLC collaboration platform — SSE real-time events + MCP tool integration",
+    "Synapse research orchestration platform — SSE real-time events + MCP tool integration",
   configSchema: synapseConfigSchema,
 
   register(api: OpenClawPluginApi) {
@@ -144,11 +141,8 @@ const plugin = {
       },
     });
 
-    // --- Tools ---
-    registerPmTools(api, mcpClient);
-    registerDevTools(api, mcpClient);
+    // --- Tools (all tools available to all agents) ---
     registerCommonTools(api, mcpClient);
-    registerAdminTools(api, mcpClient);
 
     // --- Commands ---
     registerSynapseCommands(api, mcpClient, () => sseListener?.status ?? "disconnected");
