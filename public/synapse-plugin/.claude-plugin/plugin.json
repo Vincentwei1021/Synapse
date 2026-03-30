@@ -1,20 +1,20 @@
 {
   "name": "synapse",
-  "description": "Synapse AI-DLC collaboration platform plugin for Claude Code. Automates session lifecycle, provides MCP tools for PM/Developer/Admin workflows, and enables multi-agent team observability.",
-  "version": "0.3.6",
+  "description": "Synapse research orchestration plugin for Claude Code. Connects AI agents to Synapse for experiment execution, literature search, progress reporting, and autonomous research loops.",
+  "version": "0.5.0",
   "author": {
-    "name": "Synapse-AIDLC"
+    "name": "Vincentwei1021"
   },
-  "homepage": "https://github.com/Synapse-AIDLC/Synapse",
-  "repository": "https://github.com/Synapse-AIDLC/Synapse",
+  "homepage": "https://github.com/Vincentwei1021/Synapse",
+  "repository": "https://github.com/Vincentwei1021/Synapse",
   "license": "AGPL-3.0",
   "keywords": [
     "synapse",
-    "ai-dlc",
-    "project-management",
+    "research",
+    "orchestration",
     "mcp",
-    "session",
-    "multi-agent",
-    "collaboration"
+    "experiments",
+    "ai-agents",
+    "literature-search"
   ]
 }
