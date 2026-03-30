@@ -8,6 +8,8 @@
 
 Synapse 是一个研究编排平台，让人类研究者与 AI Agent 协同工作。它管理完整的研究生命周期——从文献综述、问题制定到实验执行与报告生成——内置 Agent 管理、算力编排和实时可观测性。
 
+灵感来源于 [AI-DLC（AI 驱动开发生命周期）](https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle/) 方法论，构建于 [Chorus](https://github.com/Chorus-AIDLC/Chorus) 之上。
+
 ---
 
 ## 目录

@@ -8,6 +8,8 @@
 
 Synapse is a research orchestration platform that brings human researchers and AI agents together. It manages the full research lifecycle — from literature review and question formulation through experiment execution and report generation — with built-in agent management, compute orchestration, and real-time observability.
 
+Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle/) methodology and built upon [Chorus](https://github.com/Chorus-AIDLC/Chorus).
+
 ---
 
 ## Table of Contents
