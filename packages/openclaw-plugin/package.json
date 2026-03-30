@@ -1,7 +1,7 @@
 {
-  "name": "@synapse-aidlc/synapse-openclaw-plugin",
-  "version": "0.2.5",
-  "description": "OpenClaw plugin for Synapse AI-DLC collaboration platform — SSE real-time events + MCP tool integration",
+  "name": "@vincentwei1021/synapse-openclaw-plugin",
+  "version": "0.5.0",
+  "description": "OpenClaw plugin for Synapse research orchestration — SSE notifications, MCP tools, experiment lifecycle, autonomous loop",
   "license": "MIT",
   "type": "module",
   "main": "src/index.ts",
@@ -24,11 +24,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Synapse-AIDLC/Synapse",
+    "url": "https://github.com/Vincentwei1021/Synapse",
     "directory": "packages/openclaw-plugin"
   },
-  "homepage": "https://synapse-aidlc.github.io/Synapse/",
-  "keywords": ["openclaw", "synapse", "ai-dlc", "mcp", "plugin", "agent"],
+  "homepage": "https://github.com/Vincentwei1021/Synapse",
+  "keywords": ["openclaw", "synapse", "research", "mcp", "plugin", "agent", "experiments"],
   "files": [
     "src",
     "openclaw.plugin.json",
