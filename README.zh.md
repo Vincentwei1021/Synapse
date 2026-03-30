@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/synapse-logo.jpeg" alt="Synapse — 研究编排" width="320" />
+  <img src="public/synapse-logo.png" alt="Synapse — 研究编排" width="320" />
 </p>
 
 <p align="center"><strong>面向人类研究者与 AI Agent 的研究编排平台</strong></p>

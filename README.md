@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/synapse-logo.jpeg" alt="Synapse — Research Orchestration" width="320" />
+  <img src="public/synapse-logo.png" alt="Synapse — Research Orchestration" width="320" />
 </p>
 
 <p align="center"><strong>Research Orchestration for Human Researchers and AI Agents</strong></p>
