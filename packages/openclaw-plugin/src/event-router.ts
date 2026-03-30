@@ -264,12 +264,17 @@ export class SynapseEventRouter {
         mentionGuidance,
       ].join("\n");
 
+      // Compute timeout: use experiment's computeBudgetHours, or 24h if unlimited
+      const budgetHours = experiment?.computeBudgetHours;
+      const timeoutSeconds = budgetHours != null ? Math.ceil(budgetHours * 3600) : 24 * 3600;
+
       this.triggerAgent(prompt, {
         notificationUuid: n.uuid,
         action: "task_assigned",
         entityType: n.entityType,
         entityUuid: n.entityUuid,
         projectUuid,
+        timeoutSeconds,
       });
       return;
     }

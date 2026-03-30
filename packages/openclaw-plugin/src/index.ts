@@ -16,11 +16,14 @@ import { registerSynapseCommands } from "./commands.js";
  * the gateway's /hooks/agent endpoint. This treats the Synapse assignment as
  * a primary prompt instead of a side-channel wake event.
  */
+const DEFAULT_TIMEOUT_SECONDS = 24 * 3600; // 24 hours for unlimited budget
+
 async function wakeAgent(
   gatewayUrl: string,
   hooksToken: string,
   text: string,
   logger: { info: (msg: string) => void; warn: (msg: string) => void },
+  timeoutSeconds?: number,
 ) {
   try {
     const res = await fetch(`${gatewayUrl}/hooks/agent`, {
@@ -34,7 +37,7 @@ async function wakeAgent(
         name: "Synapse",
         wakeMode: "now",
         deliver: false,
-        timeoutSeconds: 3600,
+        timeoutSeconds: timeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS,
       }),
     });
     if (!res.ok) {
@@ -94,10 +97,10 @@ const plugin = {
       config,
       logger,
       triggerAgent: (message: string, metadata?: Record<string, unknown>) => {
-        void metadata;
+        const timeoutSeconds = metadata?.timeoutSeconds as number | undefined;
         // Use /hooks/agent to create an isolated agent turn for Synapse work.
         if (hooksToken) {
-          wakeAgent(gatewayUrl, hooksToken, message, logger);
+          wakeAgent(gatewayUrl, hooksToken, message, logger, timeoutSeconds);
         } else {
           logger.warn(
             `[Synapse] Cannot wake agent — hooks.token not configured. Event: ${message.slice(0, 100)}`
