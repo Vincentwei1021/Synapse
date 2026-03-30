@@ -60,3 +60,10 @@ packages/synapse-cdk/lib/*.d.ts
 
 #demo
 dev-story-demo/
+# Playwright test artifacts
+.playwright-cli/
+e2e-*.png
+e2e-*.md
+output/
+.chorus/.mcp_headers.*
+.superpowers/

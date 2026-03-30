@@ -14,6 +14,8 @@ import * as criteriaEvaluationService from "@/services/criteria-evaluation.servi
 import { AlreadyClaimedError, NotClaimedError } from "@/lib/errors";
 
 export function registerResearcherTools(server: McpServer, auth: AgentAuthContext) {
+  const resolveRunUuid = (params: { runUuid?: string; taskUuid?: string }) => params.runUuid ?? params.taskUuid;
+
   // synapse_claim_experiment_run - Claim an Experiment Run
   server.registerTool(
     "synapse_claim_experiment_run",
@@ -115,13 +117,18 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
     {
       description: "Update experiment run status (only the assignee can operate)",
       inputSchema: z.object({
-        runUuid: z.string().describe("Experiment Run UUID"),
+        runUuid: z.string().optional().describe("Experiment Run UUID"),
+        taskUuid: z.string().optional().describe("Compatibility alias for runUuid"),
         status: z.enum(["in_progress", "to_verify"]).describe("New status"),
         sessionUuid: z.string().optional().describe("Session UUID (for sub-agent identification)"),
       }),
     },
-    async ({ runUuid, status, sessionUuid }) => {
-      const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, runUuid);
+    async ({ runUuid, taskUuid, status, sessionUuid }) => {
+      const resolvedRunUuid = resolveRunUuid({ runUuid, taskUuid });
+      if (!resolvedRunUuid) {
+        return { content: [{ type: "text", text: "runUuid is required" }], isError: true };
+      }
+      const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, resolvedRunUuid);
       if (!run) {
         return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }
@@ -205,12 +212,18 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
     {
       description: "Submit experiment run for human verification (in_progress -> to_verify)",
       inputSchema: z.object({
-        runUuid: z.string().describe("Experiment Run UUID"),
+        runUuid: z.string().optional().describe("Experiment Run UUID"),
+        taskUuid: z.string().optional().describe("Compatibility alias for runUuid"),
         summary: z.string().optional().describe("Work summary"),
       }),
     },
-    async ({ runUuid, summary }) => {
-      const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, runUuid);
+    async ({ runUuid, taskUuid, summary }) => {
+      const resolvedRunUuid = resolveRunUuid({ runUuid, taskUuid });
+      if (!resolvedRunUuid) {
+        return { content: [{ type: "text", text: "runUuid is required" }], isError: true };
+      }
+
+      const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, resolvedRunUuid);
       if (!run) {
         return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }
@@ -254,7 +267,8 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
     {
       description: "Report self-check results on acceptance criteria for an experiment run you're working on",
       inputSchema: z.object({
-        runUuid: z.string().describe("Experiment Run UUID"),
+        runUuid: z.string().optional().describe("Experiment Run UUID"),
+        taskUuid: z.string().optional().describe("Compatibility alias for runUuid"),
         criteria: z.array(z.object({
           uuid: z.string().describe("AcceptanceCriterion UUID"),
           devStatus: z.enum(["passed", "failed"]).describe("Self-check result"),
@@ -262,9 +276,14 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
         })).describe("Criteria self-check results"),
       }),
     },
-    async ({ runUuid, criteria }) => {
+    async ({ runUuid, taskUuid, criteria }) => {
+      const resolvedRunUuid = resolveRunUuid({ runUuid, taskUuid });
+      if (!resolvedRunUuid) {
+        return { content: [{ type: "text", text: "runUuid is required" }], isError: true };
+      }
+
       // Verify caller is the assignee
-      const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, runUuid);
+      const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, resolvedRunUuid);
       if (!run) return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       const isAssignee =
         (run.assigneeType === "agent" && run.assigneeUuid === auth.actorUuid) ||
@@ -273,7 +292,7 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
 
       const result = await experimentRunService.reportCriteriaSelfCheck(
         auth.companyUuid,
-        runUuid,
+        resolvedRunUuid,
         criteria,
         { type: auth.type, actorUuid: auth.actorUuid },
       );
@@ -287,14 +306,20 @@ export function registerResearcherTools(server: McpServer, auth: AgentAuthContex
     {
       description: "Report work progress or completion",
       inputSchema: z.object({
-        runUuid: z.string().describe("Experiment Run UUID"),
+        runUuid: z.string().optional().describe("Experiment Run UUID"),
+        taskUuid: z.string().optional().describe("Compatibility alias for runUuid"),
         report: z.string().describe("Work report content"),
         status: z.enum(["in_progress", "to_verify"]).optional().describe("Optional: update status at the same time"),
         sessionUuid: z.string().optional().describe("Session UUID (for sub-agent identification)"),
       }),
     },
-    async ({ runUuid, report, status, sessionUuid }) => {
-      const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, runUuid);
+    async ({ runUuid, taskUuid, report, status, sessionUuid }) => {
+      const resolvedRunUuid = resolveRunUuid({ runUuid, taskUuid });
+      if (!resolvedRunUuid) {
+        return { content: [{ type: "text", text: "runUuid is required" }], isError: true };
+      }
+
+      const run = await experimentRunService.getExperimentRunByUuid(auth.companyUuid, resolvedRunUuid);
       if (!run) {
         return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
       }

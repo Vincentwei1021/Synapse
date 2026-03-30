@@ -6,7 +6,8 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "cd ../.. && pnpm exec vitest run packages/openclaw-plugin/src/event-router.test.ts packages/openclaw-plugin/src/mcp-client.test.ts packages/openclaw-plugin/src/sse-listener.test.ts"
   },
   "peerDependencies": {
     "openclaw": ">=2026.0.0"

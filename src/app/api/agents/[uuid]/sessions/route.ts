@@ -3,10 +3,10 @@
 // UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { withErrorHandler } from "@/lib/api-handler";
 import { success, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
+import { getAgentByUuid } from "@/services/agent.service";
 import { listAgentSessions } from "@/services/session.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
@@ -26,10 +26,7 @@ export const GET = withErrorHandler<{ uuid: string }>(
     const { uuid } = await context.params;
 
     // Verify agent belongs to company
-    const agent = await prisma.agent.findFirst({
-      where: { uuid, companyUuid: auth.companyUuid },
-      select: { uuid: true },
-    });
+    const agent = await getAgentByUuid(auth.companyUuid, uuid, auth.actorUuid);
 
     if (!agent) {
       return errors.notFound("Agent");

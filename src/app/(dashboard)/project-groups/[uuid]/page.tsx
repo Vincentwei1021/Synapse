@@ -158,7 +158,7 @@ export default function ProjectGroupDashboardPage() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <span className="text-[13px] text-[#9A9A9A]">{t("common.loading")}</span>
+        <span className="text-[13px] text-muted-foreground">{t("common.loading")}</span>
       </div>
     );
   }
@@ -166,7 +166,7 @@ export default function ProjectGroupDashboardPage() {
   if (error || !data) {
     return (
       <div className="flex h-full items-center justify-center">
-        <span className="text-[13px] text-[#9A9A9A]">{error || t("common.genericError")}</span>
+        <span className="text-[13px] text-muted-foreground">{error || t("common.genericError")}</span>
       </div>
     );
   }
@@ -175,56 +175,56 @@ export default function ProjectGroupDashboardPage() {
 
   const statCards = [
     {
-      label: t("groupDashboard.statProjects"),
+      label: t("groupDashboard.statResearchProjects"),
       value: stats.projectCount,
-      valueColor: "text-[#2C2C2C]",
+      valueColor: "text-foreground",
     },
     {
-      label: t("groupDashboard.statTotalTasks"),
+      label: t("groupDashboard.statTotalExperimentRuns"),
       value: stats.totalTasks,
-      valueColor: "text-[#C67A52]",
+      valueColor: "text-primary",
     },
     {
       label: t("groupDashboard.statCompletionRate"),
       value: `${stats.completionRate}%`,
-      valueColor: "text-[#5A9E6F]",
+      valueColor: "text-emerald-600 dark:text-emerald-400",
     },
     {
-      label: t("groupDashboard.statOpenIdeas"),
+      label: t("groupDashboard.statOpenResearchQuestions"),
       value: stats.openIdeas,
-      valueColor: "text-[#2C2C2C]",
+      valueColor: "text-foreground",
     },
     {
-      label: t("groupDashboard.statActiveProposals"),
+      label: t("groupDashboard.statActiveExperimentDesigns"),
       value: stats.activeProposals,
-      valueColor: "text-[#C67A52]",
+      valueColor: "text-primary",
     },
   ];
 
   return (
-    <div className="flex h-full flex-col gap-6 bg-[#FAF8F4] p-4 md:p-6 lg:p-8">
+    <div className="flex h-full flex-col gap-6 bg-background p-4 md:p-6 lg:p-8">
       {/* Breadcrumb */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-[12px]">
-          <Link href="/research-projects" className="text-[#C67A52] hover:underline">
+          <Link href="/research-projects" className="text-primary hover:underline">
             {t("nav.projects")}
           </Link>
-          <span className="text-[#9A9A9A]">/</span>
-          <span className="text-[#9A9A9A]">{group.name}</span>
+          <span className="text-muted-foreground">/</span>
+          <span className="text-muted-foreground">{group.name}</span>
         </div>
       </div>
 
       {/* Title Section */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3.5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#C67A52]">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary">
             <Folder className="h-[22px] w-[22px] text-white" />
           </div>
           <div>
-            <h1 className="text-[24px] font-semibold tracking-tight text-[#2C2C2C]">
+            <h1 className="text-[24px] font-semibold tracking-tight text-foreground">
               {group.name}
             </h1>
-            <p className="text-[13px] text-[#6B6B6B]">
+            <p className="text-[13px] text-muted-foreground">
               {t("groupDashboard.subtitle", { count: stats.projectCount })}
             </p>
           </div>
@@ -233,9 +233,9 @@ export default function ProjectGroupDashboardPage() {
           variant="outline"
           size="sm"
           onClick={() => setShowManage(true)}
-          className="gap-2 rounded-lg border-[#E5E2DC] bg-white text-[13px] font-medium text-[#2C2C2C] hover:border-[#C67A52] hover:bg-white"
+          className="gap-2 rounded-lg border-border bg-card text-[13px] font-medium text-foreground hover:border-primary hover:bg-card"
         >
-          <Settings className="h-3.5 w-3.5 text-[#6B6B6B]" />
+          <Settings className="h-3.5 w-3.5 text-muted-foreground" />
           {t("projectGroups.manageGroup")}
         </Button>
       </div>
@@ -245,9 +245,9 @@ export default function ProjectGroupDashboardPage() {
         {statCards.map((stat) => (
           <Card
             key={stat.label}
-            className="rounded-2xl border-[#E5E2DC] bg-white !gap-1 p-4 !py-4 shadow-none"
+            className="rounded-2xl border-border bg-card !gap-1 p-4 !py-4 shadow-none"
           >
-            <p className="text-[12px] font-normal text-[#9A9A9A]">{stat.label}</p>
+            <p className="text-[12px] font-normal text-muted-foreground">{stat.label}</p>
             <p
               className={`mt-1.5 text-[32px] font-semibold leading-none tracking-tight ${stat.valueColor}`}
             >
@@ -262,16 +262,16 @@ export default function ProjectGroupDashboardPage() {
         {/* Left: Projects in this group */}
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-[14px] font-semibold text-[#2C2C2C]">
-              {t("groupDashboard.projectsInGroup")}
+            <h2 className="text-[14px] font-semibold text-foreground">
+              {t("groupDashboard.researchProjectsInGroup")}
             </h2>
             <Button
               size="sm"
               onClick={() => setShowCreateProject(true)}
-              className="gap-1.5 rounded-lg bg-[#C67A52] text-[12px] font-medium text-white hover:bg-[#B56A42]"
+              className="gap-1.5 rounded-lg bg-primary text-[12px] font-medium text-white hover:bg-primary/90"
             >
               <Plus className="h-3.5 w-3.5" />
-              {t("groupDashboard.newProject")}
+              {t("groupDashboard.newResearchProject")}
             </Button>
           </div>
 
@@ -285,7 +285,7 @@ export default function ProjectGroupDashboardPage() {
                     key={project.uuid}
                     href={`/research-projects/${project.uuid}/dashboard`}
                   >
-                    <div className="flex cursor-pointer items-center justify-between rounded-xl border border-[#E5E2DC] bg-white py-3 px-4 transition-all hover:border-[#C67A52] hover:shadow-sm">
+                    <div className="flex cursor-pointer items-center justify-between rounded-xl border border-border bg-card py-3 px-4 transition-all hover:border-primary hover:shadow-sm">
                       <div className="flex items-center gap-3">
                         <div
                           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-semibold text-white"
@@ -294,30 +294,30 @@ export default function ProjectGroupDashboardPage() {
                           {initials}
                         </div>
                         <div>
-                          <p className="text-[13px] font-semibold text-[#2C2C2C]">
+                          <p className="text-[13px] font-semibold text-foreground">
                             {project.name}
                           </p>
-                          <p className="text-[11px] text-[#9A9A9A]">
-                            {t("groupDashboard.projectStats", {
+                          <p className="text-[11px] text-muted-foreground">
+                            {t("groupDashboard.researchProjectStats", {
                               tasks: project.taskCount,
                               completion: project.completionRate,
                             })}
                           </p>
                         </div>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-[#9A9A9A]" />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </Link>
                 );
               })
             ) : (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#E5E2DC] bg-[#FAF8F4] px-8 py-12">
-                <Folder className="mb-3 h-8 w-8 text-[#D0CCC4]" />
-                <p className="text-[13px] font-medium text-[#9A9A9A]">
-                  {t("groupDashboard.noProjects")}
+              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-background px-8 py-12">
+                <Folder className="mb-3 h-8 w-8 text-muted-foreground/50" />
+                <p className="text-[13px] font-medium text-muted-foreground">
+                  {t("groupDashboard.noResearchProjects")}
                 </p>
-                <p className="mt-1 text-[11px] text-[#C0BDB7]">
-                  {t("groupDashboard.noProjectsHint")}
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {t("groupDashboard.noResearchProjectsHint")}
                 </p>
               </div>
             )}
@@ -326,11 +326,11 @@ export default function ProjectGroupDashboardPage() {
 
         {/* Right: Recent Activity */}
         <div className="flex w-full flex-col gap-4 lg:w-[420px] lg:shrink-0">
-          <h2 className="text-[14px] font-semibold text-[#2C2C2C]">
+          <h2 className="text-[14px] font-semibold text-foreground">
             {t("dashboard.recentActivity")}
           </h2>
 
-          <Card className="flex flex-col overflow-hidden rounded-2xl border-[#E5E2DC] bg-white !gap-0 !py-0 shadow-none">
+          <Card className="flex flex-col overflow-hidden rounded-2xl border-border bg-card !gap-0 !py-0 shadow-none">
             {recentActivity.length > 0 ? (
               recentActivity.slice(0, 5).map((activity, i) => {
                 const dotColor =
@@ -340,7 +340,7 @@ export default function ProjectGroupDashboardPage() {
                     key={activity.uuid}
                     className={`flex items-start gap-3 px-4 py-3.5 ${
                       i < Math.min(recentActivity.length, 5) - 1
-                        ? "border-b border-[#E5E2DC]"
+                        ? "border-b border-border"
                         : ""
                     }`}
                   >
@@ -349,10 +349,10 @@ export default function ProjectGroupDashboardPage() {
                       style={{ backgroundColor: dotColor }}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-[12px] leading-[1.4] text-[#2C2C2C]">
+                      <p className="text-[12px] leading-[1.4] text-foreground">
                         {formatActivityText(activity)}
                       </p>
-                      <p className="mt-1 text-[11px] text-[#9A9A9A]">
+                      <p className="mt-1 text-[11px] text-muted-foreground">
                         {activity.projectName} &middot;{" "}
                         {formatRelativeTime(activity.createdAt, t)}
                       </p>
@@ -362,7 +362,7 @@ export default function ProjectGroupDashboardPage() {
               })
             ) : (
               <div className="flex items-center justify-center p-8">
-                <p className="text-[13px] text-[#9A9A9A]">
+                <p className="text-[13px] text-muted-foreground">
                   {t("dashboard.noRecentActivity")}
                 </p>
               </div>

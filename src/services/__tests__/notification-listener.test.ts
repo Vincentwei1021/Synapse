@@ -29,6 +29,22 @@ const { mockState, mockEventBus, mockPrisma, mockNotificationService } = vi.hois
   // Mock notification service
   const notificationService = {
     createBatch: vi.fn(),
+    getPreferencesBatch: vi.fn().mockResolvedValue(new Map([
+      ["agent:assignee-uuid", {
+        runAssigned: true,
+        runStatusChanged: true,
+        runVerified: true,
+        runReopened: true,
+        designSubmitted: true,
+        designApproved: true,
+        designRejected: true,
+        researchQuestionClaimed: true,
+        commentAdded: true,
+        hypothesisFormulationRequested: true,
+        hypothesisFormulationAnswered: true,
+        mentioned: true,
+      }],
+    ])),
     getPreferences: vi.fn().mockResolvedValue({
       runAssigned: true,
       runStatusChanged: true,
@@ -121,6 +137,27 @@ describe("notification-listener", () => {
       uuid: "project-uuid",
       name: "Test Project",
     });
+    mockNotificationService.getPreferencesBatch.mockImplementation(async (_companyUuid: string, owners: Array<{ type: string; uuid: string }>) => {
+      return new Map(
+        owners.map((owner) => [
+          `${owner.type}:${owner.uuid}`,
+          {
+            runAssigned: true,
+            runStatusChanged: true,
+            runVerified: true,
+            runReopened: true,
+            designSubmitted: true,
+            designApproved: true,
+            designRejected: true,
+            researchQuestionClaimed: true,
+            commentAdded: true,
+            hypothesisFormulationRequested: true,
+            hypothesisFormulationAnswered: true,
+            mentioned: true,
+          },
+        ])
+      );
+    });
   });
 
   afterEach(() => {
@@ -184,20 +221,22 @@ describe("notification-listener", () => {
     });
 
     it("should filter by notification preferences", async () => {
-      mockNotificationService.getPreferences.mockResolvedValue({
-        runAssigned: false, // disabled
-        runStatusChanged: true,
-        runVerified: true,
-        runReopened: true,
-        designSubmitted: true,
-        designApproved: true,
-        designRejected: true,
-        researchQuestionClaimed: true,
-        commentAdded: true,
-        hypothesisFormulationRequested: true,
-        hypothesisFormulationAnswered: true,
-        mentioned: true,
-      });
+      mockNotificationService.getPreferencesBatch.mockResolvedValue(
+        new Map([["agent:assignee-uuid", {
+          runAssigned: false,
+          runStatusChanged: true,
+          runVerified: true,
+          runReopened: true,
+          designSubmitted: true,
+          designApproved: true,
+          designRejected: true,
+          researchQuestionClaimed: true,
+          commentAdded: true,
+          hypothesisFormulationRequested: true,
+          hypothesisFormulationAnswered: true,
+          mentioned: true,
+        }]])
+      );
       const event = makeEvent({ action: "assigned", targetType: "experiment_run" });
       await handleActivity(event);
       expect(mockNotificationService.createBatch).not.toHaveBeenCalled();
@@ -463,13 +502,10 @@ describe("notification-listener", () => {
 
   describe("entity title resolution fallbacks", () => {
     it("should fallback to Unknown Experiment Run when not found", async () => {
-      mockPrisma.experimentRun.findUnique.mockImplementation((opts: any) => {
-        // First call is for recipient resolution (needs assignee)
-        // Second call (parallel) is for entity title resolution (returns null for title)
-        if (opts.select?.title) {
-          return Promise.resolve(null);
-        }
-        return Promise.resolve({ assigneeType: "user", assigneeUuid: "user-1" });
+      mockPrisma.experimentRun.findUnique.mockResolvedValue({
+        title: null,
+        assigneeType: "user",
+        assigneeUuid: "user-1",
       });
       const event = makeEvent({ action: "assigned" });
       await handleActivity(event);
@@ -478,15 +514,11 @@ describe("notification-listener", () => {
     });
 
     it("should fallback to Unknown Research Question when not found", async () => {
-      mockPrisma.researchQuestion.findUnique.mockImplementation((opts: any) => {
-        if (opts.select?.title) {
-          return Promise.resolve(null);
-        }
-        return Promise.resolve({
-          createdByUuid: "user-1",
-          assigneeType: "agent",
-          assigneeUuid: "agent-1",
-        });
+      mockPrisma.researchQuestion.findUnique.mockResolvedValue({
+        title: null,
+        createdByUuid: "user-1",
+        assigneeType: "agent",
+        assigneeUuid: "agent-1",
       });
       const event = makeEvent({ targetType: "research_question", action: "assigned", actorUuid: "other" });
       await handleActivity(event);
@@ -495,11 +527,10 @@ describe("notification-listener", () => {
     });
 
     it("should fallback to Unknown Experiment Design when not found", async () => {
-      mockPrisma.experimentDesign.findUnique.mockImplementation((opts: any) => {
-        if (opts.select?.title) {
-          return Promise.resolve(null);
-        }
-        return Promise.resolve({ createdByType: "agent", createdByUuid: "agent-1" });
+      mockPrisma.experimentDesign.findUnique.mockResolvedValue({
+        title: null,
+        createdByType: "agent",
+        createdByUuid: "agent-1",
       });
       const event = makeEvent({ targetType: "experiment_design", action: "approved" });
       await handleActivity(event);
@@ -508,11 +539,9 @@ describe("notification-listener", () => {
     });
 
     it("should fallback to Unknown Document when not found", async () => {
-      mockPrisma.document.findUnique.mockImplementation((opts: any) => {
-        if (opts.select?.title) {
-          return Promise.resolve(null);
-        }
-        return Promise.resolve({ createdByUuid: "user-1" });
+      mockPrisma.document.findUnique.mockResolvedValue({
+        title: null,
+        createdByUuid: "user-1",
       });
       mockPrisma.user.findUnique.mockResolvedValue({ uuid: "user-1" });
       const event = makeEvent({ targetType: "document", action: "comment_added", actorUuid: "other" });
@@ -636,6 +665,21 @@ describe("notification-listener", () => {
       const call = mockNotificationService.createBatch.mock.calls[0][0];
       expect(call).toHaveLength(1);
       expect(call[0].recipientUuid).toBe("user-1");
+    });
+
+    it("should resolve preferences in one batched call", async () => {
+      mockPrisma.experimentRun.findUnique.mockResolvedValue({
+        title: "My Task",
+        assigneeType: "user",
+        assigneeUuid: "user-1",
+        createdByUuid: "user-1",
+      });
+      mockPrisma.user.findUnique.mockResolvedValue({ uuid: "user-1", name: "Alice" });
+
+      await handleActivity(makeEvent({ action: "status_changed", actorUuid: "other" }));
+
+      expect(mockNotificationService.getPreferencesBatch).toHaveBeenCalledTimes(1);
+      expect(mockNotificationService.getPreferences).not.toHaveBeenCalled();
     });
   });
 

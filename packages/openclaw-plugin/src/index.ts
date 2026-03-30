@@ -12,24 +12,33 @@ import { registerAdminTools } from "./tools/admin-tools.js";
 import { registerSynapseCommands } from "./commands.js";
 
 /**
- * Trigger the OpenClaw agent by posting a system event to the gateway's
- * /hooks/wake endpoint. This enqueues the text into the agent's prompt
- * and triggers an immediate heartbeat so the agent processes it right away.
+ * Trigger the OpenClaw agent by dispatching an isolated agent turn through
+ * the gateway's /hooks/agent endpoint. This treats the Synapse assignment as
+ * a primary prompt instead of a side-channel wake event.
  */
+const DEFAULT_TIMEOUT_SECONDS = 24 * 3600; // 24 hours for unlimited budget
+
 async function wakeAgent(
   gatewayUrl: string,
   hooksToken: string,
   text: string,
   logger: { info: (msg: string) => void; warn: (msg: string) => void },
+  timeoutSeconds?: number,
 ) {
   try {
-    const res = await fetch(`${gatewayUrl}/hooks/wake`, {
+    const res = await fetch(`${gatewayUrl}/hooks/agent`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${hooksToken}`,
       },
-      body: JSON.stringify({ text, mode: "now" }),
+      body: JSON.stringify({
+        message: text,
+        name: "Synapse",
+        wakeMode: "now",
+        deliver: false,
+        timeoutSeconds: timeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS,
+      }),
     });
     if (!res.ok) {
       logger.warn(`Wake agent failed: HTTP ${res.status}`);
@@ -87,13 +96,14 @@ const plugin = {
       mcpClient,
       config,
       logger,
-      triggerAgent: (message: string, _metadata?: Record<string, unknown>) => {
-        // Use /hooks/wake to enqueue a system event + trigger immediate heartbeat
+      triggerAgent: (message: string, metadata?: Record<string, unknown>) => {
+        const timeoutSeconds = metadata?.timeoutSeconds as number | undefined;
+        // Use /hooks/agent to create an isolated agent turn for Synapse work.
         if (hooksToken) {
-          wakeAgent(gatewayUrl, hooksToken, message, logger);
+          wakeAgent(gatewayUrl, hooksToken, message, logger, timeoutSeconds);
         } else {
           logger.warn(
-            `[Synapse] Cannot wake agent — gateway.auth.token not configured. Event: ${message.slice(0, 100)}`
+            `[Synapse] Cannot wake agent — hooks.token not configured. Event: ${message.slice(0, 100)}`
           );
         }
       },

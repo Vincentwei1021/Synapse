@@ -7,7 +7,9 @@
     "dev": "next dev --turbopack",
     "dev:webpack": "next dev",
     "build": "prisma generate && next build",
-    "start": "next start",
+    "start": "bash ./scripts/start-standalone.sh",
+    "start:legacy": "next start",
+    "preflight": "bash ./scripts/preflight.sh",
     "lint": "eslint",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
@@ -24,6 +26,7 @@
     "cdk:deploy": "pnpm -C packages/synapse-cdk exec cdk deploy",
     "cdk:diff": "pnpm --filter @synapse/cdk run diff",
     "cdk:destroy": "pnpm --filter @synapse/cdk run destroy",
+    "perf:sample:remote": "bash ./scripts/perf-sample-remote.sh",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

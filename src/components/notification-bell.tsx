@@ -31,6 +31,7 @@ export function NotificationBell() {
         align="start"
         sideOffset={8}
         className="w-auto p-0 rounded-lg"
+        onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <NotificationPopup onClose={() => setOpen(false)} />
       </PopoverContent>

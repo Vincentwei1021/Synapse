@@ -4,7 +4,7 @@
 
 import { prisma } from "@/lib/prisma";
 
-export type TargetType = "research_question" | "experiment_design" | "experiment_run" | "document";
+export type TargetType = "research_question" | "experiment" | "experiment_design" | "experiment_run" | "document";
 export type ActorType = "user" | "agent";
 
 // Get Actor name by UUID (for display)
@@ -235,6 +235,8 @@ export async function validateTargetExists(
   switch (targetType) {
     case "research_question":
       return !!(await prisma.researchQuestion.findFirst({ where, select: { uuid: true } }));
+    case "experiment":
+      return !!(await prisma.experiment.findFirst({ where, select: { uuid: true } }));
     case "experiment_design":
       return !!(await prisma.experimentDesign.findFirst({ where, select: { uuid: true } }));
     case "experiment_run":

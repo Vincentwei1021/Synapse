@@ -42,6 +42,47 @@ export function registerPiTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
+  server.registerTool(
+    "synapse_pi_review_research_question",
+    {
+      description: "Review a research idea and either accept it into the execution pipeline or reject it back out of scope.",
+      inputSchema: z.object({
+        researchQuestionUuid: z.string(),
+        decision: z.enum(["accepted", "rejected"]),
+        reviewNote: z.string().optional(),
+      }),
+    },
+    async ({ researchQuestionUuid, decision, reviewNote }) => {
+      const question = await researchQuestionService.getResearchQuestionByUuid(auth.companyUuid, researchQuestionUuid);
+      if (!question) {
+        return { content: [{ type: "text", text: "Research Question not found" }], isError: true };
+      }
+
+      const updated = await researchQuestionService.reviewResearchQuestion(
+        auth.companyUuid,
+        researchQuestionUuid,
+        decision,
+        auth.actorUuid,
+        reviewNote || null,
+      );
+
+      await activityService.createActivity({
+        companyUuid: auth.companyUuid,
+        researchProjectUuid: question.researchProjectUuid,
+        targetType: "research_question",
+        targetUuid: researchQuestionUuid,
+        actorType: "agent",
+        actorUuid: auth.actorUuid,
+        action: decision === "accepted" ? "approved" : "rejected",
+        value: reviewNote ? { reviewNote } : undefined,
+      });
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+      };
+    }
+  );
+
   // synapse_pi_create_research_question moved to research-lead.ts as synapse_research_lead_create_research_question
 
   // synapse_pi_approve_experiment_design - Approve an Experiment Design

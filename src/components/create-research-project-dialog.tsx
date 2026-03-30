@@ -36,6 +36,9 @@ export function CreateProjectDialog({
   const [isPending, startTransition] = useTransition();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [goal, setGoal] = useState("");
+  const [datasets, setDatasets] = useState("");
+  const [evaluationMethods, setEvaluationMethods] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const displayGroupName = groupName || t("projectGroups.ungrouped");
@@ -52,6 +55,9 @@ export function CreateProjectDialog({
           body: JSON.stringify({
             name: title.trim(),
             description: description.trim() || undefined,
+            goal: goal.trim() || undefined,
+            datasets: datasets,
+            evaluationMethods: evaluationMethods,
             groupUuid: groupUuid || undefined,
           }),
         });
@@ -60,6 +66,9 @@ export function CreateProjectDialog({
         if (data.success) {
           setTitle("");
           setDescription("");
+          setGoal("");
+          setDatasets("");
+          setEvaluationMethods("");
           onOpenChange(false);
           onCreated?.();
           router.refresh();
@@ -124,6 +133,44 @@ export function CreateProjectDialog({
               placeholder={t("projectGroups.projectDescriptionPlaceholder")}
               className="min-h-[80px] rounded-lg border-[#E5E2DC]"
             />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-[13px] font-medium text-[#2C2C2C]">
+              {t("projectGroups.researchGoal")}
+            </Label>
+            <Textarea
+              value={goal}
+              onChange={(e) => setGoal(e.target.value)}
+              placeholder={t("projectGroups.researchGoalPlaceholder")}
+              className="min-h-[72px] rounded-lg border-[#E5E2DC]"
+            />
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-[13px] font-medium text-[#2C2C2C]">
+                {t("projectGroups.datasets")}
+              </Label>
+              <Textarea
+                value={datasets}
+                onChange={(e) => setDatasets(e.target.value)}
+                placeholder={t("projectGroups.datasetsPlaceholder")}
+                className="min-h-[96px] rounded-lg border-[#E5E2DC]"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-[13px] font-medium text-[#2C2C2C]">
+                {t("projectGroups.evaluationMethods")}
+              </Label>
+              <Textarea
+                value={evaluationMethods}
+                onChange={(e) => setEvaluationMethods(e.target.value)}
+                placeholder={t("projectGroups.evaluationMethodsPlaceholder")}
+                className="min-h-[96px] rounded-lg border-[#E5E2DC]"
+              />
+            </div>
           </div>
         </div>
 

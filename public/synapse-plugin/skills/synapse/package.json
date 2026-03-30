@@ -1,7 +1,7 @@
 {
   "name": "synapse",
   "version": "0.2.0",
-  "description": "Synapse AI Agent collaboration platform skill for Claude Code. Supports PM, Developer, and Admin roles via MCP tools for the Idea-Proposal-Task workflow.",
+  "description": "Synapse AI Agent collaboration platform skill for Claude Code. Supports Research Lead, Researcher, and PI roles via MCP tools for the Research Question-Experiment Design-Experiment Run workflow.",
   "author": "synapse",
   "license": "AGPL-3.0",
   "keywords": [
@@ -35,12 +35,12 @@
     "triggers": [
       "synapse",
       "checkin",
-      "claim task",
-      "claim idea",
-      "create proposal",
-      "submit proposal",
-      "verify task",
-      "approve proposal",
+      "claim experiment run",
+      "claim research question",
+      "create experiment design",
+      "submit experiment design",
+      "verify experiment run",
+      "approve experiment design",
       "project management",
       "report work",
       "session",

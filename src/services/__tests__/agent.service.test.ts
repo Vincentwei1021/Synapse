@@ -32,6 +32,7 @@ vi.mock("@/lib/api-key", () => ({
 
 import {
   listAgents,
+  listAgentSummaries,
   getAgent,
   getAgentByUuid,
   createAgent,
@@ -131,6 +132,25 @@ describe("listAgents", () => {
     expect(mockPrisma.agent.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ skip: 10, take: 5 })
     );
+  });
+});
+
+describe("listAgentSummaries", () => {
+  it("should return lightweight agent summaries ordered by createdAt", async () => {
+    mockPrisma.agent.findMany.mockResolvedValue([
+      makeAgent({ uuid: "agent-1", name: "Agent One", roles: ["pm"] }),
+    ]);
+
+    const result = await listAgentSummaries(companyUuid);
+
+    expect(result).toEqual([
+      expect.objectContaining({ uuid: "agent-1", name: "Agent One", roles: ["pm"] }),
+    ]);
+    expect(mockPrisma.agent.findMany).toHaveBeenCalledWith({
+      where: { companyUuid },
+      select: { uuid: true, name: true, roles: true },
+      orderBy: { createdAt: "asc" },
+    });
   });
 });
 

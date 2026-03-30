@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Bot, MessageSquare, FileText, User } from "lucide-react";
+import { Bot, MessageSquare, FileText, User, CheckCircle2, XCircle } from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -18,11 +19,15 @@ import { code } from "@streamdown/code";
 import { IdeaDetailPanel } from "./question-detail-panel";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
 import { usePanelUrl } from "@/hooks/use-panel-url";
+import { reviewResearchQuestionAction } from "./actions";
 
 interface IdeaItem {
   uuid: string;
   title: string;
   content: string | null;
+  sourceType: string;
+  sourceLabel: string | null;
+  reviewStatus: string;
   status: string;
   elaborationStatus?: string;
   assignee: {
@@ -88,6 +93,8 @@ export function IdeasList({
   initialSelectedIdeaUuid,
 }: IdeasListProps) {
   const t = useTranslations();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   useRealtimeRefresh();
 
   const basePath = `/research-projects/${projectUuid}/research-questions`;
@@ -165,6 +172,24 @@ export function IdeasList({
                   </div>
                 )}
 
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className="gap-1.5 bg-[#F3EFE8] text-[#6B6B6B] border-transparent text-[10px]">
+                    {idea.sourceType === "agent" ? <Bot className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                    {idea.sourceType === "agent" ? "Agent-generated" : "Human-submitted"}
+                  </Badge>
+                  <Badge
+                    className={`border-transparent text-[10px] ${
+                      idea.reviewStatus === "accepted"
+                        ? "bg-[#E8F5E9] text-[#2E7D32]"
+                        : idea.reviewStatus === "rejected"
+                          ? "bg-[#FDECEC] text-[#C62828]"
+                          : "bg-[#FFF3E0] text-[#E65100]"
+                    }`}
+                  >
+                    Review: {idea.reviewStatus}
+                  </Badge>
+                </div>
+
                 {/* Title */}
                 <h3 className="text-sm font-medium text-[#2C2C2C]">
                   {idea.title}
@@ -198,6 +223,48 @@ export function IdeasList({
                     </span>
                   </Link>
                 )}
+                {idea.reviewStatus === "pending" && (
+                  <div className="ml-auto flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        startTransition(async () => {
+                          await reviewResearchQuestionAction({
+                            projectUuid,
+                            questionUuid: idea.uuid,
+                            reviewStatus: "accepted",
+                          });
+                          router.refresh();
+                        });
+                      }}
+                      className="inline-flex items-center gap-1 rounded-full bg-[#E8F5E9] px-3 py-1 text-[11px] font-medium text-[#2E7D32]"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Accept
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        startTransition(async () => {
+                          await reviewResearchQuestionAction({
+                            projectUuid,
+                            questionUuid: idea.uuid,
+                            reviewStatus: "rejected",
+                          });
+                          router.refresh();
+                        });
+                      }}
+                      className="inline-flex items-center gap-1 rounded-full bg-[#FDECEC] px-3 py-1 text-[11px] font-medium text-[#C62828]"
+                    >
+                      <XCircle className="h-3.5 w-3.5" />
+                      Reject
+                    </button>
+                  </div>
+                )}
               </CardFooter>
             </Card>
           );
@@ -210,7 +277,6 @@ export function IdeasList({
           idea={selectedIdea}
           projectUuid={projectUuid}
           currentUserUuid={currentUserUuid}
-          isUsedInProposal={usedSet.has(selectedIdea.uuid)}
           onClose={closePanel}
           onDeleted={closePanel}
         />

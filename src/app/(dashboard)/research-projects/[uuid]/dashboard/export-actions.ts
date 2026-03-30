@@ -2,8 +2,7 @@
 
 import { getServerAuthContext } from "@/lib/auth-server";
 import { getActiveBaseline } from "@/services/baseline.service";
-import { getResearchProject } from "@/services/research-project.service";
-import { prisma } from "@/lib/prisma";
+import { getResearchProjectExportData } from "@/services/research-project.service";
 
 export async function exportResearchResults(projectUuid: string): Promise<{
   markdown: string;
@@ -13,48 +12,14 @@ export async function exportResearchResults(projectUuid: string): Promise<{
   const auth = await getServerAuthContext();
   if (!auth) return null;
 
-  const [project, baseline, designs, questions, runs, rdrDocs] =
+  const [projectData, baseline] =
     await Promise.all([
-      getResearchProject(auth.companyUuid, projectUuid),
+      getResearchProjectExportData(auth.companyUuid, projectUuid),
       getActiveBaseline(auth.companyUuid, projectUuid),
-      prisma.experimentDesign.findMany({
-        where: {
-          companyUuid: auth.companyUuid,
-          researchProjectUuid: projectUuid,
-        },
-        select: { uuid: true, title: true },
-      }),
-      prisma.researchQuestion.findMany({
-        where: {
-          companyUuid: auth.companyUuid,
-          researchProjectUuid: projectUuid,
-        },
-        select: { uuid: true, title: true, status: true },
-      }),
-      prisma.experimentRun.findMany({
-        where: {
-          companyUuid: auth.companyUuid,
-          researchProjectUuid: projectUuid,
-        },
-        select: {
-          uuid: true,
-          title: true,
-          experimentDesignUuid: true,
-          experimentResults: true,
-          outcome: true,
-        },
-      }),
-      prisma.document.findMany({
-        where: {
-          companyUuid: auth.companyUuid,
-          researchProjectUuid: projectUuid,
-          type: "rdr",
-        },
-        select: { title: true, content: true, createdAt: true },
-      }),
     ]);
 
-  if (!project) return null;
+  if (!projectData) return null;
+  const { project, designs, questions, runs, rdrDocs } = projectData;
 
   // Build design lookup map
   const designMap = new Map(designs.map((d) => [d.uuid, d.title]));

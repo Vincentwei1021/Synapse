@@ -3,10 +3,10 @@
 // UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { withErrorHandler, parseBody } from "@/lib/api-handler";
 import { success, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
+import { deleteAgent, getAgent, getAgentByUuid, updateAgent } from "@/services/agent.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
@@ -25,22 +25,7 @@ export const GET = withErrorHandler<{ uuid: string }>(
 
     const { uuid } = await context.params;
 
-    const agent = await prisma.agent.findFirst({
-      where: { uuid, companyUuid: auth.companyUuid },
-      include: {
-        apiKeys: {
-          where: { revokedAt: null },
-          select: {
-            uuid: true,
-            keyPrefix: true,
-            name: true,
-            lastUsed: true,
-            expiresAt: true,
-            createdAt: true,
-          },
-        },
-      },
-    });
+    const agent = await getAgent(auth.companyUuid, uuid, auth.actorUuid);
 
     if (!agent) {
       return errors.notFound("Agent");
@@ -82,9 +67,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
 
     const { uuid } = await context.params;
 
-    const agent = await prisma.agent.findFirst({
-      where: { uuid, companyUuid: auth.companyUuid },
-    });
+    const agent = await getAgentByUuid(auth.companyUuid, uuid, auth.actorUuid);
 
     if (!agent) {
       return errors.notFound("Agent");
@@ -112,11 +95,11 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
     }
 
     if (body.roles !== undefined) {
-      const validRoles = ["research_lead_agent", "researcher_agent", "pi_agent"];
+      const validRoles = ["pre_research", "research", "experiment", "report"];
       for (const role of body.roles) {
         if (!validRoles.includes(role)) {
           return errors.validationError({
-            roles: "Roles must be research_lead_agent, researcher_agent, or pi_agent",
+            roles: "Roles must be pre_research, research, experiment, or report",
           });
         }
       }
@@ -136,20 +119,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
       updateData.systemPrompt = body.systemPrompt?.trim() || null;
     }
 
-    const updated = await prisma.agent.update({
-      where: { uuid: agent.uuid },
-      data: updateData,
-      select: {
-        uuid: true,
-        name: true,
-        roles: true,
-        persona: true,
-        systemPrompt: true,
-        ownerUuid: true,
-        lastActiveAt: true,
-        createdAt: true,
-      },
-    });
+    const updated = await updateAgent(agent.uuid, updateData);
 
     return success({
       uuid: updated.uuid,
@@ -179,19 +149,14 @@ export const DELETE = withErrorHandler<{ uuid: string }>(
 
     const { uuid } = await context.params;
 
-    const agent = await prisma.agent.findFirst({
-      where: { uuid, companyUuid: auth.companyUuid },
-      select: { uuid: true },
-    });
+    const agent = await getAgentByUuid(auth.companyUuid, uuid, auth.actorUuid);
 
     if (!agent) {
       return errors.notFound("Agent");
     }
 
     // Delete Agent (API Keys will be cascade-deleted)
-    await prisma.agent.delete({
-      where: { uuid: agent.uuid },
-    });
+    await deleteAgent(agent.uuid);
 
     return success({ deleted: true });
   }

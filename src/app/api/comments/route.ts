@@ -9,7 +9,7 @@ import { getAuthContext, isUser } from "@/lib/auth";
 import * as commentService from "@/services/comment.service";
 import type { TargetType } from "@/lib/uuid-resolver";
 
-const validTargetTypes = ["research_question", "experiment_design", "experiment_run", "document"];
+const validTargetTypes = ["research_question", "experiment", "experiment_design", "experiment_run", "document"];
 
 // GET /api/comments?targetType=&targetUuid= - Get Comments
 export const GET = withErrorHandler(async (request: NextRequest) => {

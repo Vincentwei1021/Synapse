@@ -14,15 +14,15 @@ import { DocumentActions } from "./document-actions";
 import { DocumentContent } from "./document-content";
 
 const docTypeConfig: Record<string, { labelKey: string; color: string; icon: LucideIcon }> = {
-  prd: { labelKey: "documents.typePrd", color: "bg-[#E3F2FD] text-[#1976D2]", icon: ClipboardList },
-  spec: { labelKey: "documents.typeSpec", color: "bg-[#E8F5E9] text-[#5A9E6F]", icon: FileEdit },
-  design: { labelKey: "documents.typeDesign", color: "bg-[#F3E5F5] text-[#7B1FA2]", icon: Palette },
-  note: { labelKey: "documents.typeNote", color: "bg-[#FFF3E0] text-[#E65100]", icon: BookOpen },
-  other: { labelKey: "documents.typeOther", color: "bg-[#F5F5F5] text-[#6B6B6B]", icon: FileText },
-  literature_review: { labelKey: "documents.typeLiteratureReview", color: "bg-[#E8F5E9] text-[#2E7D32]", icon: BookOpen },
-  methodology: { labelKey: "documents.typeMethodology", color: "bg-[#E3F2FD] text-[#1565C0]", icon: FlaskConical },
-  rdr: { labelKey: "documents.typeRdr", color: "bg-[#FFF8E1] text-[#F57F17]", icon: FileText },
-  results_report: { labelKey: "documents.typeResultsReport", color: "bg-[#F3E5F5] text-[#6A1B9A]", icon: Beaker },
+  prd: { labelKey: "documents.typePrd", color: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300", icon: ClipboardList },
+  spec: { labelKey: "documents.typeSpec", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300", icon: FileEdit },
+  design: { labelKey: "documents.typeDesign", color: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300", icon: Palette },
+  note: { labelKey: "documents.typeNote", color: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300", icon: BookOpen },
+  other: { labelKey: "documents.typeOther", color: "bg-secondary text-muted-foreground", icon: FileText },
+  literature_review: { labelKey: "documents.typeLiteratureReview", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300", icon: BookOpen },
+  methodology: { labelKey: "documents.typeMethodology", color: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300", icon: FlaskConical },
+  rdr: { labelKey: "documents.typeRdr", color: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300", icon: FileText },
+  results_report: { labelKey: "documents.typeResultsReport", color: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300", icon: Beaker },
 };
 
 interface PageProps {
@@ -49,8 +49,8 @@ export default async function DocumentDetailPage({ params }: PageProps) {
   if (!document) {
     return (
       <div className="flex h-full flex-col items-center justify-center">
-        <div className="text-[#6B6B6B]">{t("documents.documentNotFound")}</div>
-        <Link href={`/research-projects/${projectUuid}/documents`} className="mt-4 text-[#C67A52] hover:underline">
+        <div className="text-muted-foreground">{t("documents.documentNotFound")}</div>
+        <Link href={`/research-projects/${projectUuid}/documents`} className="mt-4 text-primary hover:underline">
           {t("documents.backToDocuments")}
         </Link>
       </div>
@@ -61,30 +61,30 @@ export default async function DocumentDetailPage({ params }: PageProps) {
     <div className="flex h-full flex-col p-4 md:p-8">
       {/* Breadcrumb */}
       <div className="mb-6 flex items-center gap-2 text-sm">
-        <Link href={`/research-projects/${projectUuid}/documents`} className="text-[#6B6B6B] hover:text-[#2C2C2C]">
+        <Link href={`/research-projects/${projectUuid}/documents`} className="text-muted-foreground hover:text-foreground">
           {t("nav.documents")}
         </Link>
-        <ChevronRight className="h-4 w-4 text-[#9A9A9A]" />
-        <span className="text-[#2C2C2C]">{document.title}</span>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        <span className="text-foreground">{document.title}</span>
       </div>
 
       {/* Header */}
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="flex items-start gap-3 md:gap-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#F5F2EC] md:h-12 md:w-12">
-            {(() => { const Icon = docTypeConfig[document.type]?.icon || FileText; return <Icon className="h-5 w-5 text-[#6B6B6B] md:h-6 md:w-6" />; })()}
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary md:h-12 md:w-12">
+            {(() => { const Icon = docTypeConfig[document.type]?.icon || FileText; return <Icon className="h-5 w-5 text-muted-foreground md:h-6 md:w-6" />; })()}
           </div>
           <div className="min-w-0">
             <div className="mb-1 flex items-center gap-2 md:gap-3">
               <Badge className={docTypeConfig[document.type]?.color || ""}>
                 {t(docTypeConfig[document.type]?.labelKey || "documents.typeOther")}
               </Badge>
-              <span className="rounded bg-[#F5F2EC] px-2 py-0.5 text-xs font-medium text-[#6B6B6B]">
+              <span className="rounded bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
                 v{document.version}
               </span>
             </div>
-            <h1 className="text-xl font-semibold text-[#2C2C2C] md:text-2xl">{document.title}</h1>
-            <div className="mt-1 flex items-center gap-3 text-sm text-[#6B6B6B] md:mt-2">
+            <h1 className="text-xl font-semibold text-foreground md:text-2xl">{document.title}</h1>
+            <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground md:mt-2">
               <span>{t("common.updated")} {new Date(document.updatedAt).toLocaleDateString()}</span>
             </div>
           </div>
@@ -108,11 +108,11 @@ export default async function DocumentDetailPage({ params }: PageProps) {
         <div className="w-full space-y-4 lg:w-64 lg:flex-shrink-0">
           {/* Source Proposal */}
           {document.experimentDesignUuid && (
-            <Card className="border-[#E5E0D8] p-4">
-              <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">{t("documents.sourceProposal")}</h3>
+            <Card className="border-border p-4">
+              <h3 className="mb-3 text-sm font-medium text-muted-foreground">{t("documents.sourceProposal")}</h3>
               <Link
                 href={`/research-projects/${projectUuid}/experiment-designs/${document.experimentDesignUuid}`}
-                className="flex items-center gap-2 text-sm text-[#C67A52] hover:underline"
+                className="flex items-center gap-2 text-sm text-primary hover:underline"
               >
                 <FileText className="h-4 w-4" />
                 {t("documents.viewProposal")}
@@ -121,28 +121,28 @@ export default async function DocumentDetailPage({ params }: PageProps) {
           )}
 
           {/* Details */}
-          <Card className="border-[#E5E0D8] p-4">
-            <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">{t("common.details")}</h3>
+          <Card className="border-border p-4">
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">{t("common.details")}</h3>
             <dl className="space-y-2">
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">{t("common.type")}</dt>
-                <dd className="font-medium text-[#2C2C2C]">
+                <dt className="text-muted-foreground">{t("common.type")}</dt>
+                <dd className="font-medium text-foreground">
                   {t(docTypeConfig[document.type]?.labelKey || "documents.typeOther")}
                 </dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">{t("common.version")}</dt>
-                <dd className="font-medium text-[#2C2C2C]">v{document.version}</dd>
+                <dt className="text-muted-foreground">{t("common.version")}</dt>
+                <dd className="font-medium text-foreground">v{document.version}</dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">{t("common.created")}</dt>
-                <dd className="font-medium text-[#2C2C2C]">
+                <dt className="text-muted-foreground">{t("common.created")}</dt>
+                <dd className="font-medium text-foreground">
                   {new Date(document.createdAt).toLocaleDateString()}
                 </dd>
               </div>
               <div className="flex justify-between text-sm">
-                <dt className="text-[#9A9A9A]">{t("common.updated")}</dt>
-                <dd className="font-medium text-[#2C2C2C]">
+                <dt className="text-muted-foreground">{t("common.updated")}</dt>
+                <dd className="font-medium text-foreground">
                   {new Date(document.updatedAt).toLocaleDateString()}
                 </dd>
               </div>
@@ -150,15 +150,15 @@ export default async function DocumentDetailPage({ params }: PageProps) {
           </Card>
 
           {/* Version History */}
-          <Card className="border-[#E5E0D8] p-4">
-            <h3 className="mb-3 text-sm font-medium text-[#6B6B6B]">{t("documents.versionHistory")}</h3>
+          <Card className="border-border p-4">
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">{t("documents.versionHistory")}</h3>
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-[#2C2C2C]">v{document.version}</span>
-                <span className="text-xs text-[#9A9A9A]">{t("status.current")}</span>
+                <span className="font-medium text-foreground">v{document.version}</span>
+                <span className="text-xs text-muted-foreground">{t("status.current")}</span>
               </div>
               {document.version > 1 && (
-                <p className="text-xs text-[#9A9A9A]">
+                <p className="text-xs text-muted-foreground">
                   {document.version - 1} {t("documents.previousVersions")}
                 </p>
               )}

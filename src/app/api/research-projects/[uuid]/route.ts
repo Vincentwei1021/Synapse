@@ -3,10 +3,16 @@
 // UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { withErrorHandler, parseBody } from "@/lib/api-handler";
 import { success, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
+import {
+  deleteResearchProject,
+  getResearchProject,
+  getResearchProjectDetailRef,
+  updateResearchProject,
+} from "@/services/research-project.service";
+import { getProjectMetricsSnapshot, toProjectCompatibilityCounts } from "@/services/project-metrics.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
@@ -19,28 +25,10 @@ export const GET = withErrorHandler(async (request: NextRequest, context: RouteC
 
   const { uuid } = await context.params;
 
-  const researchProject = await prisma.researchProject.findFirst({
-    where: {
-      uuid,
-      companyUuid: auth.companyUuid,
-    },
-    select: {
-      uuid: true,
-      name: true,
-      description: true,
-      createdAt: true,
-      updatedAt: true,
-      _count: {
-        select: {
-          researchQuestions: true,
-          documents: true,
-          experimentRuns: true,
-          experimentDesigns: true,
-          activities: true,
-        },
-      },
-    },
-  });
+  const [researchProject, metrics] = await Promise.all([
+    getResearchProject(auth.companyUuid, uuid),
+    getProjectMetricsSnapshot(auth.companyUuid, uuid),
+  ]);
 
   if (!researchProject) {
     return errors.notFound("Research Project");
@@ -53,10 +41,7 @@ export const GET = withErrorHandler(async (request: NextRequest, context: RouteC
     createdAt: researchProject.createdAt.toISOString(),
     updatedAt: researchProject.updatedAt.toISOString(),
     counts: {
-      researchQuestions: researchProject._count.researchQuestions,
-      documents: researchProject._count.documents,
-      experimentRuns: researchProject._count.experimentRuns,
-      experimentDesigns: researchProject._count.experimentDesigns,
+      ...toProjectCompatibilityCounts(metrics),
       activities: researchProject._count.activities,
     },
   });
@@ -77,10 +62,7 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
   const { uuid } = await context.params;
 
   // Validate research project exists and belongs to the current company (query by UUID)
-  const existing = await prisma.researchProject.findFirst({
-    where: { uuid, companyUuid: auth.companyUuid },
-    select: { uuid: true },
-  });
+  const existing = await getResearchProjectDetailRef(auth.companyUuid, uuid);
 
   if (!existing) {
     return errors.notFound("Research Project");
@@ -89,10 +71,27 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
   const body = await parseBody<{
     name?: string;
     description?: string;
+    datasets?: string[];
+    evaluationMethods?: string[];
+    computePoolUuid?: string | null;
+    autonomousLoopEnabled?: boolean;
+    autonomousLoopAgentUuid?: string | null;
+    autoSearchEnabled?: boolean;
+    autoSearchAgentUuid?: string | null;
   }>(request);
 
   // Build update data
-  const updateData: { name?: string; description?: string | null } = {};
+  const updateData: {
+    name?: string;
+    description?: string | null;
+    datasets?: string[] | null;
+    evaluationMethods?: string[] | null;
+    computePoolUuid?: string | null;
+    autonomousLoopEnabled?: boolean;
+    autonomousLoopAgentUuid?: string | null;
+    autoSearchEnabled?: boolean;
+    autoSearchAgentUuid?: string | null;
+  } = {};
 
   if (body.name !== undefined) {
     if (body.name.trim() === "") {
@@ -105,17 +104,39 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
     updateData.description = body.description?.trim() || null;
   }
 
-  const researchProject = await prisma.researchProject.update({
-    where: { uuid: existing.uuid },
-    data: updateData,
-    select: {
-      uuid: true,
-      name: true,
-      description: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+  if (body.datasets !== undefined) {
+    updateData.datasets = Array.isArray(body.datasets) && body.datasets.length > 0
+      ? body.datasets
+      : null;
+  }
+
+  if (body.evaluationMethods !== undefined) {
+    updateData.evaluationMethods = Array.isArray(body.evaluationMethods) && body.evaluationMethods.length > 0
+      ? body.evaluationMethods
+      : null;
+  }
+
+  if (body.computePoolUuid !== undefined) {
+    updateData.computePoolUuid = body.computePoolUuid || null;
+  }
+
+  if (body.autonomousLoopEnabled !== undefined) {
+    updateData.autonomousLoopEnabled = body.autonomousLoopEnabled;
+  }
+
+  if (body.autonomousLoopAgentUuid !== undefined) {
+    updateData.autonomousLoopAgentUuid = body.autonomousLoopAgentUuid || null;
+  }
+
+  if (body.autoSearchEnabled !== undefined) {
+    updateData.autoSearchEnabled = body.autoSearchEnabled;
+  }
+
+  if (body.autoSearchAgentUuid !== undefined) {
+    updateData.autoSearchAgentUuid = body.autoSearchAgentUuid || null;
+  }
+
+  const researchProject = await updateResearchProject(existing.uuid, updateData);
 
   return success({
     uuid: researchProject.uuid,
@@ -141,19 +162,14 @@ export const DELETE = withErrorHandler(async (request: NextRequest, context: Rou
   const { uuid } = await context.params;
 
   // Validate research project exists and belongs to the current company (query by UUID)
-  const existing = await prisma.researchProject.findFirst({
-    where: { uuid, companyUuid: auth.companyUuid },
-    select: { uuid: true },
-  });
+  const existing = await getResearchProjectDetailRef(auth.companyUuid, uuid);
 
   if (!existing) {
     return errors.notFound("Research Project");
   }
 
   // Delete research project (Prisma handles cascade deletes at the application level)
-  await prisma.researchProject.delete({
-    where: { uuid: existing.uuid },
-  });
+  await deleteResearchProject(existing.uuid);
 
   return success({ deleted: true });
 });

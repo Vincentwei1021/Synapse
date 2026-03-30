@@ -1,27 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
+  BookOpen,
+  Bot,
   ChevronDown,
   Plus,
   LayoutDashboard,
   Lightbulb,
   FileText,
-  Tags,
   CheckSquare,
-  Activity,
   FolderKanban,
+  Cpu,
   Settings,
+  LineChart,
   LogOut,
   Menu,
 } from "lucide-react";
-import { getAccessToken, authFetch, logout as authLogout, clearUserManager } from "@/lib/auth-client";
-import { PixelCanvasWidget } from "@/components/pixel-canvas-widget";
+import { authFetch, logout as authLogout, clearUserManager } from "@/lib/auth-client";
 import { RealtimeProvider } from "@/contexts/realtime-context";
 import { NotificationProvider } from "@/contexts/notification-context";
 import { NotificationBell } from "@/components/notification-bell";
@@ -72,6 +74,8 @@ export default function DashboardLayout({
   const isGlobalPage =
     pathname === "/research-projects" ||
     pathname === "/research-projects/new" ||
+    pathname === "/compute" ||
+    pathname === "/agents" ||
     pathname === "/settings" ||
     pathname.startsWith("/project-groups");
   const isProjectContext = currentProjectUuid && !isGlobalPage;
@@ -81,6 +85,12 @@ export default function DashboardLayout({
     fetchProjects();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Refresh project list when navigating (e.g. after deleting a project)
+  useEffect(() => {
+    fetchProjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   const checkSession = async () => {
     try {
@@ -134,8 +144,9 @@ export default function DashboardLayout({
         return;
       }
       const data = await response.json();
-      if (data.success && data.data.length > 0) {
-        setProjects(data.data);
+      const projectList = data.data?.data || data.data || [];
+      if (data.success && Array.isArray(projectList) && projectList.length > 0) {
+        setProjects(projectList);
       }
     } catch (error) {
       console.error("Failed to fetch projects:", error);
@@ -157,6 +168,55 @@ export default function DashboardLayout({
     router.push("/login");
   };
 
+  // Global navigation items
+  const globalNavItems = useMemo(() => [
+    { href: "/research-projects", label: t("nav.researchProjects"), icon: FolderKanban },
+    { href: "/compute", label: t("nav.compute"), icon: Cpu },
+    { href: "/agents", label: t("nav.agents"), icon: Bot },
+    { href: "/settings", label: t("nav.settings"), icon: Settings },
+  ], [t]);
+
+  const projectNavItems = useMemo(() => {
+    if (!currentProjectUuid) {
+      return [];
+    }
+
+    return [
+      { href: `/research-projects/${currentProjectUuid}/dashboard`, label: t("nav.overview"), icon: LayoutDashboard },
+      { href: `/research-projects/${currentProjectUuid}/related-works`, label: t("nav.relatedWorks"), icon: BookOpen },
+      { href: `/research-projects/${currentProjectUuid}/research-questions`, label: t("nav.researchQuestions"), icon: Lightbulb },
+      { href: `/research-projects/${currentProjectUuid}/experiments`, label: t("nav.experiments"), icon: CheckSquare },
+      { href: `/research-projects/${currentProjectUuid}/insights`, label: t("nav.insights"), icon: LineChart },
+      { href: `/research-projects/${currentProjectUuid}/documents`, label: t("nav.documents"), icon: FileText },
+      { href: `/research-projects/${currentProjectUuid}/settings`, label: t("nav.projectSettings"), icon: Settings },
+    ];
+  }, [currentProjectUuid, t]);
+
+  useEffect(() => {
+    globalNavItems.forEach((item) => {
+      router.prefetch(item.href);
+    });
+  }, [globalNavItems, router]);
+
+  useEffect(() => {
+    projectNavItems.forEach((item) => {
+      router.prefetch(item.href);
+    });
+  }, [projectNavItems, router]);
+
+  // Proactive token refresh — prevent logout during long form stays
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(async () => {
+      try {
+        await fetch("/api/auth/refresh", { method: "POST" });
+      } catch {
+        // Refresh failed silently — next API call will handle redirect
+      }
+    }, 45 * 60 * 1000); // every 45 minutes
+    return () => clearInterval(interval);
+  }, [user]);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -164,22 +224,6 @@ export default function DashboardLayout({
       </div>
     );
   }
-
-  // Project navigation items - build URLs using UUIDs
-  const getProjectNavItems = (projectUuid: string) => [
-    { href: `/research-projects/${projectUuid}/dashboard`, label: t("nav.overview"), icon: LayoutDashboard },
-    { href: `/research-projects/${projectUuid}/research-questions`, label: t("nav.ideas"), icon: Lightbulb },
-    { href: `/research-projects/${projectUuid}/documents`, label: t("nav.documents"), icon: FileText },
-    { href: `/research-projects/${projectUuid}/experiment-designs`, label: t("nav.proposals"), icon: Tags },
-    { href: `/research-projects/${projectUuid}/experiment-runs`, label: t("nav.tasks"), icon: CheckSquare },
-    { href: `/research-projects/${projectUuid}/activity`, label: t("nav.activity"), icon: Activity },
-  ];
-
-  // Global navigation items
-  const globalNavItems = [
-    { href: "/research-projects", label: t("nav.projects"), icon: FolderKanban },
-    { href: "/settings", label: t("nav.settings"), icon: Settings },
-  ];
 
   const isNavActive = (href: string) => {
     // Exact match for dashboard
@@ -210,7 +254,7 @@ export default function DashboardLayout({
         {/* Logo + Notification Bell */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src="/synapse-icon.png" alt="Synapse" className="h-7 w-7" />
+            <Image src="/synapse-icon.png" alt="Synapse" width={28} height={28} className="h-7 w-7" />
             <span className="text-base font-semibold text-foreground">
               {t("common.appName")}
             </span>
@@ -225,14 +269,14 @@ export default function DashboardLayout({
           {isProjectContext && currentProjectUuid ? (
             <>
               {/* Back to Projects */}
-              <Link href="/research-projects">
+              <Link href="/research-projects" prefetch>
                 <Button
                   variant="ghost"
                   size="sm"
                   className={`w-full justify-start gap-2.5 text-muted-foreground hover:text-foreground ${navTextSize} ${navItemPy}`}
                 >
                   <ArrowLeft className={mobile ? "h-4 w-4" : "h-3 w-3"} />
-                  {t("nav.backToProjects")}
+                  {t("nav.backToResearchProjects")}
                 </Button>
               </Link>
 
@@ -272,6 +316,7 @@ export default function DashboardLayout({
                       <div className="my-1 border-t border-border" />
                       <Link
                         href="/research-projects/new"
+                        prefetch
                         onClick={() => setProjectMenuOpen(false)}
                       >
                         <Button
@@ -280,7 +325,7 @@ export default function DashboardLayout({
                           className={`w-full justify-start gap-2 px-3 py-2 ${navTextSize} text-primary`}
                         >
                           <Plus className="h-3 w-3" />
-                          {t("nav.newProject")}
+                          {t("nav.newResearchProject")}
                         </Button>
                       </Link>
                     </div>
@@ -290,11 +335,11 @@ export default function DashboardLayout({
 
               {/* Project Navigation Items */}
               <div className={`mt-2 flex flex-col ${navGap}`}>
-                {getProjectNavItems(currentProjectUuid).map((item) => {
+                {projectNavItems.map((item) => {
                   const isActive = isNavActive(item.href);
                   const Icon = item.icon;
                   return (
-                    <Link key={item.href} href={item.href}>
+                    <Link key={item.href} href={item.href} prefetch>
                       <Button
                         variant={isActive ? "secondary" : "ghost"}
                         size="sm"
@@ -322,7 +367,7 @@ export default function DashboardLayout({
                   const isActive = isNavActive(item.href);
                   const Icon = item.icon;
                   return (
-                    <Link key={item.href} href={item.href}>
+                    <Link key={item.href} href={item.href} prefetch>
                       <Button
                         variant={isActive ? "secondary" : "ghost"}
                         size="sm"
@@ -382,7 +427,7 @@ export default function DashboardLayout({
           <Menu className="h-5 w-5 text-muted-foreground" />
         </button>
         <div className="flex items-center gap-2">
-          <img src="/synapse-icon.png" alt="Synapse" className="h-6 w-6" />
+          <Image src="/synapse-icon.png" alt="Synapse" width={24} height={24} className="h-6 w-6" />
           <span className="text-sm font-semibold text-foreground">{t("common.appName")}</span>
         </div>
         <NotificationBell />
@@ -406,10 +451,6 @@ export default function DashboardLayout({
       {isProjectContext && currentProject ? (
         <RealtimeProvider projectUuid={currentProject.uuid}>
           <main className="flex-1 overflow-auto pt-14 md:pt-0">{children}</main>
-          <PixelCanvasWidget
-            projectUuid={currentProject.uuid}
-            projectName={currentProject.name}
-          />
         </RealtimeProvider>
       ) : (
         <main className="flex-1 overflow-auto pt-14 md:pt-0">{children}</main>

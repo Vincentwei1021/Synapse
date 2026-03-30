@@ -6,12 +6,14 @@ import {
   listApiKeys,
   createAgent,
   createApiKey,
-  deleteAgent,
+  getAgentByUuid,
   getApiKey,
+  revokeApiKey,
   updateAgent,
   syncApiKeyNames,
 } from "@/services/agent.service";
 import {
+  getSession,
   listAgentSessions,
   closeSession,
   reopenSession,
@@ -47,7 +49,7 @@ export async function getApiKeysAction(): Promise<{
       uuid: key.uuid,
       keyPrefix: key.keyPrefix,
       name: key.agent?.name || key.name,
-      lastUsed: null,
+      lastUsed: key.lastUsed?.toISOString() || null,
       expiresAt: key.expiresAt?.toISOString() || null,
       createdAt: key.createdAt.toISOString(),
       roles: key.agent?.roles || [],
@@ -68,6 +70,8 @@ interface CreateAgentKeyInput {
   persona: string | null;
 }
 
+const VALID_AGENT_ROLES = new Set(["pre_research", "research", "experiment", "report"]);
+
 export async function createAgentAndKeyAction(input: CreateAgentKeyInput): Promise<{
   success: boolean;
   key?: string;
@@ -78,21 +82,28 @@ export async function createAgentAndKeyAction(input: CreateAgentKeyInput): Promi
     redirect("/login");
   }
 
+  const name = input.name.trim();
+  const roles = [...new Set(input.roles)];
+  if (!name || roles.length === 0) {
+    return { success: false, error: "Name and at least one role are required" };
+  }
+  if (roles.some((role) => !VALID_AGENT_ROLES.has(role))) {
+    return { success: false, error: "Invalid agent role" };
+  }
+
   try {
-    // Create agent with specified roles and persona
     const agent = await createAgent({
       companyUuid: auth.companyUuid,
-      name: input.name,
-      roles: input.roles,
+      name,
+      roles,
       ownerUuid: auth.actorUuid,
-      persona: input.persona,
+      persona: input.persona?.trim() || null,
     });
 
-    // Create API key for the agent
     const apiKey = await createApiKey({
       companyUuid: auth.companyUuid,
       agentUuid: agent.uuid,
-      name: input.name,
+      name,
     });
 
     return { success: true, key: apiKey.key };
@@ -118,7 +129,7 @@ export async function deleteApiKeyAction(uuid: string): Promise<{
       return { success: false, error: "API key not found" };
     }
 
-    await deleteAgent(apiKey.agentUuid);
+    await revokeApiKey(apiKey.uuid);
     return { success: true };
   } catch (error) {
     console.error("Failed to delete API key:", error);
@@ -137,6 +148,11 @@ export async function getAgentSessionsAction(agentUuid: string): Promise<{
   }
 
   try {
+    const agent = await getAgentByUuid(auth.companyUuid, agentUuid, auth.actorUuid);
+    if (!agent) {
+      return { success: false, error: "Agent not found" };
+    }
+
     const sessions = await listAgentSessions(auth.companyUuid, agentUuid);
     return { success: true, data: sessions };
   } catch (error) {
@@ -155,6 +171,16 @@ export async function closeSessionAction(sessionUuid: string): Promise<{
   }
 
   try {
+    const session = await getSession(auth.companyUuid, sessionUuid);
+    if (!session) {
+      return { success: false, error: "Session not found" };
+    }
+
+    const agent = await getAgentByUuid(auth.companyUuid, session.agentUuid, auth.actorUuid);
+    if (!agent) {
+      return { success: false, error: "Session not found" };
+    }
+
     await closeSession(auth.companyUuid, sessionUuid);
     return { success: true };
   } catch (error) {
@@ -173,6 +199,16 @@ export async function reopenSessionAction(sessionUuid: string): Promise<{
   }
 
   try {
+    const session = await getSession(auth.companyUuid, sessionUuid);
+    if (!session) {
+      return { success: false, error: "Session not found" };
+    }
+
+    const agent = await getAgentByUuid(auth.companyUuid, session.agentUuid, auth.actorUuid);
+    if (!agent) {
+      return { success: false, error: "Session not found" };
+    }
+
     await reopenSession(auth.companyUuid, sessionUuid);
     return { success: true };
   } catch (error) {
@@ -198,14 +234,27 @@ export async function updateAgentAction(input: UpdateAgentInput): Promise<{
   }
 
   try {
+    const agent = await getAgentByUuid(auth.companyUuid, input.agentUuid, auth.actorUuid);
+    if (!agent) {
+      return { success: false, error: "Agent not found" };
+    }
+
+    const name = input.name.trim();
+    const roles = [...new Set(input.roles)];
+    if (!name || roles.length === 0) {
+      return { success: false, error: "Name and at least one role are required" };
+    }
+    if (roles.some((role) => !VALID_AGENT_ROLES.has(role))) {
+      return { success: false, error: "Invalid agent role" };
+    }
+
     await updateAgent(input.agentUuid, {
-      name: input.name,
-      roles: input.roles,
-      persona: input.persona,
+      name,
+      roles,
+      persona: input.persona?.trim() || null,
     }, auth.companyUuid);
 
-    // Sync API key names to match the updated agent name
-    await syncApiKeyNames(input.agentUuid, input.name);
+    await syncApiKeyNames(input.agentUuid, name);
 
     return { success: true };
   } catch (error) {

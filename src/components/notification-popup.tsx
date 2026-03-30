@@ -24,7 +24,7 @@ import { useNotification } from "@/contexts/notification-context";
 
 interface Notification {
   uuid: string;
-  projectUuid: string;
+  researchProjectUuid: string;
   projectName: string;
   entityType: string;
   entityUuid: string;
@@ -51,7 +51,8 @@ const PROJECT_COLORS = [
   { bg: "bg-indigo-100 dark:bg-indigo-900/30", text: "text-indigo-800 dark:text-indigo-300" },
 ];
 
-function hashProjectColor(projectUuid: string) {
+function hashProjectColor(projectUuid: string | undefined | null) {
+  if (!projectUuid) return PROJECT_COLORS[0];
   let hash = 0;
   for (let i = 0; i < projectUuid.length; i++) {
     hash = (hash * 31 + projectUuid.charCodeAt(i)) | 0;
@@ -109,13 +110,15 @@ function useRelativeTime(t: ReturnType<typeof useTranslations>) {
 // ===== Entity navigation =====
 
 function getEntityPath(notification: Notification): string {
-  const { entityType, entityUuid, projectUuid } = notification;
-  const base = `/research-projects/${projectUuid}`;
+  const { entityType, entityUuid, researchProjectUuid } = notification;
+  const base = `/research-projects/${researchProjectUuid}`;
   switch (entityType) {
+    case "experiment":
+      return `${base}/experiments?selected=${entityUuid}`;
     case "experiment_run":
       return `${base}/experiment-runs/${entityUuid}`;
     case "research_question":
-      return `${base}/research-questions/${entityUuid}`;
+      return `${base}/research-questions`;
     case "experiment_design":
       return `${base}/experiment-designs/${entityUuid}`;
     case "document":
@@ -223,7 +226,7 @@ export function NotificationPopup({ onClose }: NotificationPopupProps) {
 
   const renderItem = (notification: Notification) => {
     const { Icon, color } = getTypeIcon(notification.action);
-    const projectColor = hashProjectColor(notification.projectUuid);
+    const projectColor = hashProjectColor(notification.researchProjectUuid);
     const isUnread = !notification.readAt;
 
     return (

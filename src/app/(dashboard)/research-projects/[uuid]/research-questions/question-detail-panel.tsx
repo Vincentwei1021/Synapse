@@ -77,7 +77,6 @@ interface IdeaDetailPanelProps {
   idea: Idea;
   projectUuid: string;
   currentUserUuid: string;
-  isUsedInProposal: boolean;
   onClose: () => void;
   onDeleted?: () => void;
 }
@@ -157,7 +156,6 @@ export function IdeaDetailPanel({
   idea,
   projectUuid,
   currentUserUuid,
-  isUsedInProposal,
   onClose,
   onDeleted,
 }: IdeaDetailPanelProps) {

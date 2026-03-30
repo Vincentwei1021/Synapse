@@ -4,11 +4,10 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Card } from "@/components/ui/card";
-import { Monitor, User, Settings } from "lucide-react";
+import { Monitor, User } from "lucide-react";
 import { getServerAuthContext } from "@/lib/auth-server";
-import { listActivities } from "@/services/activity.service";
+import { listActivitiesWithActorNames } from "@/services/activity.service";
 import { researchProjectExists } from "@/services/research-project.service";
-import { prisma } from "@/lib/prisma";
 
 interface ActivityWithActor {
   uuid: string;
@@ -16,7 +15,7 @@ interface ActivityWithActor {
   targetUuid: string;
   action: string;
   value: unknown;
-  createdAt: Date;
+  createdAt: string;
   actorName: string;
   isAgent: boolean;
 }
@@ -101,34 +100,15 @@ export default async function ActivityPage({ params }: PageProps) {
   }
 
   // Get Activities
-  const { activities: rawActivities } = await listActivities({
+  const { activities: rawActivities } = await listActivitiesWithActorNames({
     companyUuid: auth.companyUuid,
     researchProjectUuid: projectUuid,
     skip: 0,
     take: 100,
   });
 
-  // Get Actor information
-  const actorUuids = [...new Set(rawActivities.map((a) => a.actorUuid))];
-
-  const [users, agents] = await Promise.all([
-    prisma.user.findMany({
-      where: { uuid: { in: actorUuids } },
-      select: { uuid: true, name: true },
-    }),
-    prisma.agent.findMany({
-      where: { uuid: { in: actorUuids } },
-      select: { uuid: true, name: true },
-    }),
-  ]);
-
-  const userMap = new Map(users.map((u) => [u.uuid, { name: u.name || t("common.unknown"), isAgent: false }]));
-  const agentMap = new Map(agents.map((a) => [a.uuid, { name: a.name, isAgent: true }]));
-
   // Format Activities
   const activities: ActivityWithActor[] = rawActivities.map((activity) => {
-    const actor = userMap.get(activity.actorUuid) || agentMap.get(activity.actorUuid) || { name: t("common.system"), isAgent: false };
-
     return {
       uuid: activity.uuid,
       targetType: activity.targetType,
@@ -136,8 +116,8 @@ export default async function ActivityPage({ params }: PageProps) {
       action: activity.action,
       value: activity.value,
       createdAt: activity.createdAt,
-      actorName: actor.name,
-      isAgent: actor.isAgent,
+      actorName: activity.actorName || t("common.system"),
+      isAgent: activity.actorType === "agent",
     };
   });
 
@@ -196,7 +176,7 @@ export default async function ActivityPage({ params }: PageProps) {
                       </div>
 
                       <div className="text-xs text-[#9A9A9A] whitespace-nowrap">
-                        {formatDate(activity.createdAt, t)}
+                        {formatDate(new Date(activity.createdAt), t)}
                       </div>
                     </Card>
                   );

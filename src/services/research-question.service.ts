@@ -5,8 +5,8 @@
 import { prisma } from "@/lib/prisma";
 import { formatAssigneeComplete, formatCreatedBy } from "@/lib/uuid-resolver";
 import { eventBus } from "@/lib/event-bus";
-import { AlreadyClaimedError, NotClaimedError, isPrismaNotFound } from "@/lib/errors";
 import { ApiError } from "@/lib/api-handler";
+import { AlreadyClaimedError } from "@/lib/errors";
 import * as mentionService from "@/services/mention.service";
 import * as activityService from "@/services/activity.service";
 
@@ -29,7 +29,11 @@ export interface ResearchQuestionCreateParams {
   title: string;
   content?: string | null;
   attachments?: unknown;
+  parentQuestionUuid?: string | null;
   createdByUuid: string;
+  sourceType?: string;
+  sourceLabel?: string | null;
+  generatedByAgentUuid?: string | null;
 }
 
 export interface ResearchQuestionClaimParams {
@@ -46,6 +50,16 @@ export interface ResearchQuestionResponse {
   title: string;
   content: string | null;
   attachments: unknown;
+  parentQuestionUuid: string | null;
+  childQuestionUuids: string[];
+  experimentCount: number;
+  sourceType: string;
+  sourceLabel: string | null;
+  generatedByAgentUuid: string | null;
+  reviewStatus: string;
+  reviewedByUuid: string | null;
+  reviewNote: string | null;
+  reviewedAt: string | null;
   status: string;
   assignee: {
     type: string;
@@ -79,6 +93,7 @@ export function normalizeResearchQuestionStatus(status: string): string {
     case "in_progress":
       return "elaborating";
     case "pending_review":
+    case "experiment_created":
       return "proposal_created";
     default:
       return status;
@@ -88,8 +103,9 @@ export function normalizeResearchQuestionStatus(status: string): string {
 // Validate whether a status transition is valid
 export function isValidResearchQuestionStatusTransition(from: string, to: string): boolean {
   const normalizedFrom = normalizeResearchQuestionStatus(from);
+  const normalizedTo = normalizeResearchQuestionStatus(to);
   const allowed = RESEARCH_QUESTION_STATUS_TRANSITIONS[normalizedFrom] || [];
-  return allowed.includes(to);
+  return allowed.includes(normalizedTo);
 }
 
 // ===== Internal Helper Functions =====
@@ -101,6 +117,16 @@ async function formatResearchQuestionResponse(
     title: string;
     content: string | null;
     attachments: unknown;
+    parentQuestionUuid: string | null;
+    childQuestions?: Array<{ uuid: string }>;
+    _count?: { experiments: number };
+    sourceType: string;
+    sourceLabel: string | null;
+    generatedByAgentUuid: string | null;
+    reviewStatus: string;
+    reviewedByUuid: string | null;
+    reviewNote: string | null;
+    reviewedAt: Date | null;
     status: string;
     elaborationStatus?: string | null;
     elaborationDepth?: string | null;
@@ -124,6 +150,16 @@ async function formatResearchQuestionResponse(
     title: idea.title,
     content: idea.content,
     attachments: idea.attachments,
+    parentQuestionUuid: idea.parentQuestionUuid,
+    childQuestionUuids: idea.childQuestions?.map((child) => child.uuid) ?? [],
+    experimentCount: idea._count?.experiments ?? 0,
+    sourceType: idea.sourceType,
+    sourceLabel: idea.sourceLabel,
+    generatedByAgentUuid: idea.generatedByAgentUuid,
+    reviewStatus: idea.reviewStatus,
+    reviewedByUuid: idea.reviewedByUuid,
+    reviewNote: idea.reviewNote,
+    reviewedAt: idea.reviewedAt?.toISOString() ?? null,
     status: normalizeResearchQuestionStatus(idea.status),
     assignee,
     ...(idea.researchProject && { project: idea.researchProject }),
@@ -177,6 +213,21 @@ export async function listResearchQuestions({
         title: true,
         content: true,
         attachments: true,
+        parentQuestionUuid: true,
+        childQuestions: {
+          select: { uuid: true },
+          orderBy: { createdAt: "asc" },
+        },
+        _count: {
+          select: { experiments: true },
+        },
+        sourceType: true,
+        sourceLabel: true,
+        generatedByAgentUuid: true,
+        reviewStatus: true,
+        reviewedByUuid: true,
+        reviewNote: true,
+        reviewedAt: true,
         status: true,
         elaborationStatus: true,
         elaborationDepth: true,
@@ -205,6 +256,13 @@ export async function getResearchQuestion(
     where: { uuid, companyUuid },
     include: {
       researchProject: { select: { uuid: true, name: true } },
+      childQuestions: {
+        select: { uuid: true },
+        orderBy: { createdAt: "asc" },
+      },
+      _count: {
+        select: { experiments: true },
+      },
     },
   });
 
@@ -216,11 +274,48 @@ export async function getResearchQuestion(
 export async function getResearchQuestionByUuid(companyUuid: string, uuid: string) {
   return prisma.researchQuestion.findFirst({
     where: { uuid, companyUuid },
+    include: {
+      parentQuestion: {
+        select: { uuid: true, researchProjectUuid: true },
+      },
+      childQuestions: {
+        select: { uuid: true },
+        orderBy: { createdAt: "asc" },
+      },
+      _count: {
+        select: { experiments: true },
+      },
+    },
+  });
+}
+
+export async function getResearchQuestionProjectRef(companyUuid: string, uuid: string) {
+  return prisma.researchQuestion.findFirst({
+    where: { uuid, companyUuid },
+    select: {
+      uuid: true,
+      researchProjectUuid: true,
+    },
   });
 }
 
 // Create Idea
 export async function createResearchQuestion(params: ResearchQuestionCreateParams): Promise<ResearchQuestionResponse> {
+  if (params.parentQuestionUuid) {
+    const parentQuestion = await prisma.researchQuestion.findFirst({
+      where: {
+        uuid: params.parentQuestionUuid,
+        companyUuid: params.companyUuid,
+        researchProjectUuid: params.researchProjectUuid,
+      },
+      select: { uuid: true },
+    });
+
+    if (!parentQuestion) {
+      throw new Error("Parent research question not found");
+    }
+  }
+
   const idea = await prisma.researchQuestion.create({
     data: {
       companyUuid: params.companyUuid,
@@ -228,6 +323,11 @@ export async function createResearchQuestion(params: ResearchQuestionCreateParam
       title: params.title,
       content: params.content,
       attachments: params.attachments || undefined,
+      parentQuestionUuid: params.parentQuestionUuid ?? null,
+      sourceType: params.sourceType ?? "human",
+      sourceLabel: params.sourceLabel ?? null,
+      generatedByAgentUuid: params.generatedByAgentUuid ?? null,
+      reviewStatus: params.sourceType === "agent" ? "pending" : "accepted",
       status: "open",
       createdByUuid: params.createdByUuid,
     },
@@ -236,6 +336,21 @@ export async function createResearchQuestion(params: ResearchQuestionCreateParam
       title: true,
       content: true,
       attachments: true,
+      parentQuestionUuid: true,
+      childQuestions: {
+        select: { uuid: true },
+        orderBy: { createdAt: "asc" },
+      },
+      _count: {
+        select: { experiments: true },
+      },
+      sourceType: true,
+      sourceLabel: true,
+      generatedByAgentUuid: true,
+      reviewStatus: true,
+      reviewedByUuid: true,
+      reviewNote: true,
+      reviewedAt: true,
       status: true,
       elaborationStatus: true,
       elaborationDepth: true,
@@ -258,9 +373,50 @@ export async function createResearchQuestion(params: ResearchQuestionCreateParam
 export async function updateResearchQuestion(
   uuid: string,
   companyUuid: string,
-  data: { title?: string; content?: string | null; status?: string },
+  data: { title?: string; content?: string | null; status?: string; parentQuestionUuid?: string | null },
   actorContext?: { actorType: string; actorUuid: string }
 ): Promise<ResearchQuestionResponse> {
+  const currentQuestion =
+    data.parentQuestionUuid !== undefined
+      ? await prisma.researchQuestion.findFirst({
+          where: { uuid, companyUuid },
+          select: { uuid: true, researchProjectUuid: true },
+        })
+      : null;
+
+  if (data.parentQuestionUuid !== undefined && currentQuestion) {
+    if (data.parentQuestionUuid === uuid) {
+      throw new Error("A research question cannot be its own parent");
+    }
+
+    if (data.parentQuestionUuid) {
+      const parent = await prisma.researchQuestion.findFirst({
+        where: {
+          uuid: data.parentQuestionUuid,
+          companyUuid,
+          researchProjectUuid: currentQuestion.researchProjectUuid,
+        },
+        select: { uuid: true, parentQuestionUuid: true },
+      });
+
+      if (!parent) {
+        throw new Error("Parent research question not found");
+      }
+
+      let cursor: string | null | undefined = parent.uuid;
+      while (cursor) {
+        if (cursor === uuid) {
+          throw new Error("Cannot move a research question under one of its descendants");
+        }
+        const ancestor: { parentQuestionUuid: string | null } | null = await prisma.researchQuestion.findUnique({
+          where: { uuid: cursor },
+          select: { parentQuestionUuid: true },
+        });
+        cursor = ancestor?.parentQuestionUuid;
+      }
+    }
+  }
+
   // If content is being updated and we have actor context, capture old content for mention diffing
   let oldContent: string | null = null;
   if (data.content !== undefined && actorContext) {
@@ -273,6 +429,13 @@ export async function updateResearchQuestion(
     data,
     include: {
       researchProject: { select: { uuid: true, name: true } },
+      childQuestions: {
+        select: { uuid: true },
+        orderBy: { createdAt: "asc" },
+      },
+      _count: {
+        select: { experiments: true },
+      },
     },
   });
 
@@ -313,6 +476,9 @@ export async function claimResearchQuestion({
   if (existing.status === "completed" || existing.status === "closed") {
     throw new Error("Cannot claim a completed or closed ResearchQuestion");
   }
+  if (existing.reviewStatus === "rejected") {
+    throw new Error("Cannot claim a rejected ResearchQuestion");
+  }
 
   const idea = await prisma.researchQuestion.update({
     where: { uuid: researchQuestionUuid },
@@ -347,6 +513,9 @@ export async function assignResearchQuestion({
   if (!existing) throw new Error("ResearchQuestion not found");
   if (existing.status === "completed" || existing.status === "closed") {
     throw new Error("Cannot assign a completed or closed ResearchQuestion");
+  }
+  if (existing.reviewStatus === "rejected") {
+    throw new Error("Cannot assign a rejected ResearchQuestion");
   }
 
   // If currently open, move to elaborating; otherwise keep current status
@@ -396,6 +565,42 @@ export async function releaseResearchQuestion(uuid: string): Promise<ResearchQue
   });
 
   eventBus.emitChange({ companyUuid: idea.companyUuid, researchProjectUuid: idea.researchProject!.uuid, entityType: "research_question", entityUuid: idea.uuid, action: "updated" });
+
+  return formatResearchQuestionResponse(idea);
+}
+
+export async function reviewResearchQuestion(
+  companyUuid: string,
+  researchQuestionUuid: string,
+  reviewStatus: "accepted" | "rejected",
+  reviewedByUuid: string,
+  reviewNote?: string | null
+): Promise<ResearchQuestionResponse> {
+  const idea = await prisma.researchQuestion.update({
+    where: { uuid: researchQuestionUuid },
+    data: {
+      reviewStatus,
+      reviewedByUuid,
+      reviewNote: reviewNote ?? null,
+      reviewedAt: new Date(),
+      status: reviewStatus === "rejected" ? "closed" : "open",
+      assigneeType: reviewStatus === "rejected" ? null : undefined,
+      assigneeUuid: reviewStatus === "rejected" ? null : undefined,
+      assignedAt: reviewStatus === "rejected" ? null : undefined,
+      assignedByUuid: reviewStatus === "rejected" ? null : undefined,
+    },
+    include: {
+      researchProject: { select: { uuid: true, name: true } },
+    },
+  });
+
+  eventBus.emitChange({
+    companyUuid,
+    researchProjectUuid: idea.researchProject!.uuid,
+    entityType: "research_question",
+    entityUuid: idea.uuid,
+    action: "updated",
+  });
 
   return formatResearchQuestionResponse(idea);
 }
@@ -453,9 +658,114 @@ async function processNewResearchQuestionMentions(
 
 // Delete Idea
 export async function deleteResearchQuestion(uuid: string) {
-  const idea = await prisma.researchQuestion.delete({ where: { uuid } });
-  eventBus.emitChange({ companyUuid: idea.companyUuid, researchProjectUuid: idea.researchProjectUuid, entityType: "research_question", entityUuid: idea.uuid, action: "deleted" });
-  return idea;
+  const root = await prisma.researchQuestion.findUnique({
+    where: { uuid },
+    select: {
+      uuid: true,
+      companyUuid: true,
+      researchProjectUuid: true,
+    },
+  });
+
+  if (!root) {
+    throw new Error("ResearchQuestion not found");
+  }
+
+  const allQuestions = await prisma.researchQuestion.findMany({
+    where: {
+      companyUuid: root.companyUuid,
+      researchProjectUuid: root.researchProjectUuid,
+    },
+    select: {
+      uuid: true,
+      parentQuestionUuid: true,
+    },
+  });
+
+  const childrenByParent = new Map<string | null, string[]>();
+  for (const question of allQuestions) {
+    const siblings = childrenByParent.get(question.parentQuestionUuid ?? null) ?? [];
+    siblings.push(question.uuid);
+    childrenByParent.set(question.parentQuestionUuid ?? null, siblings);
+  }
+
+  const deletionOrder: Array<{ uuid: string; depth: number }> = [];
+  const queue: Array<{ uuid: string; depth: number }> = [{ uuid, depth: 0 }];
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    deletionOrder.push(current);
+    const children = childrenByParent.get(current.uuid) ?? [];
+    for (const childUuid of children) {
+      queue.push({ uuid: childUuid, depth: current.depth + 1 });
+    }
+  }
+
+  const questionUuids = deletionOrder.map((item) => item.uuid);
+
+  const experiments = await prisma.experiment.findMany({
+    where: {
+      companyUuid: root.companyUuid,
+      researchQuestionUuid: { in: questionUuids },
+    },
+    select: { uuid: true },
+  });
+
+  const experimentUuids = experiments.map((experiment) => experiment.uuid);
+
+  await prisma.$transaction(async (tx) => {
+    if (experimentUuids.length > 0) {
+      await tx.experimentGpuReservation.deleteMany({
+        where: {
+          companyUuid: root.companyUuid,
+          experimentUuid: { in: experimentUuids },
+        },
+      });
+
+      await tx.experiment.deleteMany({
+        where: {
+          companyUuid: root.companyUuid,
+          uuid: { in: experimentUuids },
+        },
+      });
+    }
+
+    const groupedByDepth = new Map<number, string[]>();
+    for (const item of deletionOrder) {
+      const bucket = groupedByDepth.get(item.depth) ?? [];
+      bucket.push(item.uuid);
+      groupedByDepth.set(item.depth, bucket);
+    }
+
+    const depths = [...groupedByDepth.keys()].sort((left, right) => right - left);
+    for (const depth of depths) {
+      await tx.researchQuestion.deleteMany({
+        where: { uuid: { in: groupedByDepth.get(depth) ?? [] } },
+      });
+    }
+  });
+
+  for (const experimentUuid of experimentUuids) {
+    eventBus.emitChange({
+      companyUuid: root.companyUuid,
+      researchProjectUuid: root.researchProjectUuid,
+      entityType: "experiment",
+      entityUuid: experimentUuid,
+      action: "deleted",
+    });
+  }
+
+  for (const item of deletionOrder) {
+    eventBus.emitChange({
+      companyUuid: root.companyUuid,
+      researchProjectUuid: root.researchProjectUuid,
+      entityType: "research_question",
+      entityUuid: item.uuid,
+      action: "deleted",
+    });
+  }
+
+  return root;
 }
 
 // Move Idea to a different project

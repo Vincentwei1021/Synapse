@@ -3,7 +3,7 @@
 // UUID-Based Architecture: All IDs are UUIDs
 
 import { NextRequest, NextResponse } from "next/server";
-import { extractApiKey, validateApiKey } from "./api-key";
+import { validateApiKey } from "./api-key";
 import { errors } from "./api-response";
 import type {
   AuthContext,

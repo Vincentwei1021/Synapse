@@ -14,11 +14,11 @@ import { researchProjectExists } from "@/services/research-project.service";
 import { CreateDocumentDialog } from "./create-document-dialog";
 
 const docTypeConfig: Record<string, { labelKey: string; color: string; icon: LucideIcon }> = {
-  prd: { labelKey: "documents.typePrd", color: "bg-[#E3F2FD] text-[#1976D2]", icon: ClipboardList },
-  spec: { labelKey: "documents.typeSpec", color: "bg-[#E8F5E9] text-[#5A9E6F]", icon: FileEdit },
-  design: { labelKey: "documents.typeDesign", color: "bg-[#F3E5F5] text-[#7B1FA2]", icon: Palette },
-  note: { labelKey: "documents.typeNote", color: "bg-[#FFF3E0] text-[#E65100]", icon: BookOpen },
-  other: { labelKey: "documents.typeOther", color: "bg-[#F5F5F5] text-[#6B6B6B]", icon: FileText },
+  prd: { labelKey: "documents.typePrd", color: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300", icon: ClipboardList },
+  spec: { labelKey: "documents.typeSpec", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300", icon: FileEdit },
+  design: { labelKey: "documents.typeDesign", color: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300", icon: Palette },
+  note: { labelKey: "documents.typeNote", color: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300", icon: BookOpen },
+  other: { labelKey: "documents.typeOther", color: "bg-secondary text-muted-foreground", icon: FileText },
 };
 
 interface PageProps {
@@ -66,8 +66,8 @@ export default async function DocumentsPage({ params, searchParams }: PageProps)
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-[#2C2C2C]">{t("documents.title")}</h1>
-          <p className="mt-1 text-sm text-[#6B6B6B]">{t("documents.subtitle")}</p>
+          <h1 className="text-2xl font-semibold text-foreground">{t("documents.title")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("documents.subtitle")}</p>
         </div>
         <CreateDocumentDialog projectUuid={projectUuid} />
       </div>
@@ -94,29 +94,29 @@ export default async function DocumentsPage({ params, searchParams }: PageProps)
 
       {/* Documents Grid */}
       {filteredDocuments.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center p-12 text-center border-[#E5E0D8]">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#E8F5E9]">
-            <FilePlus className="h-8 w-8 text-[#5A9E6F]" />
+        <Card className="flex flex-col items-center justify-center border-border bg-card p-12 text-center">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15">
+            <FilePlus className="h-8 w-8 text-emerald-400" />
           </div>
-          <h3 className="mb-2 text-lg font-medium text-[#2C2C2C]">{t("documents.noDocuments")}</h3>
-          <p className="mb-6 max-w-sm text-sm text-[#6B6B6B]">{t("documents.noDocumentsDesc")}</p>
+          <h3 className="mb-2 text-lg font-medium text-foreground">{t("documents.noDocuments")}</h3>
+          <p className="mb-6 max-w-sm text-sm text-muted-foreground">{t("documents.noDocumentsDesc")}</p>
           <CreateDocumentDialog projectUuid={projectUuid} />
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredDocuments.map((doc) => (
             <Link key={doc.uuid} href={`/research-projects/${projectUuid}/documents/${doc.uuid}`}>
-              <Card className="group cursor-pointer border-[#E5E0D8] p-5 transition-all hover:border-[#C67A52] hover:shadow-md">
+              <Card className="group cursor-pointer border-border bg-card p-5 transition-all hover:border-primary/50 hover:shadow-md">
                 <div className="mb-3 flex items-start justify-between">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F5F2EC]">
-                    {(() => { const Icon = docTypeConfig[doc.type]?.icon || FileText; return <Icon className="h-5 w-5 text-[#6B6B6B]" />; })()}
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+                    {(() => { const Icon = docTypeConfig[doc.type]?.icon || FileText; return <Icon className="h-5 w-5 text-muted-foreground" />; })()}
                   </div>
                   <Badge className={docTypeConfig[doc.type]?.color || ""}>
                     {t(docTypeConfig[doc.type]?.labelKey || "documents.typeOther")}
                   </Badge>
                 </div>
-                <h3 className="mb-1 font-medium text-[#2C2C2C] group-hover:text-[#C67A52]">{doc.title}</h3>
-                <div className="flex items-center gap-3 text-xs text-[#9A9A9A]">
+                <h3 className="mb-1 font-medium text-foreground transition-colors group-hover:text-primary">{doc.title}</h3>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span>v{doc.version}</span>
                   <span>·</span>
                   <span>{t("documents.updated", { date: new Date(doc.updatedAt).toLocaleDateString() })}</span>

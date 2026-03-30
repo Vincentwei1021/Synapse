@@ -239,7 +239,7 @@ export function DagView({ projectUuid, onTaskSelect, refreshKey }: DagViewProps)
       // Reload the full DAG to get proper layout
       await loadDag();
     },
-    [loadDag]
+    [loadDag, t]
   );
 
   const onNodeClick = useCallback(

@@ -15,7 +15,8 @@ export interface SynapseEventRouterOptions {
  */
 interface NotificationDetail {
   uuid: string;
-  projectUuid: string;
+  projectUuid?: string;
+  researchProjectUuid?: string;
   entityType: string;
   entityUuid: string;
   entityTitle: string;
@@ -24,6 +25,27 @@ interface NotificationDetail {
   actorType: string;
   actorUuid: string;
   actorName: string;
+}
+
+interface ExperimentDetail {
+  uuid: string;
+  researchProjectUuid: string;
+  title: string;
+  description: string | null;
+  priority: string;
+  computeBudgetHours: number | null;
+  attachments: Array<{ originalName: string }> | null;
+  researchQuestion?: { uuid: string; title: string } | null;
+  parentQuestionExperiments?: Array<{ title: string; status: string; outcome: string | null }> | null;
+}
+
+interface ResearchProjectDetail {
+  uuid: string;
+  name: string;
+  description: string | null;
+  goal: string | null;
+  datasets: Array<unknown> | null;
+  evaluationMethods: Array<unknown> | null;
 }
 
 export class SynapseEventRouter {
@@ -89,9 +111,11 @@ export class SynapseEventRouter {
     }
 
     // Project filter: if projectUuids is configured, ignore events from other projects
-    if (this.projectFilter.size > 0 && !this.projectFilter.has(notification.projectUuid)) {
+    const projectUuid = notification.projectUuid ?? notification.researchProjectUuid ?? "";
+
+    if (this.projectFilter.size > 0 && !this.projectFilter.has(projectUuid)) {
       this.logger.info(
-        `Notification for project ${notification.projectUuid} filtered out`
+        `Notification for project ${projectUuid} filtered out`
       );
       return;
     }
@@ -100,31 +124,48 @@ export class SynapseEventRouter {
     try {
       switch (notification.action) {
         case "task_assigned":
+        case "run_assigned":
           await this.handleTaskAssigned(notification);
           break;
         case "mentioned":
           this.handleMentioned(notification);
           break;
         case "elaboration_requested":
+        case "hypothesis_formulation_requested":
           this.handleElaborationRequested(notification);
           break;
         case "elaboration_answered":
+        case "hypothesis_formulation_answered":
           this.handleElaborationAnswered(notification);
           break;
         case "proposal_rejected":
+        case "design_rejected":
           this.handleProposalRejected(notification);
           break;
         case "proposal_approved":
+        case "design_approved":
           this.handleProposalApproved(notification);
           break;
         case "idea_claimed":
+        case "research_question_claimed":
           this.handleIdeaClaimed(notification);
           break;
         case "task_verified":
+        case "run_verified":
           this.handleTaskVerified(notification);
           break;
         case "task_reopened":
+        case "run_reopened":
           this.handleTaskReopened(notification);
+          break;
+        case "autonomous_loop_triggered":
+          this.handleAutonomousLoopTriggered(notification);
+          break;
+        case "deep_research_requested":
+          this.handleDeepResearchRequested(notification);
+          break;
+        case "experiment_report_requested":
+          this.handleExperimentReportRequested(notification);
           break;
         default:
           this.logger.info(`Unhandled notification action: "${notification.action}"`);
@@ -146,112 +187,261 @@ export class SynapseEventRouter {
     );
   }
 
+  private formatList(values: Array<unknown> | null | undefined): string {
+    if (!values || values.length === 0) {
+      return "Not specified";
+    }
+
+    return values
+      .map((value) => {
+        if (typeof value === "string") {
+          return value;
+        }
+        return JSON.stringify(value);
+      })
+      .join("; ");
+  }
+
   private async handleTaskAssigned(n: NotificationDetail): Promise<void> {
-    const mentionGuidance = this.buildMentionGuidance(n, "task");
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
+    const mentionGuidance = this.buildMentionGuidance(
+      n,
+      n.entityType === "experiment" ? "experiment" : "experiment run",
+    );
+
+    if (n.entityType === "experiment") {
+      let experiment: ExperimentDetail | null = null;
+      let project: ResearchProjectDetail | null = null;
+
+      try {
+        const result = await this.mcpClient.callTool("synapse_get_experiment", {
+          experimentUuid: n.entityUuid,
+        }) as { experiment?: ExperimentDetail } | null;
+        experiment = result?.experiment ?? null;
+      } catch (err) {
+        this.logger.warn(`Failed to fetch experiment detail for wake prompt: ${err}`);
+      }
+
+      try {
+        const targetProjectUuid = experiment?.researchProjectUuid ?? projectUuid;
+        if (targetProjectUuid) {
+          const result = await this.mcpClient.callTool("synapse_get_research_project", {
+            researchProjectUuid: targetProjectUuid,
+          }) as ResearchProjectDetail | null;
+          project = result;
+        }
+      } catch (err) {
+        this.logger.warn(`Failed to fetch research project detail for wake prompt: ${err}`);
+      }
+
+      const contextLines = [
+        project?.name ? `Research project: ${project.name}` : null,
+        project?.goal ? `Goal: ${project.goal}` : null,
+        project?.description ? `Project brief: ${project.description}` : null,
+        project ? `Datasets: ${this.formatList(project.datasets)}` : null,
+        project ? `Evaluation methods: ${this.formatList(project.evaluationMethods)}` : null,
+        experiment?.description ? `Experiment description: ${experiment.description}` : null,
+        experiment?.researchQuestion?.title ? `Linked research question: ${experiment.researchQuestion.title}` : null,
+        experiment?.computeBudgetHours != null ? `Compute budget (hours): ${experiment.computeBudgetHours}` : "Compute budget (hours): Unlimited",
+        experiment?.attachments?.length
+          ? `Attached files: ${experiment.attachments.map((item) => item.originalName).join(", ")}`
+          : null,
+        experiment?.parentQuestionExperiments?.length
+          ? `Parent-question experiment context: ${experiment.parentQuestionExperiments
+              .map((item) => `${item.title} [${item.status}]${item.outcome ? ` outcome: ${item.outcome}` : ""}`)
+              .join("; ")}`
+          : null,
+        "If a selected compute node exposes managedKeyAvailable=true, call synapse_get_node_access_bundle with the experimentUuid and nodeUuid. Write the returned privateKeyPemBase64 to a local PEM file with chmod 600 before using ssh.",
+      ].filter(Boolean);
+
+      const prompt = [
+        `[Synapse] Experiment assigned: ${n.entityTitle}. Experiment UUID: ${n.entityUuid}, Project UUID: ${projectUuid}.`,
+        ...contextLines,
+        "Use synapse_get_assigned_experiments to inspect your current queue. Execute the highest-priority item first; experiments with priority 'immediate' must jump to the front of the queue, and experiments with the same priority should be handled FIFO.",
+        `Then use synapse_get_experiment with experimentUuid "${n.entityUuid}" to inspect full details, use synapse_list_compute_nodes to inspect available machines and GPUs, call synapse_start_experiment when you begin execution.`,
+        `During execution, call synapse_report_experiment_progress with experimentUuid "${n.entityUuid}" at each major step (e.g. data download, training start, evaluation) to update the live status on the experiment card.`,
+        `When finished, call synapse_submit_experiment_results with experimentUuid "${n.entityUuid}" to complete the experiment.`,
+        mentionGuidance,
+      ].join("\n");
+
+      // Compute timeout: use experiment's computeBudgetHours, or 24h if unlimited
+      const budgetHours = experiment?.computeBudgetHours;
+      const timeoutSeconds = budgetHours != null ? Math.ceil(budgetHours * 3600) : 24 * 3600;
+
+      this.triggerAgent(prompt, {
+        notificationUuid: n.uuid,
+        action: "task_assigned",
+        entityType: n.entityType,
+        entityUuid: n.entityUuid,
+        projectUuid,
+        timeoutSeconds,
+      });
+      return;
+    }
 
     if (this.config.autoStart) {
       try {
-        await this.mcpClient.callTool("synapse_claim_task", { taskUuid: n.entityUuid });
-        this.logger.info(`Auto-claimed task ${n.entityUuid}`);
+        await this.mcpClient.callTool("synapse_claim_experiment_run", { runUuid: n.entityUuid });
+        this.logger.info(`Auto-claimed experiment run ${n.entityUuid}`);
       } catch (err) {
-        this.logger.warn(`Failed to auto-claim task ${n.entityUuid}: ${err}`);
+        this.logger.warn(`Failed to auto-claim experiment run ${n.entityUuid}: ${err}`);
         // Still trigger agent even if claim fails — let the agent handle it
       }
 
       this.triggerAgent(
-        `[Synapse] Task assigned: ${n.entityTitle}. Task UUID: ${n.entityUuid}, Project UUID: ${n.projectUuid}. Use synapse_get_task to see details and begin work.\n${mentionGuidance}`,
-        { notificationUuid: n.uuid, action: "task_assigned", entityUuid: n.entityUuid, projectUuid: n.projectUuid }
+        `[Synapse] Experiment run assigned: ${n.entityTitle}. Run UUID: ${n.entityUuid}, Project UUID: ${projectUuid}. Use synapse_get_experiment_run to inspect details, then start work.\n${mentionGuidance}`,
+        { notificationUuid: n.uuid, action: "task_assigned", entityUuid: n.entityUuid, projectUuid }
       );
     } else {
       this.triggerAgent(
-        `[Synapse] Task assigned: ${n.entityTitle}. Task UUID: ${n.entityUuid}, Project UUID: ${n.projectUuid}. Use synapse_get_task to review when ready.\n${mentionGuidance}`,
-        { notificationUuid: n.uuid, action: "task_assigned", entityUuid: n.entityUuid, projectUuid: n.projectUuid }
+        `[Synapse] Experiment run assigned: ${n.entityTitle}. Run UUID: ${n.entityUuid}, Project UUID: ${projectUuid}. Use synapse_get_experiment_run to review when ready.\n${mentionGuidance}`,
+        { notificationUuid: n.uuid, action: "task_assigned", entityUuid: n.entityUuid, projectUuid }
       );
     }
   }
 
   private handleMentioned(n: NotificationDetail): void {
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
     const mentionGuidance = this.buildMentionGuidance(n, n.entityType);
 
     this.triggerAgent(
-      `[Synapse] You were @mentioned in ${n.entityType} '${n.entityTitle}' (entityType: ${n.entityType}, entityUuid: ${n.entityUuid}, projectUuid: ${n.projectUuid}): ${n.message}\n` +
+      `[Synapse] You were @mentioned in ${n.entityType} '${n.entityTitle}' (entityType: ${n.entityType}, entityUuid: ${n.entityUuid}, projectUuid: ${projectUuid}): ${n.message}\n` +
       `Review the ${n.entityType} content and use synapse_get_comments (targetType: "${n.entityType}", targetUuid: "${n.entityUuid}") to see the full conversation, then respond.\n` +
       mentionGuidance,
-      { notificationUuid: n.uuid, action: "mentioned", entityUuid: n.entityUuid, projectUuid: n.projectUuid }
+      { notificationUuid: n.uuid, action: "mentioned", entityUuid: n.entityUuid, projectUuid }
     );
   }
 
   private handleElaborationRequested(n: NotificationDetail): void {
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
     this.triggerAgent(
-      `[Synapse] Elaboration requested for idea '${n.entityTitle}' (ideaUuid: ${n.entityUuid}, projectUuid: ${n.projectUuid}). Use synapse_get_elaboration to review questions.`,
-      { notificationUuid: n.uuid, action: "elaboration_requested", entityUuid: n.entityUuid, projectUuid: n.projectUuid }
+      `[Synapse] Hypothesis formulation requested for research question '${n.entityTitle}' (questionUuid: ${n.entityUuid}, projectUuid: ${projectUuid}). Use synapse_get_hypothesis_formulation to review questions.`,
+      { notificationUuid: n.uuid, action: "elaboration_requested", entityUuid: n.entityUuid, projectUuid }
     );
   }
 
   private handleProposalRejected(n: NotificationDetail): void {
-    const mentionGuidance = this.buildMentionGuidance(n, "proposal");
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
+    const mentionGuidance = this.buildMentionGuidance(n, "experiment design");
 
     this.triggerAgent(
-      `[Synapse] Proposal '${n.entityTitle}' was REJECTED (proposalUuid: ${n.entityUuid}, projectUuid: ${n.projectUuid}). Review note: "${n.message}". ` +
-      `Use synapse_get_proposal to review the proposal, then fix issues with synapse_update_task_draft / synapse_update_document_draft. ` +
-      `After fixing, call synapse_validate_proposal then synapse_submit_proposal to resubmit.\n` +
+      `[Synapse] Experiment design '${n.entityTitle}' was rejected (designUuid: ${n.entityUuid}, projectUuid: ${projectUuid}). Review note: "${n.message}". ` +
+      `Use synapse_get_experiment_designs and the design editor tools to revise the plan, then resubmit for approval.\n` +
       mentionGuidance,
-      { notificationUuid: n.uuid, action: "proposal_rejected", entityUuid: n.entityUuid, projectUuid: n.projectUuid }
+      { notificationUuid: n.uuid, action: "proposal_rejected", entityUuid: n.entityUuid, projectUuid }
     );
   }
 
   private handleProposalApproved(n: NotificationDetail): void {
-    const mentionGuidance = this.buildMentionGuidance(n, "proposal");
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
+    const mentionGuidance = this.buildMentionGuidance(n, "experiment design");
 
     const reviewInfo = n.message.includes("Note: ") ? ` Review note: "${n.message.split("Note: ").pop()}"` : "";
     this.triggerAgent(
-      `[Synapse] Proposal '${n.entityTitle}' was APPROVED (proposalUuid: ${n.entityUuid}, projectUuid: ${n.projectUuid})!${reviewInfo} Documents and tasks have been created. ` +
-      `Use synapse_get_available_tasks with projectUuid: "${n.projectUuid}" to see the new tasks ready for work.\n` +
+      `[Synapse] Experiment design '${n.entityTitle}' was approved (designUuid: ${n.entityUuid}, projectUuid: ${projectUuid})!${reviewInfo} New experiment runs may now be ready for work. ` +
+      `Use synapse_get_unblocked_experiment_runs with researchProjectUuid: "${projectUuid}" to see what is ready to start.\n` +
       mentionGuidance,
-      { notificationUuid: n.uuid, action: "proposal_approved", entityUuid: n.entityUuid, projectUuid: n.projectUuid }
+      { notificationUuid: n.uuid, action: "proposal_approved", entityUuid: n.entityUuid, projectUuid }
     );
   }
 
   private handleIdeaClaimed(n: NotificationDetail): void {
-    const mentionGuidance = this.buildMentionGuidance(n, "idea");
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
+    const mentionGuidance = this.buildMentionGuidance(n, "research question");
 
     this.triggerAgent(
-      `[Synapse] Idea '${n.entityTitle}' has been assigned to you (ideaUuid: ${n.entityUuid}, projectUuid: ${n.projectUuid}). ` +
-      `Use synapse_get_idea to review the idea, then synapse_claim_idea to start elaboration.\n` +
+      `[Synapse] Research question '${n.entityTitle}' has been assigned to you (questionUuid: ${n.entityUuid}, projectUuid: ${projectUuid}). ` +
+      `Use synapse_get_research_questions to review the question context, then synapse_claim_research_question to start elaboration.\n` +
       mentionGuidance,
-      { notificationUuid: n.uuid, action: "idea_claimed", entityUuid: n.entityUuid, projectUuid: n.projectUuid }
+      { notificationUuid: n.uuid, action: "idea_claimed", entityUuid: n.entityUuid, projectUuid }
     );
   }
 
   private handleTaskVerified(n: NotificationDetail): void {
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
     this.triggerAgent(
-      `[Synapse] Task '${n.entityTitle}' has been verified and is now done (taskUuid: ${n.entityUuid}, projectUuid: ${n.projectUuid}). ` +
-      `Check if this unblocks other tasks: use synapse_get_unblocked_tasks with projectUuid "${n.projectUuid}" to find tasks that are now ready to start.`,
-      { notificationUuid: n.uuid, action: "task_verified", entityUuid: n.entityUuid, projectUuid: n.projectUuid }
+      `[Synapse] Experiment run '${n.entityTitle}' has been verified and is now done (runUuid: ${n.entityUuid}, projectUuid: ${projectUuid}). ` +
+      `Check if this unblocks more work by using synapse_get_unblocked_experiment_runs with researchProjectUuid "${projectUuid}".`,
+      { notificationUuid: n.uuid, action: "task_verified", entityUuid: n.entityUuid, projectUuid }
     );
   }
 
   private handleTaskReopened(n: NotificationDetail): void {
-    const mentionGuidance = this.buildMentionGuidance(n, "task");
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
+    const mentionGuidance = this.buildMentionGuidance(n, "experiment run");
 
     this.triggerAgent(
-      `[Synapse] Task '${n.entityTitle}' has been reopened and needs rework (taskUuid: ${n.entityUuid}, projectUuid: ${n.projectUuid}). ` +
-      `Use synapse_get_task to review the task and synapse_get_comments to see verification feedback, then fix the issues.\n${mentionGuidance}`,
-      { notificationUuid: n.uuid, action: "task_reopened", entityUuid: n.entityUuid, projectUuid: n.projectUuid }
+      `[Synapse] Experiment run '${n.entityTitle}' has been reopened and needs rework (runUuid: ${n.entityUuid}, projectUuid: ${projectUuid}). ` +
+      `Use synapse_get_experiment_run to review the run and synapse_get_comments to see verification feedback, then fix the issues.\n${mentionGuidance}`,
+      { notificationUuid: n.uuid, action: "task_reopened", entityUuid: n.entityUuid, projectUuid }
     );
   }
 
   private handleElaborationAnswered(n: NotificationDetail): void {
-    const mentionGuidance = this.buildMentionGuidance(n, "idea");
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
+    const mentionGuidance = this.buildMentionGuidance(n, "research question");
 
     this.triggerAgent(
-      `[Synapse] Elaboration answers submitted for idea '${n.entityTitle}' (ideaUuid: ${n.entityUuid}, projectUuid: ${n.projectUuid}). ` +
-      `Review the answers with synapse_get_elaboration, then either:\n` +
-      `- Call synapse_validate_elaboration with empty issues [] to resolve and proceed to proposal creation\n` +
-      `- Call synapse_validate_elaboration with issues + followUpQuestions for another round\n\n` +
+      `[Synapse] Hypothesis formulation answers submitted for research question '${n.entityTitle}' (questionUuid: ${n.entityUuid}, projectUuid: ${projectUuid}). ` +
+      `Review the answers with synapse_get_hypothesis_formulation, then either resolve the round or start a follow-up round.\n\n` +
       `After reviewing, @mention the answerer to ask if they have any further questions before you proceed.\n` +
       mentionGuidance,
-      { notificationUuid: n.uuid, action: "elaboration_answered", entityUuid: n.entityUuid, projectUuid: n.projectUuid }
+      { notificationUuid: n.uuid, action: "elaboration_answered", entityUuid: n.entityUuid, projectUuid }
+    );
+  }
+
+  private handleAutonomousLoopTriggered(n: NotificationDetail): void {
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
+
+    this.triggerAgent(
+      `[Synapse] Autonomous research loop triggered for project "${n.entityTitle}" (projectUuid: ${projectUuid}).
+
+The experiment queue is empty. Your task:
+1. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to review all project details, research questions, and experiment results
+2. Analyze: What questions remain unanswered? What experiments could yield new insights? Are there gaps in the research?
+3. If you identify valuable next steps, use synapse_propose_experiment to create draft experiments for human review
+4. If the research objectives appear to be met, you may choose not to propose any new experiments
+
+Proposed experiments will enter "draft" status and require human approval before execution.`,
+      { notificationUuid: n.uuid, action: "autonomous_loop_triggered", entityUuid: n.entityUuid, projectUuid }
+    );
+  }
+
+  private handleDeepResearchRequested(n: NotificationDetail): void {
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
+
+    this.triggerAgent(
+      `[Synapse] Deep research literature review requested for project (projectUuid: ${projectUuid}).
+
+1. Use synapse_get_related_works with researchProjectUuid "${projectUuid}" to read all collected papers
+2. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to understand the research objectives
+3. Analyze how each paper relates to the project's goals — identify key methods, findings, and gaps in the literature
+4. Create a comprehensive literature review document summarizing your analysis`,
+      { notificationUuid: n.uuid, action: "deep_research_requested", entityUuid: n.entityUuid, projectUuid }
+    );
+  }
+
+  private handleExperimentReportRequested(n: NotificationDetail): void {
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
+
+    this.triggerAgent(
+      `[Synapse] You just completed experiment "${n.entityTitle}" (experimentUuid: ${n.entityUuid}, projectUuid: ${projectUuid}).
+
+Write a detailed experiment report document for this experiment. Follow these steps:
+
+1. Use synapse_get_experiment with experimentUuid "${n.entityUuid}" to read the full experiment details (description, outcome, results, compute usage)
+2. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to understand the broader research context
+3. Write a comprehensive experiment report that includes:
+   - Experiment objective and setup
+   - Methodology and approach
+   - Results and key findings
+   - Analysis and interpretation
+   - Conclusions and next steps
+4. Write the report in the same language as the project description.
+5. Use synapse_add_comment to post the report as a comment on the experiment (targetType: "experiment", targetUuid: "${n.entityUuid}")
+
+Keep the report focused on THIS experiment only — do not summarize the entire project.`,
+      { notificationUuid: n.uuid, action: "experiment_report_requested", entityUuid: n.entityUuid, projectUuid }
     );
   }
 }

@@ -7,7 +7,7 @@ import {
   answerHypothesisFormulation,
   skipHypothesisFormulation,
 } from "@/services/hypothesis-formulation.service";
-import { prisma } from "@/lib/prisma";
+import { getResearchQuestionProjectRef } from "@/services/research-question.service";
 import type {
   HypothesisFormulationResponse,
   AnswerInput,
@@ -58,7 +58,7 @@ export async function submitHypothesisFormulationAnswersAction(
     });
 
     // Revalidate the ideas page so the panel refreshes
-    const idea = await prisma.researchQuestion.findFirst({ where: { uuid: questionUuid, companyUuid: auth.companyUuid } });
+    const idea = await getResearchQuestionProjectRef(auth.companyUuid, questionUuid);
     if (idea) {
       revalidatePath(`/research-projects/${idea.researchProjectUuid}/research-questions/${questionUuid}`);
       revalidatePath(`/research-projects/${idea.researchProjectUuid}/research-questions`);
@@ -93,7 +93,7 @@ export async function skipHypothesisFormulationAction(
     });
 
     // Revalidate the ideas page so the panel refreshes
-    const idea = await prisma.researchQuestion.findFirst({ where: { uuid: questionUuid, companyUuid: auth.companyUuid } });
+    const idea = await getResearchQuestionProjectRef(auth.companyUuid, questionUuid);
     if (idea) {
       revalidatePath(`/research-projects/${idea.researchProjectUuid}/research-questions/${questionUuid}`);
       revalidatePath(`/research-projects/${idea.researchProjectUuid}/research-questions`);

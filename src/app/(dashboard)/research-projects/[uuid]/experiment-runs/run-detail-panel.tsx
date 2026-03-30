@@ -1,53 +1,23 @@
 "use client";
 
-import { useState, useEffect, useRef, Fragment } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { X, Pencil, CheckCircle, Play, Eye, Bot, User, Send, FileText, Loader2, Check, Trash2, GitBranch, Plus, ArrowRight, Activity as ActivityIcon, CircleCheck, Timer, CircleX, AlertTriangle, FlaskConical, XCircle, Clock, Shield } from "lucide-react";
+import { X, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { updateExperimentRunStatusAction, createExperimentRunAction, updateExperimentRunFieldsAction, deleteExperimentRunAction } from "./[runUuid]/actions";
-import { markCriteriaAction, selfCheckCriteriaAction, resetCriterionAction } from "./[runUuid]/criteria-actions";
 import {
   getExperimentRunCommentsAction,
   createExperimentRunCommentAction,
 } from "./[runUuid]/comment-actions";
 import { getRunActivitiesAction } from "./[runUuid]/activity-actions";
-import type { ActivityResponse } from "@/services/activity.service";
 import {
   getRunSourceAction,
   type ProposalSource,
 } from "./[runUuid]/source-actions";
-import type { CommentResponse } from "@/services/comment.service";
-import { Streamdown } from "streamdown";
-import { code } from "@streamdown/code";
-import { ContentWithMentions } from "@/components/mention-renderer";
-import { MentionEditor, type MentionEditorRef } from "@/components/mention-editor";
+import type { MentionEditorRef } from "@/components/mention-editor";
 import { AssignTaskModal } from "./assign-run-modal";
 import {
   getExperimentRunDependenciesAction,
@@ -60,183 +30,30 @@ import type { RunSessionInfo } from "@/services/session.service";
 import { useRealtimeEntityEvent } from "@/contexts/realtime-context";
 import { getExperimentRegistryAction } from "./[runUuid]/registry-actions";
 import type { ExperimentRegistry } from "@/generated/prisma/client";
-
-interface DependencyTask {
-  uuid: string;
-  title: string;
-  status: string;
-}
-
-interface AcceptanceCriterionItem {
-  uuid: string;
-  description: string;
-  required: boolean;
-  devStatus: string;
-  devEvidence: string | null;
-  status: string;
-  evidence: string | null;
-  sortOrder: number;
-  // Research-specific Go/No-Go fields
-  metricName: string | null;
-  operator: string | null;
-  threshold: number | null;
-  isEarlyStop: boolean;
-  actualValue: number | null;
-}
-
-interface AcceptanceSummaryData {
-  total: number;
-  required: number;
-  passed: number;
-  failed: number;
-  pending: number;
-  requiredPassed: number;
-  requiredFailed: number;
-  requiredPending: number;
-}
-
-interface Task {
-  uuid: string;
-  title: string;
-  description: string | null;
-  status: string;
-  priority: string;
-  computeBudgetHours: number | null;
-  acceptanceCriteria?: string | null;
-  acceptanceCriteriaItems?: AcceptanceCriterionItem[];
-  acceptanceStatus?: string;
-  acceptanceSummary?: AcceptanceSummaryData;
-  experimentDesignUuid: string | null;
-  assignee: {
-    type: string;
-    uuid: string;
-    name: string;
-    assignedAt: string | null;
-    assignedBy: { type: string; uuid: string; name: string } | null;
-  } | null;
-  dependsOn?: DependencyTask[];
-  dependedBy?: DependencyTask[];
-  experimentConfig?: Record<string, unknown> | null;
-  experimentResults?: Record<string, unknown> | null;
-  baselineRunUuid?: string | null;
-  outcome?: string | null;
-  earlyStopTriggered?: boolean;
-}
+import { RunDetailActivity } from "./run-detail-panel-activity";
+import { RunDetailComments } from "./run-detail-panel-comments";
+import { RunDetailCriteria } from "./run-detail-panel-criteria";
+import { RunDetailDependencies } from "./run-detail-panel-dependencies";
+import { RunDetailEditForm } from "./run-detail-panel-edit-form";
+import { RunDetailFooter } from "./run-detail-panel-footer";
+import { RunDetailOverview } from "./run-detail-panel-overview";
+import { RunDetailConfig } from "./run-detail-panel-config";
+import {
+  priorityColors,
+  priorityI18nKeys,
+  statusColors,
+  statusI18nKeys,
+  type DependencyTask,
+  type TaskDetail,
+} from "./run-detail-panel-shared";
 
 interface TaskDetailPanelProps {
-  task: Task | null;
+  task: TaskDetail | null;
   projectUuid: string;
   currentUserUuid: string;
   onClose: () => void;
   onCreated?: () => void;
   onDependencyChange?: () => void;
-}
-
-// Status color configuration
-const statusColors: Record<string, string> = {
-  open: "bg-[#FFF3E0] text-[#E65100]",
-  assigned: "bg-[#E3F2FD] text-[#1976D2]",
-  in_progress: "bg-[#E8F5E9] text-[#5A9E6F]",
-  to_verify: "bg-[#F3E5F5] text-[#7B1FA2]",
-  done: "bg-[#E0F2F1] text-[#00796B]",
-  closed: "bg-[#F5F5F5] text-[#9A9A9A]",
-};
-
-// Status to i18n key mapping
-const statusI18nKeys: Record<string, string> = {
-  open: "open",
-  assigned: "assigned",
-  in_progress: "inProgress",
-  to_verify: "toVerify",
-  done: "done",
-  closed: "closed",
-};
-
-// Priority color configuration
-const priorityColors: Record<string, string> = {
-  low: "bg-[#F5F5F5] text-[#9A9A9A]",
-  medium: "bg-[#FFF3E0] text-[#E65100]",
-  high: "bg-[#FEE2E2] text-[#D32F2F]",
-  critical: "bg-[#FFCDD2] text-[#B71C1C]",
-};
-
-// Priority to i18n key mapping
-const priorityI18nKeys: Record<string, string> = {
-  low: "lowPriority",
-  medium: "mediumPriority",
-  high: "highPriority",
-  critical: "criticalPriority",
-};
-
-// Format relative time
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function formatRelativeTime(dateString: string, t: any): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return t("time.justNow");
-  if (diffMins < 60) return t("time.minutesAgo", { minutes: diffMins });
-  if (diffHours < 24) return t("time.hoursAgo", { hours: diffHours });
-  if (diffDays < 7) return t("time.daysAgo", { days: diffDays });
-  return date.toLocaleDateString();
-}
-
-// Activity dot color
-function getActivityDotColor(action: string): string {
-  switch (action) {
-    case "task_created":
-      return "bg-[#C67A52]";
-    case "task_assigned":
-    case "task_claimed":
-      return "bg-[#1976D2]";
-    case "task_started":
-      return "bg-[#5A9E6F]";
-    case "task_submitted":
-      return "bg-[#7B1FA2]";
-    case "task_completed":
-    case "task_verified":
-      return "bg-[#00796B]";
-    case "task_released":
-      return "bg-[#E65100]";
-    default:
-      return "bg-[#6B6B6B]";
-  }
-}
-
-// Format Activity message
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function formatActivityMessage(activity: ActivityResponse, t: any): string {
-  const actorDisplay = activity.sessionName
-    ? `${activity.actorName} / ${activity.sessionName}`
-    : activity.actorName;
-  const { action } = activity;
-  const actorName = actorDisplay;
-
-  switch (action) {
-    case "task_created":
-      return t("activity.taskCreated", { actor: actorName });
-    case "task_assigned":
-      return t("activity.taskAssigned", { actor: actorName });
-    case "task_claimed":
-      return t("activity.taskClaimed", { actor: actorName });
-    case "task_started":
-      return t("activity.taskStarted", { actor: actorName });
-    case "task_submitted":
-      return t("activity.taskSubmitted", { actor: actorName });
-    case "task_completed":
-    case "task_verified":
-      return t("activity.taskCompleted", { actor: actorName });
-    case "task_released":
-      return t("activity.taskReleased", { actor: actorName });
-    case "task_status_changed":
-      return t("activity.taskStatusChanged", { actor: actorName });
-    default:
-      return `${actorName}: ${action}`;
-  }
 }
 
 export function TaskDetailPanel({
@@ -259,11 +76,11 @@ export function TaskDetailPanel({
 
   const [isLoading, setIsLoading] = useState(false);
   const [comment, setComment] = useState("");
-  const [comments, setComments] = useState<CommentResponse[]>([]);
+  const [comments, setComments] = useState<Awaited<ReturnType<typeof getExperimentRunCommentsAction>>["comments"]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(true);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const editorRef = useRef<MentionEditorRef>(null);
-  const [activities, setActivities] = useState<ActivityResponse[]>([]);
+  const [activities, setActivities] = useState<Awaited<ReturnType<typeof getRunActivitiesAction>>["activities"]>([]);
   const [isLoadingActivities, setIsLoadingActivities] = useState(true);
   const [source, setSource] = useState<ProposalSource | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -363,7 +180,7 @@ export function TaskDetailPanel({
     loadDependencies();
     loadActiveWorkers();
     loadRegistryData();
-  }, [task?.uuid, task?.experimentDesignUuid, projectUuid]);
+  }, [projectUuid, task]);
 
   // Load project tasks for dependency picker in create mode
   useEffect(() => {
@@ -386,7 +203,7 @@ export function TaskDetailPanel({
       setEditAcceptanceCriteria(task.acceptanceCriteria || "");
       setEditError(null);
     }
-  }, [task?.uuid, task?.title, task?.description, task?.priority, task?.computeBudgetHours, task?.acceptanceCriteria]);
+  }, [task]);
 
   const handleStatusChange = async (newStatus: string) => {
     if (!task) return;
@@ -561,178 +378,6 @@ export function TaskDetailPanel({
     t => !pendingDeps.some(d => d.uuid === t.uuid)
   );
 
-  // Evaluate Go/No-Go metric operator
-  function evaluateOperator(actual: number, op: string, threshold: number): boolean {
-    switch (op) {
-      case ">=": return actual >= threshold;
-      case "<=": return actual <= threshold;
-      case ">": return actual > threshold;
-      case "<": return actual < threshold;
-      case "==": return actual === threshold;
-      default: return false;
-    }
-  }
-
-  // Inline JSON key-value renderer
-  function JsonKeyValue({ data }: { data: Record<string, unknown> }) {
-    return (
-      <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[13px]">
-        {Object.entries(data).map(([key, value]) => (
-          <Fragment key={key}>
-            <span className="font-medium text-[#6B6B6B]">{key}</span>
-            <span className="text-[#2C2C2C]">{String(value)}</span>
-          </Fragment>
-        ))}
-      </div>
-    );
-  }
-
-  // Render the edit/create form
-  const renderEditForm = () => (
-    <div className="space-y-5">
-      {editError && (
-        <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-          {editError}
-        </div>
-      )}
-
-      <div className="space-y-2">
-        <Label htmlFor="edit-title" className="text-[13px] font-medium text-[#2C2C2C]">
-          {t("tasks.titleLabel")}
-        </Label>
-        <Input
-          id="edit-title"
-          value={editTitle}
-          onChange={(e) => setEditTitle(e.target.value)}
-          className="border-[#E5E0D8] text-sm focus-visible:ring-[#C67A52]"
-          autoFocus
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="edit-description" className="text-[13px] font-medium text-[#2C2C2C]">
-          {t("tasks.descriptionLabel")}
-        </Label>
-        <Textarea
-          id="edit-description"
-          value={editDescription}
-          onChange={(e) => setEditDescription(e.target.value)}
-          rows={4}
-          className="border-[#E5E0D8] text-sm resize-none focus-visible:ring-[#C67A52]"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="edit-priority" className="text-[13px] font-medium text-[#2C2C2C]">
-          {t("tasks.priorityLabel")}
-        </Label>
-        <Select value={editPriority} onValueChange={setEditPriority}>
-          <SelectTrigger className="border-[#E5E0D8] text-sm focus:ring-[#C67A52]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="low">{t("priority.low")}</SelectItem>
-            <SelectItem value="medium">{t("priority.medium")}</SelectItem>
-            <SelectItem value="high">{t("priority.high")}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="edit-story-points" className="text-[13px] font-medium text-[#2C2C2C]">
-          {t("tasks.computeBudgetHoursLabel")}
-        </Label>
-        <Input
-          id="edit-story-points"
-          type="number"
-          min="0"
-          step="0.5"
-          value={editStoryPoints}
-          onChange={(e) => setEditStoryPoints(e.target.value)}
-          className="border-[#E5E0D8] text-sm focus-visible:ring-[#C67A52]"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="edit-acceptance-criteria" className="text-[13px] font-medium text-[#2C2C2C]">
-          {t("tasks.acceptanceCriteriaLabel")}
-        </Label>
-        <Textarea
-          id="edit-acceptance-criteria"
-          value={editAcceptanceCriteria}
-          onChange={(e) => setEditAcceptanceCriteria(e.target.value)}
-          rows={4}
-          className="border-[#E5E0D8] text-sm resize-none focus-visible:ring-[#C67A52]"
-        />
-      </div>
-
-      {/* Dependency picker for create mode */}
-      {isCreateMode && (
-        <div className="space-y-2">
-          <Label className="text-[13px] font-medium text-[#2C2C2C]">
-            {t("tasks.dependencies")}
-          </Label>
-
-          {/* Selected pending deps */}
-          {pendingDeps.length > 0 && (
-            <div className="space-y-1.5">
-              {pendingDeps.map((dep) => (
-                <div
-                  key={dep.uuid}
-                  className="group flex items-center justify-between rounded-lg bg-[#FAF8F4] p-2.5"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <GitBranch className="h-3.5 w-3.5 shrink-0 text-[#C67A52]" />
-                    <span className="text-xs text-[#2C2C2C] truncate">{dep.title}</span>
-                    <Badge className={`shrink-0 text-[10px] ${statusColors[dep.status] || ""}`}>
-                      {t(`status.${statusI18nKeys[dep.status] || dep.status}`)}
-                    </Badge>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0"
-                    onClick={() => setPendingDeps(prev => prev.filter(d => d.uuid !== dep.uuid))}
-                  >
-                    <X className="h-3.5 w-3.5 text-[#9A9A9A] hover:text-[#D32F2F]" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Add dependency select */}
-          {availableDepsForCreate.length > 0 && (
-            <Select
-              key={pendingDeps.length}
-              onValueChange={(uuid) => {
-                const found = allProjectTasks.find(t => t.uuid === uuid);
-                if (found) {
-                  setPendingDeps(prev => [...prev, found]);
-                }
-              }}
-            >
-              <SelectTrigger className="h-8 border-[#E5E0D8] text-xs text-[#6B6B6B] focus:ring-[#C67A52]">
-                <div className="flex items-center gap-1.5">
-                  <Plus className="h-3 w-3" />
-                  <SelectValue placeholder={t("tasks.addDependency")} />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                {availableDepsForCreate.map((t) => (
-                  <SelectItem key={t.uuid} value={t.uuid}>
-                    <span className="truncate">{t.title}</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <>
       {/* Backdrop */}
@@ -799,839 +444,91 @@ export function TaskDetailPanel({
         <ScrollArea className="flex-1 min-h-0 [&_[data-slot=scroll-area-viewport]>div]:!block">
           <div className="flex min-h-full flex-col px-6 py-5">
             {isEditing ? (
-              renderEditForm()
+              <RunDetailEditForm
+                availableDepsForCreate={availableDepsForCreate}
+                editAcceptanceCriteria={editAcceptanceCriteria}
+                editDescription={editDescription}
+                editError={editError}
+                editPriority={editPriority}
+                editStoryPoints={editStoryPoints}
+                editTitle={editTitle}
+                isCreateMode={isCreateMode}
+                onAcceptanceCriteriaChange={setEditAcceptanceCriteria}
+                onAddPendingDependency={(uuid) => {
+                  const found = allProjectTasks.find((task) => task.uuid === uuid);
+                  if (found) {
+                    setPendingDeps((prev) => [...prev, found]);
+                  }
+                }}
+                onDescriptionChange={setEditDescription}
+                onPriorityChange={setEditPriority}
+                onRemovePendingDependency={(uuid) => {
+                  setPendingDeps((prev) => prev.filter((dep) => dep.uuid !== uuid));
+                }}
+                onStoryPointsChange={setEditStoryPoints}
+                onTitleChange={setEditTitle}
+                pendingDeps={pendingDeps}
+              />
             ) : task ? (
               <>
-                {/* Assignee Section */}
-                <div>
-                  <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                    {t("common.assignee")}
-                  </label>
-                  <div className="mt-2 flex items-center gap-2.5 rounded-lg bg-[#FAF8F4] p-3">
-                    {task.assignee ? (
-                      <>
-                        <Avatar className="h-7 w-7">
-                          <AvatarFallback className={task.assignee.type === "agent" ? "bg-[#C67A52] text-white" : "bg-[#E5E0D8] text-[#6B6B6B]"}>
-                            {task.assignee.type === "agent" ? (
-                              <Bot className="h-3.5 w-3.5" />
-                            ) : (
-                              task.assignee.name.charAt(0).toUpperCase()
-                            )}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="text-sm font-medium text-[#2C2C2C]">
-                            {task.assignee.name}
-                          </div>
-                          <div className="text-xs text-[#6B6B6B]">
-                            {task.assignee.type === "agent"
-                              ? `${t("common.agent")} • ${task.assignee.assignedAt ? new Date(task.assignee.assignedAt).toLocaleDateString() : ''}`
-                              : t("common.user")}
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <span className="text-sm text-[#9A9A9A]">{t("common.unassigned")}</span>
-                    )}
-                  </div>
-                </div>
+                <RunDetailOverview
+                  activeWorkers={activeWorkers}
+                  projectUuid={projectUuid}
+                  source={source}
+                  task={task}
+                />
 
-                {/* Active Workers Section */}
-                {activeWorkers.length > 0 && (
-                  <div className="mt-5">
-                    <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                      {t("sessions.activeWorkers")}
-                    </label>
-                    <div className="mt-2 space-y-1.5">
-                      {activeWorkers.map((worker) => (
-                        <div
-                          key={worker.sessionUuid}
-                          className="flex items-center gap-2.5 rounded-lg bg-[#FAF8F4] p-2.5"
-                        >
-                          <div className="h-2 w-2 rounded-full bg-green-500 flex-shrink-0" />
-                          <div className="min-w-0">
-                            <div className="text-xs font-medium text-[#2C2C2C] truncate">
-                              {worker.sessionName}
-                            </div>
-                            <div className="text-[10px] text-[#9A9A9A]">
-                              {worker.agentName} · {formatRelativeTime(worker.checkinAt, t)}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <RunDetailDependencies
+                  availableDepsForAdd={availableDepsForAdd}
+                  dependedBy={dependedBy}
+                  dependsOn={dependsOn}
+                  error={depError}
+                  isLoading={isLoadingDeps}
+                  onAddDependency={handleAddDependency}
+                  onRemoveDependency={handleRemoveDependency}
+                  onRemoveDependedBy={handleRemoveDependedBy}
+                />
 
-                {/* Description Section */}
-                <div className="mt-5">
-                  <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                    {t("common.description")}
-                  </label>
-                  <div className="mt-2">
-                    {task.description ? (
-                      <div className="prose prose-sm max-w-none text-[13px] leading-relaxed text-[#2C2C2C]">
-                        <Streamdown plugins={{ code }}>{task.description}</Streamdown>
-                      </div>
-                    ) : (
-                      <p className="text-sm italic text-[#9A9A9A]">{t("common.noDescription")}</p>
-                    )}
-                  </div>
-                </div>
+                <RunDetailConfig registryData={registryData} task={task} />
 
-                {/* Acceptance Criteria Section - legacy only (structured criteria shown below dependencies) */}
-                {task.acceptanceCriteria && !(task.acceptanceCriteriaItems && task.acceptanceCriteriaItems.length > 0) && (
-                  <div className="mt-5">
-                    <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                      {t("tasks.acceptanceCriteria")}
-                    </label>
-                    <div className="mt-2">
-                      <div className="prose prose-sm max-w-none text-[13px] leading-relaxed text-[#2C2C2C]">
-                        <Streamdown plugins={{ code }}>{task.acceptanceCriteria}</Streamdown>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <RunDetailCriteria task={task} />
 
-                {/* Source Section - only show if from proposal */}
-                {source && (
-                  <div className="mt-5">
-                    <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                      {t("common.source")}
-                    </label>
-                    <a
-                      href={`/research-projects/${projectUuid}/experiment-designs/${source.uuid}`}
-                      className="mt-2 flex items-center justify-between rounded-lg bg-[#FAF8F4] p-3 hover:bg-[#F0EDE5] transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-3.5 w-3.5 text-[#C67A52]" />
-                        <span className="text-xs text-[#2C2C2C]">{source.title}</span>
-                      </div>
-                    </a>
-                  </div>
-                )}
+                <RunDetailActivity
+                  activities={activities}
+                  isLoading={isLoadingActivities}
+                />
 
-                {/* Dependencies Section */}
-                <div className="mt-5">
-                  <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                    {t("tasks.dependencies")}
-                  </label>
-
-                  {depError && (
-                    <div className="mt-2 rounded-lg bg-destructive/10 p-2.5 text-xs text-destructive">
-                      {depError}
-                    </div>
-                  )}
-
-                  {isLoadingDeps ? (
-                    <div className="mt-2 flex items-center justify-center py-4">
-                      <Loader2 className="h-4 w-4 animate-spin text-[#9A9A9A]" />
-                    </div>
-                  ) : (
-                    <>
-                      {/* Depends On */}
-                      {dependsOn.length > 0 && (
-                        <div className="mt-2">
-                          <div className="flex items-center gap-1.5 mb-1.5">
-                            <ArrowRight className="h-3 w-3 text-[#9A9A9A]" />
-                            <span className="text-[10px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                              {t("tasks.dependsOn")}
-                            </span>
-                          </div>
-                          <div className="space-y-1.5">
-                            {dependsOn.map((dep) => (
-                              <div
-                                key={dep.uuid}
-                                className="group flex items-center justify-between rounded-lg bg-[#FAF8F4] p-3"
-                              >
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <GitBranch className="h-3.5 w-3.5 shrink-0 text-[#C67A52]" />
-                                  <span className="text-xs text-[#2C2C2C] truncate">
-                                    {dep.title}
-                                  </span>
-                                  <Badge className={`shrink-0 text-[10px] ${statusColors[dep.status] || ""}`}>
-                                    {t(`status.${statusI18nKeys[dep.status] || dep.status}`)}
-                                  </Badge>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0"
-                                  onClick={() => handleRemoveDependency(dep.uuid)}
-                                >
-                                  <X className="h-3.5 w-3.5 text-[#9A9A9A] hover:text-[#D32F2F]" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Depended By (blocked by this) */}
-                      {dependedBy.length > 0 && (
-                        <div className="mt-3">
-                          <div className="flex items-center gap-1.5 mb-1.5">
-                            <ArrowRight className="h-3 w-3 rotate-180 text-[#9A9A9A]" />
-                            <span className="text-[10px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                              {t("tasks.blockedByThis")}
-                            </span>
-                          </div>
-                          <div className="space-y-1.5">
-                            {dependedBy.map((dep) => (
-                              <div
-                                key={dep.uuid}
-                                className="group flex items-center justify-between rounded-lg bg-[#FAF8F4] p-3"
-                              >
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <GitBranch className="h-3.5 w-3.5 shrink-0 text-[#6B6B6B]" />
-                                  <span className="text-xs text-[#2C2C2C] truncate">
-                                    {dep.title}
-                                  </span>
-                                  <Badge className={`shrink-0 text-[10px] ${statusColors[dep.status] || ""}`}>
-                                    {t(`status.${statusI18nKeys[dep.status] || dep.status}`)}
-                                  </Badge>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0"
-                                  onClick={() => handleRemoveDependedBy(dep.uuid)}
-                                >
-                                  <X className="h-3.5 w-3.5 text-[#9A9A9A] hover:text-[#D32F2F]" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {dependsOn.length === 0 && dependedBy.length === 0 && (
-                        <p className="mt-2 text-sm italic text-[#9A9A9A]">{t("tasks.noDependencies")}</p>
-                      )}
-
-                      {/* Add Dependency */}
-                      {availableDepsForAdd.length > 0 && (
-                        <div className="mt-3">
-                          <Select
-                            key={dependsOn.length}
-                            onValueChange={(uuid) => handleAddDependency(uuid)}
-                          >
-                            <SelectTrigger className="h-8 border-[#E5E0D8] text-xs text-[#6B6B6B] focus:ring-[#C67A52]">
-                              <div className="flex items-center gap-1.5">
-                                <Plus className="h-3 w-3" />
-                                <SelectValue placeholder={t("tasks.addDependency")} />
-                              </div>
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableDepsForAdd.map((t) => (
-                                <SelectItem key={t.uuid} value={t.uuid}>
-                                  <span className="truncate">{t.title}</span>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-
-                {/* Early Stop Warning Banner */}
-                {task.earlyStopTriggered && (
-                  <Card className="border-amber-300 bg-amber-50 p-4 mb-4">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
-                      <div>
-                        <p className="font-semibold text-amber-800 text-sm">Early Stop Triggered</p>
-                        <p className="text-amber-700 text-xs mt-0.5">One or more early-stop criteria failed. Review the Go/No-Go criteria and decide whether to close this run.</p>
-                      </div>
-                    </div>
-                  </Card>
-                )}
-
-                {/* Experiment Configuration Section */}
-                {task.experimentConfig && (
-                  <div className="mt-5">
-                    <Card className="p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <FlaskConical className="h-4 w-4 text-[#C67A52]" />
-                        <span className="text-[13px] font-semibold text-[#2C2C2C]">Experiment Configuration</span>
-                      </div>
-
-                      {/* Configuration table */}
-                      <div className="mb-3">
-                        <label className="text-[10px] font-medium uppercase tracking-wide text-[#9A9A9A] mb-1.5 block">
-                          Configuration
-                        </label>
-                        <JsonKeyValue data={task.experimentConfig} />
-                      </div>
-
-                      {/* Results table */}
-                      {task.experimentResults && (
-                        <div className="mb-3">
-                          <Separator className="my-3 bg-[#F5F2EC]" />
-                          <label className="text-[10px] font-medium uppercase tracking-wide text-[#9A9A9A] mb-1.5 block">
-                            Results
-                          </label>
-                          <JsonKeyValue data={task.experimentResults} />
-                        </div>
-                      )}
-
-                      {/* Outcome badge */}
-                      {task.outcome && (
-                        <>
-                          <Separator className="my-3 bg-[#F5F2EC]" />
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-medium text-[#9A9A9A]">Outcome:</span>
-                            <Badge className={
-                              task.outcome === "accepted" ? "bg-green-50 text-green-700" :
-                              task.outcome === "rejected" ? "bg-red-50 text-red-700" :
-                              "bg-yellow-50 text-yellow-700"
-                            }>
-                              {task.outcome}
-                            </Badge>
-                          </div>
-                        </>
-                      )}
-
-                      {/* Registry info */}
-                      {registryData && (
-                        <>
-                          <Separator className="my-3 bg-[#F5F2EC]" />
-                          <label className="text-[10px] font-medium uppercase tracking-wide text-[#9A9A9A] mb-1.5 block">
-                            Registry
-                          </label>
-
-                          {/* Environment */}
-                          {registryData.environment && typeof registryData.environment === "object" && (
-                            <div className="mb-2">
-                              <span className="text-[11px] font-medium text-[#6B6B6B]">Environment</span>
-                              <div className="mt-1">
-                                <JsonKeyValue data={registryData.environment as Record<string, unknown>} />
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Seed */}
-                          {registryData.seed !== null && registryData.seed !== undefined && (
-                            <div className="flex items-center gap-2 mb-2 text-[13px]">
-                              <span className="font-medium text-[#6B6B6B]">Seed</span>
-                              <span className="text-[#2C2C2C]">{registryData.seed}</span>
-                            </div>
-                          )}
-
-                          {/* Reproducibility */}
-                          <div className="flex items-center gap-2 mb-2">
-                            <Shield className="h-3.5 w-3.5 text-[#6B6B6B]" />
-                            <span className="text-[11px] font-medium text-[#6B6B6B]">Reproducibility:</span>
-                            {registryData.reproducible ? (
-                              <Badge className="bg-green-50 text-green-700 text-[10px]">Verified</Badge>
-                            ) : (
-                              <Badge className="bg-[#F5F5F5] text-[#9A9A9A] text-[10px]">Unverified</Badge>
-                            )}
-                          </div>
-
-                          {/* Timestamps */}
-                          <div className="space-y-1 text-[11px] text-[#6B6B6B]">
-                            <div>Started: {new Date(registryData.startedAt).toLocaleString()}</div>
-                            {registryData.completedAt && (
-                              <div>Completed: {new Date(registryData.completedAt).toLocaleString()}</div>
-                            )}
-                            <div>Registered: {new Date(registryData.createdAt).toLocaleString()}</div>
-                          </div>
-                        </>
-                      )}
-                    </Card>
-                  </div>
-                )}
-
-                {/* Go/No-Go Criteria Checklist */}
-                {task.acceptanceCriteriaItems && task.acceptanceCriteriaItems.length > 0 && (() => {
-                  const goNoGoItems = task.acceptanceCriteriaItems!.filter(
-                    (item) => item.metricName !== null && item.metricName !== undefined
-                  );
-
-                  if (goNoGoItems.length === 0) return null;
-
-                  // Evaluate each criterion
-                  const evaluated = goNoGoItems.map((item) => {
-                    let result: "passed" | "failed" | "pending" = "pending";
-                    if (
-                      item.actualValue !== null &&
-                      item.actualValue !== undefined &&
-                      item.operator !== null &&
-                      item.threshold !== null
-                    ) {
-                      result = evaluateOperator(item.actualValue, item.operator, item.threshold)
-                        ? "passed"
-                        : "failed";
-                    }
-                    return { ...item, evalResult: result };
-                  });
-
-                  // Count among required criteria only
-                  const requiredEvaluated = evaluated.filter((e) => e.required);
-                  const passedCount = requiredEvaluated.filter((e) => e.evalResult === "passed").length;
-                  const failedCount = requiredEvaluated.filter((e) => e.evalResult === "failed").length;
-                  const pendingCount = requiredEvaluated.filter((e) => e.evalResult === "pending").length;
-
-                  // Suggested outcome
-                  let suggestedOutcome: "Accepted" | "Rejected" | "Inconclusive" = "Inconclusive";
-                  if (failedCount > 0) {
-                    suggestedOutcome = "Rejected";
-                  } else if (pendingCount === 0 && passedCount > 0) {
-                    suggestedOutcome = "Accepted";
-                  }
-
-                  const outcomeBadgeColor =
-                    suggestedOutcome === "Accepted"
-                      ? "bg-green-50 text-green-700"
-                      : suggestedOutcome === "Rejected"
-                        ? "bg-red-50 text-red-700"
-                        : "bg-yellow-50 text-yellow-700";
-
-                  return (
-                    <div className="mt-5">
-                      <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                        Go/No-Go Criteria
-                      </label>
-
-                      {/* Summary bar */}
-                      <div className="mt-2 flex items-center gap-2 flex-wrap rounded-lg bg-[#FAF8F4] p-3">
-                        <span className="text-xs text-[#2C2C2C]">
-                          {passedCount} passed, {failedCount} failed, {pendingCount} pending
-                        </span>
-                        <span className="text-xs text-[#9A9A9A]">&mdash;</span>
-                        <span className="text-xs text-[#6B6B6B]">Suggested:</span>
-                        <Badge className={outcomeBadgeColor}>{suggestedOutcome}</Badge>
-                      </div>
-
-                      {/* Criteria list */}
-                      <div className="mt-2 space-y-2">
-                        {evaluated.map((item) => {
-                          const statusIcon =
-                            item.evalResult === "passed" ? (
-                              <CheckCircle className="h-4 w-4 text-green-600" />
-                            ) : item.evalResult === "failed" ? (
-                              <XCircle className="h-4 w-4 text-red-600" />
-                            ) : (
-                              <Clock className="h-4 w-4 text-yellow-600" />
-                            );
-
-                          return (
-                            <Card key={item.uuid} className="p-3">
-                              <div className="flex items-start gap-2">
-                                <div className="mt-0.5 shrink-0">{statusIcon}</div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-xs font-bold text-[#2C2C2C]">
-                                      {item.metricName}
-                                    </span>
-                                    {item.operator && item.threshold !== null && (
-                                      <span className="text-xs text-[#6B6B6B]">
-                                        {item.operator} {item.threshold}
-                                      </span>
-                                    )}
-                                    <span className="text-xs text-[#2C2C2C]">
-                                      Actual: {item.actualValue !== null && item.actualValue !== undefined ? item.actualValue : "\u2014"}
-                                    </span>
-                                    {item.isEarlyStop && (
-                                      <span className="flex items-center gap-1 text-[10px] text-yellow-700">
-                                        <AlertTriangle className="h-3 w-3" />
-                                        Early Stop
-                                      </span>
-                                    )}
-                                    {!item.required && (
-                                      <span className="text-[10px] text-[#9A9A9A]">(optional)</span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </Card>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Structured Acceptance Criteria Section */}
-                {task && task.acceptanceCriteriaItems && task.acceptanceCriteriaItems.length > 0 && (() => {
-                  const items = task.acceptanceCriteriaItems!;
-                  const summary = task.acceptanceSummary;
-
-                  const criterionStatusIcon = (status: string) => {
-                    if (status === "passed") return <CircleCheck className="h-4 w-4 text-green-600" />;
-                    if (status === "failed") return <CircleX className="h-4 w-4 text-red-600" />;
-                    return <Timer className="h-4 w-4 text-yellow-600" />;
-                  };
-
-                  const criterionStatusColor = (status: string) => {
-                    if (status === "passed") return "bg-green-50 text-green-700";
-                    if (status === "failed") return "bg-red-50 text-red-700";
-                    return "bg-yellow-50 text-yellow-700";
-                  };
-
-                  const handleMarkCriterion = async (criterionUuid: string, newStatus: "passed" | "failed") => {
-                    const result = await markCriteriaAction(task.uuid, [{ uuid: criterionUuid, status: newStatus }]);
-                    if (result.success) {
-                      router.refresh();
-                    }
-                  };
-
-                  return (
-                    <div className="mt-5">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                          {t("acceptanceCriteria.title")}
-                        </label>
-                        {summary && (
-                          <Badge className={criterionStatusColor(task.acceptanceStatus || "pending")} variant="secondary">
-                            {t("acceptanceCriteria.progress", { passed: summary.passed, total: summary.total })}
-                          </Badge>
-                        )}
-                      </div>
-
-                      <div className="mt-2 space-y-2">
-                        {items.map((item) => (
-                          <Card key={item.uuid} className="p-3">
-                            <div className="flex items-start gap-2">
-                              <div className="mt-0.5 shrink-0">
-                                {criterionStatusIcon(item.status)}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-xs text-[#2C2C2C]">{item.description}</span>
-                                  <Badge variant="outline" className="text-[10px] shrink-0">
-                                    {item.required ? t("acceptanceCriteria.required") : t("acceptanceCriteria.optional")}
-                                  </Badge>
-                                </div>
-
-                                {/* Dual-track rows */}
-                                <div className="mt-2 space-y-1">
-                                  <div className="flex items-center gap-2 text-[10px]">
-                                    <span className="text-[#9A9A9A] w-20 shrink-0">{t("acceptanceCriteria.devSelfCheck")}</span>
-                                    <Badge className={`text-[10px] ${criterionStatusColor(item.devStatus)}`} variant="secondary">
-                                      {criterionStatusIcon(item.devStatus)}
-                                      <span className="ml-1">{t(`acceptanceCriteria.status.${item.devStatus}`)}</span>
-                                    </Badge>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-[10px]">
-                                    <span className="text-[#9A9A9A] w-20 shrink-0">{t("acceptanceCriteria.verification")}</span>
-                                    <Badge className={`text-[10px] ${criterionStatusColor(item.status)}`} variant="secondary">
-                                      {criterionStatusIcon(item.status)}
-                                      <span className="ml-1">{t(`acceptanceCriteria.status.${item.status}`)}</span>
-                                    </Badge>
-                                  </div>
-                                </div>
-
-                                {/* Evidence — show both tracks separately */}
-                                {item.devEvidence && (
-                                  <div className="mt-2 rounded bg-[#FAF8F4] p-2">
-                                    <span className="text-[10px] font-medium text-[#9A9A9A]">{t("acceptanceCriteria.devEvidence")}</span>
-                                    <p className="text-[11px] text-[#2C2C2C] mt-0.5">{item.devEvidence}</p>
-                                  </div>
-                                )}
-                                {item.evidence && (
-                                  <div className="mt-2 rounded bg-[#FAF8F4] p-2">
-                                    <span className="text-[10px] font-medium text-[#9A9A9A]">{t("acceptanceCriteria.verifyEvidence")}</span>
-                                    <p className="text-[11px] text-[#2C2C2C] mt-0.5">{item.evidence}</p>
-                                  </div>
-                                )}
-
-                                {/* Admin action buttons */}
-                                {item.status === "pending" ? (
-                                  <div className="mt-2 flex gap-2">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 min-h-[44px] sm:min-h-0 flex-1 sm:flex-none text-xs text-green-700 border-green-200 hover:bg-green-50"
-                                      onClick={() => handleMarkCriterion(item.uuid, "passed")}
-                                    >
-                                      <CircleCheck className="h-3.5 w-3.5 mr-1" />
-                                      {t("acceptanceCriteria.pass")}
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 min-h-[44px] sm:min-h-0 flex-1 sm:flex-none text-xs text-red-700 border-red-200 hover:bg-red-50"
-                                      onClick={() => handleMarkCriterion(item.uuid, "failed")}
-                                    >
-                                      <CircleX className="h-3.5 w-3.5 mr-1" />
-                                      {t("acceptanceCriteria.fail")}
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <div className="mt-2">
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-7 min-h-[44px] sm:min-h-0 text-xs text-[#9A9A9A] hover:text-[#2C2C2C]"
-                                      onClick={async () => {
-                                        const result = await resetCriterionAction(task.uuid, item.uuid);
-                                        if (result.success) router.refresh();
-                                      }}
-                                    >
-                                      {t("acceptanceCriteria.undoVerification")}
-                                    </Button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </Card>
-                        ))}
-
-                        {/* Gate warning */}
-                        {summary && (summary.requiredPending > 0 || summary.requiredFailed > 0) && (
-                          <div className="flex items-center gap-2 rounded-lg bg-yellow-50 p-3 mt-2">
-                            <AlertTriangle className="h-4 w-4 text-yellow-600 shrink-0" />
-                            <span className="text-xs text-yellow-700">
-                              {t("acceptanceCriteria.gateBlocked", { count: summary.requiredPending + summary.requiredFailed })}
-                            </span>
-                          </div>
-                        )}
-                        {summary && summary.requiredPending === 0 && summary.requiredFailed === 0 && summary.required > 0 && (
-                          <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3 mt-2">
-                            <CircleCheck className="h-4 w-4 text-green-600 shrink-0" />
-                            <span className="text-xs text-green-700">
-                              {t("acceptanceCriteria.gateReady")}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Activity Section - fills remaining space */}
-                <div className="mt-5 flex-1">
-                  <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                    {t("common.activity")}
-                  </label>
-                  <div className="mt-2 space-y-3">
-                    {isLoadingActivities ? (
-                      <div className="flex items-center justify-center py-4">
-                        <Loader2 className="h-4 w-4 animate-spin text-[#9A9A9A]" />
-                      </div>
-                    ) : activities.length === 0 ? (
-                      <p className="text-sm text-[#9A9A9A] italic">{t("common.noActivity")}</p>
-                    ) : (
-                      activities.map((activity) => (
-                        <div key={activity.uuid} className="flex items-start gap-2.5">
-                          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#F5F2EC]">
-                            <div className={`h-2 w-2 rounded-full ${getActivityDotColor(activity.action)}`} />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-xs text-[#2C2C2C]">
-                              {formatActivityMessage(activity, t)}
-                            </p>
-                            <p className="text-[10px] text-[#9A9A9A]">{formatRelativeTime(activity.createdAt, t)}</p>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                {/* Comments Section - at bottom */}
-                <div className="mt-5">
-                  <label className="text-[11px] font-medium uppercase tracking-wide text-[#9A9A9A]">
-                    {t("comments.title")}
-                  </label>
-                  <div className="mt-3 space-y-3">
-                    {isLoadingComments ? (
-                      <div className="flex items-center justify-center py-4">
-                        <Loader2 className="h-4 w-4 animate-spin text-[#9A9A9A]" />
-                      </div>
-                    ) : comments.length === 0 ? (
-                      <p className="text-sm text-[#9A9A9A] italic">{t("comments.noComments")}</p>
-                    ) : (
-                      comments.map((c) => (
-                        <div key={c.uuid} className="flex gap-2.5">
-                          <Avatar className="h-6 w-6 shrink-0">
-                            <AvatarFallback className={c.author.type === "agent" ? "bg-[#C67A52] text-white" : "bg-[#E5E0D8] text-[#6B6B6B] text-[10px]"}>
-                              {c.author.type === "agent" ? (
-                                <Bot className="h-3 w-3" />
-                              ) : (
-                                c.author.name.charAt(0).toUpperCase()
-                              )}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-medium text-[#2C2C2C]">{c.author.name}</span>
-                              <span className="text-[10px] text-[#9A9A9A]">{formatRelativeTime(c.createdAt, t)}</span>
-                            </div>
-                            <div className="mt-1 text-xs leading-relaxed text-[#2C2C2C]">
-                              <ContentWithMentions>{c.content}</ContentWithMentions>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  {/* Comment Input */}
-                  <Separator className="my-3 bg-[#F5F2EC]" />
-                  <div className="flex items-start gap-2.5">
-                    <Avatar className="mt-1.5 h-6 w-6">
-                      <AvatarFallback className="bg-[#C67A52] text-white text-[10px]">
-                        <User className="h-3 w-3" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <MentionEditor
-                        ref={editorRef}
-                        value={comment}
-                        onChange={setComment}
-                        onSubmit={handleSubmitComment}
-                        placeholder={t("comments.addComment")}
-                        className="border-none bg-[#FAF8F4] text-sm"
-                        disabled={isSubmittingComment}
-                      />
-                    </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="mt-1 h-7 w-7"
-                      disabled={!comment.trim() || isSubmittingComment}
-                      onClick={handleSubmitComment}
-                    >
-                      {isSubmittingComment ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin text-[#9A9A9A]" />
-                      ) : (
-                        <Send className="h-3.5 w-3.5 text-[#C67A52]" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
+                <RunDetailComments
+                  comment={comment}
+                  comments={comments}
+                  editorRef={editorRef}
+                  isLoading={isLoadingComments}
+                  isSubmitting={isSubmittingComment}
+                  onCommentChange={setComment}
+                  onSubmit={handleSubmitComment}
+                />
               </>
             ) : null}
           </div>
         </ScrollArea>
 
-        {/* Panel Footer */}
-        <div className="border-t border-[#F5F2EC] px-6 py-4">
-          <div className="flex items-center gap-3">
-            {isEditing ? (
-              <>
-                <Button
-                  variant="outline"
-                  className="border-[#E5E0D8]"
-                  onClick={handleCancelEdit}
-                  disabled={isSaving}
-                >
-                  {t("common.cancel")}
-                </Button>
-                <Button
-                  className="bg-[#C67A52] hover:bg-[#B56A42] text-white"
-                  onClick={handleSaveEdit}
-                  disabled={isSaving || !editTitle.trim()}
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t("common.saving")}
-                    </>
-                  ) : (
-                    <>
-                      <Check className="mr-2 h-4 w-4" />
-                      {isCreateMode ? t("common.create") : t("tasks.saveChanges")}
-                    </>
-                  )}
-                </Button>
-              </>
-            ) : task ? (
-              <>
-                {/* Assign button - always available except for done/closed */}
-                {task.status !== "done" && task.status !== "closed" && (
-                  <Button
-                    variant="outline"
-                    className="border-[#E5E0D8]"
-                    onClick={() => setShowAssignModal(true)}
-                    disabled={isLoading}
-                  >
-                    <User className="mr-2 h-4 w-4" />
-                    {t("common.assign")}
-                  </Button>
-                )}
-                {canStart && (
-                  <Button
-                    className="flex-1 bg-[#1976D2] hover:bg-[#1565C0] text-white"
-                    onClick={() => handleStatusChange("in_progress")}
-                    disabled={isLoading}
-                  >
-                    <Play className="mr-2 h-4 w-4" />
-                    {t("tasks.startWork")}
-                  </Button>
-                )}
-                {canMarkToVerify && (
-                  <Button
-                    className="flex-1 bg-[#7B1FA2] hover:bg-[#6A1B9A] text-white"
-                    onClick={() => handleStatusChange("to_verify")}
-                    disabled={isLoading}
-                  >
-                    <Eye className="mr-2 h-4 w-4" />
-                    {t("tasks.submitForReview")}
-                  </Button>
-                )}
-                {canMarkDone && (
-                  <Button
-                    className="flex-1 bg-[#22C55E] hover:bg-[#16A34A] text-white"
-                    onClick={() => handleStatusChange("done")}
-                    disabled={isLoading}
-                  >
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    {t("tasks.markAsVerified")}
-                  </Button>
-                )}
-                {(task.status === "done" || task.status === "closed") && (
-                  <div className="text-sm text-[#9A9A9A] text-center w-full">
-                    {t("tasks.taskCompleted")}
-                  </div>
-                )}
-                <div className="ml-auto">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-9 w-9 border-[#E5E0D8] text-[#D32F2F] hover:bg-[#FFEBEE] hover:text-[#D32F2F] hover:border-[#D32F2F]"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{t("tasks.deleteExperimentRun")}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {t("tasks.deleteExperimentRunConfirm", { title: task.title })}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                        <AlertDialogAction
-                          variant="destructive"
-                          onClick={handleDelete}
-                          disabled={isDeleting}
-                        >
-                          {isDeleting ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              {t("common.delete")}
-                            </>
-                          ) : (
-                            t("common.delete")
-                          )}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </>
-            ) : null}
-          </div>
-        </div>
+        <RunDetailFooter
+          canMarkDone={canMarkDone}
+          canMarkToVerify={canMarkToVerify}
+          canStart={canStart}
+          editTitle={editTitle}
+          isCreateMode={isCreateMode}
+          isDeleting={isDeleting}
+          isEditing={isEditing}
+          isLoading={isLoading}
+          isSaving={isSaving}
+          onCancelEdit={handleCancelEdit}
+          onDelete={handleDelete}
+          onOpenAssign={() => setShowAssignModal(true)}
+          onSaveEdit={handleSaveEdit}
+          onStatusChange={handleStatusChange}
+          task={task}
+        />
       </div>
 
       {/* Assign Task Modal */}

@@ -19,8 +19,110 @@ import * as hypothesisFormulationService from "@/services/hypothesis-formulation
 import * as projectGroupService from "@/services/project-group.service";
 import * as mentionService from "@/services/mention.service";
 import { prisma } from "@/lib/prisma";
+import {
+  createCompatAliasTool,
+  defineCompatAliasTools,
+  jsonTextResult,
+  notFoundTextResult,
+  registerCompatAliasTools,
+} from "./compat-alias-tools";
 
 export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
+  // Compatibility aliases ----------------------------------------------------
+  const compatibilityAliasTools = defineCompatAliasTools([
+    createCompatAliasTool({
+      name: "synapse_get_project",
+      description: "Compatibility alias for synapse_get_research_project.",
+      inputSchema: z.object({
+        projectUuid: z.string().describe("Research Project UUID"),
+      }),
+      async execute({ projectUuid }) {
+        const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, projectUuid);
+        return project ? jsonTextResult(project) : notFoundTextResult("Research Project");
+      },
+    }),
+    createCompatAliasTool({
+      name: "synapse_list_projects",
+      description: "Compatibility alias for synapse_list_research_projects.",
+      inputSchema: z.object({
+        page: z.number().default(1).describe("Page number"),
+        pageSize: z.number().default(20).describe("Items per page"),
+      }),
+      async execute({ page, pageSize }) {
+        const skip = (page - 1) * pageSize;
+        const result = await researchProjectService.listResearchProjects({
+          companyUuid: auth.companyUuid,
+          skip,
+          take: pageSize,
+        });
+        return jsonTextResult(result);
+      },
+    }),
+    createCompatAliasTool({
+      name: "synapse_get_idea",
+      description: "Compatibility alias for synapse_get_research_question.",
+      inputSchema: z.object({
+        ideaUuid: z.string().describe("Research Question UUID"),
+      }),
+      async execute({ ideaUuid }) {
+        const researchQuestion = await researchQuestionService.getResearchQuestion(auth.companyUuid, ideaUuid);
+        return researchQuestion
+          ? jsonTextResult(researchQuestion)
+          : notFoundTextResult("Research Question");
+      },
+    }),
+    createCompatAliasTool({
+      name: "synapse_get_task",
+      description: "Compatibility alias for synapse_get_experiment_run.",
+      inputSchema: z.object({
+        taskUuid: z.string().describe("Experiment Run UUID"),
+      }),
+      async execute({ taskUuid }) {
+        const experimentRun = await experimentRunService.getExperimentRun(auth.companyUuid, taskUuid);
+        return experimentRun
+          ? jsonTextResult(experimentRun)
+          : notFoundTextResult("Experiment Run");
+      },
+    }),
+    createCompatAliasTool({
+      name: "synapse_get_proposal",
+      description: "Compatibility alias for synapse_get_experiment_design.",
+      inputSchema: z.object({
+        proposalUuid: z.string().describe("Experiment Design UUID"),
+      }),
+      async execute({ proposalUuid }) {
+        const experimentDesign = await experimentDesignService.getExperimentDesign(auth.companyUuid, proposalUuid);
+        return experimentDesign
+          ? jsonTextResult(experimentDesign)
+          : notFoundTextResult("Experiment Design");
+      },
+    }),
+    createCompatAliasTool({
+      name: "synapse_get_unblocked_tasks",
+      description: "Compatibility alias for synapse_get_unblocked_experiment_runs.",
+      inputSchema: z.object({
+        projectUuid: z.string().describe("Research Project UUID"),
+        proposalUuids: z.array(z.string()).optional().describe("Filter by Experiment Design UUIDs"),
+      }),
+      async execute({ projectUuid, proposalUuids }) {
+        const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, projectUuid);
+        if (!project) {
+          return notFoundTextResult("Research Project");
+        }
+
+        const { tasks, total } = await experimentRunService.getUnblockedExperimentRuns({
+          companyUuid: auth.companyUuid,
+          researchProjectUuid: projectUuid,
+          experimentDesignUuids: proposalUuids,
+        });
+
+        return jsonTextResult({ tasks, total });
+      },
+    }),
+  ]);
+
+  registerCompatAliasTools(server, compatibilityAliasTools);
+
   // synapse_get_research_project - Get research project details and context
   server.registerTool(
     "synapse_get_research_project",
@@ -280,9 +382,9 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
   server.registerTool(
     "synapse_add_comment",
     {
-      description: "Add a comment to a Research Question/Experiment Design/Experiment Run/Document",
+      description: "Add a comment to a Research Question/Experiment/Experiment Design/Experiment Run/Document",
       inputSchema: z.object({
-        targetType: z.enum(["research_question", "experiment_design", "experiment_run", "document"]).describe("Target type"),
+        targetType: z.enum(["research_question", "experiment", "experiment_design", "experiment_run", "document"]).describe("Target type"),
         targetUuid: z.string().describe("Target UUID"),
         content: z.string().describe("Comment content"),
       }),
@@ -304,7 +406,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
           await activityService.createActivity({
             companyUuid: auth.companyUuid,
             researchProjectUuid: projectUuid,
-            targetType: targetType as "research_question" | "experiment_design" | "experiment_run" | "document",
+            targetType: targetType as "research_question" | "experiment" | "experiment_design" | "experiment_run" | "document",
             targetUuid,
             actorType: "agent",
             actorUuid: auth.actorUuid,
@@ -561,9 +663,9 @@ Work style: rigorous, efficient, quality-focused`,
   server.registerTool(
     "synapse_get_comments",
     {
-      description: "Get the list of comments for a Research Question/Experiment Design/Experiment Run/Document",
+      description: "Get the list of comments for a Research Question/Experiment/Experiment Design/Experiment Run/Document",
       inputSchema: z.object({
-        targetType: z.enum(["research_question", "experiment_design", "experiment_run", "document"]).describe("Target type"),
+        targetType: z.enum(["research_question", "experiment", "experiment_design", "experiment_run", "document"]).describe("Target type"),
         targetUuid: z.string().describe("Target UUID"),
         page: z.number().optional().default(1).describe("Page number"),
         pageSize: z.number().optional().default(20).describe("Items per page"),

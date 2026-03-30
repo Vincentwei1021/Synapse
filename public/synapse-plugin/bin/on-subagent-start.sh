@@ -212,24 +212,24 @@ Your Synapse session UUID is: ${SESSION_UUID}
 Your session name is: ${SESSION_NAME}
 The plugin manages session lifecycle (heartbeat, close). Do NOT call synapse_create_session or synapse_close_session.
 
-### Workflow — follow these steps for each task:
+### Workflow — follow these steps for each experiment run:
 
 **Before starting:**
-1. Check in: synapse_session_checkin_task({ sessionUuid: \"${SESSION_UUID}\", taskUuid: \"<TASK_UUID>\" })
-2. Start work: synapse_update_task({ taskUuid: \"<TASK_UUID>\", status: \"in_progress\", sessionUuid: \"${SESSION_UUID}\" })
+1. Check in: synapse_session_checkin_experiment_run({ sessionUuid: \"${SESSION_UUID}\", runUuid: \"<RUN_UUID>\" })
+2. Start work: synapse_update_experiment_run({ runUuid: \"<RUN_UUID>\", status: \"in_progress\", sessionUuid: \"${SESSION_UUID}\" })
 
 **While working:**
-3. Report progress: synapse_report_work({ taskUuid: \"<TASK_UUID>\", report: \"...\", sessionUuid: \"${SESSION_UUID}\" })
+3. Report progress: synapse_report_work({ runUuid: \"<RUN_UUID>\", report: \"...\", sessionUuid: \"${SESSION_UUID}\" })
 
 **After completing:**
-4. Self-check acceptance criteria (if the task has structured criteria):
-   Call synapse_get_task to see acceptanceCriteriaItems, then self-check each criterion as passed.
+4. Self-check acceptance criteria (if the experiment run has structured criteria):
+   Call synapse_get_experiment_run to see acceptanceCriteriaItems, then self-check each criterion as passed.
    For required criteria, keep working until all pass. Only mark optional criteria as failed if out of scope.
-   synapse_report_criteria_self_check({ taskUuid: \"<TASK_UUID>\", criteria: [{ uuid: \"<CRITERION_UUID>\", devStatus: \"passed\", devEvidence: \"...\" }] })
-5. Check out: synapse_session_checkout_task({ sessionUuid: \"${SESSION_UUID}\", taskUuid: \"<TASK_UUID>\" })
-6. Submit: synapse_submit_for_verify({ taskUuid: \"<TASK_UUID>\", summary: \"...\" })
+   synapse_report_criteria_self_check({ runUuid: \"<RUN_UUID>\", criteria: [{ uuid: \"<CRITERION_UUID>\", devStatus: \"passed\", devEvidence: \"...\" }] })
+5. Check out: synapse_session_checkout_experiment_run({ sessionUuid: \"${SESSION_UUID}\", runUuid: \"<RUN_UUID>\" })
+6. Submit: synapse_submit_for_verify({ runUuid: \"<RUN_UUID>\", summary: \"...\" })
 
-Replace <TASK_UUID> with the actual Synapse task UUID from your prompt.${OWNER_SECTION}"
+Replace <RUN_UUID> with the actual Synapse experiment-run UUID from your prompt.${OWNER_SECTION}"
 
 "$API" hook-output \
   "Synapse session ${SESSION_ACTION}: '${SESSION_NAME}' (${SESSION_UUID:0:8}...)" \

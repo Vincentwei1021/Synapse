@@ -77,6 +77,7 @@ export async function IdeasPageContent({
     acc[idea.status] = (acc[idea.status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
+  const pendingReviewCount = allIdeas.filter((idea) => idea.reviewStatus === "pending").length;
 
   // Get availability of all Ideas (whether already used by a Proposal)
   const allIdeaUuids = allIdeas.map((idea: { uuid: string }) => idea.uuid);
@@ -115,6 +116,9 @@ export async function IdeasPageContent({
         <h1 className="text-2xl font-semibold text-foreground">{t("ideas.title")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {t("ideas.subtitle")}
+        </p>
+        <p className="mt-2 text-xs text-[#C67A52]">
+          {pendingReviewCount} idea(s) currently waiting for human review.
         </p>
       </div>
 

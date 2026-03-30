@@ -72,7 +72,6 @@ export function SourceQuestionsCard({
           idea={selectedIdea}
           projectUuid={projectUuid}
           currentUserUuid={currentUserUuid}
-          isUsedInProposal={true}
           onClose={() => setSelectedIdea(null)}
         />
       )}

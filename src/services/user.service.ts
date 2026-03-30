@@ -231,6 +231,29 @@ export async function getUserByUuid(userUuid: string) {
   });
 }
 
+export async function getUserIdentity(params: { userUuid?: string; oidcSub?: string }) {
+  const { userUuid, oidcSub } = params;
+  if (!userUuid && !oidcSub) {
+    return null;
+  }
+
+  return prisma.user.findFirst({
+    where: userUuid ? { uuid: userUuid } : { oidcSub },
+    select: {
+      uuid: true,
+      email: true,
+      name: true,
+      companyUuid: true,
+      company: {
+        select: {
+          uuid: true,
+          name: true,
+        },
+      },
+    },
+  });
+}
+
 // Get company by UUID (for OIDC callback)
 export async function getCompanyByUuid(uuid: string) {
   return prisma.company.findFirst({

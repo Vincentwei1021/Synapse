@@ -3,11 +3,10 @@
 // UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { withErrorHandler, parseBody, parsePagination } from "@/lib/api-handler";
 import { success, paginated, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
-import { generateApiKey } from "@/lib/api-key";
+import { createApiKey, getAgentByUuid, listApiKeys } from "@/services/agent.service";
 
 // GET /api/api-keys - List API Keys
 export const GET = withErrorHandler(async (request: NextRequest) => {
@@ -23,29 +22,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   const { page, pageSize, skip, take } = parsePagination(request);
 
-  const where = {
-    companyUuid: auth.companyUuid,
-    revokedAt: null,
-  };
-
-  const [apiKeys, total] = await Promise.all([
-    prisma.apiKey.findMany({
-      where,
-      skip,
-      take,
-      orderBy: { createdAt: "desc" },
-      include: {
-        agent: {
-          select: {
-            uuid: true,
-            name: true,
-            roles: true,
-          },
-        },
-      },
-    }),
-    prisma.apiKey.count({ where }),
-  ]);
+  const { apiKeys, total } = await listApiKeys(auth.companyUuid, skip, take, auth.actorUuid);
 
   const data = apiKeys.map((k) => ({
     uuid: k.uuid,
@@ -88,17 +65,11 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   }
 
   // Validate Agent exists (query by UUID)
-  const agent = await prisma.agent.findFirst({
-    where: { uuid: body.agentUuid, companyUuid: auth.companyUuid },
-    select: { uuid: true, name: true, roles: true },
-  });
+  const agent = await getAgentByUuid(auth.companyUuid, body.agentUuid, auth.actorUuid);
 
   if (!agent) {
     return errors.notFound("Agent");
   }
-
-  // Generate API Key
-  const { key, hash, prefix } = generateApiKey();
 
   // Parse expiration time
   let expiresAt: Date | null = null;
@@ -109,28 +80,17 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     }
   }
 
-  const apiKey = await prisma.apiKey.create({
-    data: {
-      companyUuid: auth.companyUuid,
-      agentUuid: agent.uuid,
-      keyHash: hash,
-      keyPrefix: prefix,
-      name: body.name?.trim() || null,
-      expiresAt,
-    },
-    select: {
-      uuid: true,
-      keyPrefix: true,
-      name: true,
-      expiresAt: true,
-      createdAt: true,
-    },
+  const apiKey = await createApiKey({
+    companyUuid: auth.companyUuid,
+    agentUuid: agent.uuid,
+    name: body.name?.trim() || null,
+    expiresAt,
   });
 
   // Only return the plaintext key at creation time (cannot be recovered later)
   return success({
     uuid: apiKey.uuid,
-    key, // This is the only time the full key is visible
+    key: apiKey.key, // This is the only time the full key is visible
     prefix: apiKey.keyPrefix,
     name: apiKey.name,
     agent: {

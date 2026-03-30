@@ -1,30 +1,93 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
-import { createResearchQuestionAction } from "./actions";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { createResearchQuestionAction, updateResearchQuestionAction } from "./actions";
 
 interface IdeaCreateFormProps {
   projectUuid: string;
+  researchQuestions?: Array<{ uuid: string; title: string }>;
+  trigger?: React.ReactNode;
+  buttonLabel?: string;
+  defaultParentQuestionUuid?: string | null;
+  mode?: "create" | "edit";
+  questionUuid?: string;
+  initialTitle?: string;
+  initialContent?: string | null;
+  initialParentQuestionUuid?: string | null;
+  onSuccess?: () => void;
 }
 
-export function IdeaCreateForm({ projectUuid }: IdeaCreateFormProps) {
+export function IdeaCreateForm({
+  projectUuid,
+  researchQuestions = [],
+  trigger,
+  buttonLabel,
+  defaultParentQuestionUuid = null,
+  mode = "create",
+  questionUuid,
+  initialTitle = "",
+  initialContent = "",
+  initialParentQuestionUuid = null,
+  onSuccess,
+}: IdeaCreateFormProps) {
   const t = useTranslations();
   const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [title, setTitle] = useState(initialTitle);
+  const [content, setContent] = useState(initialContent ?? "");
+  const [parentQuestionUuid, setParentQuestionUuid] = useState<string>(
+    initialParentQuestionUuid ?? defaultParentQuestionUuid ?? "",
+  );
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (open) {
+      setTitle(initialTitle);
+      setContent(initialContent ?? "");
+      setParentQuestionUuid(initialParentQuestionUuid ?? defaultParentQuestionUuid ?? "");
+      setError(null);
+      return;
+    }
+
+    setTitle(initialTitle);
+    setContent(initialContent ?? "");
+    setParentQuestionUuid(initialParentQuestionUuid ?? defaultParentQuestionUuid ?? "");
+  }, [defaultParentQuestionUuid, initialContent, initialParentQuestionUuid, initialTitle, open]);
+
+  const hasQuestions = researchQuestions.length > 0;
+  const selectableQuestions = useMemo(
+    () => researchQuestions.filter((question) => question.uuid !== questionUuid),
+    [questionUuid, researchQuestions],
+  );
+  const defaultTrigger = useMemo(
+    () => (
+      <Button className="bg-[#C67A52] text-white hover:bg-[#B56A42]">
+        <Plus className="mr-2 h-4 w-4" />
+        {buttonLabel || (mode === "edit" ? t("ideas.editQuestion") : t("ideas.createRoot"))}
+      </Button>
+    ),
+    [buttonLabel, mode, t],
+  );
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError(null);
 
     if (!title.trim()) {
@@ -32,86 +95,133 @@ export function IdeaCreateForm({ projectUuid }: IdeaCreateFormProps) {
       return;
     }
 
-    startTransition(async () => {
-      try {
-        const result = await createResearchQuestionAction({
-          projectUuid,
-          title: title.trim(),
-          content: content.trim() || undefined,
-        });
+    startTransition(() => {
+      void (async () => {
+        try {
+          const result =
+            mode === "edit" && questionUuid
+              ? await updateResearchQuestionAction({
+                  projectUuid,
+                  questionUuid,
+                  title: title.trim(),
+                  content: content.trim() || null,
+                  parentQuestionUuid: parentQuestionUuid || null,
+                })
+              : await createResearchQuestionAction({
+                  projectUuid,
+                  title: title.trim(),
+                  content: content.trim() || undefined,
+                  parentQuestionUuid: parentQuestionUuid || null,
+                });
 
-        if (result.success) {
-          setTitle("");
-          setContent("");
+          if (!result.success) {
+            setError(result.error || (mode === "edit" ? t("ideas.updateFailed") : t("ideas.createFailed")));
+            return;
+          }
+
+          setOpen(false);
+          onSuccess?.();
           router.refresh();
-        } else {
-          setError(result.error || t("ideas.createFailed"));
+        } catch {
+          setError(t("common.genericError"));
         }
-      } catch {
-        setError(t("common.genericError"));
-      }
+      })();
     });
   };
 
   return (
-    <Card className="border-[#E5E0D8] rounded-2xl py-5">
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-              {error}
-            </div>
-          )}
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
+      <DialogContent className="max-w-2xl rounded-3xl border-[#E5DED3] p-0 shadow-2xl">
+        <form onSubmit={handleSubmit} className="overflow-hidden rounded-3xl bg-background">
+          <DialogHeader className="border-b border-border px-6 py-5 text-left">
+            <DialogTitle className="text-lg font-semibold text-foreground">
+              {buttonLabel || (mode === "edit" ? t("ideas.editQuestion") : t("ideas.createRoot"))}
+            </DialogTitle>
+            <DialogDescription className="text-sm leading-6 text-muted-foreground">
+              {mode === "edit" ? t("ideas.editHint") : t("ideas.canvasHint")}
+            </DialogDescription>
+          </DialogHeader>
 
-          <div className="space-y-3">
+          <div className="space-y-5 px-6 py-5">
+            {error ? (
+              <div className="rounded-2xl border border-destructive/15 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {error}
+              </div>
+            ) : null}
+
             <div className="space-y-2">
-              <Label htmlFor="idea-title" className="text-[13px] font-medium text-[#2C2C2C]">
+              <Label htmlFor="idea-title" className="text-[13px] font-medium text-foreground">
                 {t("ideas.titleLabel")}
               </Label>
               <Input
                 id="idea-title"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(event) => setTitle(event.target.value)}
                 placeholder={t("ideas.whatIsYourIdea")}
-                className="border-[#E5E0D8] text-sm"
+                className="h-11 rounded-2xl border-[#E5DED3] bg-card"
                 required
               />
             </div>
 
+            {hasQuestions ? (
+              <div className="space-y-2">
+                <Label htmlFor="idea-parent" className="text-[13px] font-medium text-foreground">
+                  {t("ideas.parentLabel")}
+                </Label>
+                <select
+                  id="idea-parent"
+                  value={parentQuestionUuid}
+                  onChange={(event) => setParentQuestionUuid(event.target.value)}
+                  className="h-11 w-full rounded-2xl border border-[#E5DED3] bg-card px-3 text-sm text-foreground outline-none focus:border-[#C67A52]"
+                >
+                  <option value="">{t("ideas.noParent")}</option>
+                  {selectableQuestions.map((question) => (
+                    <option key={question.uuid} value={question.uuid}>
+                      {question.title}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs leading-5 text-muted-foreground">{t("ideas.parentHint")}</p>
+              </div>
+            ) : null}
+
             <div className="space-y-2">
-              <Label htmlFor="idea-content" className="text-[13px] font-medium text-[#2C2C2C]">
+              <Label htmlFor="idea-content" className="text-[13px] font-medium text-foreground">
                 {t("common.content")}
               </Label>
               <Textarea
                 id="idea-content"
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={(event) => setContent(event.target.value)}
                 placeholder={t("ideas.addMoreDetails")}
-                rows={2}
-                className="border-[#E5E0D8] text-sm resize-none"
+                rows={5}
+                className="min-h-[132px] rounded-2xl border-[#E5DED3] bg-card resize-none"
               />
             </div>
           </div>
 
-          <div className="flex justify-end">
+          <DialogFooter className="border-t border-border px-6 py-4">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              {t("common.cancel")}
+            </Button>
             <Button
               type="submit"
               disabled={isPending || !title.trim()}
-              size="sm"
-              className="bg-[#C67A52] hover:bg-[#B56A42] text-white"
+              className="bg-[#C67A52] text-white hover:bg-[#B56A42]"
             >
               {isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t("common.creating")}
+                  {mode === "edit" ? t("common.saving") : t("common.creating")}
                 </>
               ) : (
-                t("ideas.submit")
+                buttonLabel || (mode === "edit" ? t("ideas.saveChanges") : t("ideas.submit"))
               )}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 }

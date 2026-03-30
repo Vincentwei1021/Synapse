@@ -3,10 +3,29 @@
 // UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { withErrorHandler, parseBody, parsePagination } from "@/lib/api-handler";
 import { success, paginated, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
+import { getProjectGroupRef } from "@/services/project-group.service";
+import { createResearchProject, listResearchProjectsWithStats } from "@/services/research-project.service";
+import { toProjectCompatibilityCounts } from "@/services/project-metrics.service";
+
+function normalizeStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item).trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(/\r?\n|,/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
 
 // GET /api/research-projects - List Research Projects
 export const GET = withErrorHandler(async (request: NextRequest) => {
@@ -17,53 +36,27 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   const { page, pageSize, skip, take } = parsePagination(request);
 
-  const [researchProjects, total] = await Promise.all([
-    prisma.researchProject.findMany({
-      where: { companyUuid: auth.companyUuid },
-      skip,
-      take,
-      orderBy: { updatedAt: "desc" },
-      select: {
-        uuid: true,
-        name: true,
-        description: true,
-        groupUuid: true,
-        createdAt: true,
-        updatedAt: true,
-        _count: {
-          select: {
-            researchQuestions: true,
-            documents: true,
-            experimentRuns: true,
-            experimentDesigns: true,
-          },
-        },
-        experimentRuns: {
-          where: { status: "done" },
-          select: { uuid: true },
-        },
-      },
-    }),
-    prisma.researchProject.count({
-      where: { companyUuid: auth.companyUuid },
-    }),
-  ]);
+  const { projects: researchProjects, total } = await listResearchProjectsWithStats({
+    companyUuid: auth.companyUuid,
+    skip,
+    take,
+  });
 
   // Transform to API response format
   const data = researchProjects.map((p) => ({
     uuid: p.uuid,
     name: p.name,
     description: p.description,
+    goal: p.goal,
+    datasets: p.datasets,
+    evaluationMethods: p.evaluationMethods,
+    latestSynthesisAt: p.latestSynthesisAt?.toISOString() ?? null,
+    latestSynthesisIdeaCount: p.latestSynthesisIdeaCount ?? 0,
+    latestSynthesisSummary: p.latestSynthesisSummary,
     groupUuid: p.groupUuid,
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
-    counts: {
-      researchQuestions: p._count.researchQuestions,
-      documents: p._count.documents,
-      experimentRuns: p._count.experimentRuns,
-      doneExperimentRuns: p.experimentRuns.length,
-      experimentDesigns: p._count.experimentDesigns,
-    },
+    counts: toProjectCompatibilityCounts(p.metrics),
   }));
 
   return paginated(data, page, pageSize, total);
@@ -84,7 +77,11 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const body = await parseBody<{
     name: string;
     description?: string;
+    goal?: string;
+    datasets?: string[] | string;
+    evaluationMethods?: string[] | string;
     groupUuid?: string;
+    computePoolUuid?: string;
   }>(request);
 
   // Validate required fields
@@ -94,34 +91,30 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   // Validate groupUuid belongs to the same company if provided
   if (body.groupUuid) {
-    const group = await prisma.projectGroup.findFirst({
-      where: { uuid: body.groupUuid, companyUuid: auth.companyUuid },
-    });
+    const group = await getProjectGroupRef(auth.companyUuid, body.groupUuid);
     if (!group) {
       return errors.notFound("Project Group");
     }
   }
 
-  const researchProject = await prisma.researchProject.create({
-    data: {
-      companyUuid: auth.companyUuid,
-      name: body.name.trim(),
-      description: body.description?.trim() || null,
-      groupUuid: body.groupUuid || null,
-    },
-    select: {
-      uuid: true,
-      name: true,
-      description: true,
-      createdAt: true,
-      updatedAt: true,
-    },
+  const researchProject = await createResearchProject({
+    companyUuid: auth.companyUuid,
+    name: body.name.trim(),
+    description: body.description?.trim() || null,
+    goal: body.goal?.trim() || null,
+    datasets: normalizeStringArray(body.datasets),
+    evaluationMethods: normalizeStringArray(body.evaluationMethods),
+    groupUuid: body.groupUuid || null,
+    computePoolUuid: body.computePoolUuid || null,
   });
 
   return success({
     uuid: researchProject.uuid,
     name: researchProject.name,
     description: researchProject.description,
+    goal: researchProject.goal,
+    datasets: researchProject.datasets,
+    evaluationMethods: researchProject.evaluationMethods,
     createdAt: researchProject.createdAt.toISOString(),
     updatedAt: researchProject.updatedAt.toISOString(),
   });

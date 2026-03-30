@@ -26,7 +26,7 @@ export default function Home() {
         if (userResponse.ok) {
           const userData = await userResponse.json();
           if (userData.success) {
-            router.replace("/projects");
+            router.replace("/research-projects");
             return;
           }
         }

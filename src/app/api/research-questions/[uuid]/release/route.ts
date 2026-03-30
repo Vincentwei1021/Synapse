@@ -5,7 +5,8 @@
 import { NextRequest } from "next/server";
 import { withErrorHandler } from "@/lib/api-handler";
 import { success, errors } from "@/lib/api-response";
-import { getAuthContext, isUser, isAssignee } from "@/lib/auth";
+import { getAuthContext } from "@/lib/auth";
+import { canReleaseEntity } from "@/services/assignment-policy.service";
 import { getResearchQuestionByUuid, releaseResearchQuestion } from "@/services/research-question.service";
 import { NotClaimedError } from "@/lib/errors";
 
@@ -26,11 +27,8 @@ export const POST = withErrorHandler<{ uuid: string }>(
       return errors.notFound("Research Question");
     }
 
-    // Check permissions: users can release any Research Question, Agents can only release their own
-    if (!isUser(auth)) {
-      if (!isAssignee(auth, researchQuestion.assigneeType, researchQuestion.assigneeUuid)) {
-        return errors.permissionDenied("Only assignee can release this research question");
-      }
+    if (!canReleaseEntity(auth, researchQuestion.assigneeType, researchQuestion.assigneeUuid)) {
+      return errors.permissionDenied("Only assignee can release this research question");
     }
 
     try {

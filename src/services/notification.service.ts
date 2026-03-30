@@ -86,6 +86,11 @@ export interface NotificationPreferenceResponse {
   mentioned: boolean;
 }
 
+export interface NotificationPreferenceOwner {
+  type: string;
+  uuid: string;
+}
+
 // ===== Internal Helper Functions =====
 
 function formatNotification(n: {
@@ -208,27 +213,29 @@ export async function createBatch(
     recipientKeys.add(`${params.recipientType}:${params.recipientUuid}:${params.companyUuid}`);
   }
 
-  for (const key of recipientKeys) {
-    const [recipientType, recipientUuid, companyUuid] = key.split(":");
+  await Promise.all(
+    Array.from(recipientKeys).map(async (key) => {
+      const [recipientType, recipientUuid, companyUuid] = key.split(":");
 
-    const unreadCount = await prisma.notification.count({
-      where: {
-        companyUuid,
-        recipientType,
-        recipientUuid,
-        readAt: null,
-        archivedAt: null,
-      },
-    });
+      const unreadCount = await prisma.notification.count({
+        where: {
+          companyUuid,
+          recipientType,
+          recipientUuid,
+          readAt: null,
+          archivedAt: null,
+        },
+      });
 
-    eventBus.emit(`notification:${recipientType}:${recipientUuid}`, {
-      type: "new_notification",
-      notificationUuid: created.find(
-        (n) => n.recipientType === recipientType && n.recipientUuid === recipientUuid
-      )?.uuid,
-      unreadCount,
-    });
-  }
+      eventBus.emit(`notification:${recipientType}:${recipientUuid}`, {
+        type: "new_notification",
+        notificationUuid: created.find(
+          (n) => n.recipientType === recipientType && n.recipientUuid === recipientUuid
+        )?.uuid,
+        unreadCount,
+      });
+    })
+  );
 
   return created.map(formatNotification);
 }
@@ -308,7 +315,7 @@ export async function markRead(
   recipientType: string,
   recipientUuid: string
 ): Promise<NotificationResponse> {
-  const notification = await prisma.notification.updateMany({
+  await prisma.notification.updateMany({
     where: {
       uuid,
       companyUuid,
@@ -442,6 +449,82 @@ export async function getPreferences(
     hypothesisFormulationAnswered: pref.hypothesisFormulationAnswered,
     mentioned: pref.mentioned,
   };
+}
+
+export async function getPreferencesBatch(
+  companyUuid: string,
+  owners: NotificationPreferenceOwner[]
+): Promise<Map<string, NotificationPreferenceResponse>> {
+  const uniqueOwners = owners.filter((owner, index, array) => {
+    const key = `${owner.type}:${owner.uuid}`;
+    return array.findIndex((candidate) => `${candidate.type}:${candidate.uuid}` === key) === index;
+  });
+
+  if (uniqueOwners.length === 0) {
+    return new Map();
+  }
+
+  const existing = await prisma.notificationPreference.findMany({
+    where: {
+      companyUuid,
+      OR: uniqueOwners.map((owner) => ({
+        ownerType: owner.type,
+        ownerUuid: owner.uuid,
+      })),
+    },
+  });
+
+  const existingKeys = new Set(existing.map((pref) => `${pref.ownerType}:${pref.ownerUuid}`));
+  const missingOwners = uniqueOwners.filter((owner) => !existingKeys.has(`${owner.type}:${owner.uuid}`));
+
+  if (missingOwners.length > 0) {
+    await Promise.all(
+      missingOwners.map((owner) =>
+        prisma.notificationPreference.create({
+          data: {
+            companyUuid,
+            ownerType: owner.type,
+            ownerUuid: owner.uuid,
+          },
+        })
+      )
+    );
+  }
+
+  const allPreferences = missingOwners.length > 0
+    ? await prisma.notificationPreference.findMany({
+        where: {
+          companyUuid,
+          OR: uniqueOwners.map((owner) => ({
+            ownerType: owner.type,
+            ownerUuid: owner.uuid,
+          })),
+        },
+      })
+    : existing;
+
+  return new Map(
+    allPreferences.map((pref) => [
+      `${pref.ownerType}:${pref.ownerUuid}`,
+      {
+        uuid: pref.uuid,
+        ownerType: pref.ownerType,
+        ownerUuid: pref.ownerUuid,
+        runAssigned: pref.runAssigned,
+        runStatusChanged: pref.runStatusChanged,
+        runVerified: pref.runVerified,
+        runReopened: pref.runReopened,
+        designSubmitted: pref.designSubmitted,
+        designApproved: pref.designApproved,
+        designRejected: pref.designRejected,
+        researchQuestionClaimed: pref.researchQuestionClaimed,
+        commentAdded: pref.commentAdded,
+        hypothesisFormulationRequested: pref.hypothesisFormulationRequested,
+        hypothesisFormulationAnswered: pref.hypothesisFormulationAnswered,
+        mentioned: pref.mentioned,
+      },
+    ])
+  );
 }
 
 /**

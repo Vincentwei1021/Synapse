@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
@@ -19,8 +19,18 @@ import {
   Upload,
   Rocket,
   Bell,
+  ChevronDown,
 } from "lucide-react";
 import { createResearchProjectAction } from "./actions";
+import {
+  Collapsible,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
+
+interface ComputePool {
+  uuid: string;
+  name: string;
+}
 
 interface UploadedFile {
   name: string;
@@ -37,10 +47,27 @@ export default function NewProjectPage() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    datasets: "",
+    evaluationMethods: "",
+    computePoolUuid: null as string | null,
   });
+  const [pools, setPools] = useState<ComputePool[]>([]);
   const [ideas, setIdeas] = useState<string[]>([""]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [ideasOpen, setIdeasOpen] = useState(false);
+  const [documentsOpen, setDocumentsOpen] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/compute-pools")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.pools) setPools(data.pools);
+      })
+      .catch(() => {
+        // Pools are optional; ignore fetch errors
+      });
+  }, []);
 
   const handleAddIdea = () => {
     setIdeas([...ideas, ""]);
@@ -132,6 +159,15 @@ export default function NewProjectPage() {
       const result = await createResearchProjectAction({
         name: formData.name,
         description: formData.description,
+        datasets: formData.datasets
+          .split(/\r?\n/)
+          .map((item) => item.trim())
+          .filter(Boolean),
+        evaluationMethods: formData.evaluationMethods
+          .split(/\r?\n/)
+          .map((item) => item.trim())
+          .filter(Boolean),
+        computePoolUuid: formData.computePoolUuid,
         ideas: ideas,
         documents,
       });
@@ -150,13 +186,13 @@ export default function NewProjectPage() {
   };
 
   return (
-    <div className="min-h-full bg-[#FAF8F4]">
+    <div className="min-h-full bg-background">
       <div className="px-8 py-6">
         {/* Top Bar */}
         <div className="mb-6 flex items-center justify-between">
           <div className="text-[11px] text-muted-foreground">
             <Link href="/research-projects" className="hover:text-foreground">
-              {t("nav.projects")}
+              {t("nav.researchProjects")}
             </Link>
             <span className="mx-1">/</span>
             <span>{t("projects.newProject")}</span>
@@ -188,28 +224,28 @@ export default function NewProjectPage() {
           )}
 
           {/* Welcome Banner */}
-          <div className="flex items-center gap-4 rounded-2xl border border-[#C67A5230] bg-[#C67A5210] px-6 py-5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#C67A5220]">
-              <Rocket className="h-[22px] w-[22px] text-[#C67A52]" />
+          <div className="flex items-center gap-4 rounded-2xl border border-primary/30 bg-primary/10 px-6 py-5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/20">
+              <Rocket className="h-[22px] w-[22px] text-primary" />
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-[#C67A52]">
+              <p className="text-sm font-semibold text-primary">
                 {t("projects.createNew.gettingStartedTitle")}
               </p>
-              <p className="text-xs leading-relaxed text-[#6B6B6B]">
+              <p className="text-xs leading-relaxed text-muted-foreground">
                 {t("projects.createNew.gettingStartedDesc")}
               </p>
             </div>
           </div>
 
           {/* Step 1: Basic Information Card */}
-          <Card className="overflow-hidden rounded-2xl border-l-3 border-l-[#C67A52] border-t-0 border-r-0 border-b-0 shadow-none">
+          <Card className="overflow-hidden rounded-2xl border-l-3 border-l-primary border-t-0 border-r-0 border-b-0 shadow-none">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#C67A52] text-[11px] font-semibold text-white">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
                   1
                 </span>
-                <FileText className="h-4 w-4 text-[#C67A52]" />
+                <FileText className="h-4 w-4 text-primary" />
                 {t("projects.createNew.basicInfo")}
               </CardTitle>
             </CardHeader>
@@ -229,7 +265,7 @@ export default function NewProjectPage() {
               </div>
 
               <div className="pl-12">
-                <Separator className="bg-[#E5E2DC]" />
+                <Separator className="bg-border" />
               </div>
 
               <div className="space-y-2">
@@ -244,152 +280,224 @@ export default function NewProjectPage() {
                   rows={3}
                 />
               </div>
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="datasets">{t("projects.createNew.datasetsLabel")}</Label>
+                  <Textarea
+                    id="datasets"
+                    value={formData.datasets}
+                    onChange={(e) =>
+                      setFormData({ ...formData, datasets: e.target.value })
+                    }
+                    placeholder={t("projects.createNew.datasetsPlaceholder")}
+                    rows={4}
+                  />
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    {t("projects.createNew.datasetsHelp")}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="evaluationMethods">{t("projects.createNew.evaluationLabel")}</Label>
+                  <Textarea
+                    id="evaluationMethods"
+                    value={formData.evaluationMethods}
+                    onChange={(e) =>
+                      setFormData({ ...formData, evaluationMethods: e.target.value })
+                    }
+                    placeholder={t("projects.createNew.evaluationPlaceholder")}
+                    rows={4}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="computePoolUuid">{t("projects.createNew.computePool")}</Label>
+                <select
+                  id="computePoolUuid"
+                  value={formData.computePoolUuid || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, computePoolUuid: e.target.value || null })
+                  }
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                >
+                  <option value="">{t("projects.createNew.noComputePool")}</option>
+                  {pools.map((pool) => (
+                    <option key={pool.uuid} value={pool.uuid}>
+                      {pool.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </CardContent>
           </Card>
 
           {/* Step 2: Initial Ideas Card */}
-          <Card className="overflow-hidden rounded-2xl border-l-3 border-l-[#C67A52] border-t-0 border-r-0 border-b-0 shadow-none">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#C67A52] text-[11px] font-semibold text-white">
-                    2
-                  </span>
-                  <Lightbulb className="h-4 w-4 text-[#C67A52]" />
-                  {t("projects.createNew.initialIdeas")}
-                </CardTitle>
-                <span className="text-[11px] text-muted-foreground">{t("common.optional")}</span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-xs text-muted-foreground">
-                {t("projects.createNew.initialIdeasDesc")}
-              </p>
-
-              <div className="space-y-3">
-                {ideas.map((idea, index) => (
-                  <div key={index} className="relative">
-                    <Textarea
-                      value={idea}
-                      onChange={(e) => handleIdeaChange(index, e.target.value)}
-                      placeholder={t("projects.createNew.ideaPlaceholder")}
-                      rows={3}
-                      className="pr-10"
-                    />
-                    {ideas.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRemoveIdea(index)}
-                        className="absolute right-2 top-2 h-6 w-6"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleAddIdea}
-                className="mt-3"
+          <Collapsible open={ideasOpen} onOpenChange={setIdeasOpen}>
+            <Card className="overflow-hidden rounded-2xl border-l-3 border-l-primary border-t-0 border-r-0 border-b-0 shadow-none">
+              <CardHeader
+                className="cursor-pointer pb-4"
+                onClick={() => setIdeasOpen(!ideasOpen)}
               >
-                <Plus className="mr-1.5 h-3 w-3" />
-                {t("projects.createNew.addAnother")}
-              </Button>
-            </CardContent>
-          </Card>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
+                      2
+                    </span>
+                    <Lightbulb className="h-4 w-4 text-primary" />
+                    {t("projects.createNew.initialIdeas")}
+                  </CardTitle>
+                  <ChevronDown
+                    className={`h-4 w-4 text-muted-foreground transition-transform ${
+                      ideasOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </div>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent>
+                  <p className="mb-4 text-xs text-muted-foreground">
+                    {t("projects.createNew.initialIdeasDesc")}
+                  </p>
+
+                  <div className="space-y-3">
+                    {ideas.map((idea, index) => (
+                      <div key={index} className="relative">
+                        <Textarea
+                          value={idea}
+                          onChange={(e) => handleIdeaChange(index, e.target.value)}
+                          placeholder={t("projects.createNew.ideaPlaceholder")}
+                          rows={3}
+                          className="pr-10"
+                        />
+                        {ideas.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveIdea(index)}
+                            className="absolute right-2 top-2 h-6 w-6"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddIdea}
+                    className="mt-3"
+                  >
+                    <Plus className="mr-1.5 h-3 w-3" />
+                    {t("projects.createNew.addAnother")}
+                  </Button>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
 
           {/* Step 3: Documents Card */}
-          <Card className="overflow-hidden rounded-2xl border-l-3 border-l-[#C67A52] border-t-0 border-r-0 border-b-0 shadow-none">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#C67A52] text-[11px] font-semibold text-white">
-                    3
-                  </span>
-                  <FolderOpen className="h-4 w-4 text-[#C67A52]" />
-                  {t("projects.createNew.documents")}
-                </CardTitle>
-                <span className="text-[11px] text-muted-foreground">{t("common.optional")}</span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-xs text-muted-foreground">
-                {t("projects.createNew.documentsDesc")}
-              </p>
-
-              {/* Upload Area */}
-              <div
-                className={`flex h-[120px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed transition-colors ${
-                  dragActive
-                    ? "border-[#C67A52] bg-[#C67A5210]"
-                    : "border-[#D0CCC4] bg-[#F5F2EC]"
-                }`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
+          <Collapsible open={documentsOpen} onOpenChange={setDocumentsOpen}>
+            <Card className="overflow-hidden rounded-2xl border-l-3 border-l-primary border-t-0 border-r-0 border-b-0 shadow-none">
+              <CardHeader
+                className="cursor-pointer pb-4"
+                onClick={() => setDocumentsOpen(!documentsOpen)}
               >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept=".md"
-                  onChange={(e) => e.target.files && handleFiles(e.target.files)}
-                  className="hidden"
-                />
-                <Upload className="h-8 w-8 text-muted-foreground" />
-                <span className="text-xs text-[#6B6B6B]">
-                  {t("projects.createNew.dragDrop")}
-                </span>
-                <span className="text-[11px] text-[#9A9A9A]">
-                  {t("projects.createNew.fileTypes")}
-                </span>
-              </div>
-
-              {/* Uploaded Files */}
-              {uploadedFiles.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  {uploadedFiles.map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between rounded-xl border border-[#E5E2DC] bg-[#F5F2EC] px-3 py-2.5"
-                    >
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-[#C67A52]" />
-                        <span className="text-[13px] text-foreground">
-                          {file.name}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-[11px] text-muted-foreground">
-                          {formatFileSize(file.size)}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveFile(index)}
-                          className="h-6 w-6"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
+                      3
+                    </span>
+                    <FolderOpen className="h-4 w-4 text-primary" />
+                    {t("projects.createNew.documents")}
+                  </CardTitle>
+                  <ChevronDown
+                    className={`h-4 w-4 text-muted-foreground transition-transform ${
+                      documentsOpen ? "rotate-180" : ""
+                    }`}
+                  />
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent>
+                  <p className="mb-4 text-xs text-muted-foreground">
+                    {t("projects.createNew.documentsDesc")}
+                  </p>
+
+                  {/* Upload Area */}
+                  <div
+                    className={`flex h-[120px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed transition-colors ${
+                      dragActive
+                        ? "border-primary bg-primary/10"
+                        : "border-border bg-secondary"
+                    }`}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept=".md"
+                      onChange={(e) => e.target.files && handleFiles(e.target.files)}
+                      className="hidden"
+                    />
+                    <Upload className="h-8 w-8 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">
+                      {t("projects.createNew.dragDrop")}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {t("projects.createNew.fileTypes")}
+                    </span>
+                  </div>
+
+                  {/* Uploaded Files */}
+                  {uploadedFiles.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      {uploadedFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between rounded-xl border border-border bg-secondary px-3 py-2.5"
+                        >
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-primary" />
+                            <span className="text-[13px] text-foreground">
+                              {file.name}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] text-muted-foreground">
+                              {formatFileSize(file.size)}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveFile(index)}
+                              className="h-6 w-6"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
 
           {/* Action Bar */}
-          <Separator className="bg-[#E5E2DC]" />
+          <Separator className="bg-border" />
           <div className="flex items-center justify-end gap-3 py-2">
             <Link href="/research-projects">
               <Button type="button" variant="outline" className="rounded-xl px-6 py-2.5">
@@ -399,7 +507,7 @@ export default function NewProjectPage() {
             <Button
               type="submit"
               disabled={loading || !formData.name.trim()}
-              className="rounded-xl bg-[#C67A52] px-6 py-2.5 hover:bg-[#B56A42]"
+              className="rounded-xl bg-primary px-6 py-2.5 text-primary-foreground hover:bg-primary/90"
             >
               <Plus className="mr-2 h-3.5 w-3.5" />
               {loading ? t("common.creating") : t("projects.createNew.createResearchProject")}

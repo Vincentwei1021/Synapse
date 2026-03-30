@@ -3,10 +3,11 @@
 // UUID-Based Architecture: All operations use UUIDs
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { withErrorHandler, parsePagination } from "@/lib/api-handler";
 import { paginated, errors } from "@/lib/api-response";
 import { getAuthContext } from "@/lib/auth";
+import { listActivities } from "@/services/activity.service";
+import { researchProjectExists } from "@/services/research-project.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
@@ -21,40 +22,17 @@ export const GET = withErrorHandler<{ uuid: string }>(
     const { uuid: researchProjectUuid } = await context.params;
     const { page, pageSize, skip, take } = parsePagination(request);
 
-    // Find research project (query by UUID)
-    const researchProject = await prisma.researchProject.findFirst({
-      where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid },
-      select: { uuid: true },
-    });
-
-    if (!researchProject) {
+    const exists = await researchProjectExists(auth.companyUuid, researchProjectUuid);
+    if (!exists) {
       return errors.notFound("Research Project");
     }
 
-    const where = {
-      researchProjectUuid: researchProject.uuid,
+    const { activities, total } = await listActivities({
       companyUuid: auth.companyUuid,
-    };
-
-    const [activities, total] = await Promise.all([
-      prisma.activity.findMany({
-        where,
-        skip,
-        take,
-        orderBy: { createdAt: "desc" },
-        select: {
-          uuid: true,
-          targetType: true,
-          targetUuid: true,
-          actorType: true,
-          actorUuid: true,
-          action: true,
-          value: true,
-          createdAt: true,
-        },
-      }),
-      prisma.activity.count({ where }),
-    ]);
+      researchProjectUuid,
+      skip,
+      take,
+    });
 
     const data = activities.map((a) => ({
       uuid: a.uuid,

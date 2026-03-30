@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { eventBus } from "@/lib/event-bus";
+import { getProjectMetricsSnapshots } from "@/services/project-metrics.service";
 
 // ============================================================
 // Interfaces
@@ -48,16 +49,22 @@ export interface GroupDashboardResponse {
     completionRate: number;
     openResearchQuestions: number;
     activeExperimentDesigns: number;
+    totalTasks: number;
+    completedTasks: number;
+    openIdeas: number;
+    activeProposals: number;
   };
   projects: {
     uuid: string;
     name: string;
     experimentRunCount: number;
+    taskCount: number;
     completionRate: number;
   }[];
   recentActivity: {
     uuid: string;
     researchProjectUuid: string;
+    projectUuid: string;
     projectName: string;
     targetType: string;
     targetUuid: string;
@@ -170,6 +177,13 @@ export async function getProjectGroup(
     createdAt: group.createdAt.toISOString(),
     updatedAt: group.updatedAt.toISOString(),
   };
+}
+
+export async function getProjectGroupRef(companyUuid: string, groupUuid: string) {
+  return prisma.projectGroup.findFirst({
+    where: { uuid: groupUuid, companyUuid },
+    select: { uuid: true },
+  });
 }
 
 export async function listProjectGroups(
@@ -286,74 +300,46 @@ export async function getGroupDashboard(
         completionRate: 0,
         openResearchQuestions: 0,
         activeExperimentDesigns: 0,
+        totalTasks: 0,
+        completedTasks: 0,
+        openIdeas: 0,
+        activeProposals: 0,
       },
       projects: [],
       recentActivity: [],
     };
   }
 
-  // Aggregate stats across all projects
-  const [totalExperimentRuns, completedExperimentRuns, openResearchQuestions, activeExperimentDesigns] =
-    await Promise.all([
-      prisma.experimentRun.count({
-        where: { researchProjectUuid: { in: researchProjectUuids }, companyUuid },
-      }),
-      prisma.experimentRun.count({
-        where: {
-          researchProjectUuid: { in: researchProjectUuids },
-          companyUuid,
-          status: { in: ["done", "closed"] },
-        },
-      }),
-      prisma.researchQuestion.count({
-        where: {
-          researchProjectUuid: { in: researchProjectUuids },
-          companyUuid,
-          status: { in: ["open", "elaborating"] },
-        },
-      }),
-      prisma.experimentDesign.count({
-        where: {
-          researchProjectUuid: { in: researchProjectUuids },
-          companyUuid,
-          status: { in: ["draft", "pending"] },
-        },
-      }),
-    ]);
-
-  // Per-project stats
-  const experimentRunCountsByProject = await prisma.experimentRun.groupBy({
-    by: ["researchProjectUuid"],
-    where: { researchProjectUuid: { in: researchProjectUuids }, companyUuid },
-    _count: { _all: true },
-  });
-  const doneCountsByProject = await prisma.experimentRun.groupBy({
-    by: ["researchProjectUuid"],
-    where: {
-      researchProjectUuid: { in: researchProjectUuids },
-      companyUuid,
-      status: { in: ["done", "closed"] },
-    },
-    _count: { _all: true },
-  });
-
-  const experimentRunCountMap = new Map(
-    experimentRunCountsByProject.map((tc) => [tc.researchProjectUuid, tc._count._all])
-  );
-  const doneCountMap = new Map(
-    doneCountsByProject.map((dc) => [dc.researchProjectUuid, dc._count._all])
-  );
+  const metricsMap = await getProjectMetricsSnapshots(companyUuid, researchProjectUuids);
 
   const projectStats = projects.map((p) => {
-    const tc = experimentRunCountMap.get(p.uuid) ?? 0;
-    const dc = doneCountMap.get(p.uuid) ?? 0;
+    const metrics = metricsMap.get(p.uuid);
+    const tc = metrics?.experimentRuns.total ?? 0;
+    const dc = metrics?.experimentRuns.completed ?? 0;
     return {
       uuid: p.uuid,
       name: p.name,
       experimentRunCount: tc,
+      taskCount: tc,
       completionRate: tc > 0 ? Math.round((dc / tc) * 100) : 0,
     };
   });
+
+  const aggregateStats = Array.from(metricsMap.values()).reduce(
+    (acc, metrics) => {
+      acc.totalExperimentRuns += metrics.experimentRuns.total;
+      acc.completedExperimentRuns += metrics.experimentRuns.completed;
+      acc.openResearchQuestions += metrics.researchQuestions.open + metrics.researchQuestions.elaborating;
+      acc.activeExperimentDesigns += metrics.experimentDesigns.active;
+      return acc;
+    },
+    {
+      totalExperimentRuns: 0,
+      completedExperimentRuns: 0,
+      openResearchQuestions: 0,
+      activeExperimentDesigns: 0,
+    }
+  );
 
   // Recent activity across all projects in the group
   const recentActivity = await prisma.activity.findMany({
@@ -369,17 +355,24 @@ export async function getGroupDashboard(
     group: { uuid: group.uuid, name: group.name, description: group.description },
     stats: {
       projectCount: projects.length,
-      totalExperimentRuns,
-      completedExperimentRuns,
+      totalExperimentRuns: aggregateStats.totalExperimentRuns,
+      completedExperimentRuns: aggregateStats.completedExperimentRuns,
       completionRate:
-        totalExperimentRuns > 0 ? Math.round((completedExperimentRuns / totalExperimentRuns) * 100) : 0,
-      openResearchQuestions,
-      activeExperimentDesigns,
+        aggregateStats.totalExperimentRuns > 0
+          ? Math.round((aggregateStats.completedExperimentRuns / aggregateStats.totalExperimentRuns) * 100)
+          : 0,
+      openResearchQuestions: aggregateStats.openResearchQuestions,
+      activeExperimentDesigns: aggregateStats.activeExperimentDesigns,
+      totalTasks: aggregateStats.totalExperimentRuns,
+      completedTasks: aggregateStats.completedExperimentRuns,
+      openIdeas: aggregateStats.openResearchQuestions,
+      activeProposals: aggregateStats.activeExperimentDesigns,
     },
     projects: projectStats,
     recentActivity: recentActivity.map((a) => ({
       uuid: a.uuid,
       researchProjectUuid: a.researchProjectUuid,
+      projectUuid: a.researchProjectUuid,
       projectName: projectNameMap.get(a.researchProjectUuid) ?? "Unknown",
       targetType: a.targetType,
       targetUuid: a.targetUuid,

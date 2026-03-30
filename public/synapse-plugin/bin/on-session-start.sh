@@ -46,13 +46,13 @@ if command -v jq >/dev/null 2>&1; then
     "$API" state-set "owner_uuid" "$_OWNER_UUID"
   fi
 
-  # Cache agent roles for TaskCompleted and Stop hooks (e.g. "developer_agent,pm_agent,admin_agent")
+  # Cache agent roles for TaskCompleted and Stop hooks (e.g. "researcher_agent,research_lead_agent,pi_agent")
   _ROLES=$(echo "$CHECKIN_RESULT" | jq -r '.agent.roles | join(",") // empty' 2>/dev/null) || true
   if [ -n "$_ROLES" ]; then
     "$API" state-set "agent_roles" "$_ROLES"
   fi
 
-  # Cache first assignment's projectUuid for Stop hook (to scope to_verify task lookup)
+  # Cache first assignment's projectUuid for Stop hook (to scope to_verify experiment run lookup)
   _PROJECT_UUID=$(echo "$CHECKIN_RESULT" | jq -r '
     (.assignments.tasks[0].project.uuid // .assignments.ideas[0].project.uuid) // empty
   ' 2>/dev/null) || true
@@ -76,15 +76,15 @@ ${CHECKIN_RESULT}
 The Synapse Plugin **fully automates** Synapse session lifecycle:
 - Sub-agent spawn → Synapse session auto-created (or reused) + session UUID and workflow auto-injected into sub-agent context
 - Teammate idle → Synapse session heartbeat (automatic)
-- Sub-agent stop → auto checkout all tasks + Synapse session closed
+- Sub-agent stop → auto checkout all experiment runs + Synapse session closed
 
 **Do NOT call synapse_create_session or synapse_close_session for sub-agents.** The plugin handles this.
-When spawning sub-agents, just pass Synapse TASK UUIDs in the prompt. Session UUID + workflow are auto-injected by SubagentStart hook.
+When spawning sub-agents, just pass Synapse EXPERIMENT RUN UUIDs in the prompt. Session UUID + workflow are auto-injected by SubagentStart hook.
 
-For your own session (if you are a Developer agent working directly, not via sub-agents):
+For your own session (if you are a Researcher agent working directly, not via sub-agents):
 call synapse_list_sessions() first, then reopen or create as needed.
 
-To link a Claude Code task to a Synapse task, include \`synapse:task:<uuid>\` in the task description.
+To link a Claude Code work item to a Synapse experiment run, include \`synapse:experiment_run:<uuid>\` in the description. Legacy \`synapse:task:<uuid>\` is also accepted.
 
 ## Notifications
 
@@ -134,7 +134,7 @@ If you are a sub-agent, find your session by matching your agent name:
     done
     SESSION_LIST="${SESSION_LIST}
 
-Use your session UUID with \`synapse_session_checkin_task\`, \`synapse_report_work\`, etc."
+Use your session UUID with \`synapse_session_checkin_experiment_run\`, \`synapse_report_work\`, etc."
     CONTEXT="${CONTEXT}${SESSION_LIST}"
   fi
 fi

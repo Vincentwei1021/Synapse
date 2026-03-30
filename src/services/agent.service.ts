@@ -9,6 +9,7 @@ export interface AgentListParams {
   companyUuid: string;
   skip: number;
   take: number;
+  ownerUuid?: string;
 }
 
 export interface AgentCreateParams {
@@ -35,10 +36,11 @@ export interface ApiKeyCreateParams {
 }
 
 // List agents query
-export async function listAgents({ companyUuid, skip, take }: AgentListParams) {
+export async function listAgents({ companyUuid, skip, take, ownerUuid }: AgentListParams) {
+  const where = { companyUuid, ...(ownerUuid ? { ownerUuid } : {}) };
   const [agents, total] = await Promise.all([
     prisma.agent.findMany({
-      where: { companyUuid },
+      where,
       skip,
       take,
       orderBy: { createdAt: "desc" },
@@ -53,16 +55,16 @@ export async function listAgents({ companyUuid, skip, take }: AgentListParams) {
         _count: { select: { apiKeys: true } },
       },
     }),
-    prisma.agent.count({ where: { companyUuid } }),
+    prisma.agent.count({ where }),
   ]);
 
   return { agents, total };
 }
 
 // Get Agent details
-export async function getAgent(companyUuid: string, uuid: string) {
+export async function getAgent(companyUuid: string, uuid: string, ownerUuid?: string) {
   return prisma.agent.findFirst({
-    where: { uuid, companyUuid },
+    where: { uuid, companyUuid, ...(ownerUuid ? { ownerUuid } : {}) },
     include: {
       apiKeys: {
         where: { revokedAt: null },
@@ -80,10 +82,10 @@ export async function getAgent(companyUuid: string, uuid: string) {
 }
 
 // Get Agent by UUID (for validation)
-export async function getAgentByUuid(companyUuid: string, uuid: string) {
+export async function getAgentByUuid(companyUuid: string, uuid: string, ownerUuid?: string) {
   return prisma.agent.findFirst({
-    where: { uuid, companyUuid },
-    select: { uuid: true, name: true, roles: true },
+    where: { uuid, companyUuid, ...(ownerUuid ? { ownerUuid } : {}) },
+    select: { uuid: true, name: true, roles: true, ownerUuid: true },
   });
 }
 
@@ -237,6 +239,18 @@ export async function getAgentsByOwner(companyUuid: string, ownerUuid: string) {
       roles: true,
     },
     orderBy: { name: "asc" },
+  });
+}
+
+export async function listAgentSummaries(companyUuid: string) {
+  return prisma.agent.findMany({
+    where: { companyUuid },
+    select: {
+      uuid: true,
+      name: true,
+      roles: true,
+    },
+    orderBy: { createdAt: "asc" },
   });
 }
 

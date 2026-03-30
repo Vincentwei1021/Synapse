@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import {
   DragDropContext,
@@ -185,15 +186,12 @@ export function KanbanBoard({ projectUuid, initialTasks, currentUserUuid, select
 
     const runUuid = draggableId;
     const newColumnId = destination.droppableId;
-    const sourceColumnId = source.droppableId;
-
     // Find the task
     const task = tasks.find((t) => t.uuid === runUuid);
     if (!task) return;
 
     // Determine the new status based on destination column
     let newStatus: string;
-    const column = columnConfigs.find((c) => c.id === newColumnId);
     if (newColumnId === "todo") {
       // Keep the original status if moving within todo, or set to open
       newStatus = task.status === "assigned" ? "assigned" : "open";
@@ -357,7 +355,7 @@ export function KanbanBoard({ projectUuid, initialTasks, currentUserUuid, select
                               <div className="relative">
                                 {workerCounts[task.uuid] > 0 && (
                                   <div className="absolute -top-3 -right-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border-2 border-green-400 bg-white shadow-sm">
-                                    <img src="/typing-animation.gif" alt="" className="h-8 w-8" />
+                                    <Image src="/typing-animation.gif" alt="" width={32} height={32} unoptimized className="h-8 w-8" />
                                   </div>
                                 )}
                               <Card
