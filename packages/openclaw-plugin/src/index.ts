@@ -34,6 +34,7 @@ async function wakeAgent(
         name: "Synapse",
         wakeMode: "now",
         deliver: false,
+        timeoutSeconds: 3600,
       }),
     });
     if (!res.ok) {
