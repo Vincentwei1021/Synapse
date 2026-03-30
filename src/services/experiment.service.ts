@@ -6,7 +6,6 @@ import { getActorName } from "@/lib/uuid-resolver";
 import * as activityService from "@/services/activity.service";
 import { createDocument, updateDocument } from "@/services/document.service";
 import * as notificationService from "@/services/notification.service";
-import { refreshProjectSynthesis } from "@/services/project-synthesis.service";
 
 export type ExperimentStatus =
   | "draft"

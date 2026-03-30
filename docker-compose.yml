@@ -1,6 +1,6 @@
 services:
   app:
-    image: synapseaidlc/synapse-app:latest
+    image: vincentwei1021/synapse:latest
     build:
       context: .
       dockerfile: Dockerfile

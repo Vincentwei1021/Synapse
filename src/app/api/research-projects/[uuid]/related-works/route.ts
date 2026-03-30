@@ -52,7 +52,8 @@ export const POST = withErrorHandler<{ uuid: string }>(
       return errors.validationError(parsed.error.flatten().fieldErrors);
     }
 
-    let { title, authors, abstract: abs, arxivId, source } = parsed.data;
+    let { title, authors, abstract: abs, arxivId } = parsed.data;
+    const { source } = parsed.data;
     if (!title) {
       const meta = await fetchArxivMetadata(parsed.data.url);
       if (meta) {
