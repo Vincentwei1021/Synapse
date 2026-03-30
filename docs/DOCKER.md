@@ -1,16 +1,20 @@
-# Synapse Docker Image
+# Synapse Docker Deployment
 
-**`synapseaidlc/synapse-app`** — The official Docker image for [Synapse](https://github.com/Synapse-AIDLC/Synapse), an AI Agent & Human collaboration platform implementing the AI-DLC (AI-Driven Development Lifecycle) workflow.
+Image: **`synapseaidlc/synapse-app`**
 
-## Quick Start
+Architectures: `linux/amd64`, `linux/arm64`
+
+Base image: `node:22-alpine`
+
+---
+
+## Quick Start (Docker Compose)
 
 ```bash
-docker pull synapseaidlc/synapse-app:latest
+docker compose up -d
 ```
 
-### Docker Compose (Recommended)
-
-Create a `docker-compose.yml`:
+The included `docker-compose.yml` starts Synapse, PostgreSQL 16, and Redis 7:
 
 ```yaml
 services:
@@ -21,9 +25,10 @@ services:
     environment:
       - DATABASE_URL=postgresql://synapse:synapse@db:5432/synapse
       - REDIS_URL=redis://default:synapse-redis@redis:6379
-      - NEXTAUTH_SECRET=change-me-to-a-random-secret
-      - DEFAULT_USER=admin@example.com
-      - DEFAULT_PASSWORD=your-password
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-synapse-docker-secret-change-in-production}
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
+      - DEFAULT_USER=${DEFAULT_USER:-}
+      - DEFAULT_PASSWORD=${DEFAULT_PASSWORD:-}
     depends_on:
       db:
         condition: service_healthy
@@ -35,11 +40,6 @@ services:
     command: redis-server --requirepass synapse-redis
     volumes:
       - redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "synapse-redis", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
 
   db:
     image: postgres:16-alpine
@@ -49,42 +49,25 @@ services:
       POSTGRES_DB: synapse
     volumes:
       - synapse-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U synapse -d synapse"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  synapse-data:
-  redis-data:
 ```
 
-Then run:
+Open http://localhost:3000. Log in with `DEFAULT_USER`/`DEFAULT_PASSWORD` if set.
 
-```bash
-docker compose up -d
-```
+---
 
-Open http://localhost:3000 and log in with the credentials you set in `DEFAULT_USER` / `DEFAULT_PASSWORD`.
-
-> **Note for HTTP-only deployments**: The default `docker-compose.yml` sets `COOKIE_SECURE=false` to support HTTP-only deployments (e.g., internal network testing). If you're deploying with HTTPS in production, make sure to set `COOKIE_SECURE=true` to enable secure cookies.
-
-### Docker Run (Standalone)
-
-If you already have PostgreSQL and Redis running:
+## Standalone Docker Run
 
 ```bash
 docker run -d \
   -p 3000:3000 \
-  -e DATABASE_URL=postgresql://user:pass@your-db-host:5432/synapse \
-  -e REDIS_URL=redis://default:password@your-redis-host:6379 \
-  -e NEXTAUTH_SECRET=change-me-to-a-random-secret \
-  -e COOKIE_SECURE=false \
+  -e DATABASE_URL=postgresql://user:pass@your-db:5432/synapse \
+  -e NEXTAUTH_SECRET=your-random-secret \
   -e DEFAULT_USER=admin@example.com \
   -e DEFAULT_PASSWORD=your-password \
   synapseaidlc/synapse-app:latest
 ```
+
+---
 
 ## Environment Variables
 
@@ -92,28 +75,28 @@ docker run -d \
 
 | Variable | Description |
 |---|---|
-| `DATABASE_URL` | PostgreSQL connection string. Format: `postgresql://user:password@host:port/dbname`. Alternatively, set individual `DB_*` variables (see below). |
-| `NEXTAUTH_SECRET` | Secret key for signing JWT session tokens. Use a random string (e.g., `openssl rand -base64 32`). |
+| `DATABASE_URL` | PostgreSQL connection string (`postgresql://user:pass@host:port/dbname`). Or use individual `DB_*` vars below. |
+| `NEXTAUTH_SECRET` | Secret for signing JWT tokens. Generate with `openssl rand -base64 32`. |
 
-### Database (Alternative to DATABASE_URL)
-
-If `DATABASE_URL` is not set, the entrypoint builds it from these individual variables:
+### Database (alternative to DATABASE_URL)
 
 | Variable | Description |
 |---|---|
 | `DB_HOST` | PostgreSQL host |
-| `DB_PORT` | PostgreSQL port (default: `5432`) |
+| `DB_PORT` | PostgreSQL port (default: 5432) |
 | `DB_USERNAME` | PostgreSQL username |
 | `DB_PASSWORD` | PostgreSQL password |
 | `DB_NAME` | Database name |
 
-### Redis
+### Redis (optional)
+
+Redis enables cross-instance SSE event propagation. Without it, Synapse falls back to in-memory pub/sub (single-instance only).
 
 | Variable | Description |
 |---|---|
-| `REDIS_URL` | Full Redis connection string. Format: `redis://username:password@host:port`. Takes precedence over individual variables. |
-| `REDIS_HOST` | Redis host (used if `REDIS_URL` is not set) |
-| `REDIS_PORT` | Redis port (default: `6379`) |
+| `REDIS_URL` | Full connection string (`redis://username:password@host:port`). Takes precedence over individual vars. |
+| `REDIS_HOST` | Redis host |
+| `REDIS_PORT` | Redis port (default: 6379) |
 | `REDIS_USERNAME` | Redis username (default: `default`) |
 | `REDIS_PASSWORD` | Redis password |
 
@@ -121,32 +104,44 @@ If `DATABASE_URL` is not set, the entrypoint builds it from these individual var
 
 | Variable | Description |
 |---|---|
-| `DEFAULT_USER` | Email address for built-in login (bypasses OIDC). Auto-provisions the user and company on first login. |
-| `DEFAULT_PASSWORD` | Password for the default user (plain text, compared via bcrypt at runtime). |
-| `NEXTAUTH_URL` | Public-facing base URL of the app (default: `http://localhost:3000`). Set this when running behind a reverse proxy. |
-| `COOKIE_SECURE` | Set to `"false"` to disable secure cookies for HTTP-only deployments (default: `"false"` in docker-compose). Set to `"true"` when deploying with HTTPS in production. |
+| `DEFAULT_USER` | Email for built-in login (bypasses OIDC). Auto-provisions user and company on first login. |
+| `DEFAULT_PASSWORD` | Password for default user. |
+| `NEXTAUTH_URL` | Public base URL (default: `http://localhost:3000`). Set when behind a reverse proxy. |
+| `COOKIE_SECURE` | `"false"` for HTTP-only deployments, `"true"` for HTTPS (default: `"false"` in docker-compose). |
 
 ### Super Admin
 
 | Variable | Description |
 |---|---|
-| `SUPER_ADMIN_EMAIL` | Email for the super admin account (has access to `/admin` panel). |
-| `SUPER_ADMIN_PASSWORD_HASH` | Bcrypt hash of the super admin password. Generate with: `node -e "require('bcrypt').hash('password',10).then(console.log)"` |
+| `SUPER_ADMIN_EMAIL` | Email for the super admin account (access to `/admin` panel). |
+| `SUPER_ADMIN_PASSWORD_HASH` | Bcrypt hash. Generate: `node -e "require('bcrypt').hash('password',10).then(console.log)"` |
 
-## Image Details
-
-- **Base image**: `node:22-alpine`
-- **Exposed port**: `3000`
-- **Entrypoint**: Runs Prisma migrations automatically on startup (retries for up to 5 minutes while waiting for the database)
-- **Build**: Next.js standalone output for minimal image size
-- **Architectures**: `linux/amd64`, `linux/arm64`
+---
 
 ## Startup Behavior
 
-1. The entrypoint script runs `prisma migrate deploy` to apply any pending database migrations
-2. If the database is not ready, it retries every 10 seconds (up to 30 attempts)
-3. Once migrations succeed, the Next.js server starts on port 3000
+1. The entrypoint runs `prisma migrate deploy` to apply pending database migrations
+2. If the database is not ready, retries every 10 seconds (up to 30 attempts / 5 minutes)
+3. Next.js server starts on port 3000
 
-## Source Code
+---
 
-https://github.com/Synapse-AIDLC/Synapse
+## Database Setup
+
+For fresh deployments, migrations run automatically on startup. For development with the source repo:
+
+```bash
+pnpm docker:db        # Start postgres + redis only
+pnpm db:migrate       # Apply migrations
+pnpm dev              # Start dev server
+```
+
+---
+
+## Production Notes
+
+- Set `COOKIE_SECURE=true` when deploying with HTTPS
+- Set a strong `NEXTAUTH_SECRET` (not the default)
+- OIDC configuration is per-company, managed through the super admin panel at `/admin`
+- Redis is recommended for multi-instance deployments (SSE event propagation)
+- GPU telemetry is opt-in via `SYNAPSE_GPU_TELEMETRY_AUTOSTART=true`
