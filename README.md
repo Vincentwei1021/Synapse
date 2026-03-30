@@ -142,7 +142,7 @@ export SYNAPSE_API_KEY="syn_your_api_key"
 Install from Plugin Marketplace:
 ```bash
 claude
-/plugin marketplace add Synapse-AIDLC/synapse
+/plugin marketplace add Vincentwei1021/Synapse
 /plugin install synapse@synapse-plugins
 ```
 

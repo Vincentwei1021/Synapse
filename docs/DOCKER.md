@@ -1,6 +1,6 @@
 # Synapse Docker Deployment
 
-Image: **`synapseaidlc/synapse-app`**
+Image: **`vincentwei1021/synapse`**
 
 Architectures: `linux/amd64`, `linux/arm64`
 
@@ -19,7 +19,7 @@ The included `docker-compose.yml` starts Synapse, PostgreSQL 16, and Redis 7:
 ```yaml
 services:
   app:
-    image: synapseaidlc/synapse-app:latest
+    image: vincentwei1021/synapse:latest
     ports:
       - "3000:3000"
     environment:
@@ -64,7 +64,7 @@ docker run -d \
   -e NEXTAUTH_SECRET=your-random-secret \
   -e DEFAULT_USER=admin@example.com \
   -e DEFAULT_PASSWORD=your-password \
-  synapseaidlc/synapse-app:latest
+  vincentwei1021/synapse:latest
 ```
 
 ---
