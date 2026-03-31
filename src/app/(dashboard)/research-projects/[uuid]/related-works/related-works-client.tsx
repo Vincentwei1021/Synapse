@@ -471,33 +471,6 @@ export function RelatedWorksClient({
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="paper-title">{t("titleLabel")}</Label>
-              <Input
-                id="paper-title"
-                value={paperTitle}
-                onChange={(e) => setPaperTitle(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="paper-authors">{t("authorsLabel")}</Label>
-              <Input
-                id="paper-authors"
-                value={paperAuthors}
-                onChange={(e) => setPaperAuthors(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="paper-abstract">{t("abstractLabel")}</Label>
-              <Textarea
-                id="paper-abstract"
-                rows={4}
-                value={paperAbstract}
-                onChange={(e) => setPaperAbstract(e.target.value)}
-              />
-            </div>
           </div>
           {addPaperError && (
             <p className="text-sm text-destructive">{addPaperError}</p>
