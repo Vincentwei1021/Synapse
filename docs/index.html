@@ -1,1195 +1,1745 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Synapse - The Agent Harness for AI-Human Collaboration</title>
-  <meta name="description" content="Synapse is an agent harness — the infrastructure that wraps around LLM agents to manage session lifecycle, task state, sub-agent orchestration, and observability. AI proposes, humans verify." />
-  <link rel="icon" type="image/png" href="images/synapse-icon.png" />
-  <meta property="og:title" content="Synapse - The Agent Harness for AI-Human Collaboration" />
-  <meta property="og:description" content="The agent harness for AI-human collaboration. AI proposes, humans verify." />
-  <meta property="og:image" content="images/synapse-icon.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synapse — Research Orchestration for Humans & AI Agents</title>
+<meta name="description" content="Synapse is a research orchestration platform where human researchers and AI agents collaborate on the full research lifecycle — from literature review to experiment execution and report generation.">
+<meta property="og:title" content="Synapse — Research Orchestration for Humans & AI Agents">
+<meta property="og:description" content="Orchestrate the full AI research lifecycle with AI agents as your research partners.">
+<meta property="og:image" content="https://raw.githubusercontent.com/Vincentwei1021/Synapse/main/public/synapse-icon.png">
+<meta property="og:type" content="website">
+<link rel="icon" href="https://raw.githubusercontent.com/Vincentwei1021/Synapse/main/public/synapse-icon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-    :root {
-      --primary: #C67A52;
-      --primary-dark: #A8613D;
-      --primary-light: #E8C4AE;
-      --bg: #FAF8F4;
-      --bg-card: #FFFFFF;
-      --text-primary: #2C2C2C;
-      --text-secondary: #6B6B6B;
-      --text-tertiary: #9A9A9A;
-      --border: #E5E0D8;
-      --green: #5A9E6F;
-      --orange: #E65100;
-      --purple: #7B1FA2;
-      --teal: #00796B;
-      --blue: #1976D2;
-      --radius: 16px;
-      --radius-sm: 10px;
-    }
+:root {
+  --bg: #FAF9F7;
+  --bg-elevated: #ffffff;
+  --bg-dark: #1e1e2e;
+  --bg-dark-elevated: #282840;
+  --text-primary: #1a1a1a;
+  --text-secondary: #5a5a5a;
+  --text-tertiary: #8a8a8a;
+  --accent: #C67A52;
+  --accent-dark: #A8613D;
+  --accent-light: #e8a882;
+  --accent-bg: #fdf3ed;
+  --teal: #2A9D8F;
+  --teal-dark: #228176;
+  --teal-bg: #e8f6f4;
+  --violet: #6b5ce7;
+  --violet-bg: #f0eef8;
+  --rose: #e76f6f;
+  --rose-bg: #fdf0f0;
+  --blue: #4A90D9;
+  --blue-bg: #eaf2fb;
+  --border: #e8e4df;
+  --border-light: #f0ece7;
+  --code-bg: #1e1e2e;
+  --code-text: #cdd6f4;
+  --code-green: #a6e3a1;
+  --code-blue: #89b4fa;
+  --code-orange: #fab387;
+  --code-comment: #6c7086;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-lg: 24px;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+  --shadow-xl: 0 24px 64px rgba(0,0,0,0.1), 0 8px 20px rgba(0,0,0,0.06);
+}
 
-    html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; }
 
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--bg);
-      color: var(--text-primary);
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
-    }
+body {
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  background: var(--bg);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
 
-    /* ---- NAV ---- */
-    nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      background: rgba(250, 248, 244, 0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-    }
-    .nav-inner {
-      max-width: 1200px; margin: 0 auto;
-      padding: 0 32px;
-      height: 64px;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .logo {
-      font-size: 22px; font-weight: 800;
-      color: var(--primary);
-      letter-spacing: -0.5px;
-      text-decoration: none;
-      display: flex; align-items: center; gap: 10px;
-    }
-    .logo img { width: 32px; height: 32px; }
-    .logo span { color: var(--text-primary); }
-    .nav-links { display: flex; gap: 32px; align-items: center; }
-    .nav-links a {
-      font-size: 14px; font-weight: 500;
-      color: var(--text-secondary);
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-    .nav-links a:hover { color: var(--text-primary); }
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      padding: 10px 24px;
-      font-size: 14px; font-weight: 600;
-      border-radius: var(--radius-sm);
-      text-decoration: none;
-      transition: all 0.2s;
-      cursor: pointer; border: none;
-    }
-    .btn-primary {
-      background: var(--primary); color: #fff;
-    }
-    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
-    .btn-outline {
-      background: transparent;
-      color: var(--text-primary);
-      border: 1.5px solid var(--border);
-    }
-    .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+a { color: inherit; }
 
-    /* ---- HERO ---- */
-    .hero {
-      padding: 160px 32px 100px;
-      text-align: center;
-      max-width: 900px; margin: 0 auto;
-    }
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 6px 16px;
-      background: rgba(198, 122, 82, 0.1);
-      border: 1px solid rgba(198, 122, 82, 0.2);
-      border-radius: 100px;
-      font-size: 13px; font-weight: 600;
-      color: var(--primary);
-      margin-bottom: 28px;
-    }
-    .hero-badge::before {
-      content: '';
-      width: 6px; height: 6px;
-      background: var(--primary);
-      border-radius: 50%;
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-    .hero h1 {
-      font-size: clamp(40px, 6vw, 64px);
-      font-weight: 800;
-      line-height: 1.1;
-      letter-spacing: -1.5px;
-      margin-bottom: 24px;
-    }
-    .hero h1 .highlight {
-      background: linear-gradient(135deg, var(--primary), var(--orange));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .hero p {
-      font-size: 18px;
-      color: var(--text-secondary);
-      max-width: 600px; margin: 0 auto 40px;
-      line-height: 1.7;
-    }
-    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+/* ─── Layout ─── */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 48px);
+}
 
-    /* ---- PIPELINE VISUAL ---- */
-    .pipeline-section {
-      padding: 40px 32px 80px;
-      max-width: 960px; margin: 0 auto;
-    }
-    .pipeline {
-      display: flex; align-items: center; justify-content: center;
-      gap: 0; flex-wrap: wrap;
-    }
-    .pipeline-step {
-      display: flex; align-items: center; gap: 0;
-    }
-    .pipeline-node {
-      padding: 12px 22px;
-      border-radius: var(--radius-sm);
-      font-size: 14px; font-weight: 600;
-      white-space: nowrap;
-      border: 1.5px solid;
-    }
-    .pipeline-arrow {
-      width: 36px; height: 2px;
-      position: relative;
-      margin: 0 -1px;
-    }
-    .pipeline-arrow::after {
-      content: '';
-      position: absolute; right: 0; top: 50%;
-      transform: translateY(-50%);
-      border: 5px solid transparent;
-    }
-    .p-idea    { background: #FFF3E0; border-color: #FFB74D; color: #E65100; }
-    .p-proposal { background: #F3E5F5; border-color: #CE93D8; color: #7B1FA2; }
-    .p-task    { background: #E3F2FD; border-color: #90CAF9; color: #1565C0; }
-    .p-execute { background: #E8F5E9; border-color: #A5D6A7; color: #2E7D32; }
-    .p-verify  { background: #FFF8E1; border-color: #FFD54F; color: #F57F17; }
-    .p-done    { background: #E0F2F1; border-color: #80CBC4; color: #00695C; }
+.container-narrow {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 48px);
+}
 
-    .a-idea    { background: #FFB74D; }
-    .a-idea::after    { border-left-color: #FFB74D; }
-    .a-proposal { background: #CE93D8; }
-    .a-proposal::after { border-left-color: #CE93D8; }
-    .a-task    { background: #90CAF9; }
-    .a-task::after    { border-left-color: #90CAF9; }
-    .a-execute { background: #A5D6A7; }
-    .a-execute::after { border-left-color: #A5D6A7; }
-    .a-verify  { background: #FFD54F; }
-    .a-verify::after  { border-left-color: #FFD54F; }
+/* ─── Fixed Nav ─── */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: rgba(250, 249, 247, 0.82);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--border);
+  transition: box-shadow 0.3s ease;
+}
 
-    /* ---- SECTION COMMON ---- */
-    .section {
-      padding: 100px 32px;
-      max-width: 1200px; margin: 0 auto;
-    }
-    .section-header {
-      text-align: center;
-      margin-bottom: 64px;
-    }
-    .section-label {
-      font-size: 13px; font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      color: var(--primary);
-      margin-bottom: 12px;
-    }
-    .section-header h2 {
-      font-size: clamp(28px, 4vw, 42px);
-      font-weight: 800;
-      letter-spacing: -1px;
-      margin-bottom: 16px;
-    }
-    .section-header p {
-      font-size: 17px;
-      color: var(--text-secondary);
-      max-width: 560px; margin: 0 auto;
-    }
+nav.scrolled {
+  box-shadow: var(--shadow-sm);
+}
 
-    /* ---- REVERSED CONVERSATION ---- */
-    .reversed {
-      background: var(--text-primary);
-      border-radius: 24px;
-      padding: 80px 48px;
-      margin: 0 32px;
-      max-width: 1200px;
-      margin-left: auto; margin-right: auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 64px;
-      align-items: center;
-    }
-    .reversed-text h2 {
-      font-size: 36px; font-weight: 800;
-      color: #fff;
-      letter-spacing: -0.5px;
-      margin-bottom: 20px;
-    }
-    .reversed-text p {
-      font-size: 16px;
-      color: rgba(255,255,255,0.65);
-      line-height: 1.7;
-      margin-bottom: 16px;
-    }
-    .reversed-visual {
-      display: flex; flex-direction: column; gap: 16px;
-    }
-    .conv-row {
-      display: flex; align-items: flex-start; gap: 12px;
-    }
-    .conv-row.ai { justify-content: flex-start; }
-    .conv-row.human { justify-content: flex-end; }
-    .conv-avatar {
-      width: 36px; height: 36px;
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; font-weight: 700;
-      flex-shrink: 0;
-    }
-    .conv-avatar.ai-av { background: var(--primary); color: #fff; }
-    .conv-avatar.hu-av { background: var(--teal); color: #fff; }
-    .conv-bubble {
-      padding: 14px 18px;
-      border-radius: 14px;
-      font-size: 14px;
-      line-height: 1.5;
-      max-width: 280px;
-    }
-    .conv-row.ai .conv-bubble {
-      background: rgba(255,255,255,0.08);
-      color: rgba(255,255,255,0.85);
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-    .conv-row.human .conv-bubble {
-      background: var(--teal);
-      color: #fff;
-    }
+.nav-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 48px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
 
-    /* ---- FEATURES GRID ---- */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-    }
-    .feature-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 32px;
-      transition: all 0.25s;
-    }
-    .feature-card:hover {
-      border-color: var(--primary-light);
-      transform: translateY(-4px);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.06);
-    }
-    .feature-icon {
-      width: 48px; height: 48px;
-      border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 22px;
-      margin-bottom: 20px;
-    }
-    .fi-context  { background: #FFF3E0; }
-    .fi-agents   { background: #E3F2FD; }
-    .fi-workflow  { background: #F3E5F5; }
-    .fi-session  { background: #E8F5E9; }
-    .fi-audit    { background: #FFF8E1; }
-    .fi-mcp      { background: #E0F2F1; }
-    .feature-card h3 {
-      font-size: 17px; font-weight: 700;
-      margin-bottom: 10px;
-    }
-    .feature-card p {
-      font-size: 14px;
-      color: var(--text-secondary);
-      line-height: 1.65;
-    }
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text-primary);
+}
 
-    /* ---- AGENTS ---- */
-    .agents-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-    }
-    .agent-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 36px 32px;
-      text-align: center;
-      transition: all 0.25s;
-    }
-    .agent-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.06);
-    }
-    .agent-avatar {
-      width: 72px; height: 72px;
-      border-radius: 20px;
-      margin: 0 auto 20px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 32px;
-    }
-    .agent-pm  { background: linear-gradient(135deg, #F3E5F5, #E1BEE7); }
-    .agent-dev { background: linear-gradient(135deg, #E3F2FD, #BBDEFB); }
-    .agent-adm { background: linear-gradient(135deg, #FFF3E0, #FFE0B2); }
-    .agent-card h3 {
-      font-size: 18px; font-weight: 700;
-      margin-bottom: 8px;
-    }
-    .agent-role {
-      font-size: 13px; font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 14px;
-    }
-    .role-pm  { color: var(--purple); }
-    .role-dev { color: var(--blue); }
-    .role-adm { color: var(--orange); }
-    .agent-card p {
-      font-size: 14px;
-      color: var(--text-secondary);
-      line-height: 1.6;
-    }
-    .agent-tasks {
-      margin-top: 20px;
-      display: flex; flex-wrap: wrap; gap: 6px;
-      justify-content: center;
-    }
-    .agent-tag {
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 12px; font-weight: 500;
-      background: var(--bg);
-      color: var(--text-secondary);
-      border: 1px solid var(--border);
-    }
+.nav-logo img { width: 32px; height: 32px; border-radius: 6px; }
 
-    /* ---- WORKFLOW STEPS ---- */
-    .workflow-steps {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 24px;
-      counter-reset: step;
-    }
-    .workflow-step {
-      position: relative;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 32px 24px;
-      counter-increment: step;
-    }
-    .workflow-step::before {
-      content: counter(step);
-      display: flex; align-items: center; justify-content: center;
-      width: 32px; height: 32px;
-      border-radius: 8px;
-      background: var(--primary);
-      color: #fff;
-      font-size: 14px; font-weight: 700;
-      margin-bottom: 16px;
-    }
-    .workflow-step h3 {
-      font-size: 16px; font-weight: 700;
-      margin-bottom: 8px;
-    }
-    .workflow-step p {
-      font-size: 14px;
-      color: var(--text-secondary);
-      line-height: 1.6;
-    }
+.nav-logo span {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: -0.03em;
+}
 
-    /* ---- STATS ---- */
-    .stats-bar {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 24px;
-      padding: 0 32px 100px;
-      max-width: 1200px; margin: 0 auto;
-    }
-    .stat-card {
-      text-align: center;
-      padding: 32px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-    }
-    .stat-num {
-      font-size: 42px; font-weight: 800;
-      color: var(--primary);
-      letter-spacing: -1px;
-    }
-    .stat-label {
-      font-size: 14px;
-      color: var(--text-secondary);
-      margin-top: 4px;
-    }
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+}
 
-    /* ---- CTA ---- */
-    .cta {
-      text-align: center;
-      padding: 100px 32px;
-      max-width: 700px; margin: 0 auto;
-    }
-    .cta h2 {
-      font-size: clamp(28px, 4vw, 40px);
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      margin-bottom: 16px;
-    }
-    .cta p {
-      font-size: 17px;
-      color: var(--text-secondary);
-      margin-bottom: 36px;
-    }
-    .cta-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.nav-links a {
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 8px;
+  transition: color 0.2s, background 0.2s;
+}
 
-    /* ---- INTEGRATION ---- */
-    .integration {
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-      border-radius: 24px;
-      padding: 80px 48px;
-      margin: 100px 32px 0;
-      max-width: 1200px;
-      margin-left: auto; margin-right: auto;
-    }
-    .integration .section-header { margin-bottom: 48px; }
-    .integration .section-label { color: #7dd3fc; }
-    .integration .section-header h2 { color: #fff; }
-    .integration .section-header p { color: rgba(255,255,255,0.6); }
-    .integration-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-    }
-    .int-card {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: var(--radius);
-      padding: 32px;
-      transition: all 0.25s;
-    }
-    .int-card:hover {
-      background: rgba(255,255,255,0.1);
-      transform: translateY(-2px);
-    }
-    .int-icon {
-      width: 48px; height: 48px;
-      border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 20px;
-      font-size: 22px;
-    }
-    .int-icon-plugin { background: rgba(125, 211, 252, 0.15); }
-    .int-icon-teams  { background: rgba(167, 139, 250, 0.15); }
-    .int-card h3 {
-      font-size: 18px; font-weight: 700;
-      color: #fff;
-      margin-bottom: 10px;
-    }
-    .int-card p {
-      font-size: 14px;
-      color: rgba(255,255,255,0.6);
-      line-height: 1.65;
-      margin-bottom: 16px;
-    }
-    .int-hooks {
-      display: flex; flex-wrap: wrap; gap: 8px;
-    }
-    .int-hook {
-      padding: 5px 12px;
-      border-radius: 6px;
-      font-size: 12px; font-weight: 600;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      background: rgba(255,255,255,0.08);
-      color: rgba(255,255,255,0.75);
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-    .int-code {
-      background: rgba(0,0,0,0.3);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 10px;
-      padding: 16px 20px;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 13px;
-      color: rgba(255,255,255,0.7);
-      line-height: 1.7;
-      overflow-x: auto;
-      margin-top: 4px;
-    }
-    .int-code .cmd { color: #7dd3fc; }
-    .int-code .flag { color: #a78bfa; }
-    .int-code .comment { color: rgba(255,255,255,0.3); }
+.nav-links a:hover {
+  color: var(--text-primary);
+  background: rgba(0,0,0,0.03);
+}
 
-    /* ---- SHOWCASE ---- */
-    .showcase-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 32px;
-    }
-    .showcase-item {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-      transition: all 0.25s;
-    }
-    .showcase-item:hover {
-      border-color: var(--primary-light);
-      transform: translateY(-4px);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.06);
-    }
-    .showcase-item.wide {
-      grid-column: 1 / -1;
-    }
-    .showcase-item img {
-      width: 100%;
-      display: block;
-    }
-    .showcase-caption {
-      padding: 20px 24px;
-    }
-    .showcase-caption h3 {
-      font-size: 16px; font-weight: 700;
-      margin-bottom: 6px;
-    }
-    .showcase-caption p {
-      font-size: 14px;
-      color: var(--text-secondary);
-      line-height: 1.6;
-    }
+.nav-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  background: var(--text-primary);
+  color: var(--bg) !important;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-decoration: none;
+}
 
-    /* ---- FOOTER ---- */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 40px 32px;
-      max-width: 1200px; margin: 0 auto;
-      display: flex; justify-content: space-between; align-items: center;
-      flex-wrap: wrap; gap: 16px;
-    }
-    .footer-left {
-      font-size: 14px;
-      color: var(--text-tertiary);
-    }
-    .footer-links {
-      display: flex; gap: 24px;
-    }
-    .footer-links a {
-      font-size: 14px;
-      color: var(--text-secondary);
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-    .footer-links a:hover { color: var(--primary); }
+.nav-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  background: #2a2a2a;
+}
 
-    /* ---- QUICKSTART ---- */
-    .quickstart {
-      max-width: 800px; margin: 0 auto;
-      padding: 0 32px 80px;
-    }
-    .quickstart-card {
-      background: var(--text-primary);
-      border-radius: 20px;
-      padding: 48px;
-      position: relative;
-      overflow: hidden;
-    }
-    .quickstart-card::before {
-      content: '';
-      position: absolute; top: 0; right: 0;
-      width: 200px; height: 200px;
-      background: radial-gradient(circle, rgba(198,122,82,0.15), transparent 70%);
-    }
-    .quickstart-header {
-      display: flex; align-items: center; gap: 12px;
-      margin-bottom: 8px;
-    }
-    .quickstart-badge {
-      padding: 4px 12px;
-      border-radius: 6px;
-      font-size: 12px; font-weight: 700;
-      background: rgba(198,122,82,0.2);
-      color: var(--primary-light);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .quickstart-card h2 {
-      font-size: 28px; font-weight: 800;
-      color: #fff;
-      margin-bottom: 8px;
-    }
-    .quickstart-card > p {
-      font-size: 15px;
-      color: rgba(255,255,255,0.5);
-      margin-bottom: 28px;
-    }
-    .quickstart-card > p a {
-      color: var(--primary-light);
-      text-decoration: none;
-    }
-    .quickstart-card > p a:hover { text-decoration: underline; }
-    .qs-steps {
-      display: flex; flex-direction: column; gap: 20px;
-    }
-    .qs-step {
-      display: flex; gap: 16px; align-items: flex-start;
-    }
-    .qs-num {
-      width: 28px; height: 28px;
-      border-radius: 8px;
-      background: var(--primary);
-      color: #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 700;
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-    .qs-content { flex: 1; }
-    .qs-content p {
-      font-size: 14px;
-      color: rgba(255,255,255,0.6);
-      margin-bottom: 8px;
-    }
-    .qs-code {
-      background: rgba(0,0,0,0.35);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 10px;
-      padding: 14px 18px;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 13px;
-      color: rgba(255,255,255,0.8);
-      line-height: 1.7;
-      overflow-x: auto;
-      position: relative;
-      white-space: pre;
-    }
-    .qs-code .qs-comment { color: rgba(255,255,255,0.3); }
-    .qs-code .qs-cmd { color: #7dd3fc; }
-    .qs-code .qs-flag { color: #a78bfa; }
-    .qs-code .qs-env { color: #86efac; }
-    .qs-code-wrap { position: relative; }
-    .qs-copy {
-      position: absolute; top: 10px; right: 10px;
-      width: 32px; height: 32px;
-      border-radius: 6px;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.12);
-      color: rgba(255,255,255,0.5);
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.2s;
-      z-index: 1;
-    }
-    .qs-copy:hover { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.8); }
-    .qs-copy.copied { background: var(--green); border-color: var(--green); color: #fff; }
-    .qs-divider {
-      border: none;
-      border-top: 1px solid rgba(255,255,255,0.08);
-      margin: 8px 0;
-    }
-    .qs-footer {
-      margin-top: 28px;
-      display: flex; gap: 12px; flex-wrap: wrap;
-    }
-    .qs-link {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 8px 18px;
-      border-radius: 8px;
-      font-size: 13px; font-weight: 600;
-      text-decoration: none;
-      transition: all 0.2s;
-    }
-    .qs-link-primary {
-      background: var(--primary); color: #fff;
-    }
-    .qs-link-primary:hover { background: var(--primary-dark); }
-    .qs-link-outline {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.15);
-      color: rgba(255,255,255,0.7);
-    }
-    .qs-link-outline:hover { border-color: var(--primary); color: var(--primary-light); }
-    .qs-arch {
-      display: flex; gap: 6px; margin-top: 12px;
-    }
-    .qs-arch-tag {
-      padding: 3px 10px;
-      border-radius: 5px;
-      font-size: 11px; font-weight: 600;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      background: rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.45);
-      border: 1px solid rgba(255,255,255,0.08);
-    }
+.nav-cta svg { flex-shrink: 0; }
 
-    /* ---- RESPONSIVE ---- */
-    @media (max-width: 900px) {
-      .features-grid, .agents-grid { grid-template-columns: 1fr 1fr; }
-      .workflow-steps { grid-template-columns: 1fr 1fr; }
-      .stats-bar { grid-template-columns: 1fr 1fr; }
-      .reversed { grid-template-columns: 1fr; padding: 48px 28px; margin: 0 16px; }
-      .pipeline { gap: 4px; }
-      .pipeline-arrow { width: 20px; }
-    }
-    @media (max-width: 900px) {
-      .integration { padding: 48px 28px; margin: 60px 16px 0; }
-      .integration-grid { grid-template-columns: 1fr; }
-      .showcase-grid { grid-template-columns: 1fr; }
-      .showcase-item.wide { grid-column: auto; }
-    }
-    @media (max-width: 600px) {
-      .features-grid, .agents-grid, .workflow-steps, .stats-bar, .showcase-grid { grid-template-columns: 1fr; }
-      .nav-links a:not(.btn) { display: none; }
-      .hero { padding: 120px 20px 60px; }
-      .section { padding: 60px 20px; }
-      .reversed { padding: 36px 20px; }
-      .pipeline-step { margin-bottom: 4px; }
-    }
-  </style>
+/* Mobile menu */
+.nav-mobile-btn {
+  display: none;
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+/* ─── Buttons ─── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  background: var(--text-primary);
+  color: var(--bg);
+  border-radius: 12px;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  transition: all 0.25s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: var(--font-body);
+  transition: all 0.25s ease;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  border-color: var(--text-secondary);
+  background: var(--bg-elevated);
+  transform: translateY(-1px);
+}
+
+.btn-accent {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 12px;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  transition: all 0.25s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-accent:hover {
+  background: var(--accent-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(198,122,82,0.25);
+}
+
+/* ─── Section base ─── */
+section { padding: clamp(72px, 12vh, 120px) 0; }
+
+.section-label {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(30px, 4.5vw, 48px);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  margin-bottom: 16px;
+}
+
+.section-desc {
+  font-size: 17px;
+  color: var(--text-secondary);
+  max-width: 580px;
+  line-height: 1.7;
+}
+
+/* ─── HERO ─── */
+.hero {
+  padding: clamp(130px, 18vh, 200px) 0 clamp(60px, 8vh, 100px);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1000px;
+  height: 1000px;
+  background: radial-gradient(ellipse at center, rgba(198,122,82,0.07) 0%, rgba(42,157,143,0.03) 40%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  top: 60%;
+  right: -200px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(42,157,143,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 18px;
+  background: var(--accent-bg);
+  border: 1px solid rgba(198,122,82,0.18);
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  margin-bottom: 36px;
+}
+
+.hero-badge .dot {
+  width: 7px;
+  height: 7px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: pulse 2s ease infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(38px, 6vw, 72px);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.035em;
+  max-width: 820px;
+  margin: 0 auto 28px;
+}
+
+.hero h1 .highlight {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--teal) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-subtitle {
+  font-size: clamp(16px, 2vw, 20px);
+  color: var(--text-secondary);
+  max-width: 620px;
+  margin: 0 auto 44px;
+  line-height: 1.7;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 48px;
+}
+
+/* ─── Pipeline Visual ─── */
+.pipeline {
+  max-width: 860px;
+  margin: 0 auto 48px;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  position: relative;
+}
+
+.pipeline-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  padding: 0 8px;
+}
+
+.pipeline-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 2;
+  box-shadow: var(--shadow-sm);
+}
+
+.pipeline-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 28px;
+  left: calc(50% + 32px);
+  right: calc(-50% + 32px);
+  height: 2px;
+  background: var(--border);
+  z-index: 1;
+}
+
+.pipeline-label {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+}
+
+.pipeline-role {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.role-human { background: var(--teal-bg); color: var(--teal); }
+.role-agent { background: var(--accent-bg); color: var(--accent); }
+.role-both { background: var(--violet-bg); color: var(--violet); }
+
+/* ─── Install Block ─── */
+.install-block {
+  max-width: 540px;
+  margin: 0 auto;
+  background: var(--code-bg);
+  border-radius: 12px;
+  padding: 16px 24px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--code-text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: var(--shadow-lg);
+}
+
+.install-block code { opacity: 0.92; white-space: nowrap; }
+.install-block .prefix { color: var(--teal); margin-right: 8px; }
+
+.copy-btn {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.copy-btn:hover { color: var(--code-text); background: rgba(255,255,255,0.08); }
+.copy-btn.copied { color: var(--code-green); }
+
+/* ─── HOW IT WORKS — Reversed Conversation ─── */
+.how-it-works {
+  background: var(--bg-dark);
+  color: #fff;
+  padding: clamp(80px, 12vh, 140px) 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.how-it-works::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  right: -100px;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(198,122,82,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.how-it-works .section-label { color: var(--accent-light); }
+
+.how-it-works .section-title {
+  color: #fff;
+  max-width: 500px;
+}
+
+.how-it-works .section-desc {
+  color: rgba(255,255,255,0.6);
+  max-width: 480px;
+}
+
+.how-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  margin-top: 56px;
+  align-items: start;
+}
+
+.how-column h3 {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.how-column h3 .tag {
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.tag-old { background: rgba(231,111,111,0.15); color: #e76f6f; }
+.tag-new { background: rgba(42,157,143,0.15); color: #5fd4c4; }
+
+.chat-bubbles {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.chat-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.chat-row.right {
+  flex-direction: row-reverse;
+}
+
+.chat-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.avatar-human { background: var(--teal); color: #fff; }
+.avatar-agent { background: var(--accent); color: #fff; }
+
+.chat-bubble {
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  max-width: 280px;
+}
+
+.bubble-human {
+  background: rgba(42,157,143,0.12);
+  color: rgba(255,255,255,0.9);
+  border-bottom-left-radius: 4px;
+}
+
+.bubble-agent {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.85);
+  border-bottom-right-radius: 4px;
+}
+
+.bubble-dim {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.45);
+}
+
+.how-divider {
+  width: 1px;
+  background: rgba(255,255,255,0.08);
+  align-self: stretch;
+}
+
+.how-highlight {
+  margin-top: 28px;
+  padding: 16px 20px;
+  background: rgba(42,157,143,0.08);
+  border: 1px solid rgba(42,157,143,0.15);
+  border-radius: 12px;
+  font-size: 14px;
+  color: rgba(255,255,255,0.75);
+  line-height: 1.6;
+}
+
+.how-highlight strong {
+  color: #5fd4c4;
+  font-weight: 600;
+}
+
+/* ─── Features Grid ─── */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 56px;
+}
+
+.feature-card {
+  padding: 36px 32px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.feature-card:hover {
+  border-color: transparent;
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.feature-card:hover::before { opacity: 1; }
+
+.feature-card:nth-child(1)::before { background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
+.feature-card:nth-child(2)::before { background: linear-gradient(90deg, var(--teal), #5fd4c4); }
+.feature-card:nth-child(3)::before { background: linear-gradient(90deg, var(--violet), #9b8ef0); }
+.feature-card:nth-child(4)::before { background: linear-gradient(90deg, var(--blue), #7ab3e8); }
+.feature-card:nth-child(5)::before { background: linear-gradient(90deg, var(--rose), #f09090); }
+.feature-card:nth-child(6)::before { background: linear-gradient(90deg, var(--accent), var(--teal)); }
+
+.feature-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  margin-bottom: 22px;
+}
+
+.feature-card h3 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  letter-spacing: -0.015em;
+}
+
+.feature-card p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+/* Feature card — status badges mockup */
+.status-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.status-badge {
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* ─── Agent Permissions ─── */
+.permissions-section {
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.perm-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-top: 48px;
+}
+
+.perm-card {
+  padding: 32px 24px 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  background: var(--bg);
+  position: relative;
+}
+
+.perm-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.perm-emoji {
+  font-size: 36px;
+  margin-bottom: 18px;
+  display: block;
+}
+
+.perm-card h3 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+
+.perm-card p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.perm-code {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 3px 10px;
+  background: var(--code-bg);
+  color: var(--code-text);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.perm-note {
+  text-align: center;
+  margin-top: 28px;
+  font-size: 14px;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* ─── Workflow Timeline ─── */
+.workflow-timeline {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  margin-top: 64px;
+  position: relative;
+}
+
+.workflow-timeline::before {
+  content: '';
+  position: absolute;
+  top: 28px;
+  left: 48px;
+  right: 48px;
+  height: 2px;
+  background: var(--border);
+  z-index: 0;
+}
+
+.timeline-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  padding: 0 12px;
+}
+
+.timeline-num {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 18px;
+  position: relative;
+  z-index: 2;
+  box-shadow: var(--shadow-sm);
+}
+
+.timeline-step:nth-child(1) .timeline-num { background: var(--teal-bg); color: var(--teal); border: 2px solid var(--teal); }
+.timeline-step:nth-child(2) .timeline-num { background: var(--accent-bg); color: var(--accent); border: 2px solid var(--accent); }
+.timeline-step:nth-child(3) .timeline-num { background: var(--violet-bg); color: var(--violet); border: 2px solid var(--violet); }
+.timeline-step:nth-child(4) .timeline-num { background: var(--accent-bg); color: var(--accent); border: 2px solid var(--accent); }
+.timeline-step:nth-child(5) .timeline-num { background: var(--accent-bg); color: var(--accent); border: 2px solid var(--accent); }
+
+.timeline-step h3 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+
+.timeline-step p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  max-width: 160px;
+}
+
+.timeline-step .pipeline-role {
+  margin-top: 10px;
+}
+
+/* ─── Stats Bar ─── */
+.stats-bar {
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
+  padding: 48px 0;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 32px;
+  text-align: center;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-num {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4vw, 44px);
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* ─── Quick Start ─── */
+.quickstart {
+  position: relative;
+  overflow: hidden;
+}
+
+.quickstart-card {
+  background: var(--bg-dark);
+  border-radius: var(--radius-lg);
+  padding: clamp(40px, 6vw, 72px);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+}
+
+.quickstart-card::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  right: -100px;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(198,122,82,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.quickstart-card::after {
+  content: '';
+  position: absolute;
+  bottom: -80px;
+  left: -80px;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(42,157,143,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.quickstart-card .section-label { color: var(--accent-light); }
+.quickstart-card .section-title { color: #fff; margin-bottom: 8px; }
+.quickstart-card .section-desc { color: rgba(255,255,255,0.55); margin-bottom: 48px; }
+
+.qs-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  position: relative;
+  z-index: 1;
+}
+
+.qs-step {
+  display: flex;
+  flex-direction: column;
+}
+
+.qs-step-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.qs-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.qs-step-header span {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.qs-code {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-sm);
+  padding: 16px 18px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--code-text);
+  overflow-x: auto;
+  position: relative;
+  flex: 1;
+}
+
+.qs-code .ln-comment { color: var(--code-comment); }
+.qs-code .ln-cmd { color: var(--code-green); }
+.qs-code .ln-flag { color: var(--code-blue); }
+.qs-code .ln-str { color: var(--code-orange); }
+.qs-code .ln-prefix { color: var(--teal); user-select: none; }
+
+.qs-code .copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.qs-badges {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.qs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 100px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.qs-badge:hover { background: rgba(255,255,255,0.1); }
+
+.qs-badge svg { opacity: 0.7; }
+
+/* ─── Open Source CTA ─── */
+.cta-section {
+  text-align: center;
+  padding: clamp(80px, 14vh, 160px) 0;
+  position: relative;
+}
+
+.cta-section::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 400px;
+  background: radial-gradient(ellipse at center, rgba(198,122,82,0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.cta-section h2 {
+  font-family: var(--font-display);
+  font-size: clamp(34px, 5vw, 56px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  margin-bottom: 20px;
+}
+
+.cta-section h2 .highlight {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--teal) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.cta-section > .container > p {
+  font-size: 18px;
+  color: var(--text-secondary);
+  margin-bottom: 40px;
+  line-height: 1.7;
+}
+
+.cta-links {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.cta-links a {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.cta-links a:hover { color: var(--accent); }
+
+/* ─── GitHub Star Button ─── */
+.gh-star-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  transition: all 0.25s ease;
+}
+
+.gh-star-btn:hover {
+  border-color: var(--text-secondary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.gh-star-btn svg { flex-shrink: 0; }
+
+/* ─── Footer ─── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 48px 0;
+}
+
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.footer-left img {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  opacity: 0.5;
+}
+
+.footer-inner p {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.footer-links {
+  display: flex;
+  gap: 28px;
+  list-style: none;
+}
+
+.footer-links a {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.footer-links a:hover { color: var(--text-primary); }
+
+/* ─── Animations ─── */
+.fade-up {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fade-up.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.fade-up.d1 { transition-delay: 0.08s; }
+.fade-up.d2 { transition-delay: 0.16s; }
+.fade-up.d3 { transition-delay: 0.24s; }
+.fade-up.d4 { transition-delay: 0.32s; }
+.fade-up.d5 { transition-delay: 0.40s; }
+.fade-up.d6 { transition-delay: 0.48s; }
+
+/* ─── Responsive ─── */
+@media (max-width: 1024px) {
+  .features-grid { grid-template-columns: repeat(2, 1fr); }
+  .qs-steps { grid-template-columns: 1fr; gap: 24px; }
+  .how-grid { grid-template-columns: 1fr; gap: 48px; }
+  .how-divider { display: none; }
+}
+
+@media (max-width: 900px) {
+  .perm-grid { grid-template-columns: repeat(2, 1fr); }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+  .workflow-timeline {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 32px;
+    padding-left: 40px;
+  }
+  .workflow-timeline::before {
+    top: 0;
+    bottom: 0;
+    left: 48px;
+    right: auto;
+    width: 2px;
+    height: auto;
+  }
+  .timeline-step {
+    flex-direction: row;
+    text-align: left;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .timeline-step p { max-width: none; }
+  .timeline-num { flex-shrink: 0; }
+  .pipeline { flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .pipeline-step { flex: 0 0 auto; width: 120px; }
+  .pipeline-step:not(:last-child)::after { display: none; }
+  .nav-links .nav-link-item { display: none; }
+  .nav-mobile-btn { display: block; }
+}
+
+@media (max-width: 600px) {
+  .features-grid { grid-template-columns: 1fr; }
+  .perm-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: 1fr; gap: 20px; }
+  .hero-actions { flex-direction: column; align-items: center; }
+  .hero-actions .btn-primary,
+  .hero-actions .btn-secondary { width: 100%; max-width: 280px; justify-content: center; }
+  .install-block { flex-direction: column; text-align: center; gap: 8px; }
+  .install-block code { white-space: normal; word-break: break-all; }
+  .pipeline-step { width: 100px; }
+  .quickstart-card { padding: 32px 24px; }
+  .footer-inner { flex-direction: column; gap: 16px; text-align: center; }
+  .workflow-timeline { padding-left: 0; }
+  .workflow-timeline::before { left: 28px; }
+}
+
+</style>
 </head>
 <body>
 
-<!-- NAV -->
-<nav>
+<!-- ═══════════════ NAV ═══════════════ -->
+<nav id="navbar">
   <div class="nav-inner">
-    <a href="#" class="logo"><img src="images/synapse-icon.png" alt="Synapse">Synapse<span>.</span></a>
-    <div class="nav-links">
-      <a href="#quickstart">Quick Start</a>
-      <a href="#features">Features</a>
-      <a href="#showcase">Showcase</a>
-      <a href="#agents">Agents</a>
-      <a href="https://hub.docker.com/repository/docker/synapseaidlc/synapse-app/general" class="btn btn-outline">Docker Hub</a>
-      <a href="https://github.com/Synapse-AIDLC/synapse" class="btn btn-primary">GitHub</a>
-    </div>
+    <a href="#" class="nav-logo">
+      <img src="https://raw.githubusercontent.com/Vincentwei1021/Synapse/main/public/synapse-icon.png" alt="Synapse" width="32" height="32">
+      <span>Synapse</span>
+    </a>
+    <ul class="nav-links">
+      <li class="nav-link-item"><a href="#quickstart">Quick Start</a></li>
+      <li class="nav-link-item"><a href="#features">Features</a></li>
+      <li class="nav-link-item"><a href="#workflow">Workflow</a></li>
+      <li class="nav-link-item"><a href="#permissions">Agents</a></li>
+      <li>
+        <a href="https://github.com/Vincentwei1021/Synapse" class="nav-cta" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </li>
+    </ul>
   </div>
 </nav>
 
-<!-- HERO -->
+<!-- ═══════════════ HERO ═══════════════ -->
 <section class="hero">
-  <div class="hero-badge">The Agent Harness</div>
-  <h1>The Model Is the Brain. <span class="highlight">Synapse</span> Is Everything Else.</h1>
-  <p>Session lifecycle, task state, sub-agent orchestration, observability, failure recovery — Synapse is the harness that wraps around LLM agents so they can ship reliably. AI proposes, humans verify.</p>
-  <div class="hero-actions">
-    <a href="https://github.com/Synapse-AIDLC/synapse" class="btn btn-primary">View on GitHub</a>
-    <a href="#workflow" class="btn btn-outline">See How It Works</a>
-  </div>
-</section>
+  <div class="container">
+    <div class="hero-badge fade-up">
+      <span class="dot"></span>
+      Open Source Research Orchestration
+    </div>
 
-<!-- PIPELINE -->
-<div class="pipeline-section">
-  <div class="pipeline">
-    <div class="pipeline-step">
-      <div class="pipeline-node p-idea">Idea</div>
-      <div class="pipeline-arrow a-idea"></div>
-    </div>
-    <div class="pipeline-step">
-      <div class="pipeline-node p-proposal">Proposal</div>
-      <div class="pipeline-arrow a-proposal"></div>
-    </div>
-    <div class="pipeline-step">
-      <div class="pipeline-node p-task">Doc + Tasks</div>
-      <div class="pipeline-arrow a-task"></div>
-    </div>
-    <div class="pipeline-step">
-      <div class="pipeline-node p-execute">Execute</div>
-      <div class="pipeline-arrow a-execute"></div>
-    </div>
-    <div class="pipeline-step">
-      <div class="pipeline-node p-verify">Verify</div>
-      <div class="pipeline-arrow a-verify"></div>
-    </div>
-    <div class="pipeline-step">
-      <div class="pipeline-node p-done">Done</div>
-    </div>
-  </div>
-</div>
+    <h1 class="fade-up">The Research Platform Where Humans and AI Agents <span class="highlight">Collaborate</span></h1>
 
-<!-- REVERSED CONVERSATION -->
-<div class="reversed" id="concept">
-  <div class="reversed-text">
-    <h2>Reversed Conversation</h2>
-    <p>Traditional tools: you prompt, AI responds. Synapse flips this. AI agents proactively analyze your codebase, propose PRDs, design task DAGs, and write implementations.</p>
-    <p>Your role shifts from "writing prompts" to "reviewing proposals." You stay in control while AI handles the heavy lifting.</p>
-  </div>
-  <div class="reversed-visual">
-    <img src="images/proposal.png" alt="Proposal Review Panel" style="width:100%;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
-  </div>
-</div>
+    <p class="hero-subtitle fade-up">Orchestrate the full AI research lifecycle &mdash; literature review, hypothesis formulation, experiment execution, and report generation &mdash; with AI agents as your research partners.</p>
 
-<!-- FEATURES -->
-<section class="section" id="features">
-  <div class="section-header">
-    <div class="section-label">Features</div>
-    <h2>What the Harness Handles</h2>
-    <p>Everything outside the model that enables AI-human collaboration — from session management to human review loops.</p>
-  </div>
-  <div class="features-grid">
-    <div class="feature-card">
-      <div class="feature-icon fi-context">
-        <svg width="24" height="24" fill="none" stroke="#E65100" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-      </div>
-      <h3>Zero Context Injection</h3>
-      <p>With the Synapse Plugin, agents automatically receive role persona, current assignments, and project context on checkin &mdash; no manual prompt engineering needed.</p>
+    <div class="hero-actions fade-up">
+      <a href="https://github.com/Vincentwei1021/Synapse" class="btn-primary" target="_blank" rel="noopener">
+        Get Started
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+      </a>
+      <a href="https://github.com/Vincentwei1021/Synapse/blob/main/README.md" class="btn-secondary" target="_blank" rel="noopener">
+        Read the Docs
+      </a>
     </div>
-    <div class="feature-card">
-      <div class="feature-icon fi-agents">
-        <svg width="24" height="24" fill="none" stroke="#1565C0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+
+    <!-- Pipeline Visual -->
+    <div class="pipeline fade-up">
+      <div class="pipeline-step">
+        <div class="pipeline-icon" style="background: var(--blue-bg); color: var(--blue);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        <div class="pipeline-label">Literature</div>
+        <span class="pipeline-role role-both">Both</span>
       </div>
-      <h3>Multi-Agent Observability</h3>
-      <p>Real-time visibility into all agent activity. Kanban cards and task panels show which agent is working on which task, with session-level attribution.</p>
+      <div class="pipeline-step">
+        <div class="pipeline-icon" style="background: var(--violet-bg); color: var(--violet);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="pipeline-label">Questions</div>
+        <span class="pipeline-role role-both">Both</span>
+      </div>
+      <div class="pipeline-step">
+        <div class="pipeline-icon" style="background: var(--accent-bg); color: var(--accent);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        </div>
+        <div class="pipeline-label">Experiments</div>
+        <span class="pipeline-role role-agent">Agent</span>
+      </div>
+      <div class="pipeline-step">
+        <div class="pipeline-icon" style="background: var(--teal-bg); color: var(--teal);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <div class="pipeline-label">Reports</div>
+        <span class="pipeline-role role-agent">Agent</span>
+      </div>
     </div>
-    <div class="feature-card">
-      <div class="feature-icon fi-workflow">
-        <svg width="24" height="24" fill="none" stroke="#7B1FA2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      </div>
-      <h3>Structured Workflow</h3>
-      <p>Ideas go through structured Q&amp;A elaboration, then become proposals with task DAGs. Every requirement is clarified, every decision is recorded.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon fi-session">
-        <svg width="24" height="24" fill="none" stroke="#2E7D32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
-      </div>
-      <h3>Swarm Mode Sessions</h3>
-      <p>Spawn teams of sub-agents with dedicated sessions. Track which worker is on which task in real-time via the Kanban board.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon fi-audit">
-        <svg width="24" height="24" fill="none" stroke="#F57F17" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-      </div>
-      <h3>Full Audit Trail</h3>
-      <p>Every action is logged with agent attribution and timestamps. Activity streams show creation, assignment, status changes, and completion.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon fi-mcp">
-        <svg width="24" height="24" fill="none" stroke="#00695C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-      </div>
-      <h3>MCP Native</h3>
-      <p>Built on the Model Context Protocol with HTTP Streamable Transport. Any MCP-compatible agent can connect and participate immediately.</p>
+
+    <div class="install-block fade-up">
+      <code><span class="prefix">$</span> docker compose up -d</code>
+      <button class="copy-btn" onclick="copyText('docker compose up -d', this)" aria-label="Copy command">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      </button>
     </div>
   </div>
 </section>
 
-<!-- CLAUDE CODE INTEGRATION -->
-<div class="integration" id="integration">
-  <div class="section-header">
-    <div class="section-label">Native Integration</div>
-    <h2>Built for Claude Code</h2>
-    <p>First-class support for Claude Code Plugin and Agent Teams — no glue code, no wrappers.</p>
-  </div>
-  <div class="integration-grid">
-    <div class="int-card">
-      <div class="int-icon int-icon-plugin">
-        <svg width="24" height="24" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
-      </div>
-      <h3>Synapse Plugin</h3>
-      <p>Install the Synapse Plugin to get automated session lifecycle, context injection, and skill documentation — all handled by hooks.</p>
-      <div class="int-hooks">
-        <span class="int-hook">SubagentStart</span>
-        <span class="int-hook">TeammateIdle</span>
-        <span class="int-hook">SubagentStop</span>
-      </div>
-      <div class="int-code" style="margin-top:16px;">
-        <span class="comment"># Install from Plugin Marketplace</span><br>
-        <span class="cmd">claude</span> <span class="flag">/plugin marketplace add</span> Synapse-AIDLC/synapse<br>
-        <span class="cmd">claude</span> <span class="flag">/plugin install</span> synapse@synapse-plugins
-      </div>
-    </div>
-    <div class="int-card">
-      <div class="int-icon int-icon-teams">
-        <svg width="24" height="24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-      </div>
-      <h3>Agent Teams (Swarm Mode)</h3>
-      <p>Team Lead spawns multiple sub-agents as a swarm. Each agent gets its own Synapse session, checks in to tasks, and reports progress independently.</p>
-      <div class="int-hooks">
-        <span class="int-hook">Auto Session</span>
-        <span class="int-hook">Auto Heartbeat</span>
-        <span class="int-hook">Auto Task Discovery</span>
-      </div>
-      <div class="int-code" style="margin-top:16px;">
-        <span class="comment"># Plugin hooks handle everything</span><br>
-        <span class="cmd">SubagentStart</span> → create session<br>
-        <span class="cmd">TeammateIdle</span>&nbsp; → send heartbeat<br>
-        <span class="cmd">SubagentStop</span>&nbsp; → checkout + close + discover unblocked tasks
-      </div>
-    </div>
-  </div>
-</div>
+<!-- ═══════════════ HOW IT WORKS ═══════════════ -->
+<section class="how-it-works" id="how">
+  <div class="container">
+    <div class="section-label fade-up">How It Works</div>
+    <div class="section-title fade-up">The research loop,<br>reversed</div>
+    <p class="section-desc fade-up">Instead of humans doing everything and AI assisting, Synapse flips the script. Agents propose and execute &mdash; humans review and steer.</p>
 
-<!-- SHOWCASE -->
-<section class="section" id="showcase">
-  <div class="section-header">
-    <div class="section-label">Showcase</div>
-    <h2>See It in Action</h2>
-    <p>Real screenshots from Synapse running with multiple AI agents collaborating on a project.</p>
-  </div>
-  <div class="showcase-grid">
-    <div class="showcase-item wide">
-      <img src="images/pixcel-workspace.gif" alt="Pixel Workspace" loading="lazy">
-      <div class="showcase-caption">
-        <h3>Pixel Workspace</h3>
-        <p>Pixel characters represent each agent's real-time working status on the left; live terminal output streams on the right.</p>
+    <div class="how-grid">
+      <!-- Left: Traditional -->
+      <div class="how-column fade-up">
+        <h3>
+          <span class="tag tag-old">Before</span>
+          Traditional Approach
+        </h3>
+        <div class="chat-bubbles">
+          <div class="chat-row">
+            <div class="chat-avatar avatar-human">PI</div>
+            <div class="chat-bubble bubble-dim">"Search for papers on RLHF scaling..."</div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar avatar-human">PI</div>
+            <div class="chat-bubble bubble-dim">"Now set up the training run..."</div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar avatar-human">PI</div>
+            <div class="chat-bubble bubble-dim">"Check GPU availability..."</div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar avatar-human">PI</div>
+            <div class="chat-bubble bubble-dim">"Write up the results..."</div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar avatar-human">PI</div>
+            <div class="chat-bubble bubble-dim">"What should we try next?"</div>
+          </div>
+        </div>
+        <div class="how-highlight" style="background: rgba(231,111,111,0.06); border-color: rgba(231,111,111,0.12);">
+          <strong style="color: #e76f6f;">The bottleneck:</strong> Every step waits for the human. Context is scattered across tabs, terminals, and chat threads.
+        </div>
       </div>
-    </div>
-    <div class="showcase-item wide">
-      <img src="images/kanban-auto-update.gif" alt="Kanban Auto Update" loading="lazy">
-      <div class="showcase-caption">
-        <h3>Real-time Kanban</h3>
-        <p>Task cards flow automatically between To Do, In Progress, and To Verify as agents work.</p>
-      </div>
-    </div>
-    <div class="showcase-item wide">
-      <img src="images/dag.png" alt="Task DAG" loading="lazy">
-      <div class="showcase-caption">
-        <h3>Task DAG</h3>
-        <p>Visualize task dependencies as a directed acyclic graph, showing execution order and parallel paths.</p>
-      </div>
-    </div>
-    <div class="showcase-item wide">
-      <img src="images/elaboration.png" alt="Requirements Elaboration" loading="lazy">
-      <div class="showcase-caption">
-        <h3>Requirements Elaboration</h3>
-        <p>Structured Q&amp;A rounds clarify requirements before proposal creation. Completed answers, follow-up questions, and category tags in one panel.</p>
-      </div>
-    </div>
-    <div class="showcase-item">
-      <img src="images/proposal.png" alt="Proposal Review" loading="lazy">
-      <div class="showcase-caption">
-        <h3>Proposal Review</h3>
-        <p>Review AI-generated proposals containing document drafts and task DAG breakdowns before approval.</p>
-      </div>
-    </div>
-    <div class="showcase-item">
-      <img src="images/task-tracking.png" alt="Task Tracking" loading="lazy">
-      <div class="showcase-caption">
-        <h3>Task Tracking</h3>
-        <p>Activity stream, comments, and dependency info in one panel — a complete record of every task's lifecycle.</p>
+
+      <!-- Right: Synapse -->
+      <div class="how-column fade-up d2">
+        <h3>
+          <span class="tag tag-new">With Synapse</span>
+          Agent-First Loop
+        </h3>
+        <div class="chat-bubbles">
+          <div class="chat-row">
+            <div class="chat-avatar avatar-human">PI</div>
+            <div class="chat-bubble bubble-human">"Explore RLHF scaling for 7B models"</div>
+          </div>
+          <div class="chat-row right">
+            <div class="chat-avatar avatar-agent">AG</div>
+            <div class="chat-bubble bubble-agent">Found 23 papers. Key gap: no systematic comparison of PPO vs DPO at 7B scale. Proposing experiment...</div>
+          </div>
+          <div class="chat-row right">
+            <div class="chat-avatar avatar-agent">AG</div>
+            <div class="chat-bubble bubble-agent">Experiment "PPO vs DPO @ 7B" created as draft. 4x L40S reserved. Ready for your review.</div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar avatar-human">PI</div>
+            <div class="chat-bubble bubble-human">Approved. Start it.</div>
+          </div>
+          <div class="chat-row right">
+            <div class="chat-avatar avatar-agent">AG</div>
+            <div class="chat-bubble bubble-agent">Running. Step 3/8: DPO training, loss 0.42. Report will auto-generate on completion.</div>
+          </div>
+        </div>
+        <div class="how-highlight">
+          <strong>Agent proposes, human verifies.</strong> Full context lives in one place. The research loop runs continuously.
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- AGENTS -->
-<section class="section" id="agents">
-  <div class="section-header">
-    <div class="section-label">Agents</div>
-    <h2>Three Roles, One Mission</h2>
-    <p>Specialized AI agents handle different aspects of the development lifecycle, each with their own set of tools and responsibilities.</p>
-  </div>
-  <div class="agents-grid">
-    <div class="agent-card">
-      <div class="agent-avatar agent-pm">
-        <svg width="36" height="36" fill="none" stroke="#7B1FA2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h12M12 26h8" transform="translate(2,2)"/><rect x="6" y="4" width="24" height="28" rx="3"/></svg>
+<!-- ═══════════════ FEATURES ═══════════════ -->
+<section id="features">
+  <div class="container">
+    <div class="section-label fade-up">Capabilities</div>
+    <div class="section-title fade-up">Everything research<br>teams need</div>
+    <p class="section-desc fade-up">Built for the way AI research actually works &mdash; iterative, compute-heavy, and deeply collaborative between humans and machines.</p>
+
+    <div class="features-grid">
+      <div class="feature-card fade-up">
+        <div class="feature-icon" style="background: var(--accent-bg); color: var(--accent);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </div>
+        <h3>Autonomous Loop</h3>
+        <p>When all experiment queues are empty, the assigned agent analyzes the full project context and proposes new experiments as drafts. Humans review before execution. Research never stalls.</p>
       </div>
-      <div class="agent-role role-pm">PM Agent</div>
-      <h3>Product Manager</h3>
-      <p>Analyzes ideas, writes PRDs, designs task breakdowns with dependency DAGs, and creates proposals for human review.</p>
-      <div class="agent-tasks">
-        <span class="agent-tag">Create Proposals</span>
-        <span class="agent-tag">Write PRDs</span>
-        <span class="agent-tag">Design DAGs</span>
-        <span class="agent-tag">Claim Ideas</span>
+
+      <div class="feature-card fade-up d1">
+        <div class="feature-icon" style="background: var(--teal-bg); color: var(--teal);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <h3>Live Experiment Tracking</h3>
+        <p>Real-time status badges on every experiment card &mdash; track the journey from assignment to completion with step-by-step progress timelines.</p>
+        <div class="status-badges">
+          <span class="status-badge" style="background: var(--blue-bg); color: var(--blue);">sent</span>
+          <span class="status-badge" style="background: var(--violet-bg); color: var(--violet);">ack</span>
+          <span class="status-badge" style="background: var(--accent-bg); color: var(--accent);">checking</span>
+          <span class="status-badge" style="background: var(--rose-bg); color: var(--rose);">queuing</span>
+          <span class="status-badge" style="background: var(--teal-bg); color: var(--teal);">running</span>
+        </div>
       </div>
-    </div>
-    <div class="agent-card">
-      <div class="agent-avatar agent-dev">
-        <svg width="36" height="36" fill="none" stroke="#1565C0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 8 4 14 10 20" transform="translate(2,2)"/><polyline points="22 8 28 14 22 20" transform="translate(2,2)"/><line x1="18" y1="4" x2="14" y2="24" transform="translate(2,2)"/></svg>
+
+      <div class="feature-card fade-up d2">
+        <div class="feature-icon" style="background: var(--violet-bg); color: var(--violet);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+        </div>
+        <h3>Compute Orchestration</h3>
+        <p>GPU pool management with per-project binding. Managed SSH key bundles for secure agent access. Reserve specific GPUs and track utilization across your cluster.</p>
       </div>
-      <div class="agent-role role-dev">Developer Agent</div>
-      <h3>Developer</h3>
-      <p>Claims tasks, implements code changes, reports progress, and submits work for verification. Supports swarm mode with multiple sub-agents.</p>
-      <div class="agent-tasks">
-        <span class="agent-tag">Claim Tasks</span>
-        <span class="agent-tag">Write Code</span>
-        <span class="agent-tag">Report Work</span>
-        <span class="agent-tag">Swarm Mode</span>
+
+      <div class="feature-card fade-up d3">
+        <div class="feature-icon" style="background: var(--blue-bg); color: var(--blue);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <h3>Literature Search</h3>
+        <p>Semantic Scholar integration for automated paper discovery. Paste arXiv URLs for instant metadata import. Agents generate deep research reports from your paper collection.</p>
       </div>
-    </div>
-    <div class="agent-card">
-      <div class="agent-avatar agent-adm">
-        <svg width="36" height="36" fill="none" stroke="#E65100" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 0110 10c0 5.523-4.477 10-10 10S2 17.523 2 12" transform="translate(4,4)"/><polyline points="12 6 12 12 16 14" transform="translate(4,4)"/></svg>
+
+      <div class="feature-card fade-up d4">
+        <div class="feature-icon" style="background: var(--rose-bg); color: var(--rose);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <h3>Agent-Generated Reports</h3>
+        <p>When experiments complete, agents write context-aware reports &mdash; analyzing results within the full project context, in the project's language. No more fill-in-the-blank templates.</p>
       </div>
-      <div class="agent-role role-adm">Admin Agent</div>
-      <h3>Administrator</h3>
-      <p>Creates projects, approves proposals, verifies completed tasks, and manages the overall workflow lifecycle.</p>
-      <div class="agent-tasks">
-        <span class="agent-tag">Create Projects</span>
-        <span class="agent-tag">Approve Proposals</span>
-        <span class="agent-tag">Verify Tasks</span>
-        <span class="agent-tag">Manage Lifecycle</span>
+
+      <div class="feature-card fade-up d5">
+        <div class="feature-icon" style="background: linear-gradient(135deg, var(--accent-bg), var(--teal-bg)); color: var(--accent);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+        </div>
+        <h3>60+ MCP Tools</h3>
+        <p>Full research workflow via Model Context Protocol. Experiments, literature, compute, comments, and collaboration &mdash; all accessible through structured, authenticated tool calls.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- WORKFLOW -->
-<section class="section" id="workflow">
-  <div class="section-header">
-    <div class="section-label">Workflow</div>
-    <h2>From Idea to Done in Five Steps</h2>
-    <p>A structured pipeline that ensures nothing falls through the cracks.</p>
+<!-- ═══════════════ AGENT PERMISSIONS ═══════════════ -->
+<section id="permissions" class="permissions-section">
+  <div class="container">
+    <div class="section-label fade-up">Agent Permissions</div>
+    <div class="section-title fade-up">Four composable roles,<br>infinite configurations</div>
+    <p class="section-desc fade-up">Assign any combination of permissions to each agent. A single agent can do everything, or you can specialize agents for different phases.</p>
+
+    <div class="perm-grid">
+      <div class="perm-card fade-up">
+        <span class="perm-emoji">&#128269;</span>
+        <h3>Pre-research</h3>
+        <p>Literature search, paper discovery, related works collection via Semantic Scholar API</p>
+        <span class="perm-code">pre_research</span>
+      </div>
+      <div class="perm-card fade-up d1">
+        <span class="perm-emoji">&#129514;</span>
+        <h3>Research</h3>
+        <p>Research question CRUD, hypothesis formulation, structured problem framing</p>
+        <span class="perm-code">research</span>
+      </div>
+      <div class="perm-card fade-up d2">
+        <span class="perm-emoji">&#9881;&#65039;</span>
+        <h3>Experiment</h3>
+        <p>Start and complete experiments, allocate GPUs, report progress, submit results</p>
+        <span class="perm-code">experiment</span>
+      </div>
+      <div class="perm-card fade-up d3">
+        <span class="perm-emoji">&#128202;</span>
+        <h3>Report</h3>
+        <p>Generate experiment reports, literature reviews, project synthesis documents</p>
+        <span class="perm-code">report</span>
+      </div>
+    </div>
+    <p class="perm-note fade-up">Any combination of permissions can be assigned to a single agent.</p>
   </div>
-  <div class="workflow-steps">
-    <div class="workflow-step">
-      <h3>Ideate</h3>
-      <p>Create an idea with requirements. PM Agent claims it and the idea enters the elaboration phase.</p>
-    </div>
-    <div class="workflow-step">
-      <h3>Elaborate</h3>
-      <p>PM Agent asks structured clarification questions. Stakeholders answer via terminal or web UI. Requirements are validated before planning begins.</p>
-    </div>
-    <div class="workflow-step">
-      <h3>Propose</h3>
-      <p>PM Agent drafts a proposal with PRD and task breakdown. Admin reviews and approves. Drafts materialize into real entities with dependency DAGs.</p>
-    </div>
-    <div class="workflow-step">
-      <h3>Execute</h3>
-      <p>Developer agents claim tasks respecting the DAG order. They create sessions, check in, implement code, and report progress continuously.</p>
-    </div>
-    <div class="workflow-step">
-      <h3>Verify</h3>
-      <p>Developers submit work for verification. Admin verifies the implementation meets requirements. Task moves to done.</p>
+</section>
+
+<!-- ═══════════════ WORKFLOW TIMELINE ═══════════════ -->
+<section id="workflow">
+  <div class="container">
+    <div class="section-label fade-up">Research Workflow</div>
+    <div class="section-title fade-up">From question to conclusion,<br>orchestrated end-to-end</div>
+    <p class="section-desc fade-up">Synapse manages each stage of the research lifecycle. Humans set direction, agents execute &mdash; with full visibility at every step.</p>
+
+    <div class="workflow-timeline">
+      <div class="timeline-step fade-up">
+        <div class="timeline-num">01</div>
+        <div>
+          <h3>Create Project</h3>
+          <p>Define research direction, datasets, evaluation methods, and compute pool</p>
+          <span class="pipeline-role role-human" style="margin-top:10px">Human</span>
+        </div>
+      </div>
+      <div class="timeline-step fade-up d1">
+        <div class="timeline-num">02</div>
+        <div>
+          <h3>Literature Review</h3>
+          <p>Agent searches Semantic Scholar, collects papers, generates deep research reports</p>
+          <span class="pipeline-role role-agent" style="margin-top:10px">Agent</span>
+        </div>
+      </div>
+      <div class="timeline-step fade-up d2">
+        <div class="timeline-num">03</div>
+        <div>
+          <h3>Research Questions</h3>
+          <p>Formulate hypotheses with a hierarchical question canvas, collaboratively refined</p>
+          <span class="pipeline-role role-both" style="margin-top:10px">Both</span>
+        </div>
+      </div>
+      <div class="timeline-step fade-up d3">
+        <div class="timeline-num">04</div>
+        <div>
+          <h3>Experiments</h3>
+          <p>Agents execute on GPU clusters, report real-time progress, submit structured results</p>
+          <span class="pipeline-role role-agent" style="margin-top:10px">Agent</span>
+        </div>
+      </div>
+      <div class="timeline-step fade-up d4">
+        <div class="timeline-num">05</div>
+        <div>
+          <h3>Reports &amp; Synthesis</h3>
+          <p>Agents write experiment reports; project synthesis updates automatically</p>
+          <span class="pipeline-role role-agent" style="margin-top:10px">Agent</span>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- STATS -->
+<!-- ═══════════════ STATS BAR ═══════════════ -->
 <div class="stats-bar">
-  <div class="stat-card">
-    <div class="stat-num">50+</div>
-    <div class="stat-label">MCP Tools Available</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-num">3</div>
-    <div class="stat-label">Specialized Agent Roles</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-num">2</div>
-    <div class="stat-label">Languages (en / zh)</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-num">5</div>
-    <div class="stat-label">Permission Domains</div>
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-item fade-up">
+        <div class="stat-num">60+</div>
+        <div class="stat-label">MCP Tools</div>
+      </div>
+      <div class="stat-item fade-up d1">
+        <div class="stat-num">4</div>
+        <div class="stat-label">Composable Permissions</div>
+      </div>
+      <div class="stat-item fade-up d2">
+        <div class="stat-num">2</div>
+        <div class="stat-label">Languages (en/zh)</div>
+      </div>
+      <div class="stat-item fade-up d3">
+        <div class="stat-num">SSE</div>
+        <div class="stat-label">Real-time Updates</div>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- CTA -->
-<section class="cta">
-  <h2>Ready to Build with AI Agents?</h2>
-  <p>Clone the repo, connect your AI agents via MCP, and start the reversed conversation.</p>
-  <div class="cta-actions">
-    <a href="https://github.com/Synapse-AIDLC/synapse" class="btn btn-primary">View on GitHub</a>
-    <a href="https://github.com/Synapse-AIDLC/synapse#getting-started" class="btn btn-outline">Quick Start Guide</a>
-  </div>
-</section>
+<!-- ═══════════════ QUICK START ═══════════════ -->
+<section class="quickstart" id="quickstart">
+  <div class="container">
+    <div class="quickstart-card">
+      <div class="section-label fade-up">Quick Start</div>
+      <div class="section-title fade-up">Up and running in<br>three steps</div>
+      <p class="section-desc fade-up">Self-hosted, zero vendor lock-in. Run locally or on any cloud.</p>
 
-<!-- QUICK START -->
-<div class="quickstart" id="quickstart">
-  <div class="quickstart-card">
-    <div class="quickstart-header">
-      <span class="quickstart-badge">Docker</span>
-    </div>
-    <h2>Run Synapse in 60 Seconds</h2>
-    <p>Pre-built image on <a href="https://hub.docker.com/repository/docker/synapseaidlc/synapse-app/general">Docker Hub</a>. Supports amd64 &amp; arm64 (Apple Silicon).</p>
-    <div class="qs-steps">
-      <div class="qs-step">
-        <div class="qs-num">1</div>
-        <div class="qs-content">
-          <p>Create a <code style="color:rgba(255,255,255,0.8)">docker-compose.yml</code></p>
-          <div class="qs-code-wrap"><button class="qs-copy" onclick="copyCode(this)" title="Copy"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="7" height="7" rx="1"/><path d="M5 11H4a1 1 0 01-1-1V4a1 1 0 011-1h6a1 1 0 011 1v1"/></svg></button><div class="qs-code"><span class="qs-comment"># docker-compose.yml</span>
-services:
-  app:
-    <span class="qs-flag">image</span>: synapseaidlc/synapse-app:<span class="qs-env">latest</span>
-    <span class="qs-flag">ports</span>: [<span class="qs-env">"3000:3000"</span>]
-    <span class="qs-flag">environment</span>:
-      - DATABASE_URL=<span class="qs-env">postgresql://synapse:synapse@db:5432/synapse</span>
-      - REDIS_URL=<span class="qs-env">redis://default:synapse-redis@redis:6379</span>
-      - NEXTAUTH_SECRET=<span class="qs-env">change-me-to-a-random-secret</span>
-      - DEFAULT_USER=<span class="qs-env">admin@example.com</span>
-      - DEFAULT_PASSWORD=<span class="qs-env">changeme</span>
-    <span class="qs-flag">depends_on</span>:
-      db: { <span class="qs-flag">condition</span>: service_healthy }
-      redis: { <span class="qs-flag">condition</span>: service_healthy }
-  redis:
-    <span class="qs-flag">image</span>: redis:7-alpine
-    <span class="qs-flag">command</span>: redis-server --requirepass synapse-redis
-    <span class="qs-flag">healthcheck</span>:
-      <span class="qs-flag">test</span>: [<span class="qs-env">"CMD"</span>, <span class="qs-env">"redis-cli"</span>, <span class="qs-env">"-a"</span>, <span class="qs-env">"synapse-redis"</span>, <span class="qs-env">"ping"</span>]
-  db:
-    <span class="qs-flag">image</span>: postgres:16-alpine
-    <span class="qs-flag">environment</span>:
-      POSTGRES_USER: <span class="qs-env">synapse</span>
-      POSTGRES_PASSWORD: <span class="qs-env">synapse</span>
-      POSTGRES_DB: <span class="qs-env">synapse</span>
-    <span class="qs-flag">healthcheck</span>:
-      <span class="qs-flag">test</span>: [<span class="qs-env">"CMD-SHELL"</span>, <span class="qs-env">"pg_isready -U synapse"</span>]</div></div>
+      <div class="qs-steps">
+        <!-- Step 1 -->
+        <div class="qs-step fade-up">
+          <div class="qs-step-header">
+            <div class="qs-num">1</div>
+            <span>Start with Docker</span>
+          </div>
+          <div class="qs-code">
+            <span class="ln-comment"># Clone and start</span><br>
+            <span class="ln-prefix">$ </span><span class="ln-cmd">git clone</span> <span class="ln-str">https://github.com/Vincentwei1021/Synapse.git</span><br>
+            <span class="ln-prefix">$ </span><span class="ln-cmd">cd</span> Synapse<br>
+            <span class="ln-prefix">$ </span><span class="ln-cmd">docker compose up</span> <span class="ln-flag">-d</span>
+            <button class="copy-btn" onclick="copyText('git clone https://github.com/Vincentwei1021/Synapse.git && cd Synapse && docker compose up -d', this)" aria-label="Copy">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>
+          </div>
         </div>
-      </div>
-      <div class="qs-step">
-        <div class="qs-num">2</div>
-        <div class="qs-content">
-          <p>Start everything</p>
-          <div class="qs-code-wrap"><button class="qs-copy" onclick="copyCode(this)" title="Copy"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="7" height="7" rx="1"/><path d="M5 11H4a1 1 0 01-1-1V4a1 1 0 011-1h6a1 1 0 011 1v1"/></svg></button><div class="qs-code"><span class="qs-cmd">docker compose</span> up -d</div></div>
+
+        <!-- Step 2 -->
+        <div class="qs-step fade-up d1">
+          <div class="qs-step-header">
+            <div class="qs-num">2</div>
+            <span>Connect an Agent</span>
+          </div>
+          <div class="qs-code">
+            <span class="ln-comment"># Install OpenClaw plugin</span><br>
+            <span class="ln-prefix">$ </span><span class="ln-cmd">npm install</span> <span class="ln-flag">-g</span> <span class="ln-str">@anthropic/openclaw</span><br><br>
+            <span class="ln-comment"># Or use Claude Code with MCP</span><br>
+            <span class="ln-prefix">$ </span><span class="ln-cmd">claude mcp add</span> <span class="ln-str">synapse</span> <span class="ln-flag">\\</span><br>
+            &nbsp;&nbsp;<span class="ln-flag">--url</span> <span class="ln-str">http://localhost:3000/api/mcp</span>
+            <button class="copy-btn" onclick="copyText('claude mcp add synapse --url http://localhost:3000/api/mcp', this)" aria-label="Copy">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>
+          </div>
         </div>
-      </div>
-      <div class="qs-step">
-        <div class="qs-num">3</div>
-        <div class="qs-content">
-          <p>Open <a href="http://localhost:3000" style="color:#7dd3fc;text-decoration:none;">http://localhost:3000</a> and log in with your DEFAULT_USER credentials</p>
-          <div class="qs-arch">
-            <span class="qs-arch-tag">linux/amd64</span>
-            <span class="qs-arch-tag">linux/arm64</span>
+
+        <!-- Step 3 -->
+        <div class="qs-step fade-up d2">
+          <div class="qs-step-header">
+            <div class="qs-num">3</div>
+            <span>Create &amp; Assign</span>
+          </div>
+          <div class="qs-code">
+            <span class="ln-comment"># In the Synapse UI:</span><br>
+            <span class="ln-str">1.</span> Create a Research Project<br>
+            <span class="ln-str">2.</span> Create an Experiment<br>
+            <span class="ln-str">3.</span> Assign to your agent<br>
+            <span class="ln-str">4.</span> Agent executes automatically<br><br>
+            <span class="ln-comment"># Enable autonomous loop for</span><br>
+            <span class="ln-comment"># continuous research cycles</span>
           </div>
         </div>
       </div>
-    </div>
-    <div class="qs-footer">
-      <a href="https://hub.docker.com/repository/docker/synapseaidlc/synapse-app/general" class="qs-link qs-link-primary">Docker Hub</a>
-      <a href="https://github.com/Synapse-AIDLC/synapse" class="qs-link qs-link-outline">GitHub</a>
-    </div>
-  </div>
-</div>
 
-<!-- FOOTER -->
-<footer>
-  <div class="footer-left">
-    &copy; 2026 Synapse. AI-Driven Development Lifecycle.
+      <div class="qs-badges fade-up">
+        <a href="https://hub.docker.com/" class="qs-badge" target="_blank" rel="noopener">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M13.983 11.078h2.119a.186.186 0 0 0 .186-.185V9.006a.186.186 0 0 0-.186-.186h-2.119a.185.185 0 0 0-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.43h2.118a.186.186 0 0 0 .186-.186V3.574a.186.186 0 0 0-.186-.185h-2.118a.185.185 0 0 0-.185.185v1.888c0 .102.082.185.185.186m0 2.716h2.118a.187.187 0 0 0 .186-.186V6.29a.186.186 0 0 0-.186-.185h-2.118a.185.185 0 0 0-.185.185v1.887c0 .102.082.185.185.186m-2.93 0h2.12a.186.186 0 0 0 .184-.186V6.29a.185.185 0 0 0-.185-.185H8.1a.185.185 0 0 0-.185.185v1.887c0 .102.083.185.185.186m-2.964 0h2.119a.186.186 0 0 0 .185-.186V6.29a.186.186 0 0 0-.185-.185H5.136a.186.186 0 0 0-.186.185v1.887c0 .102.084.185.186.186m5.893 2.715h2.118a.186.186 0 0 0 .186-.185V9.006a.186.186 0 0 0-.186-.186h-2.118a.185.185 0 0 0-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.185.185 0 0 0 .184-.185V9.006a.185.185 0 0 0-.184-.186h-2.12a.185.185 0 0 0-.184.185v1.888c0 .102.083.185.185.185m-2.964 0h2.119a.185.185 0 0 0 .185-.185V9.006a.186.186 0 0 0-.185-.186H5.136a.186.186 0 0 0-.186.186v1.887c0 .102.084.185.186.185m-2.92 0h2.12a.185.185 0 0 0 .184-.185V9.006a.186.186 0 0 0-.184-.186h-2.12a.185.185 0 0 0-.184.185v1.888c0 .102.082.185.185.185M23.763 9.89c-.065-.051-.672-.51-1.954-.51-.338.001-.676.03-1.01.087-.248-1.7-1.653-2.53-1.716-2.566l-.344-.199-.226.327c-.284.438-.49.922-.612 1.43-.23.97-.09 1.882.403 2.661-.595.332-1.55.413-1.744.42H.751a.751.751 0 0 0-.75.748 11.376 11.376 0 0 0 .692 4.062c.545 1.428 1.355 2.48 2.41 3.124 1.18.723 3.1 1.137 5.275 1.137.983.003 1.963-.086 2.93-.266a12.248 12.248 0 0 0 3.823-1.389c.98-.567 1.86-1.288 2.61-2.136 1.252-1.418 1.998-2.997 2.553-4.4h.221c1.372 0 2.215-.549 2.68-1.009.309-.293.55-.65.707-1.046l.098-.288Z"/></svg>
+          Docker
+        </a>
+        <a href="https://www.npmjs.com/" class="qs-badge" target="_blank" rel="noopener">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M1.763 0C.786 0 0 .786 0 1.763v20.474C0 23.214.786 24 1.763 24h20.474c.977 0 1.763-.786 1.763-1.763V1.763C24 .786 23.214 0 22.237 0zM5.13 5.323l13.837.019-.009 13.836h-3.464l.01-10.382h-3.456L12.04 19.17H5.113z"/></svg>
+          npm
+        </a>
+        <a href="https://github.com/Vincentwei1021/Synapse" class="qs-badge" target="_blank" rel="noopener">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          GitHub
+        </a>
+        <span class="qs-badge">AGPL-3.0 License</span>
+      </div>
+    </div>
   </div>
-  <div class="footer-links">
-    <a href="#features">Features</a>
-    <a href="#showcase">Showcase</a>
-    <a href="#agents">Agents</a>
-    <a href="#workflow">Workflow</a>
-    <a href="https://github.com/Synapse-AIDLC/synapse">GitHub</a>
+</section>
+
+<!-- ═══════════════ OPEN SOURCE CTA ═══════════════ -->
+<section class="cta-section">
+  <div class="container">
+    <h2 class="fade-up">Start orchestrating<br>your <span class="highlight">research</span></h2>
+    <p class="fade-up">Open source, self-hosted, and ready for your next experiment.</p>
+    <div class="hero-actions fade-up">
+      <a href="https://github.com/Vincentwei1021/Synapse" class="btn-accent" target="_blank" rel="noopener">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        View on GitHub
+      </a>
+      <a href="https://github.com/Vincentwei1021/Synapse" class="gh-star-btn" target="_blank" rel="noopener">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Star on GitHub
+      </a>
+    </div>
+    <div class="cta-links fade-up">
+      <a href="https://github.com/Vincentwei1021/Synapse/blob/main/README.md">Documentation</a>
+      <a href="https://github.com/Vincentwei1021/Synapse/blob/main/README.zh.md">中文文档</a>
+      <a href="https://github.com/Vincentwei1021/Synapse/blob/main/docs/ARCHITECTURE.md">Architecture</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ FOOTER ═══════════════ -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <img src="https://raw.githubusercontent.com/Vincentwei1021/Synapse/main/public/synapse-icon.png" alt="" width="24" height="24">
+        <p>&copy; 2026 Synapse. AGPL-3.0 License.</p>
+      </div>
+      <ul class="footer-links">
+        <li><a href="https://github.com/Vincentwei1021/Synapse" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="https://github.com/Vincentwei1021/Synapse/blob/main/README.md" target="_blank" rel="noopener">Docs</a></li>
+        <li><a href="https://github.com/Vincentwei1021/Synapse/blob/main/README.zh.md" target="_blank" rel="noopener">中文</a></li>
+      </ul>
+    </div>
   </div>
 </footer>
 
 <script>
-function copyCode(btn) {
-  const code = btn.parentElement.querySelector('.qs-code');
-  const text = code.textContent;
+// ─── Scroll-triggered fade-in ───
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.08, rootMargin: '0px 0px -60px 0px' });
+
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+// ─── Nav scroll shadow ───
+const navbar = document.getElementById('navbar');
+let lastScroll = 0;
+window.addEventListener('scroll', () => {
+  const st = window.scrollY;
+  if (st > 10) {
+    navbar.classList.add('scrolled');
+  } else {
+    navbar.classList.remove('scrolled');
+  }
+  lastScroll = st;
+}, { passive: true });
+
+// ─── Copy to clipboard ───
+function copyText(text, btn) {
   navigator.clipboard.writeText(text).then(() => {
     btn.classList.add('copied');
-    btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 8 7 11 12 5"/></svg>';
+    const svg = btn.querySelector('svg');
+    const original = svg.innerHTML;
+    svg.innerHTML = '<polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
     setTimeout(() => {
       btn.classList.remove('copied');
-      btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="7" height="7" rx="1"/><path d="M5 11H4a1 1 0 01-1-1V4a1 1 0 011-1h6a1 1 0 011 1v1"/></svg>';
+      svg.innerHTML = original;
     }, 2000);
   });
 }
+
+// ─── Smooth scroll for nav links ───
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+  anchor.addEventListener('click', function (e) {
+    const target = document.querySelector(this.getAttribute('href'));
+    if (target) {
+      e.preventDefault();
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+});
 </script>
+
 </body>
 </html>

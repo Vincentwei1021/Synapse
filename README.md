@@ -85,7 +85,7 @@ Real-time SSE delivery with Redis Pub/Sub for cross-instance propagation. Prefer
 
 ### MCP Tools
 
-30+ MCP tools covering the full research workflow:
+60+ MCP tools covering the full research workflow:
 
 | Category | Tools |
 |----------|-------|

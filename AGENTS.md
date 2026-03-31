@@ -1,4 +1,4 @@
-# CLAUDE.md — Synapse Working Guide
+# AGENTS.md — Synapse Working Guide
 
 ## What Synapse Is
 
@@ -58,6 +58,8 @@ pnpm db:studio                # Prisma Studio
 pnpm docker:db                # Start postgres + redis
 pnpm docker:up                # Full docker profile
 pnpm docker:down              # Stop full docker profile
+pnpm docker:build             # Build Docker image
+pnpm docker:logs              # Tail Docker logs
 ```
 
 Important:
@@ -90,18 +92,30 @@ src/
       settings/                   # Language, theme, notification preferences only
       project-groups/
     api/
-      mcp/
       admin/stats/                # Super-admin statistics
+      agents/                     # Agent CRUD
+      api-keys/                   # API key management
+      auth/                       # Authentication endpoints
       comments/
       compute-nodes/
       compute-pools/
+      documents/                  # Document CRUD
+      events/notifications/       # SSE notification stream
+      experiment-designs/         # Legacy experiment designs
+      experiment-runs/            # Legacy experiment runs
       experiments/
         [uuid]/progress/          # Experiment progress log API
+      health/                     # Health check (direct Prisma)
+      mcp/                        # MCP server endpoint
+      me/                         # Current user endpoint
+      mentionables/               # Mention/tagging targets
+      notifications/
+      project-groups/
       research-projects/
         [uuid]/related-works/     # Related works CRUD API
       research-questions/
-      notifications/
-      events/notifications/
+      sessions/                   # Session management
+      ssh-config/                 # SSH config endpoint
   services/
     experiment-progress.service.ts # Progress log service
   lib/
@@ -112,7 +126,6 @@ src/
 
 packages/
   openclaw-plugin/
-  synapse-cdk/
 
 public/
   skill/
@@ -123,7 +136,7 @@ Important implementation notes:
 
 - `src/services/project-metrics.service.ts` is the canonical read-model for project and group counts
 - `src/mcp/tools/tool-registry.ts` and `src/mcp/tools/compat-alias-tools.ts` are the shared MCP tool registration helpers
-- `packages/openclaw-plugin/src/tools/*-tool-definitions.ts` plus `tool-registry.ts` are the shared declarative OpenClaw tool-definition layer
+- `packages/openclaw-plugin/src/tools/common-tool-definitions.ts` plus `tool-registry.ts` are the shared declarative OpenClaw tool-definition layer
 - `src/app/(dashboard)/research-projects/page.tsx` is now split into a page container, section components, shared helpers, and a page data hook; extend those modules instead of growing the container again
 
 ## Data Model Reality
@@ -149,8 +162,12 @@ The most important active models are:
 - `ExperimentGpuReservation`
 - `AgentSession`
 - `Notification`
+- `NotificationPreference`
 - `Comment`
+- `Mention`
 - `Activity`
+- `ExperimentRegistry`
+- `Baseline`
 
 Older but still present legacy/compatibility models:
 
@@ -293,7 +310,7 @@ New project-level page at `/research-projects/[uuid]/related-works`:
 The repo now has a partial declarative tool-definition layer:
 
 - MCP side: `src/mcp/tools/tool-registry.ts` and `src/mcp/tools/compat-alias-tools.ts`
-- OpenClaw side: `packages/openclaw-plugin/src/tools/tool-registry.ts` plus the `common/pm/admin/dev` `*-tool-definitions.ts`
+- OpenClaw side: `packages/openclaw-plugin/src/tools/tool-registry.ts` plus `common-tool-definitions.ts`
 
 When adding or updating tools:
 
@@ -447,14 +464,14 @@ In practice:
 This project has two active working copies:
 
 - local: `/Users/weiyihao/personal/Synapse`
-- remote: `chorus-research:/home/ubuntu/Synapse`
+- remote: `synapse:/home/ubuntu/Synapse`
 
-The `chorus-research` SSH target details are available in local SSH config.
+The `synapse` SSH target details are available in local SSH config.
 
 Rules:
 
 - any code change must be synced to both local and remote working copies
-- when pushing to GitHub, push from the `chorus-research` machine
+- when pushing to GitHub, push from the `synapse` machine
 - do not leave local and remote code in diverged states after finishing work
 
 ### Keep `docs/design.pen` updated
