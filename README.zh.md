@@ -129,18 +129,29 @@ open http://localhost:3000
 
 ### 连接 AI Agent
 
-#### 方式一：OpenClaw 插件（推荐）
+#### 方式一：OpenClaw（推荐）
 
 ```bash
-export SYNAPSE_URL="http://localhost:3000"
-export SYNAPSE_API_KEY="syn_your_api_key"
+openclaw plugins install @vincentwei1021/synapse-openclaw-plugin
+```
 
+在 OpenClaw 设置中配置 `synapseUrl` 和 `apiKey`。
+
+#### 方式二：Claude Code 插件
+
+```bash
 claude
 /plugin marketplace add Vincentwei1021/Synapse
 /plugin install synapse@synapse-plugins
 ```
 
-#### 方式二：手动 MCP 配置
+设置环境变量：
+```bash
+export SYNAPSE_URL="http://localhost:3000"
+export SYNAPSE_API_KEY="syn_your_api_key"
+```
+
+#### 方式三：手动 MCP 配置
 
 在项目根目录创建 `.mcp.json`：
 

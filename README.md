@@ -130,23 +130,29 @@ open http://localhost:3000
 
 ### Connect AI Agents
 
-#### Option 1: OpenClaw Plugin (Recommended)
-
-Set environment variables:
+#### Option 1: OpenClaw (Recommended)
 
 ```bash
-export SYNAPSE_URL="http://localhost:3000"
-export SYNAPSE_API_KEY="syn_your_api_key"
+openclaw plugins install @vincentwei1021/synapse-openclaw-plugin
 ```
 
-Install from Plugin Marketplace:
+Then configure in OpenClaw settings: set `synapseUrl` and `apiKey`.
+
+#### Option 2: Claude Code Plugin
+
 ```bash
 claude
 /plugin marketplace add Vincentwei1021/Synapse
 /plugin install synapse@synapse-plugins
 ```
 
-#### Option 2: Manual MCP Configuration
+Set environment variables:
+```bash
+export SYNAPSE_URL="http://localhost:3000"
+export SYNAPSE_API_KEY="syn_your_api_key"
+```
+
+#### Option 3: Manual MCP Configuration
 
 Create `.mcp.json` in your project root:
 
