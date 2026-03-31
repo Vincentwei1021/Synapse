@@ -102,6 +102,7 @@ export function ExperimentsBoard({
   const router = useRouter();
   const [assignments, setAssignments] = useState<Record<string, string>>({});
   const [selectedExperimentUuid, setSelectedExperimentUuid] = useState<string | null>(initialSelectedExperimentUuid);
+  const [dismissed, setDismissed] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [progressLogs, setProgressLogs] = useState<Array<{uuid: string; message: string; phase: string | null; createdAt: string}>>([]);
   const [loopEnabled, setLoopEnabled] = useState(autonomousLoopEnabled);
@@ -120,12 +121,13 @@ export function ExperimentsBoard({
   }
 
   useEffect(() => {
+    if (dismissed) return;
     if (!experiments.some((experiment) => experiment.uuid === selectedExperimentUuid)) {
       setSelectedExperimentUuid(initialSelectedExperimentUuid && experiments.some((experiment) => experiment.uuid === initialSelectedExperimentUuid)
         ? initialSelectedExperimentUuid
         : null);
     }
-  }, [experiments, initialSelectedExperimentUuid, selectedExperimentUuid]);
+  }, [experiments, initialSelectedExperimentUuid, selectedExperimentUuid, dismissed]);
 
   useEffect(() => {
     if (!selectedExperimentUuid) {
@@ -396,11 +398,11 @@ export function ExperimentsBoard({
                       key={experiment.uuid}
                       role="button"
                       tabIndex={0}
-                      onClick={() => setSelectedExperimentUuid(experiment.uuid)}
+                      onClick={() => { setSelectedExperimentUuid(experiment.uuid); setDismissed(false); }}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
-                          setSelectedExperimentUuid(experiment.uuid);
+                          { setSelectedExperimentUuid(experiment.uuid); setDismissed(false); };
                         }
                       }}
                       className="space-y-3 rounded-2xl border-border bg-card p-3.5 text-left shadow-none transition-colors hover:border-primary/30"
@@ -445,7 +447,7 @@ export function ExperimentsBoard({
         </div>
       </div>
 
-      <Sheet open={Boolean(selectedExperiment)} onOpenChange={(open) => !open && setSelectedExperimentUuid(null)}>
+      <Sheet open={Boolean(selectedExperiment)} onOpenChange={(open) => { if (!open) { setSelectedExperimentUuid(null); setDismissed(true); } }}>
         <SheetContent side="right" className="w-full sm:max-w-[560px]">
           {selectedExperiment ? (
             <div className="h-full overflow-y-auto">
