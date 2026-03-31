@@ -94,7 +94,8 @@ export async function fetchArxivMetadata(url: string): Promise<{
   abstract: string;
   arxivId: string;
 } | null> {
-  const match = url.match(/arxiv\.org\/abs\/([0-9]+\.[0-9]+)/);
+  // Support /abs/, /pdf/, /html/ and other arXiv URL formats
+  const match = url.match(/arxiv\.org\/(?:abs|pdf|html)\/([0-9]+\.[0-9]+)/);
   if (!match) return null;
   const arxivId = match[1];
 

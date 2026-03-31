@@ -126,9 +126,9 @@ export function RelatedWorksClient({
 
   // --- URL metadata fetch (client-side arXiv API) ---
   const handleUrlBlur = useCallback(async () => {
-    if (!paperUrl || !paperUrl.includes("arxiv.org/abs/")) return;
+    if (!paperUrl || !paperUrl.includes("arxiv.org/")) return;
     if (paperTitle) return; // Already populated
-    const match = paperUrl.match(/arxiv\.org\/abs\/([0-9]+\.[0-9]+)/);
+    const match = paperUrl.match(/arxiv\.org\/(?:abs|pdf|html)\/([0-9]+\.[0-9]+)/);
     if (!match) return;
     setFetchingMeta(true);
     try {
