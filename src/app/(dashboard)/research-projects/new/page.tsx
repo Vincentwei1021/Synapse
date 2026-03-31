@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +32,11 @@ interface ComputePool {
   name: string;
 }
 
+interface ProjectGroup {
+  uuid: string;
+  name: string;
+}
+
 interface UploadedFile {
   name: string;
   size: number;
@@ -41,6 +46,8 @@ interface UploadedFile {
 export default function NewProjectPage() {
   const t = useTranslations();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const defaultGroupUuid = searchParams.get("groupUuid") || null;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,8 +57,10 @@ export default function NewProjectPage() {
     datasets: "",
     evaluationMethods: "",
     computePoolUuid: null as string | null,
+    groupUuid: defaultGroupUuid,
   });
   const [pools, setPools] = useState<ComputePool[]>([]);
+  const [groups, setGroups] = useState<ProjectGroup[]>([]);
   const [ideas, setIdeas] = useState<string[]>([""]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
@@ -67,6 +76,16 @@ export default function NewProjectPage() {
       })
       .catch(() => {
         // Pools are optional; ignore fetch errors
+      });
+
+    fetch("/api/project-groups")
+      .then((res) => res.json())
+      .then((data) => {
+        const groups = data?.data ?? [];
+        if (groups.length) setGroups(groups);
+      })
+      .catch(() => {
+        // Groups are optional; ignore fetch errors
       });
   }, []);
 
@@ -169,6 +188,7 @@ export default function NewProjectPage() {
           .map((item) => item.trim())
           .filter(Boolean),
         computePoolUuid: formData.computePoolUuid,
+        groupUuid: formData.groupUuid,
         ideas: ideas,
         documents,
       });
@@ -313,23 +333,44 @@ export default function NewProjectPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="computePoolUuid">{t("projects.createNew.computePool")}</Label>
-                <select
-                  id="computePoolUuid"
-                  value={formData.computePoolUuid || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, computePoolUuid: e.target.value || null })
-                  }
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
-                >
-                  <option value="">{t("projects.createNew.noComputePool")}</option>
-                  {pools.map((pool) => (
-                    <option key={pool.uuid} value={pool.uuid}>
-                      {pool.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="groupUuid">{t("projects.createNew.group")}</Label>
+                  <select
+                    id="groupUuid"
+                    value={formData.groupUuid || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, groupUuid: e.target.value || null })
+                    }
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                  >
+                    <option value="">{t("projects.createNew.noGroup")}</option>
+                    {groups.map((group) => (
+                      <option key={group.uuid} value={group.uuid}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="computePoolUuid">{t("projects.createNew.computePool")}</Label>
+                  <select
+                    id="computePoolUuid"
+                    value={formData.computePoolUuid || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, computePoolUuid: e.target.value || null })
+                    }
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                  >
+                    <option value="">{t("projects.createNew.noComputePool")}</option>
+                    {pools.map((pool) => (
+                      <option key={pool.uuid} value={pool.uuid}>
+                        {pool.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </CardContent>
           </Card>

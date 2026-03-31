@@ -709,6 +709,8 @@
     "typeDesign": "设计文档",
     "typeNote": "笔记",
     "typeOther": "其他",
+    "typeExperimentResult": "实验结果",
+    "typeAnalysis": "分析",
     "typeLiteratureReview": "文献综述",
     "typeMethodology": "方法论",
     "typeRdr": "研究决策记录",
@@ -1415,6 +1417,8 @@
       "documentsDesc": "上传项目简报、规范或相关资料，帮助后续实验有据可依。",
       "dragDrop": "拖拽文件到这里，或点击上传",
       "fileTypes": "支持 PDF、DOCX、TXT 和 Markdown 文件",
+      "group": "分组",
+      "noGroup": "不分组",
       "createResearchProject": "创建研究项目"
     }
   },

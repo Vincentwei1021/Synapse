@@ -36,7 +36,7 @@ export function CreateDocumentDialog({ projectUuid, trigger }: CreateDocumentDia
 
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [type, setType] = useState("prd");
+  const [type, setType] = useState("experiment_result");
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export function CreateDocumentDialog({ projectUuid, trigger }: CreateDocumentDia
 
   const resetForm = () => {
     setTitle("");
-    setType("prd");
+    setType("experiment_result");
     setFileName(null);
     setFileContent("");
     setError(null);
@@ -148,11 +148,12 @@ export function CreateDocumentDialog({ projectUuid, trigger }: CreateDocumentDia
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="prd">PRD</SelectItem>
-                <SelectItem value="spec">Spec</SelectItem>
-                <SelectItem value="design">Design</SelectItem>
-                <SelectItem value="note">Note</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="experiment_result">{t("documents.typeExperimentResult")}</SelectItem>
+                <SelectItem value="literature_review">{t("documents.typeLiteratureReview")}</SelectItem>
+                <SelectItem value="analysis">{t("documents.typeAnalysis")}</SelectItem>
+                <SelectItem value="methodology">{t("documents.typeMethodology")}</SelectItem>
+                <SelectItem value="note">{t("documents.typeNote")}</SelectItem>
+                <SelectItem value="other">{t("documents.typeOther")}</SelectItem>
               </SelectContent>
             </Select>
           </div>

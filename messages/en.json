@@ -709,6 +709,8 @@
     "typeDesign": "Design",
     "typeNote": "Note",
     "typeOther": "Other",
+    "typeExperimentResult": "Experiment Result",
+    "typeAnalysis": "Analysis",
     "typeLiteratureReview": "Literature Review",
     "typeMethodology": "Methodology",
     "typeRdr": "Research Decision Record",
@@ -1415,6 +1417,8 @@
       "documentsDesc": "Upload briefs, specs, or related material to ground the project.",
       "dragDrop": "Drag files here or click to upload",
       "fileTypes": "Supports PDF, DOCX, TXT, and Markdown files",
+      "group": "Group",
+      "noGroup": "No group (ungrouped)",
       "createResearchProject": "Create research project"
     }
   },

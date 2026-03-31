@@ -624,13 +624,13 @@ export function ResearchQuestionsBoard({
                 <div className="space-y-3">
                   {selectedExperiments.map((experiment) => (
                     <div key={experiment.uuid} className="rounded-2xl border border-border bg-background px-4 py-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{experiment.title}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">{statusLabelForExperiment(t, experiment)}</p>
-                        </div>
-                        {experiment.outcome ? <Badge variant="outline">{experiment.outcome}</Badge> : null}
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-foreground truncate">{experiment.title}</p>
+                        <Badge variant="outline" className="shrink-0">{statusLabelForExperiment(t, experiment)}</Badge>
                       </div>
+                      {experiment.assignee ? (
+                        <p className="mt-1 text-xs text-muted-foreground">{experiment.assignee.name}</p>
+                      ) : null}
                     </div>
                   ))}
                 </div>

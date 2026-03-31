@@ -409,7 +409,7 @@ export function GroupSection({
                     className="w-full border-border text-xs md:w-auto"
                     asChild
                   >
-                    <Link href="/research-projects/new">
+                    <Link href={`/research-projects/new?groupUuid=${group.uuid}`}>
                       <Plus className="mr-1 h-3 w-3" />
                       {t("projects.newProject")}
                     </Link>
