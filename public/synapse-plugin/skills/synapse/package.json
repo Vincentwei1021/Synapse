@@ -1,31 +1,30 @@
 {
   "name": "synapse",
-  "version": "0.2.0",
-  "description": "Synapse AI Agent collaboration platform skill for Claude Code. Supports Research Lead, Researcher, and PI roles via MCP tools for the Research Question-Experiment Design-Experiment Run workflow.",
-  "author": "synapse",
+  "version": "0.5.0",
+  "description": "Synapse research orchestration platform skill for Claude Code. Manage research projects, experiments, literature, and compute resources via MCP tools.",
+  "author": "Vincentwei1021",
   "license": "AGPL-3.0",
   "keywords": [
     "synapse",
     "skill",
-    "project-management",
+    "research",
     "ai-agent",
     "mcp",
-    "pm",
-    "developer",
-    "admin",
+    "experiments",
+    "compute",
     "collaboration",
     "claude-code"
   ],
   "synapse": {
-    "category": "project-management",
+    "category": "research",
     "mcp_server": "synapse",
     "files": {
       "SKILL.md": "SKILL.md",
       "references/00-common-tools.md": "references/00-common-tools.md",
       "references/01-setup.md": "references/01-setup.md",
-      "references/02-pm-workflow.md": "references/02-pm-workflow.md",
-      "references/03-developer-workflow.md": "references/03-developer-workflow.md",
-      "references/04-admin-workflow.md": "references/04-admin-workflow.md",
+      "references/02-research-workflow.md": "references/02-research-workflow.md",
+      "references/03-experiment-workflow.md": "references/03-experiment-workflow.md",
+      "references/04-autonomous-loop.md": "references/04-autonomous-loop.md",
       "references/05-session-sub-agent.md": "references/05-session-sub-agent.md",
       "references/06-claude-code-agent-teams.md": "references/06-claude-code-agent-teams.md"
     },
@@ -35,18 +34,14 @@
     "triggers": [
       "synapse",
       "checkin",
-      "claim experiment run",
-      "claim research question",
-      "create experiment design",
-      "submit experiment design",
-      "verify experiment run",
-      "approve experiment design",
-      "project management",
-      "report work",
+      "research project",
+      "experiment",
+      "research question",
+      "compute",
+      "literature",
+      "propose experiment",
       "session",
-      "sub-agent",
-      "swarm",
-      "worker"
+      "sub-agent"
     ]
   }
 }

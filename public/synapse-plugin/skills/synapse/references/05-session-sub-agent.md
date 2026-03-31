@@ -1,98 +1,68 @@
-# Session & Agent Observability
+# Session and Agent Observability
 
 ## Overview
 
-The Synapse Session mechanism tracks **which agent is currently working on which experiment run**. Session data powers the UI observability features: Kanban board worker badges, Run Detail panel active workers, Settings page session list.
+Synapse sessions track which agent is currently working on which task. Session data powers UI features: active worker indicators, activity attribution, and the Settings page session list.
 
-**Sessions are exclusively for sub-agents.** The main agent (Team Lead) does NOT need a session — it works with Synapse tools directly without `sessionUuid`. The Synapse Plugin fully automates sub-agent session lifecycle — you never need to manually create, close, or reopen sessions.
+Sessions are primarily useful in multi-agent setups where sub-agents work in parallel.
 
-### Core Concepts
+---
+
+## Session Lifecycle
 
 ```
-Main Agent (no session needed):
-  Agent ──> synapse_claim_experiment_run, synapse_update_experiment_run, synapse_report_work (no sessionUuid)
-
-Multi-Agent / Swarm Mode (sub-agents get sessions):
-  Main Agent (Team Lead) — no session
-    ├── Sub-Agent A ──> Session (auto) ──checkin──> Run A
-    ├── Sub-Agent B ──> Session (auto) ──checkin──> Run B
-    └── Sub-Agent C ──> Session (auto) ──checkin──> Run A, Run B
+active --(no heartbeat 1h)--> inactive --(heartbeat)--> active
+  \                              \
+   \-- (close) -->                \-- (close) --> closed --(reopen)--> active
 ```
 
-- **Agent** = A Synapse identity (has API Key, role, persona)
-- **Session** = A work unit for a **sub-agent** (one session per worker, auto-created by plugin)
-- **Checkin** = Session declares it is working on a specific Experiment Run (sub-agents only)
-- **Heartbeat** = Periodic signal indicating the worker is still active (auto-sent by plugin's TeammateIdle hook)
+| Status | Meaning |
+|--------|---------|
+| `active` | Agent is working (green indicator) |
+| `inactive` | No heartbeat for over 1 hour (yellow indicator) |
+| `closed` | Session ended (gray indicator) |
 
-### Plugin Automation
+---
+
+## Session Tools
+
+| Tool | Purpose |
+|------|---------|
+| `synapse_create_session` | Create a named session |
+| `synapse_list_sessions` | List sessions for current agent |
+| `synapse_get_session` | Get session details |
+| `synapse_close_session` | Close a session |
+| `synapse_session_heartbeat` | Send heartbeat to keep session active |
+
+---
+
+## Single Agent vs Multi-Agent
+
+**Single agent (no sub-agents):** Sessions are optional. You can call Synapse tools directly without creating a session.
+
+**Multi-agent / sub-agents:** Each sub-agent should create its own session for observability. The Synapse Plugin automates this:
 
 | Event | Plugin Hook | What Happens |
 |-------|------------|--------------|
-| Sub-agent spawned | `SubagentStart` | Creates (or reuses) a Synapse Session, injects session UUID + workflow into sub-agent context |
-| Sub-agent idle | `TeammateIdle` | Sends `synapse_session_heartbeat` to keep session active |
-| Sub-agent exits | `SubagentStop` | Checks out all experiment runs + closes the session |
-
-**What sub-agents still do manually:**
-- `synapse_session_checkin_experiment_run` — before starting work on an experiment run
-- `synapse_session_checkout_experiment_run` — when done with an experiment run
-- Pass `sessionUuid` to `synapse_update_experiment_run` and `synapse_report_work` for attribution
-
-**Main agent / Team Lead:** No session tools needed. Call `synapse_update_experiment_run` and `synapse_report_work` without `sessionUuid`.
-
-### Mapping to Claude Code Agent Teams
-
-| Claude Code Concept | Synapse Concept | Description |
-|---------------------|----------------|-------------|
-| Single Agent (main) | Agent, no session | Works directly with Synapse tools, no sessionUuid needed |
-| Team Lead Agent | Main Agent | Assigns work to sub-agents; does NOT manage sessions |
-| Spawned Sub-Agent | Session (auto-created) | Each sub-agent gets its own session automatically |
-| Sub-Agent's Experiment Run | Session Checkin | Sub-agent checks in to the experiment run it is working on |
-| Sub-Agent exits | Session Close (auto) | Plugin closes session, auto-checks out all experiment runs |
+| Sub-agent spawned | `SubagentStart` | Creates or reuses a session, injects session UUID into context |
+| Sub-agent idle | `TeammateIdle` | Sends `synapse_session_heartbeat` |
+| Sub-agent exits | `SubagentStop` | Closes the session |
 
 ---
 
-## Session Status Lifecycle
+## MCP Connection Sessions
 
-```
-active ──(1h no heartbeat)──> inactive ──(heartbeat)──> active
-  \                              \
-   \── (exit) ──>                 \── (exit) ──> closed ──(respawn)──> active
-```
+The MCP transport also has its own connection-level session:
+- Expires after 30 minutes of inactivity (sliding window)
+- Each MCP request automatically renews the session
+- Server restart clears all connection sessions (plugin auto-reconnects)
 
-| Status | Meaning | UI Indicator |
-|--------|---------|-------------|
-| `active` | Worker is actively working | Green dot |
-| `inactive` | No heartbeat for over 1 hour | Yellow dot |
-| `closed` | Session has ended (auto-reopened if sub-agent respawns with same name) | Gray dot |
-
----
-
-## Session-Enhanced Tools
-
-The following tools accept an optional `sessionUuid` parameter — **sub-agents should always pass it** for proper attribution (main agent can omit it):
-
-| Tool | Session Behavior |
-|------|-----------------|
-| `synapse_update_experiment_run` | Activity record includes session attribution, auto-heartbeat |
-| `synapse_report_work` | Activity record includes session attribution, auto-heartbeat |
-
----
-
-## UI Observability
-
-Session data is visible in the following UI locations:
-
-1. **Settings page** — Expand "Sessions" under an Agent card to see all session statuses and experiment-run counts
-2. **Kanban board** — In Progress cards display a worker count badge (e.g., "2 workers")
-3. **Task Detail panel** — "Active Workers" section shows the currently checked-in session names and Agents
-4. **Activity stream** — Operations with sessions display "AgentName / SessionName" attribution format
+This is separate from Synapse agent sessions described above.
 
 ---
 
 ## Tips
 
-- **Use meaningful sub-agent names** — The sub-agent `name` parameter (e.g., `frontend-worker`, `api-worker`) becomes the Synapse session name. Use descriptive names.
-- **Experiment-run status ownership** — Only the sub-agent checked into an experiment run should update that run's status. The Team Lead should not move runs on behalf of sub-agents.
-- **report_work includes auto-heartbeat** — Calling `synapse_report_work` with `sessionUuid` automatically updates the heartbeat.
-- **A session can check in to multiple experiment runs** — If a worker handles multiple related runs simultaneously, it can check in to all of them.
-- **Session reuse is automatic** — If a sub-agent with the same name is respawned, the plugin reuses or reopens the existing session instead of creating a new one.
+- **Use descriptive session names** -- e.g., `training-worker`, `eval-worker` rather than generic names
+- **Session reuse is automatic** -- if a sub-agent with the same name is respawned, the plugin reuses the existing session
+- **Heartbeats are automatic** -- the plugin sends heartbeats via the `TeammateIdle` hook; no manual heartbeats needed in normal operation
