@@ -257,6 +257,11 @@ function canActOnAssignedExperiment(
     return true;
   }
 
+  // Users can always act on agent-assigned experiments (human oversight)
+  if (actorType === "user" && experiment.assigneeType === "agent") {
+    return true;
+  }
+
   return actorType === "agent" && experiment.assigneeType === "user" && ownerUuid === experiment.assigneeUuid;
 }
 
