@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Synapse — Research Orchestration for Humans & AI Agents</title>
 <meta name="description" content="Synapse is a research orchestration platform where human researchers and AI agents collaborate on the full research lifecycle — from literature review to experiment execution and report generation.">
+<meta property="og:title" content="Synapse — Research Orchestration for Humans & AI Agents">
+<meta property="og:description" content="Orchestrate the full AI research lifecycle with AI agents as your research partners.">
+<meta property="og:image" content="https://raw.githubusercontent.com/Vincentwei1021/Synapse/main/public/synapse-icon.png">
+<meta property="og:type" content="website">
 <link rel="icon" href="https://raw.githubusercontent.com/Vincentwei1021/Synapse/main/public/synapse-icon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,24 +17,44 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 :root {
-  --bg: #faf9f7;
-  --bg-elevated: #fff;
+  --bg: #FAF9F7;
+  --bg-elevated: #ffffff;
+  --bg-dark: #1e1e2e;
+  --bg-dark-elevated: #282840;
   --text-primary: #1a1a1a;
   --text-secondary: #5a5a5a;
   --text-tertiary: #8a8a8a;
-  --accent: #c67a52;
+  --accent: #C67A52;
+  --accent-dark: #A8613D;
   --accent-light: #e8a882;
   --accent-bg: #fdf3ed;
-  --teal: #2a9d8f;
+  --teal: #2A9D8F;
+  --teal-dark: #228176;
   --teal-bg: #e8f6f4;
+  --violet: #6b5ce7;
+  --violet-bg: #f0eef8;
   --rose: #e76f6f;
   --rose-bg: #fdf0f0;
+  --blue: #4A90D9;
+  --blue-bg: #eaf2fb;
   --border: #e8e4df;
+  --border-light: #f0ece7;
   --code-bg: #1e1e2e;
   --code-text: #cdd6f4;
+  --code-green: #a6e3a1;
+  --code-blue: #89b4fa;
+  --code-orange: #fab387;
+  --code-comment: #6c7086;
   --radius: 16px;
-  --font-display: 'Space Grotesk', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
+  --radius-sm: 10px;
+  --radius-lg: 24px;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+  --shadow-xl: 0 24px 64px rgba(0,0,0,0.1), 0 8px 20px rgba(0,0,0,0.06);
 }
 
 html { scroll-behavior: smooth; }
@@ -41,8 +65,11 @@ body {
   background: var(--bg);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
 }
+
+a { color: inherit; }
 
 /* ─── Layout ─── */
 .container {
@@ -51,16 +78,28 @@ body {
   padding: 0 clamp(20px, 5vw, 48px);
 }
 
-/* ─── Nav ─── */
+.container-narrow {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 48px);
+}
+
+/* ─── Fixed Nav ─── */
 nav {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 100;
-  background: rgba(250, 249, 247, 0.85);
-  backdrop-filter: blur(20px);
+  background: rgba(250, 249, 247, 0.82);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border-bottom: 1px solid var(--border);
+  transition: box-shadow 0.3s ease;
+}
+
+nav.scrolled {
+  box-shadow: var(--shadow-sm);
 }
 
 .nav-inner {
@@ -81,19 +120,19 @@ nav {
   color: var(--text-primary);
 }
 
-.nav-logo img { width: 32px; height: 32px; }
+.nav-logo img { width: 32px; height: 32px; border-radius: 6px; }
 
 .nav-logo span {
   font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 18px;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: -0.03em;
 }
 
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 8px;
   list-style: none;
 }
 
@@ -102,10 +141,15 @@ nav {
   color: var(--text-secondary);
   font-size: 14px;
   font-weight: 500;
-  transition: color 0.2s;
+  padding: 6px 14px;
+  border-radius: 8px;
+  transition: color 0.2s, background 0.2s;
 }
 
-.nav-links a:hover { color: var(--text-primary); }
+.nav-links a:hover {
+  color: var(--text-primary);
+  background: rgba(0,0,0,0.03);
+}
 
 .nav-cta {
   display: inline-flex;
@@ -114,96 +158,32 @@ nav {
   padding: 8px 20px;
   background: var(--text-primary);
   color: var(--bg) !important;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   transition: transform 0.2s, box-shadow 0.2s;
+  text-decoration: none;
 }
 
 .nav-cta:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  background: #2a2a2a;
 }
 
-/* ─── Hero ─── */
-.hero {
-  padding: clamp(120px, 15vh, 180px) 0 clamp(60px, 10vh, 120px);
-  text-align: center;
-  position: relative;
+.nav-cta svg { flex-shrink: 0; }
+
+/* Mobile menu */
+.nav-mobile-btn {
+  display: none;
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--text-primary);
 }
 
-.hero::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 800px;
-  height: 800px;
-  background: radial-gradient(circle, rgba(198,122,82,0.06) 0%, transparent 70%);
-  pointer-events: none;
-}
-
-.hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 16px;
-  background: var(--accent-bg);
-  border: 1px solid rgba(198,122,82,0.2);
-  border-radius: 100px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--accent);
-  margin-bottom: 32px;
-}
-
-.hero-badge .dot {
-  width: 6px;
-  height: 6px;
-  background: var(--accent);
-  border-radius: 50%;
-  animation: pulse 2s ease infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-.hero h1 {
-  font-family: var(--font-display);
-  font-size: clamp(40px, 6vw, 72px);
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -0.03em;
-  max-width: 800px;
-  margin: 0 auto 24px;
-}
-
-.hero h1 .highlight {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--teal) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.hero p {
-  font-size: clamp(16px, 2vw, 20px);
-  color: var(--text-secondary);
-  max-width: 600px;
-  margin: 0 auto 40px;
-  line-height: 1.7;
-}
-
-.hero-actions {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
+/* ─── Buttons ─── */
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -215,7 +195,10 @@ nav {
   text-decoration: none;
   font-size: 15px;
   font-weight: 600;
+  font-family: var(--font-body);
   transition: all 0.25s ease;
+  border: none;
+  cursor: pointer;
 }
 
 .btn-primary:hover {
@@ -235,127 +218,407 @@ nav {
   text-decoration: none;
   font-size: 15px;
   font-weight: 500;
+  font-family: var(--font-body);
   transition: all 0.25s ease;
+  cursor: pointer;
 }
 
 .btn-secondary:hover {
   border-color: var(--text-secondary);
   background: var(--bg-elevated);
+  transform: translateY(-1px);
 }
 
-/* ─── Code install ─── */
-.install-block {
-  max-width: 520px;
-  margin: 48px auto 0;
-  background: var(--code-bg);
-  border-radius: 12px;
-  padding: 16px 24px;
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  font-size: 14px;
-  color: var(--code-text);
-  display: flex;
+.btn-accent {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.install-block code { opacity: 0.9; }
-.install-block .prefix { color: var(--teal); }
-
-.copy-btn {
-  background: none;
+  gap: 8px;
+  padding: 14px 28px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 12px;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  transition: all 0.25s ease;
   border: none;
-  color: var(--text-tertiary);
   cursor: pointer;
-  padding: 4px;
-  transition: color 0.2s;
 }
 
-.copy-btn:hover { color: var(--code-text); }
+.btn-accent:hover {
+  background: var(--accent-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(198,122,82,0.25);
+}
 
-/* ─── Section ─── */
-section { padding: clamp(60px, 10vh, 100px) 0; }
+/* ─── Section base ─── */
+section { padding: clamp(72px, 12vh, 120px) 0; }
 
 .section-label {
   font-family: var(--font-display);
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   color: var(--accent);
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .section-title {
   font-family: var(--font-display);
-  font-size: clamp(28px, 4vw, 44px);
+  font-size: clamp(30px, 4.5vw, 48px);
   font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.025em;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
   margin-bottom: 16px;
 }
 
 .section-desc {
   font-size: 17px;
   color: var(--text-secondary);
-  max-width: 560px;
+  max-width: 580px;
   line-height: 1.7;
 }
 
-/* ─── Workflow ─── */
-.workflow-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2px;
-  margin-top: 56px;
-  background: var(--border);
-  border-radius: var(--radius);
+/* ─── HERO ─── */
+.hero {
+  padding: clamp(130px, 18vh, 200px) 0 clamp(60px, 8vh, 100px);
+  text-align: center;
+  position: relative;
   overflow: hidden;
 }
 
-.workflow-step {
-  background: var(--bg-elevated);
-  padding: 36px 28px;
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1000px;
+  height: 1000px;
+  background: radial-gradient(ellipse at center, rgba(198,122,82,0.07) 0%, rgba(42,157,143,0.03) 40%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  top: 60%;
+  right: -200px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(42,157,143,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 18px;
+  background: var(--accent-bg);
+  border: 1px solid rgba(198,122,82,0.18);
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  margin-bottom: 36px;
+}
+
+.hero-badge .dot {
+  width: 7px;
+  height: 7px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: pulse 2s ease infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(38px, 6vw, 72px);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.035em;
+  max-width: 820px;
+  margin: 0 auto 28px;
+}
+
+.hero h1 .highlight {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--teal) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-subtitle {
+  font-size: clamp(16px, 2vw, 20px);
+  color: var(--text-secondary);
+  max-width: 620px;
+  margin: 0 auto 44px;
+  line-height: 1.7;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 48px;
+}
+
+/* ─── Pipeline Visual ─── */
+.pipeline {
+  max-width: 860px;
+  margin: 0 auto 48px;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
   position: relative;
 }
 
-.workflow-step .step-num {
-  font-family: var(--font-display);
-  font-size: 48px;
-  font-weight: 700;
-  color: var(--border);
-  line-height: 1;
-  margin-bottom: 16px;
+.pipeline-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  padding: 0 8px;
 }
 
-.workflow-step h3 {
+.pipeline-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 2;
+  box-shadow: var(--shadow-sm);
+}
+
+.pipeline-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 28px;
+  left: calc(50% + 32px);
+  right: calc(-50% + 32px);
+  height: 2px;
+  background: var(--border);
+  z-index: 1;
+}
+
+.pipeline-label {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   letter-spacing: -0.01em;
 }
 
-.workflow-step p {
-  font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-
-.workflow-step .role-tag {
+.pipeline-role {
   display: inline-block;
-  margin-top: 16px;
-  padding: 4px 12px;
+  padding: 2px 10px;
   border-radius: 100px;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .role-human { background: var(--teal-bg); color: var(--teal); }
 .role-agent { background: var(--accent-bg); color: var(--accent); }
-.role-both { background: #f0eef8; color: #6b5ce7; }
+.role-both { background: var(--violet-bg); color: var(--violet); }
 
-/* ─── Features ─── */
+/* ─── Install Block ─── */
+.install-block {
+  max-width: 540px;
+  margin: 0 auto;
+  background: var(--code-bg);
+  border-radius: 12px;
+  padding: 16px 24px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--code-text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: var(--shadow-lg);
+}
+
+.install-block code { opacity: 0.92; white-space: nowrap; }
+.install-block .prefix { color: var(--teal); margin-right: 8px; }
+
+.copy-btn {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.copy-btn:hover { color: var(--code-text); background: rgba(255,255,255,0.08); }
+.copy-btn.copied { color: var(--code-green); }
+
+/* ─── HOW IT WORKS — Reversed Conversation ─── */
+.how-it-works {
+  background: var(--bg-dark);
+  color: #fff;
+  padding: clamp(80px, 12vh, 140px) 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.how-it-works::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  right: -100px;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(198,122,82,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.how-it-works .section-label { color: var(--accent-light); }
+
+.how-it-works .section-title {
+  color: #fff;
+  max-width: 500px;
+}
+
+.how-it-works .section-desc {
+  color: rgba(255,255,255,0.6);
+  max-width: 480px;
+}
+
+.how-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  margin-top: 56px;
+  align-items: start;
+}
+
+.how-column h3 {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.how-column h3 .tag {
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.tag-old { background: rgba(231,111,111,0.15); color: #e76f6f; }
+.tag-new { background: rgba(42,157,143,0.15); color: #5fd4c4; }
+
+.chat-bubbles {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.chat-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.chat-row.right {
+  flex-direction: row-reverse;
+}
+
+.chat-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.avatar-human { background: var(--teal); color: #fff; }
+.avatar-agent { background: var(--accent); color: #fff; }
+
+.chat-bubble {
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  max-width: 280px;
+}
+
+.bubble-human {
+  background: rgba(42,157,143,0.12);
+  color: rgba(255,255,255,0.9);
+  border-bottom-left-radius: 4px;
+}
+
+.bubble-agent {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.85);
+  border-bottom-right-radius: 4px;
+}
+
+.bubble-dim {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.45);
+}
+
+.how-divider {
+  width: 1px;
+  background: rgba(255,255,255,0.08);
+  align-self: stretch;
+}
+
+.how-highlight {
+  margin-top: 28px;
+  padding: 16px 20px;
+  background: rgba(42,157,143,0.08);
+  border: 1px solid rgba(42,157,143,0.15);
+  border-radius: 12px;
+  font-size: 14px;
+  color: rgba(255,255,255,0.75);
+  line-height: 1.6;
+}
+
+.how-highlight strong {
+  color: #5fd4c4;
+  font-weight: 600;
+}
+
+/* ─── Features Grid ─── */
 .features-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -364,36 +627,58 @@ section { padding: clamp(60px, 10vh, 100px) 0; }
 }
 
 .feature-card {
-  padding: 32px;
+  padding: 36px 32px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .feature-card:hover {
-  border-color: var(--accent);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(198,122,82,0.08);
+  border-color: transparent;
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
 }
 
+.feature-card:hover::before { opacity: 1; }
+
+.feature-card:nth-child(1)::before { background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
+.feature-card:nth-child(2)::before { background: linear-gradient(90deg, var(--teal), #5fd4c4); }
+.feature-card:nth-child(3)::before { background: linear-gradient(90deg, var(--violet), #9b8ef0); }
+.feature-card:nth-child(4)::before { background: linear-gradient(90deg, var(--blue), #7ab3e8); }
+.feature-card:nth-child(5)::before { background: linear-gradient(90deg, var(--rose), #f09090); }
+.feature-card:nth-child(6)::before { background: linear-gradient(90deg, var(--accent), var(--teal)); }
+
 .feature-icon {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  margin-bottom: 20px;
+  font-size: 22px;
+  margin-bottom: 22px;
 }
 
 .feature-card h3 {
   font-family: var(--font-display);
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 600;
-  margin-bottom: 8px;
-  letter-spacing: -0.01em;
+  margin-bottom: 10px;
+  letter-spacing: -0.015em;
 }
 
 .feature-card p {
@@ -402,8 +687,28 @@ section { padding: clamp(60px, 10vh, 100px) 0; }
   line-height: 1.65;
 }
 
-/* ─── Permissions ─── */
-.permissions-section { background: var(--bg-elevated); }
+/* Feature card — status badges mockup */
+.status-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.status-badge {
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* ─── Agent Permissions ─── */
+.permissions-section {
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
+}
 
 .perm-grid {
   display: grid;
@@ -413,18 +718,24 @@ section { padding: clamp(60px, 10vh, 100px) 0; }
 }
 
 .perm-card {
-  padding: 28px 24px;
+  padding: 32px 24px 28px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   text-align: center;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  background: var(--bg);
+  position: relative;
 }
 
-.perm-card:hover { border-color: var(--accent); }
+.perm-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
 
-.perm-card .perm-emoji {
-  font-size: 32px;
-  margin-bottom: 16px;
+.perm-emoji {
+  font-size: 36px;
+  margin-bottom: 18px;
   display: block;
 }
 
@@ -432,7 +743,8 @@ section { padding: clamp(60px, 10vh, 100px) 0; }
   font-family: var(--font-display);
   font-size: 16px;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
 }
 
 .perm-card p {
@@ -441,36 +753,378 @@ section { padding: clamp(60px, 10vh, 100px) 0; }
   line-height: 1.6;
 }
 
-/* ─── CTA ─── */
+.perm-code {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 3px 10px;
+  background: var(--code-bg);
+  color: var(--code-text);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.perm-note {
+  text-align: center;
+  margin-top: 28px;
+  font-size: 14px;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* ─── Workflow Timeline ─── */
+.workflow-timeline {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  margin-top: 64px;
+  position: relative;
+}
+
+.workflow-timeline::before {
+  content: '';
+  position: absolute;
+  top: 28px;
+  left: 48px;
+  right: 48px;
+  height: 2px;
+  background: var(--border);
+  z-index: 0;
+}
+
+.timeline-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  padding: 0 12px;
+}
+
+.timeline-num {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 18px;
+  position: relative;
+  z-index: 2;
+  box-shadow: var(--shadow-sm);
+}
+
+.timeline-step:nth-child(1) .timeline-num { background: var(--teal-bg); color: var(--teal); border: 2px solid var(--teal); }
+.timeline-step:nth-child(2) .timeline-num { background: var(--accent-bg); color: var(--accent); border: 2px solid var(--accent); }
+.timeline-step:nth-child(3) .timeline-num { background: var(--violet-bg); color: var(--violet); border: 2px solid var(--violet); }
+.timeline-step:nth-child(4) .timeline-num { background: var(--accent-bg); color: var(--accent); border: 2px solid var(--accent); }
+.timeline-step:nth-child(5) .timeline-num { background: var(--accent-bg); color: var(--accent); border: 2px solid var(--accent); }
+
+.timeline-step h3 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+
+.timeline-step p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  max-width: 160px;
+}
+
+.timeline-step .pipeline-role {
+  margin-top: 10px;
+}
+
+/* ─── Stats Bar ─── */
+.stats-bar {
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
+  padding: 48px 0;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 32px;
+  text-align: center;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-num {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4vw, 44px);
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* ─── Quick Start ─── */
+.quickstart {
+  position: relative;
+  overflow: hidden;
+}
+
+.quickstart-card {
+  background: var(--bg-dark);
+  border-radius: var(--radius-lg);
+  padding: clamp(40px, 6vw, 72px);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+}
+
+.quickstart-card::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  right: -100px;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(198,122,82,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.quickstart-card::after {
+  content: '';
+  position: absolute;
+  bottom: -80px;
+  left: -80px;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(42,157,143,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.quickstart-card .section-label { color: var(--accent-light); }
+.quickstart-card .section-title { color: #fff; margin-bottom: 8px; }
+.quickstart-card .section-desc { color: rgba(255,255,255,0.55); margin-bottom: 48px; }
+
+.qs-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  position: relative;
+  z-index: 1;
+}
+
+.qs-step {
+  display: flex;
+  flex-direction: column;
+}
+
+.qs-step-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.qs-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.qs-step-header span {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.qs-code {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-sm);
+  padding: 16px 18px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--code-text);
+  overflow-x: auto;
+  position: relative;
+  flex: 1;
+}
+
+.qs-code .ln-comment { color: var(--code-comment); }
+.qs-code .ln-cmd { color: var(--code-green); }
+.qs-code .ln-flag { color: var(--code-blue); }
+.qs-code .ln-str { color: var(--code-orange); }
+.qs-code .ln-prefix { color: var(--teal); user-select: none; }
+
+.qs-code .copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.qs-badges {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.qs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 100px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.qs-badge:hover { background: rgba(255,255,255,0.1); }
+
+.qs-badge svg { opacity: 0.7; }
+
+/* ─── Open Source CTA ─── */
 .cta-section {
   text-align: center;
-  padding: clamp(80px, 12vh, 140px) 0;
+  padding: clamp(80px, 14vh, 160px) 0;
+  position: relative;
+}
+
+.cta-section::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 400px;
+  background: radial-gradient(ellipse at center, rgba(198,122,82,0.05) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .cta-section h2 {
   font-family: var(--font-display);
-  font-size: clamp(32px, 5vw, 52px);
+  font-size: clamp(34px, 5vw, 56px);
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
   margin-bottom: 20px;
 }
 
-.cta-section p {
+.cta-section h2 .highlight {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--teal) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.cta-section > .container > p {
   font-size: 18px;
   color: var(--text-secondary);
   margin-bottom: 40px;
+  line-height: 1.7;
 }
+
+.cta-links {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.cta-links a {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.cta-links a:hover { color: var(--accent); }
+
+/* ─── GitHub Star Button ─── */
+.gh-star-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  transition: all 0.25s ease;
+}
+
+.gh-star-btn:hover {
+  border-color: var(--text-secondary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.gh-star-btn svg { flex-shrink: 0; }
 
 /* ─── Footer ─── */
 footer {
   border-top: 1px solid var(--border);
-  padding: 40px 0;
+  padding: 48px 0;
 }
 
 .footer-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.footer-left img {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  opacity: 0.5;
 }
 
 .footer-inner p {
@@ -480,7 +1134,7 @@ footer {
 
 .footer-links {
   display: flex;
-  gap: 24px;
+  gap: 28px;
   list-style: none;
 }
 
@@ -488,234 +1142,603 @@ footer {
   font-size: 13px;
   color: var(--text-tertiary);
   text-decoration: none;
+  font-weight: 500;
   transition: color 0.2s;
 }
 
 .footer-links a:hover { color: var(--text-primary); }
 
-/* ─── Responsive ─── */
-@media (max-width: 900px) {
-  .workflow-grid { grid-template-columns: repeat(2, 1fr); }
-  .features-grid { grid-template-columns: 1fr; }
-  .perm-grid { grid-template-columns: repeat(2, 1fr); }
-  .nav-links { display: none; }
-}
-
-@media (max-width: 600px) {
-  .workflow-grid { grid-template-columns: 1fr; }
-  .perm-grid { grid-template-columns: 1fr; }
-  .hero-actions { flex-direction: column; }
-  .install-block { flex-direction: column; text-align: center; }
-}
-
 /* ─── Animations ─── */
 .fade-up {
   opacity: 0;
-  transform: translateY(24px);
-  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .fade-up.visible {
   opacity: 1;
   transform: translateY(0);
 }
+
+.fade-up.d1 { transition-delay: 0.08s; }
+.fade-up.d2 { transition-delay: 0.16s; }
+.fade-up.d3 { transition-delay: 0.24s; }
+.fade-up.d4 { transition-delay: 0.32s; }
+.fade-up.d5 { transition-delay: 0.40s; }
+.fade-up.d6 { transition-delay: 0.48s; }
+
+/* ─── Responsive ─── */
+@media (max-width: 1024px) {
+  .features-grid { grid-template-columns: repeat(2, 1fr); }
+  .qs-steps { grid-template-columns: 1fr; gap: 24px; }
+  .how-grid { grid-template-columns: 1fr; gap: 48px; }
+  .how-divider { display: none; }
+}
+
+@media (max-width: 900px) {
+  .perm-grid { grid-template-columns: repeat(2, 1fr); }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+  .workflow-timeline {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 32px;
+    padding-left: 40px;
+  }
+  .workflow-timeline::before {
+    top: 0;
+    bottom: 0;
+    left: 48px;
+    right: auto;
+    width: 2px;
+    height: auto;
+  }
+  .timeline-step {
+    flex-direction: row;
+    text-align: left;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .timeline-step p { max-width: none; }
+  .timeline-num { flex-shrink: 0; }
+  .pipeline { flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .pipeline-step { flex: 0 0 auto; width: 120px; }
+  .pipeline-step:not(:last-child)::after { display: none; }
+  .nav-links .nav-link-item { display: none; }
+  .nav-mobile-btn { display: block; }
+}
+
+@media (max-width: 600px) {
+  .features-grid { grid-template-columns: 1fr; }
+  .perm-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: 1fr; gap: 20px; }
+  .hero-actions { flex-direction: column; align-items: center; }
+  .hero-actions .btn-primary,
+  .hero-actions .btn-secondary { width: 100%; max-width: 280px; justify-content: center; }
+  .install-block { flex-direction: column; text-align: center; gap: 8px; }
+  .install-block code { white-space: normal; word-break: break-all; }
+  .pipeline-step { width: 100px; }
+  .quickstart-card { padding: 32px 24px; }
+  .footer-inner { flex-direction: column; gap: 16px; text-align: center; }
+  .workflow-timeline { padding-left: 0; }
+  .workflow-timeline::before { left: 28px; }
+}
+
 </style>
 </head>
 <body>
 
-<nav>
+<!-- ═══════════════ NAV ═══════════════ -->
+<nav id="navbar">
   <div class="nav-inner">
     <a href="#" class="nav-logo">
-      <img src="https://raw.githubusercontent.com/Vincentwei1021/Synapse/main/public/synapse-icon.png" alt="Synapse">
+      <img src="https://raw.githubusercontent.com/Vincentwei1021/Synapse/main/public/synapse-icon.png" alt="Synapse" width="32" height="32">
       <span>Synapse</span>
     </a>
     <ul class="nav-links">
-      <li><a href="#workflow">Workflow</a></li>
-      <li><a href="#features">Features</a></li>
-      <li><a href="#permissions">Permissions</a></li>
-      <li><a href="https://github.com/Vincentwei1021/Synapse" class="nav-cta">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-        GitHub
-      </a></li>
+      <li class="nav-link-item"><a href="#quickstart">Quick Start</a></li>
+      <li class="nav-link-item"><a href="#features">Features</a></li>
+      <li class="nav-link-item"><a href="#workflow">Workflow</a></li>
+      <li class="nav-link-item"><a href="#permissions">Agents</a></li>
+      <li>
+        <a href="https://github.com/Vincentwei1021/Synapse" class="nav-cta" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </li>
     </ul>
   </div>
 </nav>
 
-<!-- Hero -->
+<!-- ═══════════════ HERO ═══════════════ -->
 <section class="hero">
   <div class="container">
     <div class="hero-badge fade-up">
       <span class="dot"></span>
-      Open Source Research Platform
+      Open Source Research Orchestration
     </div>
-    <h1 class="fade-up">Where Humans &amp; AI Agents <span class="highlight">Do Research Together</span></h1>
-    <p class="fade-up">Orchestrate the full research lifecycle — literature review, experiment execution, compute allocation, and report generation — with AI agents as your research partners.</p>
+
+    <h1 class="fade-up">The Research Platform Where Humans and AI Agents <span class="highlight">Collaborate</span></h1>
+
+    <p class="hero-subtitle fade-up">Orchestrate the full AI research lifecycle &mdash; literature review, hypothesis formulation, experiment execution, and report generation &mdash; with AI agents as your research partners.</p>
+
     <div class="hero-actions fade-up">
-      <a href="https://github.com/Vincentwei1021/Synapse" class="btn-primary">
+      <a href="https://github.com/Vincentwei1021/Synapse" class="btn-primary" target="_blank" rel="noopener">
         Get Started
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
       </a>
-      <a href="https://github.com/Vincentwei1021/Synapse/blob/main/docs/ARCHITECTURE.md" class="btn-secondary">
+      <a href="https://github.com/Vincentwei1021/Synapse/blob/main/README.md" class="btn-secondary" target="_blank" rel="noopener">
         Read the Docs
       </a>
     </div>
+
+    <!-- Pipeline Visual -->
+    <div class="pipeline fade-up">
+      <div class="pipeline-step">
+        <div class="pipeline-icon" style="background: var(--blue-bg); color: var(--blue);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        <div class="pipeline-label">Literature</div>
+        <span class="pipeline-role role-both">Both</span>
+      </div>
+      <div class="pipeline-step">
+        <div class="pipeline-icon" style="background: var(--violet-bg); color: var(--violet);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="pipeline-label">Questions</div>
+        <span class="pipeline-role role-both">Both</span>
+      </div>
+      <div class="pipeline-step">
+        <div class="pipeline-icon" style="background: var(--accent-bg); color: var(--accent);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        </div>
+        <div class="pipeline-label">Experiments</div>
+        <span class="pipeline-role role-agent">Agent</span>
+      </div>
+      <div class="pipeline-step">
+        <div class="pipeline-icon" style="background: var(--teal-bg); color: var(--teal);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <div class="pipeline-label">Reports</div>
+        <span class="pipeline-role role-agent">Agent</span>
+      </div>
+    </div>
+
     <div class="install-block fade-up">
       <code><span class="prefix">$</span> docker compose up -d</code>
-      <button class="copy-btn" onclick="navigator.clipboard.writeText('docker compose up -d')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      <button class="copy-btn" onclick="copyText('docker compose up -d', this)" aria-label="Copy command">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
       </button>
     </div>
   </div>
 </section>
 
-<!-- Workflow -->
+<!-- ═══════════════ HOW IT WORKS ═══════════════ -->
+<section class="how-it-works" id="how">
+  <div class="container">
+    <div class="section-label fade-up">How It Works</div>
+    <div class="section-title fade-up">The research loop,<br>reversed</div>
+    <p class="section-desc fade-up">Instead of humans doing everything and AI assisting, Synapse flips the script. Agents propose and execute &mdash; humans review and steer.</p>
+
+    <div class="how-grid">
+      <!-- Left: Traditional -->
+      <div class="how-column fade-up">
+        <h3>
+          <span class="tag tag-old">Before</span>
+          Traditional Approach
+        </h3>
+        <div class="chat-bubbles">
+          <div class="chat-row">
+            <div class="chat-avatar avatar-human">PI</div>
+            <div class="chat-bubble bubble-dim">"Search for papers on RLHF scaling..."</div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar avatar-human">PI</div>
+            <div class="chat-bubble bubble-dim">"Now set up the training run..."</div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar avatar-human">PI</div>
+            <div class="chat-bubble bubble-dim">"Check GPU availability..."</div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar avatar-human">PI</div>
+            <div class="chat-bubble bubble-dim">"Write up the results..."</div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar avatar-human">PI</div>
+            <div class="chat-bubble bubble-dim">"What should we try next?"</div>
+          </div>
+        </div>
+        <div class="how-highlight" style="background: rgba(231,111,111,0.06); border-color: rgba(231,111,111,0.12);">
+          <strong style="color: #e76f6f;">The bottleneck:</strong> Every step waits for the human. Context is scattered across tabs, terminals, and chat threads.
+        </div>
+      </div>
+
+      <!-- Right: Synapse -->
+      <div class="how-column fade-up d2">
+        <h3>
+          <span class="tag tag-new">With Synapse</span>
+          Agent-First Loop
+        </h3>
+        <div class="chat-bubbles">
+          <div class="chat-row">
+            <div class="chat-avatar avatar-human">PI</div>
+            <div class="chat-bubble bubble-human">"Explore RLHF scaling for 7B models"</div>
+          </div>
+          <div class="chat-row right">
+            <div class="chat-avatar avatar-agent">AG</div>
+            <div class="chat-bubble bubble-agent">Found 23 papers. Key gap: no systematic comparison of PPO vs DPO at 7B scale. Proposing experiment...</div>
+          </div>
+          <div class="chat-row right">
+            <div class="chat-avatar avatar-agent">AG</div>
+            <div class="chat-bubble bubble-agent">Experiment "PPO vs DPO @ 7B" created as draft. 4x L40S reserved. Ready for your review.</div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar avatar-human">PI</div>
+            <div class="chat-bubble bubble-human">Approved. Start it.</div>
+          </div>
+          <div class="chat-row right">
+            <div class="chat-avatar avatar-agent">AG</div>
+            <div class="chat-bubble bubble-agent">Running. Step 3/8: DPO training, loss 0.42. Report will auto-generate on completion.</div>
+          </div>
+        </div>
+        <div class="how-highlight">
+          <strong>Agent proposes, human verifies.</strong> Full context lives in one place. The research loop runs continuously.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ FEATURES ═══════════════ -->
+<section id="features">
+  <div class="container">
+    <div class="section-label fade-up">Capabilities</div>
+    <div class="section-title fade-up">Everything research<br>teams need</div>
+    <p class="section-desc fade-up">Built for the way AI research actually works &mdash; iterative, compute-heavy, and deeply collaborative between humans and machines.</p>
+
+    <div class="features-grid">
+      <div class="feature-card fade-up">
+        <div class="feature-icon" style="background: var(--accent-bg); color: var(--accent);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </div>
+        <h3>Autonomous Loop</h3>
+        <p>When all experiment queues are empty, the assigned agent analyzes the full project context and proposes new experiments as drafts. Humans review before execution. Research never stalls.</p>
+      </div>
+
+      <div class="feature-card fade-up d1">
+        <div class="feature-icon" style="background: var(--teal-bg); color: var(--teal);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <h3>Live Experiment Tracking</h3>
+        <p>Real-time status badges on every experiment card &mdash; track the journey from assignment to completion with step-by-step progress timelines.</p>
+        <div class="status-badges">
+          <span class="status-badge" style="background: var(--blue-bg); color: var(--blue);">sent</span>
+          <span class="status-badge" style="background: var(--violet-bg); color: var(--violet);">ack</span>
+          <span class="status-badge" style="background: var(--accent-bg); color: var(--accent);">checking</span>
+          <span class="status-badge" style="background: var(--rose-bg); color: var(--rose);">queuing</span>
+          <span class="status-badge" style="background: var(--teal-bg); color: var(--teal);">running</span>
+        </div>
+      </div>
+
+      <div class="feature-card fade-up d2">
+        <div class="feature-icon" style="background: var(--violet-bg); color: var(--violet);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+        </div>
+        <h3>Compute Orchestration</h3>
+        <p>GPU pool management with per-project binding. Managed SSH key bundles for secure agent access. Reserve specific GPUs and track utilization across your cluster.</p>
+      </div>
+
+      <div class="feature-card fade-up d3">
+        <div class="feature-icon" style="background: var(--blue-bg); color: var(--blue);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <h3>Literature Search</h3>
+        <p>Semantic Scholar integration for automated paper discovery. Paste arXiv URLs for instant metadata import. Agents generate deep research reports from your paper collection.</p>
+      </div>
+
+      <div class="feature-card fade-up d4">
+        <div class="feature-icon" style="background: var(--rose-bg); color: var(--rose);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <h3>Agent-Generated Reports</h3>
+        <p>When experiments complete, agents write context-aware reports &mdash; analyzing results within the full project context, in the project's language. No more fill-in-the-blank templates.</p>
+      </div>
+
+      <div class="feature-card fade-up d5">
+        <div class="feature-icon" style="background: linear-gradient(135deg, var(--accent-bg), var(--teal-bg)); color: var(--accent);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+        </div>
+        <h3>30+ MCP Tools</h3>
+        <p>Full research workflow via Model Context Protocol. Experiments, literature, compute, comments, and collaboration &mdash; all accessible through structured, authenticated tool calls.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ AGENT PERMISSIONS ═══════════════ -->
+<section id="permissions" class="permissions-section">
+  <div class="container">
+    <div class="section-label fade-up">Agent Permissions</div>
+    <div class="section-title fade-up">Four composable roles,<br>infinite configurations</div>
+    <p class="section-desc fade-up">Assign any combination of permissions to each agent. A single agent can do everything, or you can specialize agents for different phases.</p>
+
+    <div class="perm-grid">
+      <div class="perm-card fade-up">
+        <span class="perm-emoji">&#128269;</span>
+        <h3>Pre-research</h3>
+        <p>Literature search, paper discovery, related works collection via Semantic Scholar API</p>
+        <span class="perm-code">pre_research</span>
+      </div>
+      <div class="perm-card fade-up d1">
+        <span class="perm-emoji">&#129514;</span>
+        <h3>Research</h3>
+        <p>Research question CRUD, hypothesis formulation, structured problem framing</p>
+        <span class="perm-code">research</span>
+      </div>
+      <div class="perm-card fade-up d2">
+        <span class="perm-emoji">&#9881;&#65039;</span>
+        <h3>Experiment</h3>
+        <p>Start and complete experiments, allocate GPUs, report progress, submit results</p>
+        <span class="perm-code">experiment</span>
+      </div>
+      <div class="perm-card fade-up d3">
+        <span class="perm-emoji">&#128202;</span>
+        <h3>Report</h3>
+        <p>Generate experiment reports, literature reviews, project synthesis documents</p>
+        <span class="perm-code">report</span>
+      </div>
+    </div>
+    <p class="perm-note fade-up">Any combination of permissions can be assigned to a single agent.</p>
+  </div>
+</section>
+
+<!-- ═══════════════ WORKFLOW TIMELINE ═══════════════ -->
 <section id="workflow">
   <div class="container">
     <div class="section-label fade-up">Research Workflow</div>
     <div class="section-title fade-up">From question to conclusion,<br>orchestrated end-to-end</div>
-    <p class="section-desc fade-up">Synapse manages each stage of the research lifecycle. Humans set direction, AI agents execute — with full visibility at every step.</p>
-    <div class="workflow-grid">
-      <div class="workflow-step fade-up">
-        <div class="step-num">01</div>
-        <h3>Literature Review</h3>
-        <p>Search Semantic Scholar, collect papers, generate deep research reports from related works.</p>
-        <span class="role-tag role-both">Human + Agent</span>
+    <p class="section-desc fade-up">Synapse manages each stage of the research lifecycle. Humans set direction, agents execute &mdash; with full visibility at every step.</p>
+
+    <div class="workflow-timeline">
+      <div class="timeline-step fade-up">
+        <div class="timeline-num">01</div>
+        <div>
+          <h3>Create Project</h3>
+          <p>Define research direction, datasets, evaluation methods, and compute pool</p>
+          <span class="pipeline-role role-human" style="margin-top:10px">Human</span>
+        </div>
       </div>
-      <div class="workflow-step fade-up">
-        <div class="step-num">02</div>
-        <h3>Research Questions</h3>
-        <p>Formulate hypotheses with a hierarchical question canvas. Agents propose, humans refine.</p>
-        <span class="role-tag role-both">Human + Agent</span>
+      <div class="timeline-step fade-up d1">
+        <div class="timeline-num">02</div>
+        <div>
+          <h3>Literature Review</h3>
+          <p>Agent searches Semantic Scholar, collects papers, generates deep research reports</p>
+          <span class="pipeline-role role-agent" style="margin-top:10px">Agent</span>
+        </div>
       </div>
-      <div class="workflow-step fade-up">
-        <div class="step-num">03</div>
-        <h3>Experiments</h3>
-        <p>Agents execute experiments on GPU clusters, report real-time progress, and submit structured results.</p>
-        <span class="role-tag role-agent">AI Agent</span>
+      <div class="timeline-step fade-up d2">
+        <div class="timeline-num">03</div>
+        <div>
+          <h3>Research Questions</h3>
+          <p>Formulate hypotheses with a hierarchical question canvas, collaboratively refined</p>
+          <span class="pipeline-role role-both" style="margin-top:10px">Both</span>
+        </div>
       </div>
-      <div class="workflow-step fade-up">
-        <div class="step-num">04</div>
-        <h3>Reports</h3>
-        <p>On completion, agents write context-aware experiment reports in the project's language.</p>
-        <span class="role-tag role-agent">AI Agent</span>
+      <div class="timeline-step fade-up d3">
+        <div class="timeline-num">04</div>
+        <div>
+          <h3>Experiments</h3>
+          <p>Agents execute on GPU clusters, report real-time progress, submit structured results</p>
+          <span class="pipeline-role role-agent" style="margin-top:10px">Agent</span>
+        </div>
+      </div>
+      <div class="timeline-step fade-up d4">
+        <div class="timeline-num">05</div>
+        <div>
+          <h3>Reports &amp; Synthesis</h3>
+          <p>Agents write experiment reports; project synthesis updates automatically</p>
+          <span class="pipeline-role role-agent" style="margin-top:10px">Agent</span>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Features -->
-<section id="features">
+<!-- ═══════════════ STATS BAR ═══════════════ -->
+<div class="stats-bar">
   <div class="container">
-    <div class="section-label fade-up">Capabilities</div>
-    <div class="section-title fade-up">Everything research teams need</div>
-    <p class="section-desc fade-up">Built for the way AI research actually works — iterative, compute-heavy, and collaborative.</p>
-    <div class="features-grid">
-      <div class="feature-card fade-up">
-        <div class="feature-icon" style="background: var(--accent-bg); color: var(--accent);">🔄</div>
-        <h3>Autonomous Loop</h3>
-        <p>When experiment queues empty, agents analyze project context and propose next experiments for human review. Research never stalls.</p>
+    <div class="stats-grid">
+      <div class="stat-item fade-up">
+        <div class="stat-num">30+</div>
+        <div class="stat-label">MCP Tools</div>
       </div>
-      <div class="feature-card fade-up">
-        <div class="feature-icon" style="background: var(--teal-bg); color: var(--teal);">⚡</div>
-        <h3>Live Tracking</h3>
-        <p>Real-time status badges on experiment cards — sent, acknowledged, checking resources, queuing, running — with step-by-step progress timeline.</p>
+      <div class="stat-item fade-up d1">
+        <div class="stat-num">4</div>
+        <div class="stat-label">Composable Permissions</div>
       </div>
-      <div class="feature-card fade-up">
-        <div class="feature-icon" style="background: var(--rose-bg); color: var(--rose);">🖥️</div>
-        <h3>Compute Orchestration</h3>
-        <p>GPU pool management with per-project binding. Managed SSH key bundles for secure agent access. Dynamic timeout based on compute budget.</p>
+      <div class="stat-item fade-up d2">
+        <div class="stat-num">2</div>
+        <div class="stat-label">Languages (en/zh)</div>
       </div>
-      <div class="feature-card fade-up">
-        <div class="feature-icon" style="background: #f0eef8; color: #6b5ce7;">📚</div>
-        <h3>Literature Search</h3>
-        <p>Semantic Scholar integration for paper discovery. Manual arXiv import with auto-metadata. Deep research report generation.</p>
-      </div>
-      <div class="feature-card fade-up">
-        <div class="feature-icon" style="background: #e8f6f4; color: #2a9d8f;">📝</div>
-        <h3>Agent Reports</h3>
-        <p>Agents write their own experiment reports on completion — analyzing results in context, in the project's language. No more templates.</p>
-      </div>
-      <div class="feature-card fade-up">
-        <div class="feature-icon" style="background: #fdf3ed; color: #c67a52;">🔌</div>
-        <h3>30+ MCP Tools</h3>
-        <p>Full research workflow via Model Context Protocol. Experiments, literature, compute, collaboration — all accessible through structured tool calls.</p>
+      <div class="stat-item fade-up d3">
+        <div class="stat-num">SSE</div>
+        <div class="stat-label">Real-time Updates</div>
       </div>
     </div>
   </div>
-</section>
+</div>
 
-<!-- Permissions -->
-<section id="permissions" class="permissions-section">
+<!-- ═══════════════ QUICK START ═══════════════ -->
+<section class="quickstart" id="quickstart">
   <div class="container">
-    <div class="section-label fade-up">Agent Permissions</div>
-    <div class="section-title fade-up">Four composable roles,<br>infinite combinations</div>
-    <p class="section-desc fade-up">Assign any combination of permissions to each agent. A single agent can be a full-stack researcher, or you can specialize.</p>
-    <div class="perm-grid">
-      <div class="perm-card fade-up">
-        <span class="perm-emoji">🔍</span>
-        <h3>Pre-research</h3>
-        <p>Literature search, paper discovery, related works collection via Semantic Scholar</p>
+    <div class="quickstart-card">
+      <div class="section-label fade-up">Quick Start</div>
+      <div class="section-title fade-up">Up and running in<br>three steps</div>
+      <p class="section-desc fade-up">Self-hosted, zero vendor lock-in. Run locally or on any cloud.</p>
+
+      <div class="qs-steps">
+        <!-- Step 1 -->
+        <div class="qs-step fade-up">
+          <div class="qs-step-header">
+            <div class="qs-num">1</div>
+            <span>Start with Docker</span>
+          </div>
+          <div class="qs-code">
+            <span class="ln-comment"># Clone and start</span><br>
+            <span class="ln-prefix">$ </span><span class="ln-cmd">git clone</span> <span class="ln-str">https://github.com/Vincentwei1021/Synapse.git</span><br>
+            <span class="ln-prefix">$ </span><span class="ln-cmd">cd</span> Synapse<br>
+            <span class="ln-prefix">$ </span><span class="ln-cmd">docker compose up</span> <span class="ln-flag">-d</span>
+            <button class="copy-btn" onclick="copyText('git clone https://github.com/Vincentwei1021/Synapse.git && cd Synapse && docker compose up -d', this)" aria-label="Copy">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="qs-step fade-up d1">
+          <div class="qs-step-header">
+            <div class="qs-num">2</div>
+            <span>Connect an Agent</span>
+          </div>
+          <div class="qs-code">
+            <span class="ln-comment"># Install OpenClaw plugin</span><br>
+            <span class="ln-prefix">$ </span><span class="ln-cmd">npm install</span> <span class="ln-flag">-g</span> <span class="ln-str">@anthropic/openclaw</span><br><br>
+            <span class="ln-comment"># Or use Claude Code with MCP</span><br>
+            <span class="ln-prefix">$ </span><span class="ln-cmd">claude mcp add</span> <span class="ln-str">synapse</span> <span class="ln-flag">\\</span><br>
+            &nbsp;&nbsp;<span class="ln-flag">--url</span> <span class="ln-str">http://localhost:3000/api/mcp</span>
+            <button class="copy-btn" onclick="copyText('claude mcp add synapse --url http://localhost:3000/api/mcp', this)" aria-label="Copy">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="qs-step fade-up d2">
+          <div class="qs-step-header">
+            <div class="qs-num">3</div>
+            <span>Create &amp; Assign</span>
+          </div>
+          <div class="qs-code">
+            <span class="ln-comment"># In the Synapse UI:</span><br>
+            <span class="ln-str">1.</span> Create a Research Project<br>
+            <span class="ln-str">2.</span> Create an Experiment<br>
+            <span class="ln-str">3.</span> Assign to your agent<br>
+            <span class="ln-str">4.</span> Agent executes automatically<br><br>
+            <span class="ln-comment"># Enable autonomous loop for</span><br>
+            <span class="ln-comment"># continuous research cycles</span>
+          </div>
+        </div>
       </div>
-      <div class="perm-card fade-up">
-        <span class="perm-emoji">🧪</span>
-        <h3>Research</h3>
-        <p>Propose research questions, hypothesis formulation, structured Q&A clarification</p>
-      </div>
-      <div class="perm-card fade-up">
-        <span class="perm-emoji">⚙️</span>
-        <h3>Experiment</h3>
-        <p>Execute experiments, allocate GPUs, report progress, submit structured results</p>
-      </div>
-      <div class="perm-card fade-up">
-        <span class="perm-emoji">📊</span>
-        <h3>Report</h3>
-        <p>Generate experiment reports, literature reviews, synthesis documents</p>
+
+      <div class="qs-badges fade-up">
+        <a href="https://hub.docker.com/" class="qs-badge" target="_blank" rel="noopener">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M13.983 11.078h2.119a.186.186 0 0 0 .186-.185V9.006a.186.186 0 0 0-.186-.186h-2.119a.185.185 0 0 0-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.43h2.118a.186.186 0 0 0 .186-.186V3.574a.186.186 0 0 0-.186-.185h-2.118a.185.185 0 0 0-.185.185v1.888c0 .102.082.185.185.186m0 2.716h2.118a.187.187 0 0 0 .186-.186V6.29a.186.186 0 0 0-.186-.185h-2.118a.185.185 0 0 0-.185.185v1.887c0 .102.082.185.185.186m-2.93 0h2.12a.186.186 0 0 0 .184-.186V6.29a.185.185 0 0 0-.185-.185H8.1a.185.185 0 0 0-.185.185v1.887c0 .102.083.185.185.186m-2.964 0h2.119a.186.186 0 0 0 .185-.186V6.29a.186.186 0 0 0-.185-.185H5.136a.186.186 0 0 0-.186.185v1.887c0 .102.084.185.186.186m5.893 2.715h2.118a.186.186 0 0 0 .186-.185V9.006a.186.186 0 0 0-.186-.186h-2.118a.185.185 0 0 0-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.185.185 0 0 0 .184-.185V9.006a.185.185 0 0 0-.184-.186h-2.12a.185.185 0 0 0-.184.185v1.888c0 .102.083.185.185.185m-2.964 0h2.119a.185.185 0 0 0 .185-.185V9.006a.186.186 0 0 0-.185-.186H5.136a.186.186 0 0 0-.186.186v1.887c0 .102.084.185.186.185m-2.92 0h2.12a.185.185 0 0 0 .184-.185V9.006a.186.186 0 0 0-.184-.186h-2.12a.185.185 0 0 0-.184.185v1.888c0 .102.082.185.185.185M23.763 9.89c-.065-.051-.672-.51-1.954-.51-.338.001-.676.03-1.01.087-.248-1.7-1.653-2.53-1.716-2.566l-.344-.199-.226.327c-.284.438-.49.922-.612 1.43-.23.97-.09 1.882.403 2.661-.595.332-1.55.413-1.744.42H.751a.751.751 0 0 0-.75.748 11.376 11.376 0 0 0 .692 4.062c.545 1.428 1.355 2.48 2.41 3.124 1.18.723 3.1 1.137 5.275 1.137.983.003 1.963-.086 2.93-.266a12.248 12.248 0 0 0 3.823-1.389c.98-.567 1.86-1.288 2.61-2.136 1.252-1.418 1.998-2.997 2.553-4.4h.221c1.372 0 2.215-.549 2.68-1.009.309-.293.55-.65.707-1.046l.098-.288Z"/></svg>
+          Docker
+        </a>
+        <a href="https://www.npmjs.com/" class="qs-badge" target="_blank" rel="noopener">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M1.763 0C.786 0 0 .786 0 1.763v20.474C0 23.214.786 24 1.763 24h20.474c.977 0 1.763-.786 1.763-1.763V1.763C24 .786 23.214 0 22.237 0zM5.13 5.323l13.837.019-.009 13.836h-3.464l.01-10.382h-3.456L12.04 19.17H5.113z"/></svg>
+          npm
+        </a>
+        <a href="https://github.com/Vincentwei1021/Synapse" class="qs-badge" target="_blank" rel="noopener">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          GitHub
+        </a>
+        <span class="qs-badge">AGPL-3.0 License</span>
       </div>
     </div>
   </div>
 </section>
 
-<!-- CTA -->
+<!-- ═══════════════ OPEN SOURCE CTA ═══════════════ -->
 <section class="cta-section">
   <div class="container">
-    <h2 class="fade-up">Start orchestrating<br>your research</h2>
+    <h2 class="fade-up">Start orchestrating<br>your <span class="highlight">research</span></h2>
     <p class="fade-up">Open source, self-hosted, and ready for your next experiment.</p>
     <div class="hero-actions fade-up">
-      <a href="https://github.com/Vincentwei1021/Synapse" class="btn-primary">
+      <a href="https://github.com/Vincentwei1021/Synapse" class="btn-accent" target="_blank" rel="noopener">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
         View on GitHub
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
       </a>
-      <a href="https://github.com/Vincentwei1021/Synapse/blob/main/README.md" class="btn-secondary">
-        Read Documentation
+      <a href="https://github.com/Vincentwei1021/Synapse" class="gh-star-btn" target="_blank" rel="noopener">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Star on GitHub
       </a>
+    </div>
+    <div class="cta-links fade-up">
+      <a href="https://github.com/Vincentwei1021/Synapse/blob/main/README.md">Documentation</a>
+      <a href="https://github.com/Vincentwei1021/Synapse/blob/main/README.zh.md">中文文档</a>
+      <a href="https://github.com/Vincentwei1021/Synapse/blob/main/docs/ARCHITECTURE.md">Architecture</a>
     </div>
   </div>
 </section>
 
+<!-- ═══════════════ FOOTER ═══════════════ -->
 <footer>
   <div class="container">
     <div class="footer-inner">
-      <p>&copy; 2026 Synapse. AGPL-3.0 License.</p>
+      <div class="footer-left">
+        <img src="https://raw.githubusercontent.com/Vincentwei1021/Synapse/main/public/synapse-icon.png" alt="" width="24" height="24">
+        <p>&copy; 2026 Synapse. AGPL-3.0 License.</p>
+      </div>
       <ul class="footer-links">
-        <li><a href="https://github.com/Vincentwei1021/Synapse">GitHub</a></li>
-        <li><a href="https://github.com/Vincentwei1021/Synapse/blob/main/docs/ARCHITECTURE.md">Docs</a></li>
-        <li><a href="https://github.com/Vincentwei1021/Synapse/blob/main/README.zh.md">中文</a></li>
+        <li><a href="https://github.com/Vincentwei1021/Synapse" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="https://github.com/Vincentwei1021/Synapse/blob/main/README.md" target="_blank" rel="noopener">Docs</a></li>
+        <li><a href="https://github.com/Vincentwei1021/Synapse/blob/main/README.zh.md" target="_blank" rel="noopener">中文</a></li>
       </ul>
     </div>
   </div>
 </footer>
 
 <script>
+// ─── Scroll-triggered fade-in ───
 const observer = new IntersectionObserver((entries) => {
-  entries.forEach((entry, i) => {
+  entries.forEach((entry) => {
     if (entry.isIntersecting) {
-      setTimeout(() => entry.target.classList.add('visible'), i * 80);
+      entry.target.classList.add('visible');
       observer.unobserve(entry.target);
     }
   });
-}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+}, { threshold: 0.08, rootMargin: '0px 0px -60px 0px' });
 
 document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+// ─── Nav scroll shadow ───
+const navbar = document.getElementById('navbar');
+let lastScroll = 0;
+window.addEventListener('scroll', () => {
+  const st = window.scrollY;
+  if (st > 10) {
+    navbar.classList.add('scrolled');
+  } else {
+    navbar.classList.remove('scrolled');
+  }
+  lastScroll = st;
+}, { passive: true });
+
+// ─── Copy to clipboard ───
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.classList.add('copied');
+    const svg = btn.querySelector('svg');
+    const original = svg.innerHTML;
+    svg.innerHTML = '<polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      svg.innerHTML = original;
+    }, 2000);
+  });
+}
+
+// ─── Smooth scroll for nav links ───
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+  anchor.addEventListener('click', function (e) {
+    const target = document.querySelector(this.getAttribute('href'));
+    if (target) {
+      e.preventDefault();
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+});
 </script>
 
 </body>
