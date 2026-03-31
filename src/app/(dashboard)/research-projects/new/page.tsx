@@ -62,7 +62,8 @@ export default function NewProjectPage() {
     fetch("/api/compute-pools")
       .then((res) => res.json())
       .then((data) => {
-        if (data.pools) setPools(data.pools);
+        const pools = data?.data?.pools ?? data?.pools ?? [];
+        if (pools.length) setPools(pools);
       })
       .catch(() => {
         // Pools are optional; ignore fetch errors
