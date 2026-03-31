@@ -780,23 +780,7 @@ export async function startExperiment(input: {
     value: { status: "in_progress" },
   });
 
-  await syncExperimentResultDocument({
-    companyUuid: input.companyUuid,
-    actorUuid: input.actorUuid,
-    experiment: {
-      uuid: updated.uuid,
-      researchProjectUuid: updated.researchProjectUuid,
-      title: updated.title,
-      description: updated.description,
-      status: updated.status,
-      priority: updated.priority,
-      outcome: updated.outcome,
-      computeBudgetHours: updated.computeBudgetHours,
-      computeUsedHours: updated.computeUsedHours,
-      results: updated.results,
-      researchQuestion: updated.researchQuestion,
-    },
-  });
+  // Template-based document generation removed — agents write their own reports on completion
 
   eventBus.emitChange({
     companyUuid: input.companyUuid,
