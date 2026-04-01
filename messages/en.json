@@ -1222,7 +1222,7 @@
     "actions": {
       "submitForReview": "Submit for review",
       "approve": "Approve",
-      "returnToDraft": "Return to draft",
+      "returnToDraft": "Return",
       "selectAgent": "Select agent",
       "assign": "Assign",
       "reassign": "Reassign",
@@ -1377,7 +1377,7 @@
     }
   },
   "projects": {
-    "title": "Research projects",
+    "title": "Research Projects",
     "subtitle": "Create, group, and track the research work your team and agents are driving forward.",
     "loadingProjects": "Loading research projects...",
     "newProject": "New project",

@@ -1222,7 +1222,7 @@
     "actions": {
       "submitForReview": "提交审核",
       "approve": "通过审核",
-      "returnToDraft": "退回草稿",
+      "returnToDraft": "退回",
       "selectAgent": "选择 Agent",
       "assign": "分配",
       "reassign": "重新分配",

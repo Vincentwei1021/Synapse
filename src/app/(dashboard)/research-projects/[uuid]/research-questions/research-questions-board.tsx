@@ -40,8 +40,8 @@ import {
   setResearchQuestionStatusAction,
 } from "./actions";
 
-const COLUMN_GAP = 360;
-const ROW_GAP = 220;
+const COLUMN_GAP = 380;
+const ROW_GAP = 300;
 
 type QuestionNodeData = {
   nodeKind: "question";
@@ -372,7 +372,7 @@ export function ResearchQuestionsBoard({
 
   return (
     <div className="space-y-5">
-      <div className="relative min-h-[680px] overflow-hidden rounded-[32px] border border-border bg-background">
+      <div className="relative min-h-[760px] overflow-hidden rounded-[32px] border border-border bg-background">
         {researchQuestions.length > 0 ? (
           <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-end p-4">
             <div className="pointer-events-auto">
@@ -409,14 +409,14 @@ export function ResearchQuestionsBoard({
             onEdgesChange={onEdgesChange}
             onNodeClick={handleNodeClick}
             fitView
-            fitViewOptions={{ padding: 0.18, minZoom: 0.65 }}
+            fitViewOptions={{ padding: 0.22, minZoom: 0.6 }}
             minZoom={0.35}
             maxZoom={1.5}
             panOnDrag
             selectionOnDrag
             nodesDraggable={false}
             proOptions={{ hideAttribution: true }}
-            className="min-h-[680px]"
+            className="min-h-[760px]"
           >
             <Background color="rgba(198, 122, 82, 0.12)" gap={24} />
             <Controls className="synapse-flow-controls" />
