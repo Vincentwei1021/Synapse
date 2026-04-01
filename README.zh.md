@@ -169,14 +169,6 @@ export SYNAPSE_API_KEY="syn_your_api_key"
 }
 ```
 
-### 部署到 AWS
-
-```bash
-./install.sh
-```
-
-交互式安装器配置：VPC、Aurora Serverless v2（PostgreSQL）、ElastiCache Serverless（Redis）、ECS Fargate、HTTPS ALB。
-
 ---
 
 ## 文档

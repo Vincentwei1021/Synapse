@@ -170,14 +170,6 @@ Create `.mcp.json` in your project root:
 }
 ```
 
-### Deploy to AWS
-
-```bash
-./install.sh
-```
-
-The interactive installer provisions: VPC, Aurora Serverless v2 (PostgreSQL), ElastiCache Serverless (Redis), ECS Fargate, and ALB with HTTPS.
-
 ---
 
 ## Documentation
