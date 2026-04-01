@@ -14,11 +14,123 @@ Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.co
 
 ## Table of Contents
 
+- [Vibe Research](#vibe-research)
+- [Getting Started](#getting-started)
 - [Research Workflow](#research-workflow)
 - [Features](#features)
-- [Getting Started](#getting-started)
 - [Documentation](#documentation)
 - [License](#license)
+
+## Vibe Research
+
+### The State of Research Today
+
+Research in the age of AI is powerful but fragmented. A typical workflow looks like this:
+
+- **Scattered context** — papers live in Zotero, code in GitHub, results in spreadsheets, notes in Slack. Every collaborator re-reads everything from scratch.
+- **Manual handoffs** — copy-pasting between tools, re-explaining context to every new participant, losing continuity between phases.
+- **Idle cycles** — waiting for GPUs, waiting for reviews, waiting for someone to run the next experiment. The research loop stalls between human handoffs.
+- **Linear-only execution** — most AI agent tools follow sequential plans (step 1 → step 2 → step 3). Real research branches into parallel questions and iterates in loops, not straight lines.
+
+The bottleneck is no longer compute or models — it's **coordination**.
+
+### What is Vibe Research?
+
+Vibe Coding showed that developers can describe intent and let AI write the code. **Vibe Research** applies the same principle to the research lifecycle:
+
+> **Human sets direction. AI agents execute, report, and propose. Human reviews and steers.**
+
+Instead of manually running every experiment, searching every paper, and writing every report, the researcher defines a research project — goals, datasets, evaluation methods — and AI agents take it from there: discovering literature, formulating questions, executing experiments on GPU clusters, generating reports, and proposing follow-up work.
+
+The human never loses control. Every agent-proposed experiment lands in a review queue. Every result is visible in real-time. The researcher's role shifts from **operator** to **principal investigator** — spending time on insight and direction rather than logistics.
+
+### Why Vibe Research?
+
+| Traditional Research | Vibe Research |
+|---------------------|---------------|
+| Human runs every experiment | Agent executes, human reviews results |
+| Linear plan: finish A, then start B | Parallel questions + iterative loops |
+| Context scattered across 5+ tools | One workspace for the full lifecycle |
+| GPU idle between manual steps | Autonomous loop keeps experiments flowing |
+| Reports written after the fact | Agent generates reports on completion |
+
+Synapse is the platform that makes Vibe Research possible.
+
+---
+
+## Getting Started
+
+### Quick Start with Docker
+
+```bash
+git clone https://github.com/Vincentwei1021/Synapse.git
+cd Synapse
+
+export DEFAULT_USER=admin@example.com
+export DEFAULT_PASSWORD=changeme
+docker compose up -d
+```
+
+Open [http://localhost:3000](http://localhost:3000) and log in.
+
+### Local Development
+
+Prerequisites: Node.js 22+, pnpm 9+, PostgreSQL
+
+```bash
+cp .env.example .env
+# Edit .env to configure DATABASE_URL
+
+pnpm install
+pnpm db:push
+pnpm dev
+
+open http://localhost:3000
+```
+
+### Connect AI Agents
+
+#### Option 1: OpenClaw (Recommended)
+
+```bash
+openclaw plugins install @vincentwei1021/synapse-openclaw-plugin
+```
+
+Then configure in OpenClaw settings: set `synapseUrl` and `apiKey`.
+
+#### Option 2: Claude Code Plugin
+
+```bash
+claude
+/plugin marketplace add Vincentwei1021/Synapse
+/plugin install synapse@synapse-plugins
+```
+
+Set environment variables:
+```bash
+export SYNAPSE_URL="http://localhost:3000"
+export SYNAPSE_API_KEY="syn_your_api_key"
+```
+
+#### Option 3: Manual MCP Configuration
+
+Create `.mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "synapse": {
+      "type": "http",
+      "url": "http://localhost:3000/api/mcp",
+      "headers": {
+        "Authorization": "Bearer syn_your_api_key"
+      }
+    }
+  }
+}
+```
+
+---
 
 ## Research Workflow
 
@@ -95,80 +207,6 @@ Real-time SSE delivery with Redis Pub/Sub for cross-instance propagation. Prefer
 | **Compute** | `synapse_list_compute_nodes`, `synapse_get_node_access_bundle`, `synapse_sync_node_inventory` |
 | **Autonomous** | `synapse_propose_experiment` |
 | **Collaboration** | `synapse_add_comment`, `synapse_get_comments` |
-
----
-
-## Getting Started
-
-### Quick Start with Docker
-
-```bash
-git clone https://github.com/Vincentwei1021/Synapse.git
-cd Synapse
-
-export DEFAULT_USER=admin@example.com
-export DEFAULT_PASSWORD=changeme
-docker compose up -d
-```
-
-Open [http://localhost:3000](http://localhost:3000) and log in.
-
-### Local Development
-
-Prerequisites: Node.js 22+, pnpm 9+, PostgreSQL
-
-```bash
-cp .env.example .env
-# Edit .env to configure DATABASE_URL
-
-pnpm install
-pnpm db:push
-pnpm dev
-
-open http://localhost:3000
-```
-
-### Connect AI Agents
-
-#### Option 1: OpenClaw (Recommended)
-
-```bash
-openclaw plugins install @vincentwei1021/synapse-openclaw-plugin
-```
-
-Then configure in OpenClaw settings: set `synapseUrl` and `apiKey`.
-
-#### Option 2: Claude Code Plugin
-
-```bash
-claude
-/plugin marketplace add Vincentwei1021/Synapse
-/plugin install synapse@synapse-plugins
-```
-
-Set environment variables:
-```bash
-export SYNAPSE_URL="http://localhost:3000"
-export SYNAPSE_API_KEY="syn_your_api_key"
-```
-
-#### Option 3: Manual MCP Configuration
-
-Create `.mcp.json` in your project root:
-
-```json
-{
-  "mcpServers": {
-    "synapse": {
-      "type": "http",
-      "url": "http://localhost:3000/api/mcp",
-      "headers": {
-        "Authorization": "Bearer syn_your_api_key"
-      }
-    }
-  }
-}
-```
 
 ---
 
