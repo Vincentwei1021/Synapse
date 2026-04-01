@@ -1,19 +1,19 @@
 {
   "name": "synapse-plugins",
   "owner": {
-    "name": "Synapse-AIDLC"
+    "name": "Vincentwei1021"
   },
   "metadata": {
-    "description": "Official plugins for the Synapse AI-DLC collaboration platform"
+    "description": "Official plugins for the Synapse research orchestration platform"
   },
   "plugins": [
     {
       "name": "synapse",
       "source": "./public/synapse-plugin",
-      "description": "Synapse AI-DLC collaboration platform plugin. Automates session lifecycle, provides MCP tools for Research Lead/Researcher/PI workflows, and enables multi-agent team observability.",
-      "version": "0.3.6",
+      "description": "Synapse research orchestration plugin. Automates session lifecycle, provides 60+ MCP tools for experiment execution, literature search, progress reporting, and autonomous research loops.",
+      "version": "0.5.0",
       "category": "project-management",
-      "tags": ["ai-dlc", "collaboration", "mcp", "session", "multi-agent"]
+      "tags": ["research", "orchestration", "mcp", "experiments", "ai-agents", "literature-search"]
     }
   ]
 }
