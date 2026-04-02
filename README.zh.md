@@ -36,9 +36,11 @@ AI 时代的研究能力很强，但工作流是割裂的：
 
 ### 什么是 Vibe Research？
 
-Vibe Coding 证明了开发者可以描述意图，让 AI 来写代码。**[Vibe Research](https://github.com/Vincentwei1021/awesome-vibe-research)** 将同样的理念应用到研究生命周期：
+Vibe Coding 证明了开发者可以描述意图，让 AI 来写代码。**Vibe Research** 将同样的理念应用到研究生命周期：
 
 > **人类定方向。AI Agent 执行、汇报、提议。人类审核、把控。**
+
+更多详情请参考 [awesome-vibe-research](https://github.com/Vincentwei1021/awesome-vibe-research) 仓库。
 
 ### 为什么需要 Vibe Research？
 
