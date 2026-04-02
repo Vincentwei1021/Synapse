@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Server, Upload } from "lucide-react";
+import { authFetch } from "@/lib/auth-client";
 
 type SshConfigHost = {
   alias: string;
@@ -16,8 +17,16 @@ type SourceMode = "ssh_config" | "upload";
 
 export function ComputeNodeForm({
   pools,
+  defaultPoolUuid,
+  hidePoolSelect = false,
+  embedded = false,
+  onSuccess,
 }: {
   pools: Array<{ uuid: string; name: string }>;
+  defaultPoolUuid?: string;
+  hidePoolSelect?: boolean;
+  embedded?: boolean;
+  onSuccess?: () => void;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -94,7 +103,7 @@ export function ComputeNodeForm({
       }
     }
 
-    const response = await fetch("/api/compute-nodes", {
+    const response = await authFetch("/api/compute-nodes", {
       method: "POST",
       body: payload,
     });
@@ -108,6 +117,7 @@ export function ComputeNodeForm({
     setManualUser("ubuntu");
     setManualPort("22");
     setSelectedPem(null);
+    onSuccess?.();
     router.refresh();
   }
 
@@ -137,12 +147,14 @@ export function ComputeNodeForm({
   return (
     <form
       action={(formData) => startTransition(() => { void handleSubmit(formData); })}
-      className="space-y-5 rounded-[28px] border border-border bg-card p-6 shadow-sm"
+      className={embedded ? "space-y-5" : "space-y-5 rounded-[28px] border border-border bg-card p-6 shadow-sm"}
     >
-      <div className="space-y-1">
-        <p className="text-base font-semibold text-foreground">{t("compute.register.title")}</p>
-        <p className="text-sm leading-6 text-muted-foreground">{t("compute.register.description")}</p>
-      </div>
+      {!embedded ? (
+        <div className="space-y-1">
+          <p className="text-base font-semibold text-foreground">{t("compute.register.title")}</p>
+          <p className="text-sm leading-6 text-muted-foreground">{t("compute.register.description")}</p>
+        </div>
+      ) : null}
 
       <div className="grid gap-3">
         {sourceCards.map((card) => {
@@ -176,22 +188,25 @@ export function ComputeNodeForm({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="space-y-2 text-sm">
-          <span className="text-muted-foreground">{t("compute.register.pool")}</span>
-          <select
-            name="poolUuid"
-            required
-            defaultValue={pools[0]?.uuid}
-            className="w-full rounded-2xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none"
-          >
-            {pools.map((pool) => (
-              <option key={pool.uuid} value={pool.uuid}>
-                {pool.name}
-              </option>
-            ))}
-          </select>
-        </label>
-
+        {hidePoolSelect ? (
+          <input type="hidden" name="poolUuid" value={defaultPoolUuid ?? pools[0]?.uuid ?? ""} />
+        ) : (
+          <label className="space-y-2 text-sm">
+            <span className="text-muted-foreground">{t("compute.register.pool")}</span>
+            <select
+              name="poolUuid"
+              required
+              defaultValue={defaultPoolUuid ?? pools[0]?.uuid}
+              className="w-full rounded-2xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none"
+            >
+              {pools.map((pool) => (
+                <option key={pool.uuid} value={pool.uuid}>
+                  {pool.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className="space-y-2 text-sm">
           <span className="text-muted-foreground">{t("compute.register.label")}</span>
           <input

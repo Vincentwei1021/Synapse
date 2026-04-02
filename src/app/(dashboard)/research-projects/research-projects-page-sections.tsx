@@ -21,12 +21,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import {
-  ArrowRight,
   ChevronDown,
   ChevronRight,
   ClipboardList,
@@ -34,8 +43,10 @@ import {
   Folder,
   FolderOpen,
   Lightbulb,
+  Settings2,
   Pencil,
   Plus,
+  Trash2,
 } from "lucide-react";
 import { authFetch } from "@/lib/auth-client";
 import type {
@@ -178,7 +189,13 @@ function ProjectsGrid({ projects }: { projects: ProjectData[] }) {
   );
 }
 
-export function ProjectsPageHeader({ onCreateGroup }: { onCreateGroup: () => void }) {
+export function ProjectsPageHeader({
+  onCreateGroup,
+  onManageProjects,
+}: {
+  onCreateGroup: () => void;
+  onManageProjects: () => void;
+}) {
   const t = useTranslations();
 
   return (
@@ -191,13 +208,23 @@ export function ProjectsPageHeader({ onCreateGroup }: { onCreateGroup: () => voi
           {t("projects.subtitle")}
         </p>
       </div>
-      <Button
-        className="rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90"
-        onClick={onCreateGroup}
-      >
-        <Plus className="mr-2 h-4 w-4" />
-        {t("projectGroups.newProjectGroup")}
-      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          variant="outline"
+          className="rounded-xl"
+          onClick={onManageProjects}
+        >
+          <Settings2 className="mr-2 h-4 w-4" />
+          {t("projectGroups.manageProjects")}
+        </Button>
+        <Button
+          className="rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90"
+          onClick={onCreateGroup}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          {t("projectGroups.newProjectGroup")}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -527,5 +554,137 @@ export function UngroupedSection({
         );
       }}
     </Droppable>
+  );
+}
+
+export function ManageProjectGroupsDialog({
+  groups,
+  onDeleted,
+  onOpenChange,
+  open,
+}: {
+  groups: ProjectGroupData[];
+  onDeleted: () => void;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+}) {
+  const t = useTranslations();
+  const [deletingGroup, setDeletingGroup] = useState<ProjectGroupData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!deletingGroup) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setError(null);
+    try {
+      const response = await authFetch(`/api/project-groups/${deletingGroup.uuid}`, {
+        method: "DELETE",
+      });
+      const json = await response.json();
+
+      if (!response.ok || !json.success) {
+        throw new Error(json.error || t("projectGroups.deleteFailed"));
+      }
+
+      setDeletingGroup(null);
+      onDeleted();
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error && deleteError.message
+          ? deleteError.message
+          : t("common.genericError")
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[640px]">
+          <DialogHeader>
+            <DialogTitle>{t("projectGroups.manageProjects")}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {t("projectGroups.manageProjectsDescription")}
+            </p>
+
+            {error ? (
+              <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            ) : null}
+
+            {groups.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+                {t("projectGroups.noGroupsToManage")}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {groups.map((group) => (
+                  <div
+                    key={group.uuid}
+                    className="flex flex-col gap-3 rounded-xl border border-border bg-card px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{group.name}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {group.projectCount} {t("projectGroups.projectCount")} ·{" "}
+                        {t("projectGroups.deleteMovesToUngrouped")}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => setDeletingGroup(group)}
+                    >
+                      <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                      {t("projectGroups.deleteGroup")}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={deletingGroup !== null} onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          setDeletingGroup(null);
+        }
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("projectGroups.deleteGroup")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("projectGroups.deleteGroupDescription", {
+                groupName: deletingGroup?.name ?? "",
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(event) => {
+                event.preventDefault();
+                void handleDelete();
+              }}
+            >
+              {isDeleting ? t("common.processing") : t("common.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

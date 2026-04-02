@@ -1295,6 +1295,11 @@
       "title": "GPU Operations",
       "description": "Register machines with the least amount of setup, keep telemetry live, and let agents reserve only the GPUs they need."
     },
+    "actions": {
+      "createPool": "Create Pool",
+      "managePools": "Manage Pools",
+      "addMachine": "Add Machine"
+    },
     "metrics": {
       "pools": "Pools",
       "machines": "Machines",
@@ -1341,9 +1346,21 @@
       "lifecycle": "Lifecycle",
       "notes": "Notes",
       "notesPlaceholder": "Optional operational notes",
+      "addingToPool": "Configure a machine for {pool}.",
       "submit": "Add machine",
       "creating": "Adding...",
       "nodeError": "Could not create the compute node."
+    },
+    "manage": {
+      "title": "Manage Pools",
+      "description": "Expand a pool to remove machines, or delete the entire pool when it is no longer needed.",
+      "empty": "There are no pools to manage yet.",
+      "deletePool": "Delete pool",
+      "deleteMachine": "Delete machine",
+      "deletePoolTitle": "Delete compute pool?",
+      "deletePoolDescription": "Delete {name} and remove all machines inside it. This action cannot be undone.",
+      "deleteMachineTitle": "Delete machine?",
+      "deleteMachineDescription": "Delete {name} from {pool}. This removes the machine and its GPU inventory."
     },
     "machine": {
       "instanceType": "Instance type",
@@ -1428,6 +1445,8 @@
   },
   "projectGroups": {
     "newProjectGroup": "New group",
+    "manageProjects": "Manage Projects",
+    "manageProjectsDescription": "Delete groups you no longer need. Projects inside a deleted group will be moved to Ungrouped.",
     "newGroupTitle": "Create project group",
     "groupName": "Group name",
     "groupNamePlaceholder": "For example: Multimodal",
@@ -1453,12 +1472,17 @@
     "openIdeas": "open questions",
     "viewDashboard": "Open workspace",
     "noProjectsInGroup": "No projects in this group yet.",
+    "noGroupsToManage": "There are no project groups to manage yet.",
     "moveFailed": "Could not move the project.",
     "moveTitle": "Move project",
     "moveDescription": "Move {projectName} from {sourceGroupName} to {targetGroupName}?",
     "confirmMove": "Confirm move",
     "manageGroup": "Manage group",
     "editGroup": "Edit Group",
+    "deleteGroup": "Delete group",
+    "deleteFailed": "Could not delete the project group.",
+    "deleteMovesToUngrouped": "Deleting this group moves its projects to Ungrouped",
+    "deleteGroupDescription": "Delete {groupName}? Projects in this group will be moved to Ungrouped.",
     "groupDescription": "Description",
     "saving": "Saving...",
     "saveChanges": "Save changes"

@@ -3,8 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
+import { authFetch } from "@/lib/auth-client";
 
-export function ComputePoolForm() {
+export function ComputePoolForm({
+  embedded = false,
+  onSuccess,
+}: {
+  embedded?: boolean;
+  onSuccess?: () => void;
+}) {
   const t = useTranslations();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -17,7 +24,7 @@ export function ComputePoolForm() {
       description: String(formData.get("description") || ""),
     };
 
-    const response = await fetch("/api/compute-pools", {
+    const response = await authFetch("/api/compute-pools", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -28,18 +35,21 @@ export function ComputePoolForm() {
       return;
     }
 
+    onSuccess?.();
     router.refresh();
   }
 
   return (
     <form
       action={(formData) => startTransition(() => { void handleSubmit(formData); })}
-      className="space-y-4 rounded-[28px] border border-border bg-card p-6 shadow-sm"
+      className={embedded ? "space-y-4" : "space-y-4 rounded-[28px] border border-border bg-card p-6 shadow-sm"}
     >
-      <div className="space-y-1">
-        <p className="text-base font-semibold text-foreground">{t("compute.pool.title")}</p>
-        <p className="text-sm leading-6 text-muted-foreground">{t("compute.pool.description")}</p>
-      </div>
+      {!embedded ? (
+        <div className="space-y-1">
+          <p className="text-base font-semibold text-foreground">{t("compute.pool.title")}</p>
+          <p className="text-sm leading-6 text-muted-foreground">{t("compute.pool.description")}</p>
+        </div>
+      ) : null}
 
       <input
         name="name"

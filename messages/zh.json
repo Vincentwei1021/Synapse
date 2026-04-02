@@ -1295,6 +1295,11 @@
       "title": "GPU 运维台",
       "description": "用最少的配置接入机器、持续刷新遥测信息，并让 agent 只占用它真正需要的 GPU。"
     },
+    "actions": {
+      "createPool": "创建资源池",
+      "managePools": "管理资源池",
+      "addMachine": "添加机器"
+    },
     "metrics": {
       "pools": "资源池",
       "machines": "机器",
@@ -1341,9 +1346,21 @@
       "lifecycle": "生命周期",
       "notes": "备注",
       "notesPlaceholder": "可选备注",
+      "addingToPool": "为 {pool} 配置一台机器。",
       "submit": "添加机器",
       "creating": "添加中...",
       "nodeError": "创建机器失败。"
+    },
+    "manage": {
+      "title": "管理资源池",
+      "description": "展开资源池可删除其中的机器，也可以直接删除整个资源池。",
+      "empty": "当前还没有可管理的资源池。",
+      "deletePool": "删除资源池",
+      "deleteMachine": "删除机器",
+      "deletePoolTitle": "删除资源池？",
+      "deletePoolDescription": "删除 {name} 并移除其中所有机器。此操作无法撤销。",
+      "deleteMachineTitle": "删除机器？",
+      "deleteMachineDescription": "将 {name} 从 {pool} 中删除。这会一并移除该机器及其 GPU 清单。"
     },
     "machine": {
       "instanceType": "实例类型",
@@ -1428,6 +1445,8 @@
   },
   "projectGroups": {
     "newProjectGroup": "新建分组",
+    "manageProjects": "管理项目分组",
+    "manageProjectsDescription": "删除不再需要的分组。分组中的项目会自动移动到“未分组”。",
     "newGroupTitle": "创建项目分组",
     "groupName": "分组名称",
     "groupNamePlaceholder": "例如：多模态",
@@ -1453,12 +1472,17 @@
     "openIdeas": "个待推进问题",
     "viewDashboard": "进入工作区",
     "noProjectsInGroup": "这个分组里还没有项目。",
+    "noGroupsToManage": "当前还没有可管理的项目分组。",
     "moveFailed": "移动项目失败。",
     "moveTitle": "移动项目",
     "moveDescription": "确定要把 {projectName} 从 {sourceGroupName} 移动到 {targetGroupName} 吗？",
     "confirmMove": "确认移动",
     "manageGroup": "管理分组",
     "editGroup": "编辑分组",
+    "deleteGroup": "删除分组",
+    "deleteFailed": "删除项目分组失败。",
+    "deleteMovesToUngrouped": "删除后，分组内项目会移动到“未分组”",
+    "deleteGroupDescription": "确定要删除 {groupName} 吗？该分组下的项目会移动到“未分组”。",
     "groupDescription": "描述",
     "saving": "保存中...",
     "saveChanges": "保存更改"

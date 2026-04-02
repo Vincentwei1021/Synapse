@@ -499,6 +499,46 @@ export async function createComputeNode(input: {
   });
 }
 
+export async function deleteComputePool(companyUuid: string, poolUuid: string) {
+  const existing = await prisma.computePool.findFirst({
+    where: {
+      uuid: poolUuid,
+      companyUuid,
+    },
+    select: { uuid: true },
+  });
+
+  if (!existing) {
+    return false;
+  }
+
+  await prisma.computePool.delete({
+    where: { uuid: poolUuid },
+  });
+
+  return true;
+}
+
+export async function deleteComputeNode(companyUuid: string, nodeUuid: string) {
+  const existing = await prisma.computeNode.findFirst({
+    where: {
+      uuid: nodeUuid,
+      companyUuid,
+    },
+    select: { uuid: true },
+  });
+
+  if (!existing) {
+    return false;
+  }
+
+  await prisma.computeNode.delete({
+    where: { uuid: nodeUuid },
+  });
+
+  return true;
+}
+
 export async function syncNodeInventory(input: {
   companyUuid?: string;
   nodeUuid: string;

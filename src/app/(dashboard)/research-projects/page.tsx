@@ -7,6 +7,7 @@ import { MoveProjectConfirmDialog } from "@/components/move-research-project-con
 import { CreateProjectGroupDialog } from "@/components/create-project-group-dialog";
 import {
   GroupSection,
+  ManageProjectGroupsDialog,
   ProjectsEmptyState,
   ProjectsPageHeader,
   UngroupedSection,
@@ -21,6 +22,7 @@ import { useResearchProjectsPageData } from "./use-research-projects-page-data";
 export default function ProjectsPage() {
   const t = useTranslations();
   const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [showManageProjects, setShowManageProjects] = useState(false);
 
   const getGroupName = (groupUuid: string | null) => {
     if (!groupUuid) return t("projectGroups.ungrouped");
@@ -92,7 +94,10 @@ export default function ProjectsPage() {
     <>
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="min-h-full bg-background p-4 md:p-8">
-          <ProjectsPageHeader onCreateGroup={() => setShowCreateGroup(true)} />
+          <ProjectsPageHeader
+            onCreateGroup={() => setShowCreateGroup(true)}
+            onManageProjects={() => setShowManageProjects(true)}
+          />
 
           {projects.length === 0 && groups.length === 0 ? (
             <ProjectsEmptyState />
@@ -137,6 +142,15 @@ export default function ProjectsPage() {
         onOpenChange={setShowCreateGroup}
         onCreated={() => {
           setShowCreateGroup(false);
+          refresh();
+        }}
+      />
+
+      <ManageProjectGroupsDialog
+        open={showManageProjects}
+        onOpenChange={setShowManageProjects}
+        groups={groups}
+        onDeleted={() => {
           refresh();
         }}
       />
