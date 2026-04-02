@@ -14,49 +14,87 @@ Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.co
 
 ## Table of Contents
 
-- [Vibe Research](#vibe-research)
-- [Getting Started](#getting-started)
-- [Research Workflow](#research-workflow)
+- [Stages of Agent Autonomy in Research](#stages-of-agent-autonomy-in-research)
 - [Features](#features)
+- [Getting Started](#getting-started)
+- [Progress](#progress)
+- [Research Workflow](#research-workflow)
 - [Documentation](#documentation)
 - [License](#license)
 
-## Vibe Research
+## Stages of Agent Autonomy in Research
 
-### The State of Research Today
+<p align="center">
+  <img src="assets/3stages.png" alt="Stages of Agent Autonomy in Research" width="100%" />
+</p>
 
-Research in the age of AI is powerful but fragmented. A typical workflow looks like this:
+Research autonomy is not a binary switch. It advances in stages:
 
-- **Scattered context** — papers live in Zotero, code in GitHub, results in spreadsheets, notes in Slack. Every collaborator re-reads everything from scratch.
-- **Manual handoffs** — copy-pasting between tools, re-explaining context to every new participant, losing continuity between phases.
-- **Idle cycles** — waiting for GPUs, waiting for reviews, waiting for someone to run the next experiment. The research loop stalls between human handoffs.
-- **Linear-only execution** — most AI agent tools follow sequential plans (step 1 → step 2 → step 3). Real research branches into parallel questions and iterates in loops, not straight lines.
+- **Stage 1: Agent as Intern** — the human defines the problem and the experiment, while the agent executes reliably.
+- **Stage 2: Agent as Researcher** — the agent can own a single research question end-to-end, proposing experiments, running them, interpreting results, and iterating within a clear boundary.
+- **Stage 3: Agent as Research Lead** — the agent can drive a full project, coordinate across questions, and continuously shape the research direction under human oversight.
 
-The bottleneck is no longer compute or models — it's **coordination**.
+Synapse is built to move teams through those stages deliberately.
 
-### What is Vibe Research?
-
-Vibe Coding showed that developers can describe intent and let AI write the code. **Vibe Research** applies the same principle to the research lifecycle:
-
-> **Human sets direction. AI agents execute, report, and propose. Human reviews and steers.**
-
-You can refer to the [awesome-vibe-research](https://github.com/Vincentwei1021/awesome-vibe-research) repo for more details.
-
-### Why Vibe Research?
-
-| Traditional Research | Vibe Research |
-|---------------------|---------------|
-| Human runs every experiment | Agent executes, human reviews results |
-| Linear plan: finish A, then start B | Parallel questions + iterative loops |
-| Context scattered across 5+ tools | One workspace for the full lifecycle |
-| GPU idle between manual steps | Autonomous loop keeps experiments flowing |
-| Reports written after the fact | Agent generates reports on completion |
-
-Synapse is the platform that makes Vibe Research possible.
+- **Streamline Stage 1** by making experiment execution, compute access, result capture, and reporting a default operational loop instead of a pile of manual handoffs.
+- **Make Stage 2 reliable** by keeping context, papers, experiments, progress, and review in one system, so agents can act independently without drifting off-task.
+- **Make Stage 3 feasible** by building the control plane for project-level delegation: structured context, observability, orchestration, permissions, and human steering when it matters most.
 
 ---
 
+## Features
+
+### Project Workspace
+
+<p align="center">
+  <img src="assets/12-project2-dashboard.png" alt="Synapse project dashboard" width="100%" />
+</p>
+
+Synapse gives each research project a shared operational home for briefs, datasets, evaluation methods, research questions, experiments, reports, and rolling synthesis. Instead of bouncing across docs, scripts, spreadsheets, and chat threads, humans and agents work from the same source of truth.
+
+### Related Works and Deep Research
+
+<p align="center">
+  <img src="assets/05-related-works.png" alt="Synapse related works page" width="100%" />
+</p>
+
+- Paste an arXiv URL to add a paper with metadata fetched automatically
+- Assign a `pre_research` agent to search Semantic Scholar and build a project paper set
+- Generate literature review documents directly inside the project workspace
+
+### Experiment Execution Board
+
+<p align="center">
+  <img src="assets/experiment_board.jpg" alt="Synapse experiment board" width="100%" />
+</p>
+
+- Five-column experiment pipeline: `draft` → `pending_review` → `pending_start` → `in_progress` → `completed`
+- Live status badges for agent execution: `sent`, `ack`, `checking_resources`, `queuing`, `running`
+- Progress reporting through `synapse_report_experiment_progress`
+- Autonomous loop support, so agents can propose the next experiments when queues are empty
+
+### Compute and Agent Operations
+
+<p align="center">
+  <img src="assets/10-compute.png" alt="Synapse compute management" width="100%" />
+</p>
+
+- Dedicated `/agents` page with four composable permissions: `pre_research`, `research`, `experiment`, `report`
+- API-key based agent access to Synapse MCP tools
+- Compute pools, node inventory, GPU reservations, and per-project pool binding
+- Managed SSH access bundles for secure compute access from agent environments
+
+### Reports, Synthesis, and MCP Surface
+
+- Agents write experiment reports in the context of the project instead of filling rigid templates
+- Synapse maintains project-level synthesis documents as research evolves
+- 60+ MCP tools cover project context, literature search, experiment execution, compute access, and collaboration
+
 ## Getting Started
+
+<p align="center">
+  <img src="assets/02-project-dashboard.png" alt="Synapse dashboard overview" width="100%" />
+</p>
 
 ### Quick Start with Docker
 
@@ -105,6 +143,7 @@ claude
 ```
 
 Set environment variables:
+
 ```bash
 export SYNAPSE_URL="http://localhost:3000"
 export SYNAPSE_API_KEY="syn_your_api_key"
@@ -128,9 +167,36 @@ Create `.mcp.json` in your project root:
 }
 ```
 
----
+## Progress
+
+<p align="center">
+  <img src="assets/07-insights.png" alt="Synapse insights and synthesis" width="100%" />
+</p>
+
+### Implemented
+
+- Project-centric research workspace with experiments, documents, related works, and rolling synthesis
+- Composable agent permissions with user-scoped ownership, API keys, and agent session observability
+- Experiment board with live execution state, agent progress reporting, and result document updates
+- Related works pipeline with Semantic Scholar search, project paper collection, and deep research report generation
+- Compute orchestration with compute pools, GPU inventory, pool binding, reservations, and managed access bundles
+- Autonomous experiment proposal loop for keeping research momentum when queues run dry
+- MCP tool surface for project context, literature, experiments, compute, comments, and collaboration
+
+### Planned
+
+- **Steer running agents**: intervene during an `in_progress` experiment to correct direction, refine instructions, or recover quickly from mistakes without restarting the whole run
+- **Stream real experiment logs**: capture execution logs from running jobs and pipe them back to the experiment panel in real time, separate from higher-level progress updates
+- **Git-tree parallel execution**: adopt a Karpathy-style `autoresearch` workflow where experiments can fan out across isolated git trees or worktrees for parallel runs and cleaner comparison
+- **Stronger evaluation loops**: make baselines, metrics, and accept/reject criteria first-class so agents can compare outcomes more rigorously before proposing the next step
+- **Artifact and reproducibility tracking**: attach code revisions, configs, outputs, and environment details to each experiment so results are easier to audit and replay
+- **Better long-running control**: improve retries, resume semantics, and supervision for experiments that span multiple machines, GPUs, or extended time windows
 
 ## Research Workflow
+
+<p align="center">
+  <img src="assets/research-lifecycle.svg" alt="Synapse research workflow" width="100%" />
+</p>
 
 ```
 Research Project ──> Research Questions ──> Experiments ──> Reports
@@ -151,60 +217,6 @@ Four agent permission roles (composable):
 | **Report** | Generate experiment reports, literature reviews, synthesis documents |
 
 The **Autonomous Loop** enables a self-sustaining research cycle: when all experiment queues are empty, the assigned agent analyzes the full project context and proposes new experiments for human review.
-
----
-
-## Features
-
-### Agent Management
-
-Dedicated `/agents` page with 4 composable permissions. Each agent gets an API key for MCP tool access. Agents are owned per-user with full isolation.
-
-### Related Works & Literature Search
-
-Project-level literature management:
-- **Manual addition** — paste an arXiv URL, metadata auto-fetched via Semantic Scholar
-- **Auto-search** — assign a `pre_research` agent to discover papers automatically
-- **Deep Research** — generate a comprehensive literature review document
-
-### Experiments Board
-
-Five-column Kanban board (Draft → Pending Review → Pending Start → In Progress → Completed) with:
-- **Live status badges** — sent / ack / checking resources / queuing / running
-- **Progress timeline** — agents report step-by-step via `synapse_report_experiment_progress`
-- **Autonomous Loop toggle** — agent proposes new experiments when queues are empty
-
-### Agent-Generated Reports
-
-On experiment completion, the assigned agent writes its own report — analyzing results in the context of the project's goals, in the project's language. Replaces template-based document generation.
-
-### Compute Orchestration
-
-- GPU pool management with node/GPU inventory
-- Per-project compute pool binding (strong constraint on GPU reservations)
-- Managed SSH key bundles for secure agent access to compute nodes
-- Dynamic agent timeout based on experiment compute budget
-
-### Research Questions Canvas
-
-Hierarchical question board with parent-child relationships, status progression (open → elaborating → experiment created → completed), and linked experiment tracking.
-
-### Notification System
-
-Real-time SSE delivery with Redis Pub/Sub for cross-instance propagation. Preferences grouped by agent permission categories. Agents receive notifications for assignments, mentions, and autonomous loop triggers.
-
-### MCP Tools
-
-60+ MCP tools covering the full research workflow:
-
-| Category | Tools |
-|----------|-------|
-| **Read** | `synapse_get_research_project`, `synapse_get_experiment`, `synapse_get_assigned_experiments`, `synapse_get_project_full_context` |
-| **Literature** | `synapse_search_papers`, `synapse_add_related_work`, `synapse_get_related_works` |
-| **Experiment** | `synapse_start_experiment`, `synapse_submit_experiment_results`, `synapse_report_experiment_progress` |
-| **Compute** | `synapse_list_compute_nodes`, `synapse_get_node_access_bundle`, `synapse_sync_node_inventory` |
-| **Autonomous** | `synapse_propose_experiment` |
-| **Collaboration** | `synapse_add_comment`, `synapse_get_comments` |
 
 ---
 
