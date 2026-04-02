@@ -15,7 +15,6 @@ Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.co
 ## Table of Contents
 
 - [Vibe Research](#vibe-research)
-- [Stages of Agent Autonomy in Research](#stages-of-agent-autonomy-in-research)
 - [Features](#features)
 - [Getting Started](#getting-started)
 - [Progress](#progress)
@@ -25,17 +24,13 @@ Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.co
 
 ## Vibe Research
 
-<p align="center">
-  <img src="assets/12-project2-dashboard.png" alt="Synapse vibe research workspace" width="100%" />
-</p>
-
 Vibe Coding showed that people can describe intent and let AI handle execution. **Vibe Research** applies that same shift to the research lifecycle:
 
 > **Humans set direction. Agents execute, report, propose, and iterate. Humans review, steer, and decide.**
 
 Synapse is the operating system for that workflow. It keeps project context, literature, experiments, compute access, reports, and coordination in one place so research can move with agent-speed without losing human judgment.
 
-## Stages of Agent Autonomy in Research
+### Stages of Agent Autonomy in Research
 
 <p align="center">
   <img src="assets/3stages.png" alt="Stages of Agent Autonomy in Research" width="100%" />
@@ -98,10 +93,6 @@ Synapse gives each research project a shared operational home for briefs, datase
 - 60+ MCP tools cover project context, literature search, experiment execution, compute access, and collaboration
 
 ## Getting Started
-
-<p align="center">
-  <img src="assets/02-project-dashboard.png" alt="Synapse dashboard overview" width="100%" />
-</p>
 
 ### Quick Start with Docker
 
@@ -176,28 +167,28 @@ Create `.mcp.json` in your project root:
 
 ## Progress
 
-<p align="center">
-  <img src="assets/07-insights.png" alt="Synapse insights and synthesis" width="100%" />
-</p>
-
 ### Implemented
 
-- Project-centric research workspace with experiments, documents, related works, and rolling synthesis
-- Composable agent permissions with user-scoped ownership, API keys, and agent session observability
-- Experiment board with live execution state, agent progress reporting, and result document updates
-- Related works pipeline with Semantic Scholar search, project paper collection, and deep research report generation
-- Compute orchestration with compute pools, GPU inventory, pool binding, reservations, and managed access bundles
-- Autonomous experiment proposal loop for keeping research momentum when queues run dry
-- MCP tool surface for project context, literature, experiments, compute, comments, and collaboration
+- [x] Research-project workspace with briefs, datasets, evaluation methods, experiments, documents, and rolling synthesis
+- [x] Research-question hierarchy and canvas-style question management
+- [x] Five-stage experiment board with live execution status and progress updates
+- [x] Agent-generated experiment reports and project-level synthesis documents
+- [x] Related works workflow with Semantic Scholar search, paper collection, and deep research reports
+- [x] Composable agent permissions: `pre_research`, `research`, `experiment`, `report`
+- [x] User-scoped agent ownership, API keys, and agent session observability
+- [x] Compute pools, node inventory, GPU reservations, and project-level pool binding
+- [x] Managed node access bundles for secure agent access to compute
+- [x] Autonomous experiment proposal loop for keeping project momentum when queues empty out
+- [x] Comments, mentions, notifications, and real-time SSE updates
+- [x] 60+ MCP tools covering context retrieval, literature, experiments, compute, and collaboration
 
 ### Planned
 
-- **Steer running agents**: intervene during an `in_progress` experiment to correct direction, refine instructions, or recover quickly from mistakes without restarting the whole run
-- **Stream real experiment logs**: capture execution logs from running jobs and pipe them back to the experiment panel in real time, separate from higher-level progress updates
-- **Git-tree parallel execution**: adopt a Karpathy-style `autoresearch` workflow where experiments can fan out across isolated git trees or worktrees for parallel runs and cleaner comparison
-- **Stronger evaluation loops**: make baselines, metrics, and accept/reject criteria first-class so agents can compare outcomes more rigorously before proposing the next step
-- **Artifact and reproducibility tracking**: attach code revisions, configs, outputs, and environment details to each experiment so results are easier to audit and replay
-- **Better long-running control**: improve retries, resume semantics, and supervision for experiments that span multiple machines, GPUs, or extended time windows
+- [ ] Steer running agents during an `in_progress` experiment
+- [ ] Stream raw experiment logs back into the panel in real time
+- [ ] Run experiments in parallel via isolated git trees / worktrees
+- [ ] Strengthen evaluation loops with first-class baselines and accept/reject criteria
+- [ ] Track reproducibility artifacts: code revision, config, outputs, and environment
 
 ## Research Workflow
 

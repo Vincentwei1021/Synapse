@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 560" font-family="system-ui, -apple-system, sans-serif">
+
+  <!-- Background -->
+  <rect width="1100" height="560" fill="#181b22" rx="12" />
+
+  <!-- Title -->
+  <text x="50" y="44" font-size="22" font-weight="bold" fill="#ffffff">Stages of Agent Autonomy</text>
+
+  <!-- Subtitle -->
+  <text x="50" y="74" font-size="14" fill="#a0a8b8">As trust and tooling mature, vibe research naturally progresses through three stages:</text>
+
+  <!-- Table structure -->
+  <!-- Column positions: 40 | 200 | 360 | 760 | 1060 -->
+  <!-- Header -->
+  <rect x="40" y="100" width="1020" height="40" rx="6" fill="#2c3040" />
+  <line x1="200" y1="100" x2="200" y2="140" stroke="#3a3e50" stroke-width="1" />
+  <line x1="360" y1="100" x2="360" y2="140" stroke="#3a3e50" stroke-width="1" />
+  <line x1="760" y1="100" x2="760" y2="140" stroke="#3a3e50" stroke-width="1" />
+
+  <text x="120" y="125" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">Stage</text>
+  <text x="280" y="125" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">Role</text>
+  <text x="560" y="125" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">What the Agent Does</text>
+  <text x="910" y="125" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">What Humans Own</text>
+
+  <!-- Row 1 — Stage 1 -->
+  <rect x="40" y="141" width="1020" height="110" fill="#1f2330" />
+  <line x1="200" y1="141" x2="200" y2="251" stroke="#2a2e3a" stroke-width="1" />
+  <line x1="360" y1="141" x2="360" y2="251" stroke="#2a2e3a" stroke-width="1" />
+  <line x1="760" y1="141" x2="760" y2="251" stroke="#2a2e3a" stroke-width="1" />
+  <line x1="40" y1="251" x2="1060" y2="251" stroke="#2a2e3a" stroke-width="1" />
+
+  <!-- Stage label -->
+  <text x="120" y="188" text-anchor="middle" font-size="13" font-weight="bold" fill="#7eb4e0">Stage 1: Agent</text>
+  <text x="120" y="206" text-anchor="middle" font-size="13" font-weight="bold" fill="#7eb4e0">as Intern</text>
+
+  <!-- Role -->
+  <text x="280" y="200" text-anchor="middle" font-size="12.5" fill="#d0d4e0">Execution only</text>
+
+  <!-- What Agent Does -->
+  <text x="375" y="172" font-size="12.5" fill="#c0c4d0">Runs experiments designed by humans.</text>
+  <text x="375" y="190" font-size="12.5" fill="#c0c4d0">No idea proposals, no research questions</text>
+  <text x="375" y="208" font-size="12.5" fill="#c0c4d0">&#x2014; just reliable throughput on well-</text>
+  <text x="375" y="226" font-size="12.5" fill="#c0c4d0">scoped tasks.</text>
+
+  <!-- What Humans Own -->
+  <text x="775" y="180" font-size="12.5" fill="#c0c4d0">Problem definition,</text>
+  <text x="775" y="198" font-size="12.5" fill="#c0c4d0">experiment design,</text>
+  <text x="775" y="216" font-size="12.5" fill="#c0c4d0">interpretation, all decisions.</text>
+
+  <!-- Row 2 — Stage 2 -->
+  <rect x="40" y="252" width="1020" height="130" fill="#242838" />
+  <line x1="200" y1="252" x2="200" y2="382" stroke="#2a2e3a" stroke-width="1" />
+  <line x1="360" y1="252" x2="360" y2="382" stroke="#2a2e3a" stroke-width="1" />
+  <line x1="760" y1="252" x2="760" y2="382" stroke="#2a2e3a" stroke-width="1" />
+  <line x1="40" y1="382" x2="1060" y2="382" stroke="#2a2e3a" stroke-width="1" />
+
+  <!-- Stage label -->
+  <text x="120" y="310" text-anchor="middle" font-size="13" font-weight="bold" fill="#60c898">Stage 2: Agent</text>
+  <text x="120" y="328" text-anchor="middle" font-size="13" font-weight="bold" fill="#60c898">as Researcher</text>
+
+  <!-- Role -->
+  <text x="280" y="306" text-anchor="middle" font-size="12.5" fill="#d0d4e0">Independent research</text>
+  <text x="280" y="324" text-anchor="middle" font-size="12.5" fill="#d0d4e0">within a question</text>
+
+  <!-- What Agent Does -->
+  <text x="375" y="278" font-size="12.5" fill="#c0c4d0">Owns a single research question end-</text>
+  <text x="375" y="296" font-size="12.5" fill="#c0c4d0">to-end. Self-loops at the experiment</text>
+  <text x="375" y="314" font-size="12.5" fill="#c0c4d0">level: proposes experiments, runs them,</text>
+  <text x="375" y="332" font-size="12.5" fill="#c0c4d0">interprets results, and iterates &#x2014; all</text>
+  <text x="375" y="350" font-size="12.5" fill="#c0c4d0">within the boundary of one research</text>
+  <text x="375" y="368" font-size="12.5" fill="#c0c4d0">question.</text>
+
+  <!-- What Humans Own -->
+  <text x="775" y="300" font-size="12.5" fill="#c0c4d0">Research question</text>
+  <text x="775" y="318" font-size="12.5" fill="#c0c4d0">formulation, cross-question</text>
+  <text x="775" y="336" font-size="12.5" fill="#c0c4d0">prioritization, final judgment.</text>
+
+  <!-- Row 3 — Stage 3 -->
+  <rect x="40" y="383" width="1020" height="120" fill="#1f2330" />
+  <line x1="200" y1="383" x2="200" y2="503" stroke="#2a2e3a" stroke-width="1" />
+  <line x1="360" y1="383" x2="360" y2="503" stroke="#2a2e3a" stroke-width="1" />
+  <line x1="760" y1="383" x2="760" y2="503" stroke="#2a2e3a" stroke-width="1" />
+
+  <!-- Stage label -->
+  <text x="120" y="434" text-anchor="middle" font-size="13" font-weight="bold" fill="#e0a040">Stage 3: Agent</text>
+  <text x="120" y="452" text-anchor="middle" font-size="13" font-weight="bold" fill="#e0a040">as Research Lead</text>
+
+  <!-- Role -->
+  <text x="280" y="440" text-anchor="middle" font-size="12.5" fill="#d0d4e0">Full project</text>
+  <text x="280" y="458" text-anchor="middle" font-size="12.5" fill="#d0d4e0">autonomy</text>
+
+  <!-- What Agent Does -->
+  <text x="375" y="414" font-size="12.5" fill="#c0c4d0">Drives an entire research project.</text>
+  <text x="375" y="432" font-size="12.5" fill="#c0c4d0">Formulates research questions, builds</text>
+  <text x="375" y="450" font-size="12.5" fill="#c0c4d0">and tests hypotheses, decides which to</text>
+  <text x="375" y="468" font-size="12.5" fill="#c0c4d0">accept or reject, and charts the</text>
+  <text x="375" y="486" font-size="12.5" fill="#c0c4d0">research direction.</text>
+
+  <!-- What Humans Own -->
+  <text x="775" y="432" font-size="12.5" fill="#c0c4d0">Strategic oversight,</text>
+  <text x="775" y="450" font-size="12.5" fill="#c0c4d0">ethical review,</text>
+  <text x="775" y="468" font-size="12.5" fill="#c0c4d0">publication decisions.</text>
+
+  <!-- Table outer border -->
+  <rect x="40" y="100" width="1020" height="403" rx="6" fill="none" stroke="#3a3e50" stroke-width="1.5" />
+
+  <!-- Footer -->
+  <text x="50" y="536" font-size="13" fill="#808898">Most teams today operate at Stage 1. The goal of vibe research tooling is to make Stage 2 reliable and Stage 3 feasible.</text>
+
+</svg>
