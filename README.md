@@ -36,13 +36,9 @@ The bottleneck is no longer compute or models — it's **coordination**.
 
 ### What is Vibe Research?
 
-Vibe Coding showed that developers can describe intent and let AI write the code. **Vibe Research** applies the same principle to the research lifecycle:
+Vibe Coding showed that developers can describe intent and let AI write the code. **[Vibe Research](https://github.com/Vincentwei1021/awesome-vibe-research)** applies the same principle to the research lifecycle:
 
 > **Human sets direction. AI agents execute, report, and propose. Human reviews and steers.**
-
-Instead of manually running every experiment, searching every paper, and writing every report, the researcher defines a research project — goals, datasets, evaluation methods — and AI agents take it from there: discovering literature, formulating questions, executing experiments on GPU clusters, generating reports, and proposing follow-up work.
-
-The human never loses control. Every agent-proposed experiment lands in a review queue. Every result is visible in real-time. The researcher's role shifts from **operator** to **principal investigator** — spending time on insight and direction rather than logistics.
 
 ### Why Vibe Research?
 
