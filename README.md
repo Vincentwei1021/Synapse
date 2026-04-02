@@ -8,6 +8,10 @@
 
 Synapse is a research orchestration platform that brings human researchers and AI agents together. It manages the full research lifecycle — from literature review and question formulation through experiment execution and report generation — with built-in agent management, compute orchestration, and real-time observability.
 
+<p align="center">
+  <img src="assets/research-lifecycle.svg" alt="Synapse research lifecycle" width="100%" />
+</p>
+
 Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle/) methodology and built upon [Chorus](https://github.com/Chorus-AIDLC/Chorus).
 
 ---
@@ -22,10 +26,6 @@ Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.co
 - [License](#license)
 
 ## Vibe Research
-
-<p align="center">
-  <img src="assets/research-lifecycle.svg" alt="Synapse research lifecycle" width="100%" />
-</p>
 
 Vibe Coding showed that people can describe intent and let AI handle execution. **Vibe Research** applies that same shift to the research lifecycle:
 
