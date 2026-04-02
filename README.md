@@ -14,6 +14,7 @@ Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.co
 
 ## Table of Contents
 
+- [Vibe Research](#vibe-research)
 - [Stages of Agent Autonomy in Research](#stages-of-agent-autonomy-in-research)
 - [Features](#features)
 - [Getting Started](#getting-started)
@@ -22,19 +23,25 @@ Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.co
 - [Documentation](#documentation)
 - [License](#license)
 
+## Vibe Research
+
+<p align="center">
+  <img src="assets/12-project2-dashboard.png" alt="Synapse vibe research workspace" width="100%" />
+</p>
+
+Vibe Coding showed that people can describe intent and let AI handle execution. **Vibe Research** applies that same shift to the research lifecycle:
+
+> **Humans set direction. Agents execute, report, propose, and iterate. Humans review, steer, and decide.**
+
+Synapse is the operating system for that workflow. It keeps project context, literature, experiments, compute access, reports, and coordination in one place so research can move with agent-speed without losing human judgment.
+
 ## Stages of Agent Autonomy in Research
 
 <p align="center">
   <img src="assets/3stages.png" alt="Stages of Agent Autonomy in Research" width="100%" />
 </p>
 
-Research autonomy is not a binary switch. It advances in stages:
-
-- **Stage 1: Agent as Intern** — the human defines the problem and the experiment, while the agent executes reliably.
-- **Stage 2: Agent as Researcher** — the agent can own a single research question end-to-end, proposing experiments, running them, interpreting results, and iterating within a clear boundary.
-- **Stage 3: Agent as Research Lead** — the agent can drive a full project, coordinate across questions, and continuously shape the research direction under human oversight.
-
-Synapse is built to move teams through those stages deliberately.
+Synapse is built to move research teams through these stages deliberately.
 
 - **Streamline Stage 1** by making experiment execution, compute access, result capture, and reporting a default operational loop instead of a pile of manual handoffs.
 - **Make Stage 2 reliable** by keeping context, papers, experiments, progress, and review in one system, so agents can act independently without drifting off-task.
