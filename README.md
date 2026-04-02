@@ -18,11 +18,14 @@ Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.co
 - [Features](#features)
 - [Getting Started](#getting-started)
 - [Progress](#progress)
-- [Research Workflow](#research-workflow)
 - [Documentation](#documentation)
 - [License](#license)
 
 ## Vibe Research
+
+<p align="center">
+  <img src="assets/research-lifecycle.svg" alt="Synapse research lifecycle" width="100%" />
+</p>
 
 Vibe Coding showed that people can describe intent and let AI handle execution. **Vibe Research** applies that same shift to the research lifecycle:
 
@@ -62,6 +65,16 @@ Synapse gives each research project a shared operational home for briefs, datase
 - Assign a `pre_research` agent to search Semantic Scholar and build a project paper set
 - Generate literature review documents directly inside the project workspace
 
+### Research Question Canvas
+
+<p align="center">
+  <img src="assets/research_question_canvas.jpg" alt="Synapse research question canvas" width="100%" />
+</p>
+
+- Organize research questions in a canvas-style hierarchy with parent-child structure
+- Track question progress from exploration to experiment creation and completion
+- Keep question context connected to the experiments and reports it produces
+
 ### Experiment Execution Board
 
 <p align="center">
@@ -73,16 +86,33 @@ Synapse gives each research project a shared operational home for briefs, datase
 - Progress reporting through `synapse_report_experiment_progress`
 - Autonomous loop support, so agents can propose the next experiments when queues are empty
 
-### Compute and Agent Operations
+### Agent Management
+
+<p align="center">
+  <img src="assets/agent_management.jpg" alt="Synapse agent management" width="100%" />
+</p>
+
+- API-key based agent access to Synapse MCP tools
+- User-scoped agent ownership, key management, and session observability
+
+Four agent permission roles (composable):
+
+| Permission | Responsibility |
+|-----------|---------------|
+| **Pre-research** | Literature search, related works discovery via Semantic Scholar |
+| **Research** | Propose research questions, hypothesis formulation |
+| **Experiment** | Execute experiments, allocate compute, report progress |
+| **Report** | Generate experiment reports, literature reviews, synthesis documents |
+
+### Compute Orchestration
 
 <p align="center">
   <img src="assets/10-compute.png" alt="Synapse compute management" width="100%" />
 </p>
 
-- Dedicated `/agents` page with four composable permissions: `pre_research`, `research`, `experiment`, `report`
-- API-key based agent access to Synapse MCP tools
 - Compute pools, node inventory, GPU reservations, and per-project pool binding
 - Managed SSH access bundles for secure compute access from agent environments
+- Keep agents aligned with available resources before, during, and between runs
 
 ### Reports, Synthesis, and MCP Surface
 
@@ -187,32 +217,6 @@ Create `.mcp.json` in your project root:
 - [ ] Run experiments in parallel via isolated git trees / worktrees
 - [ ] Strengthen evaluation loops with first-class baselines and accept/reject criteria
 - [ ] Track reproducibility artifacts: code revision, config, outputs, and environment
-
-## Research Workflow
-
-<p align="center">
-  <img src="assets/research-lifecycle.svg" alt="Synapse research workflow" width="100%" />
-</p>
-
-```
-Research Project ──> Research Questions ──> Experiments ──> Reports
-       ^                   ^                    ^              ^
-    Human              Human or            AI Agent         AI Agent
-    creates            AI Agent            executes &       writes
-    project            proposes            reports          analysis
-                                           progress
-```
-
-Four agent permission roles (composable):
-
-| Permission | Responsibility |
-|-----------|---------------|
-| **Pre-research** | Literature search, related works discovery via Semantic Scholar |
-| **Research** | Propose research questions, hypothesis formulation |
-| **Experiment** | Execute experiments, allocate compute, report progress |
-| **Report** | Generate experiment reports, literature reviews, synthesis documents |
-
-The **Autonomous Loop** enables a self-sustaining research cycle: when all experiment queues are empty, the assigned agent analyzes the full project context and proposes new experiments for human review.
 
 ---
 
