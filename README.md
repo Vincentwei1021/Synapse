@@ -28,8 +28,6 @@ Vibe Coding showed that people can describe intent and let AI handle execution. 
 
 > **Humans set direction. Agents execute, report, propose, and iterate. Humans review, steer, and decide.**
 
-Synapse is the operating system for that workflow. It keeps project context, literature, experiments, compute access, reports, and coordination in one place so research can move with agent-speed without losing human judgment.
-
 ### Stages of Agent Autonomy in Research
 
 <p align="center">
