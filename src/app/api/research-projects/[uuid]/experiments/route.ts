@@ -22,6 +22,7 @@ const createExperimentSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   researchQuestionUuid: z.string().optional(),
+  status: z.enum(["draft", "pending_review", "pending_start"]).default("pending_start"),
   priority: z.string().default("medium"),
   computeBudgetHours: optionalNumber(z.coerce.number().min(0)),
 });
@@ -100,6 +101,7 @@ export const POST = withErrorHandler<{ uuid: string }>(async (request: NextReque
     title: String(formData.get("title") || ""),
     description: String(formData.get("description") || ""),
     researchQuestionUuid: String(formData.get("researchQuestionUuid") || ""),
+    status: String(formData.get("status") || "pending_start"),
     priority: String(formData.get("priority") || "medium"),
     computeBudgetHours: formData.get("computeBudgetHours"),
   });
@@ -114,6 +116,7 @@ export const POST = withErrorHandler<{ uuid: string }>(async (request: NextReque
     researchQuestionUuid: parsed.data.researchQuestionUuid || null,
     title: parsed.data.title.trim(),
     description: parsed.data.description?.trim() || null,
+    status: parsed.data.status,
     priority: parsed.data.priority,
     computeBudgetHours: parsed.data.computeBudgetHours ?? null,
     createdByUuid: auth.actorUuid,

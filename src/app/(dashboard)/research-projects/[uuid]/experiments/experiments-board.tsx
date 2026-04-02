@@ -3,11 +3,14 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { CheckCircle2, CornerUpLeft, FileText, Send } from "lucide-react";
+import { CheckCircle2, CornerUpLeft, FileText, Save, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
 import type { ExperimentResponse } from "@/services/experiment.service";
 
@@ -89,6 +92,7 @@ export function ExperimentsBoard({
   projectUuid,
   autonomousLoopEnabled,
   autonomousLoopAgentUuid,
+  researchQuestions,
 }: {
   experiments: ExperimentResponse[];
   agents: Array<{ uuid: string; name: string }>;
@@ -97,6 +101,7 @@ export function ExperimentsBoard({
   projectUuid: string;
   autonomousLoopEnabled: boolean;
   autonomousLoopAgentUuid: string | null;
+  researchQuestions: Array<{ uuid: string; title: string }>;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -107,6 +112,13 @@ export function ExperimentsBoard({
   const [progressLogs, setProgressLogs] = useState<Array<{uuid: string; message: string; phase: string | null; createdAt: string}>>([]);
   const [loopEnabled, setLoopEnabled] = useState(autonomousLoopEnabled);
   const [loopAgentUuid, setLoopAgentUuid] = useState(autonomousLoopAgentUuid ?? "");
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftDescription, setDraftDescription] = useState("");
+  const [draftResearchQuestionUuid, setDraftResearchQuestionUuid] = useState("");
+  const [draftPriority, setDraftPriority] = useState("medium");
+  const [draftStatus, setDraftStatus] = useState<"draft" | "pending_review" | "pending_start">("draft");
+  const [draftComputeBudgetHours, setDraftComputeBudgetHours] = useState("");
+  const [draftSaveError, setDraftSaveError] = useState<string | null>(null);
   useRealtimeRefresh();
 
   async function updateAutonomousLoop(enabled: boolean, agentUuid: string) {
@@ -151,6 +163,33 @@ export function ExperimentsBoard({
     [experiments, selectedExperimentUuid],
   );
 
+  useEffect(() => {
+    if (!selectedExperiment) {
+      setDraftTitle("");
+      setDraftDescription("");
+      setDraftResearchQuestionUuid("");
+      setDraftPriority("medium");
+      setDraftStatus("draft");
+      setDraftComputeBudgetHours("");
+      setDraftSaveError(null);
+      return;
+    }
+
+    setDraftTitle(selectedExperiment.title);
+    setDraftDescription(selectedExperiment.description ?? "");
+    setDraftResearchQuestionUuid(selectedExperiment.researchQuestionUuid ?? "");
+    setDraftPriority(selectedExperiment.priority);
+    setDraftStatus(
+      selectedExperiment.status === "pending_review" || selectedExperiment.status === "pending_start"
+        ? selectedExperiment.status
+        : "draft",
+    );
+    setDraftComputeBudgetHours(
+      selectedExperiment.computeBudgetHours != null ? String(selectedExperiment.computeBudgetHours) : "",
+    );
+    setDraftSaveError(null);
+  }, [selectedExperiment]);
+
   async function handleAssign(experimentUuid: string) {
     const assigneeUuid = assignments[experimentUuid];
     if (!assigneeUuid) return;
@@ -172,6 +211,30 @@ export function ExperimentsBoard({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
+    router.refresh();
+  }
+
+  async function handleDraftSave(experimentUuid: string) {
+    setDraftSaveError(null);
+
+    const response = await fetch(`/api/experiments/${experimentUuid}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: draftTitle.trim(),
+        description: draftDescription.trim() || null,
+        researchQuestionUuid: draftResearchQuestionUuid || null,
+        priority: draftPriority,
+        status: draftStatus,
+        computeBudgetHours: draftComputeBudgetHours.trim() ? Number(draftComputeBudgetHours) : null,
+      }),
+    });
+
+    if (!response.ok) {
+      setDraftSaveError(t("experiments.detail.saveFailed"));
+      return;
+    }
+
     router.refresh();
   }
 
@@ -459,7 +522,9 @@ export function ExperimentsBoard({
                   <div className="min-w-0 flex-1">
                     <SheetTitle className="line-clamp-2">{selectedExperiment.title}</SheetTitle>
                     <SheetDescription className="mt-2 leading-6">
-                      {selectedExperiment.description || t("experiments.detail.noDescription")}
+                      {selectedExperiment.status === "draft"
+                        ? t("experiments.detail.draftEditable")
+                        : (selectedExperiment.description || t("experiments.detail.noDescription"))}
                     </SheetDescription>
                   </div>
                 </div>
@@ -476,20 +541,125 @@ export function ExperimentsBoard({
                   ) : null}
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-2">
-                  <Card className="rounded-2xl border-border bg-secondary/50 p-4 shadow-none">
-                    <p className="text-xs text-muted-foreground">{t("experiments.card.question")}</p>
-                    <p className="mt-2 text-sm font-medium text-foreground">
-                      {selectedExperiment.researchQuestion?.title || t("experiments.card.unlinked")}
-                    </p>
+                {selectedExperiment.status === "draft" ? (
+                  <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="draft-title">{t("experiments.fields.title")}</Label>
+                        <Input
+                          id="draft-title"
+                          value={draftTitle}
+                          onChange={(event) => setDraftTitle(event.target.value)}
+                          placeholder={t("experiments.fields.titlePlaceholder")}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="draft-description">{t("experiments.fields.description")}</Label>
+                        <Textarea
+                          id="draft-description"
+                          rows={5}
+                          value={draftDescription}
+                          onChange={(event) => setDraftDescription(event.target.value)}
+                          placeholder={t("experiments.fields.descriptionPlaceholder")}
+                        />
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="draft-question">{t("experiments.fields.question")}</Label>
+                          <select
+                            id="draft-question"
+                            value={draftResearchQuestionUuid}
+                            onChange={(event) => setDraftResearchQuestionUuid(event.target.value)}
+                            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                          >
+                            <option value="">{t("experiments.fields.noQuestion")}</option>
+                            {researchQuestions.map((question) => (
+                              <option key={question.uuid} value={question.uuid}>
+                                {question.title}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="draft-priority">{t("experiments.fields.priority")}</Label>
+                          <select
+                            id="draft-priority"
+                            value={draftPriority}
+                            onChange={(event) => setDraftPriority(event.target.value)}
+                            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                          >
+                            <option value="low">{t("priority.low")}</option>
+                            <option value="medium">{t("priority.medium")}</option>
+                            <option value="high">{t("priority.high")}</option>
+                            <option value="immediate">{t("priority.immediate")}</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="draft-status">{t("experiments.fields.status")}</Label>
+                          <select
+                            id="draft-status"
+                            value={draftStatus}
+                            onChange={(event) => setDraftStatus(event.target.value as "draft" | "pending_review" | "pending_start")}
+                            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+                          >
+                            <option value="draft">{t("experiments.columns.draft")}</option>
+                            <option value="pending_review">{t("experiments.columns.pendingReview")}</option>
+                            <option value="pending_start">{t("experiments.columns.pendingStart")}</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="draft-compute-budget">{t("experiments.fields.computeBudgetHours")}</Label>
+                          <Input
+                            id="draft-compute-budget"
+                            type="number"
+                            min="0"
+                            step="0.5"
+                            value={draftComputeBudgetHours}
+                            onChange={(event) => setDraftComputeBudgetHours(event.target.value)}
+                            placeholder={t("experiments.fields.computeBudgetHoursPlaceholder")}
+                          />
+                        </div>
+                      </div>
+
+                      {draftSaveError ? <p className="text-sm text-destructive">{draftSaveError}</p> : null}
+
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          disabled={isPending || !draftTitle.trim()}
+                          onClick={() => {
+                            startTransition(() => {
+                              void handleDraftSave(selectedExperiment.uuid);
+                            });
+                          }}
+                        >
+                          <Save className="mr-2 h-4 w-4" />
+                          {isPending ? t("common.saving") : t("common.save")}
+                        </Button>
+                      </div>
+                    </div>
                   </Card>
-                  <Card className="rounded-2xl border-border bg-secondary/50 p-4 shadow-none">
-                    <p className="text-xs text-muted-foreground">{t("experiments.detail.computeBudget")}</p>
-                    <p className="mt-2 text-sm font-medium text-foreground">
-                      {selectedExperiment.computeBudgetHours ?? t("experiments.detail.unlimited")}
-                    </p>
-                  </Card>
-                </div>
+                ) : (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <Card className="rounded-2xl border-border bg-secondary/50 p-4 shadow-none">
+                      <p className="text-xs text-muted-foreground">{t("experiments.card.question")}</p>
+                      <p className="mt-2 text-sm font-medium text-foreground">
+                        {selectedExperiment.researchQuestion?.title || t("experiments.card.unlinked")}
+                      </p>
+                    </Card>
+                    <Card className="rounded-2xl border-border bg-secondary/50 p-4 shadow-none">
+                      <p className="text-xs text-muted-foreground">{t("experiments.detail.computeBudget")}</p>
+                      <p className="mt-2 text-sm font-medium text-foreground">
+                        {selectedExperiment.computeBudgetHours ?? t("experiments.detail.unlimited")}
+                      </p>
+                    </Card>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.outcome")}</h3>

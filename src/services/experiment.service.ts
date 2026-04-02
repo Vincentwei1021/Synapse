@@ -80,6 +80,7 @@ export interface ExperimentCreateParams {
   researchQuestionUuid?: string | null;
   title: string;
   description?: string | null;
+  status?: ExperimentStatus;
   priority?: string;
   computeBudgetHours?: number | null;
   attachments?: ExperimentAttachment[] | null;
@@ -90,7 +91,7 @@ export interface ExperimentCreateParams {
 export type ExperimentPriority = "low" | "medium" | "high" | "immediate";
 
 const VALID_TRANSITIONS: Record<ExperimentStatus, ExperimentStatus[]> = {
-  draft: ["pending_review"],
+  draft: ["pending_review", "pending_start"],
   pending_review: ["draft", "pending_start"],
   pending_start: ["in_progress"],
   in_progress: ["completed"],
@@ -482,6 +483,10 @@ export async function getExperiment(companyUuid: string, uuid: string) {
 }
 
 export async function createExperiment(params: ExperimentCreateParams) {
+  const status =
+    params.status ??
+    (params.createdByType === "agent" ? "pending_review" : "pending_start");
+
   const experiment = await prisma.experiment.create({
     data: {
       companyUuid: params.companyUuid,
@@ -490,7 +495,7 @@ export async function createExperiment(params: ExperimentCreateParams) {
       title: params.title,
       description: params.description ?? null,
       priority: normalizeExperimentPriority(params.priority),
-      status: params.createdByType === "agent" ? "draft" : "pending_start",
+      status,
       computeBudgetHours: params.computeBudgetHours ?? null,
       attachments: params.attachments ? (params.attachments as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
       createdByUuid: params.createdByUuid,
@@ -538,6 +543,7 @@ export async function updateExperiment(
   data: {
     title?: string;
     description?: string | null;
+    researchQuestionUuid?: string | null;
     status?: ExperimentStatus;
     priority?: string;
     computeBudgetHours?: number | null;
@@ -567,6 +573,7 @@ export async function updateExperiment(
     data: {
       ...(data.title !== undefined ? { title: data.title } : {}),
       ...(data.description !== undefined ? { description: data.description } : {}),
+      ...(data.researchQuestionUuid !== undefined ? { researchQuestionUuid: data.researchQuestionUuid } : {}),
       ...(data.status !== undefined ? { status: data.status } : {}),
       ...(data.priority !== undefined ? { priority: normalizeExperimentPriority(data.priority) } : {}),
       ...(data.computeBudgetHours !== undefined ? { computeBudgetHours: data.computeBudgetHours } : {}),
@@ -580,6 +587,13 @@ export async function updateExperiment(
       },
     },
   });
+
+  if (data.researchQuestionUuid) {
+    await prisma.researchQuestion.update({
+      where: { uuid: data.researchQuestionUuid },
+      data: { status: "proposal_created" },
+    });
+  }
 
   if (actor) {
     await activityService.createActivity({

@@ -265,7 +265,7 @@ export const commonToolDefinitions = defineOpenClawTools([
     priority?: string;
   }>({
     name: "synapse_propose_experiment",
-    description: "Propose a new experiment for human review (created in draft status). Only usable when autonomous loop is active.",
+    description: "Propose a new experiment for human review (created in pending_review status). Only usable when autonomous loop is active.",
     parameters: {
       type: "object",
       properties: {

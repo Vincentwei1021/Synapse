@@ -1236,6 +1236,8 @@
       "descriptionPlaceholder": "说明实验设置、预期信号和实现注意事项。",
       "question": "关联研究问题",
       "noQuestion": "不关联研究问题",
+      "status": "创建到列",
+      "statusHelp": "默认创建到待启动；如果你希望先保留草稿或进入待审核，也可以在这里选择。",
       "priority": "优先级",
       "computeBudgetHours": "时间限制",
       "computeBudgetHoursPlaceholder": "默认无限制",
@@ -1247,6 +1249,7 @@
     },
     "detail": {
       "noDescription": "暂未填写实验描述。",
+      "draftEditable": "这个草稿实验可以直接在右侧栏编辑，并保存回看板。",
       "computeBudget": "时间限制",
       "notSet": "未设置",
       "unlimited": "不设上限",
@@ -1259,7 +1262,8 @@
       "results": "结构化结果",
       "noResults": "尚未写入结构化结果。",
       "progressLog": "进度日志",
-      "noProgress": "暂无进度更新"
+      "noProgress": "暂无进度更新",
+      "saveFailed": "保存实验修改失败。"
     },
     "autonomousLoop": "自主闭环",
     "autonomousLoopDesc": "当所有队列为空时，智能体分析项目并提出新实验",

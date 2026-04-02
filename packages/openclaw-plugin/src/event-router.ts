@@ -312,10 +312,10 @@ export class SynapseEventRouter {
 The experiment queue is empty. Your task:
 1. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to review all project details, research questions, and experiment results
 2. Analyze: What questions remain unanswered? What experiments could yield new insights? Are there gaps in the research?
-3. If you identify valuable next steps, use synapse_propose_experiment to create draft experiments for human review
+3. If you identify valuable next steps, use synapse_propose_experiment to create experiments in pending_review for human review
 4. If the research objectives appear to be met, you may choose not to propose any new experiments
 
-Proposed experiments will enter "draft" status and require human approval before execution.`,
+Proposed experiments will enter "pending_review" status and require human approval before execution.`,
       { notificationUuid: n.uuid, action: "autonomous_loop_triggered", entityUuid: n.entityUuid, projectUuid }
     );
   }

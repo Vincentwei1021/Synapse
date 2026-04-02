@@ -33,6 +33,7 @@ export function CreateExperimentForm({
     const payload = new FormData();
     payload.set("title", String(formData.get("title") || ""));
     payload.set("description", String(formData.get("description") || ""));
+    payload.set("status", String(formData.get("status") || "pending_start"));
     payload.set("priority", String(formData.get("priority") || "medium"));
     payload.set("computeBudgetHours", String(formData.get("computeBudgetHours") || ""));
     payload.set("researchQuestionUuid", String(formData.get("researchQuestionUuid") || ""));
@@ -111,6 +112,21 @@ export function CreateExperimentForm({
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="status">{t("experiments.fields.status")}</Label>
+            <select
+              id="status"
+              name="status"
+              defaultValue="pending_start"
+              className="w-full rounded-xl border border-[#E5DED3] bg-[#FBF8F3] px-3 py-2 text-sm text-[#2C2C2C]"
+            >
+              <option value="pending_start">{t("experiments.columns.pendingStart")}</option>
+              <option value="pending_review">{t("experiments.columns.pendingReview")}</option>
+              <option value="draft">{t("experiments.columns.draft")}</option>
+            </select>
+            <p className="text-xs text-muted-foreground">{t("experiments.fields.statusHelp")}</p>
           </div>
 
           <div className="space-y-2">

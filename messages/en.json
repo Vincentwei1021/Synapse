@@ -1236,6 +1236,8 @@
       "descriptionPlaceholder": "Outline the setup, the expected signal, and any implementation notes.",
       "question": "Linked research question",
       "noQuestion": "No linked research question",
+      "status": "Create in column",
+      "statusHelp": "Default is Pending Start. Use Draft or Pending Review when you want an earlier handoff stage.",
       "priority": "Priority",
       "computeBudgetHours": "Time Limit",
       "computeBudgetHoursPlaceholder": "Default: Unlimited",
@@ -1247,6 +1249,7 @@
     },
     "detail": {
       "noDescription": "No description provided yet.",
+      "draftEditable": "This draft can be edited directly here and saved back to the board.",
       "computeBudget": "Time Limit",
       "notSet": "Not set",
       "unlimited": "Unlimited",
@@ -1259,7 +1262,8 @@
       "results": "Structured results",
       "noResults": "No structured results have been captured yet.",
       "progressLog": "Progress Log",
-      "noProgress": "No progress updates yet"
+      "noProgress": "No progress updates yet",
+      "saveFailed": "Failed to save experiment changes."
     },
     "autonomousLoop": "Autonomous Loop",
     "autonomousLoopDesc": "When all queues are empty, agent analyzes project and proposes new experiments",

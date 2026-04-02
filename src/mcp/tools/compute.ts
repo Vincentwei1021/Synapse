@@ -618,7 +618,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
   server.registerTool(
     "synapse_propose_experiment",
     {
-      description: "Propose a new experiment for human review. Created in 'draft' status. Only usable when autonomous loop is active for this project and you are the assigned agent.",
+      description: "Propose a new experiment for human review. Created in 'pending_review' status. Only usable when autonomous loop is active for this project and you are the assigned agent.",
       inputSchema: z.object({
         researchProjectUuid: z.string(),
         title: z.string(),
@@ -653,7 +653,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
       });
 
       return {
-        content: [{ type: "text", text: JSON.stringify({ experiment, note: "Experiment created as draft. Human review required before execution." }, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ experiment, note: "Experiment created in pending_review. Human review required before execution." }, null, 2) }],
       };
     }
   );

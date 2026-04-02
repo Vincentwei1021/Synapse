@@ -15,7 +15,8 @@ type RouteContext = { params: Promise<{ uuid: string }> };
 const patchSchema = z.object({
   title: z.string().optional(),
   description: z.string().nullable().optional(),
-  status: z.enum(["pending_review"]).optional(), // only draft→pending_review allowed
+  researchQuestionUuid: z.string().nullable().optional(),
+  status: z.enum(["draft", "pending_review", "pending_start"]).optional(),
   priority: z.string().optional(),
   computeBudgetHours: z.coerce.number().nullable().optional(),
   assigneeType: z.string().optional(),
@@ -57,6 +58,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   const hasFieldUpdates =
     parsed.data.title !== undefined ||
     parsed.data.description !== undefined ||
+    parsed.data.researchQuestionUuid !== undefined ||
     parsed.data.status !== undefined ||
     parsed.data.priority !== undefined ||
     parsed.data.computeBudgetHours !== undefined;
@@ -84,6 +86,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       {
         title: parsed.data.title,
         description: parsed.data.description,
+        researchQuestionUuid: parsed.data.researchQuestionUuid,
         status: parsed.data.status,
         priority: parsed.data.priority,
         computeBudgetHours: parsed.data.computeBudgetHours,

@@ -109,6 +109,33 @@ describe("experiment routes", () => {
     );
   });
 
+  it("creates experiments in the user-selected column", async () => {
+    const formData = new FormData();
+    formData.set("title", "Review-first experiment");
+    formData.set("description", "Needs review");
+    formData.set("status", "pending_review");
+    formData.set("priority", "high");
+    formData.set("researchQuestionUuid", "rq-1");
+
+    const response = await createExperimentRoute(
+      new NextRequest(new URL(`/api/research-projects/${projectUuid}/experiments`, "http://localhost:3000"), {
+        method: "POST",
+        body: formData,
+      }),
+      makeContext(projectUuid),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockCreateExperiment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        companyUuid,
+        researchProjectUuid: projectUuid,
+        status: "pending_review",
+        researchQuestionUuid: "rq-1",
+      }),
+    );
+  });
+
   it("blocks start when the current actor is not the assignee", async () => {
     mockGetExperiment.mockResolvedValueOnce({
       uuid: experimentUuid,
@@ -233,6 +260,39 @@ describe("experiment routes", () => {
       expect.objectContaining({
         status: "pending_review",
         title: "Reviewed Experiment",
+      }),
+      { actorType: "user", actorUuid: "user-uuid-1" },
+    );
+  });
+
+  it("allows editing draft metadata including linked question and pending_start status", async () => {
+    const response = await patchExperimentRoute(
+      new NextRequest(new URL(`/api/experiments/${experimentUuid}`, "http://localhost:3000"), {
+        method: "PATCH",
+        body: JSON.stringify({
+          title: "Ready to run",
+          description: "Updated draft description",
+          researchQuestionUuid: "rq-updated",
+          status: "pending_start",
+          priority: "high",
+          computeBudgetHours: 6,
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+      makeContext(experimentUuid),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockUpdateExperiment).toHaveBeenCalledWith(
+      companyUuid,
+      experimentUuid,
+      expect.objectContaining({
+        title: "Ready to run",
+        description: "Updated draft description",
+        researchQuestionUuid: "rq-updated",
+        status: "pending_start",
+        priority: "high",
+        computeBudgetHours: 6,
       }),
       { actorType: "user", actorUuid: "user-uuid-1" },
     );
