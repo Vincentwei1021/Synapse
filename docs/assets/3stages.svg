@@ -1,0 +1,112 @@
+<svg width="1400" height="560" viewBox="0 0 1400 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="card1" x1="0" y1="0" x2="0" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0D1B33"/>
+      <stop offset="1" stop-color="#0B162A"/>
+    </linearGradient>
+    <linearGradient id="card2" x1="0" y1="0" x2="0" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0C2023"/>
+      <stop offset="1" stop-color="#0B181B"/>
+    </linearGradient>
+    <linearGradient id="card3" x1="0" y1="0" x2="0" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#261A08"/>
+      <stop offset="1" stop-color="#1C1408"/>
+    </linearGradient>
+
+    <filter id="shadow" x="-40" y="-40" width="1480" height="640" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000000" flood-opacity="0.28"/>
+    </filter>
+
+    <style>
+      .cardStage { font: 700 14px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: 0.12em; text-transform: uppercase; }
+      .cardTitle { font: 700 28px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #F8FAFC; }
+      .pill { font: 600 14px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .section { font: 700 13px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: 0.12em; text-transform: uppercase; }
+      .body { font: 400 17px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #E5E7EB; }
+    </style>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <rect x="20" y="20" width="400" height="520" rx="28" fill="url(#card1)" stroke="#2D4D80" stroke-width="1.5"/>
+    <rect x="44" y="44" width="114" height="34" rx="17" fill="#10284A"/>
+    <text x="101" y="66" text-anchor="middle" class="cardStage" fill="#93C5FD">Stage 1</text>
+
+    <text x="44" y="124" class="cardTitle">Agent as Intern</text>
+
+    <rect x="44" y="150" width="148" height="34" rx="17" fill="#16345E"/>
+    <text x="118" y="172" text-anchor="middle" class="pill" fill="#DBEAFE">Execution only</text>
+
+    <path d="M44 218H396" stroke="#223654" stroke-width="1.5"/>
+
+    <text x="44" y="248" class="section" fill="#93C5FD">What the Agent Does</text>
+    <text x="44" y="282" class="body">
+      <tspan x="44" dy="0">Runs experiments designed by</tspan>
+      <tspan x="44" dy="28">humans. No idea proposals, no</tspan>
+      <tspan x="44" dy="28">research questions, just reliable</tspan>
+      <tspan x="44" dy="28">throughput on well-scoped tasks.</tspan>
+    </text>
+
+    <text x="44" y="424" class="section" fill="#93C5FD">What Humans Own</text>
+    <text x="44" y="458" class="body">
+      <tspan x="44" dy="0">Problem definition, experiment</tspan>
+      <tspan x="44" dy="28">design, interpretation, and all</tspan>
+      <tspan x="44" dy="28">final decisions.</tspan>
+    </text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="500" y="20" width="400" height="520" rx="28" fill="url(#card2)" stroke="#1E6A67" stroke-width="1.5"/>
+    <rect x="524" y="44" width="114" height="34" rx="17" fill="#0E302E"/>
+    <text x="581" y="66" text-anchor="middle" class="cardStage" fill="#6EE7B7">Stage 2</text>
+
+    <text x="524" y="124" class="cardTitle">Agent as Researcher</text>
+
+    <rect x="524" y="150" width="300" height="34" rx="17" fill="#123C3A"/>
+    <text x="674" y="172" text-anchor="middle" class="pill" fill="#D1FAE5">Independent research within a question</text>
+
+    <path d="M524 218H876" stroke="#1E3535" stroke-width="1.5"/>
+
+    <text x="524" y="248" class="section" fill="#6EE7B7">What the Agent Does</text>
+    <text x="524" y="282" class="body">
+      <tspan x="524" dy="0">Owns a single research question</tspan>
+      <tspan x="524" dy="28">end-to-end. Proposes experiments,</tspan>
+      <tspan x="524" dy="28">runs them, interprets results, and</tspan>
+      <tspan x="524" dy="28">iterates, all within one question's</tspan>
+      <tspan x="524" dy="28">boundary.</tspan>
+    </text>
+
+    <text x="524" y="452" class="section" fill="#6EE7B7">What Humans Own</text>
+    <text x="524" y="486" class="body">
+      <tspan x="524" dy="0">Question formulation, cross-question</tspan>
+      <tspan x="524" dy="28">prioritization, and final judgment.</tspan>
+    </text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="980" y="20" width="400" height="520" rx="28" fill="url(#card3)" stroke="#9A6B1A" stroke-width="1.5"/>
+    <rect x="1004" y="44" width="114" height="34" rx="17" fill="#3A290D"/>
+    <text x="1061" y="66" text-anchor="middle" class="cardStage" fill="#FCD34D">Stage 3</text>
+
+    <text x="1004" y="124" class="cardTitle">Agent as Research Lead</text>
+
+    <rect x="1004" y="150" width="165" height="34" rx="17" fill="#4A3410"/>
+    <text x="1086.5" y="172" text-anchor="middle" class="pill" fill="#FEF3C7">Full project autonomy</text>
+
+    <path d="M1004 218H1356" stroke="#4A3514" stroke-width="1.5"/>
+
+    <text x="1004" y="248" class="section" fill="#FCD34D">What the Agent Does</text>
+    <text x="1004" y="282" class="body">
+      <tspan x="1004" dy="0">Drives an entire research project.</tspan>
+      <tspan x="1004" dy="28">Formulates research questions,</tspan>
+      <tspan x="1004" dy="28">builds and tests hypotheses, decides</tspan>
+      <tspan x="1004" dy="28">what to accept or reject, and charts</tspan>
+      <tspan x="1004" dy="28">the research direction.</tspan>
+    </text>
+
+    <text x="1004" y="452" class="section" fill="#FCD34D">What Humans Own</text>
+    <text x="1004" y="486" class="body">
+      <tspan x="1004" dy="0">Strategic oversight, ethical review,</tspan>
+      <tspan x="1004" dy="28">and publication decisions.</tspan>
+    </text>
+  </g>
+</svg>
