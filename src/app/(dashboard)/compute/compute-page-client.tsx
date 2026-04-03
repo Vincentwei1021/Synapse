@@ -189,10 +189,6 @@ export function ComputePageClient({
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <Button className="rounded-xl" onClick={() => setCreatePoolOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                {t("compute.actions.createPool")}
-              </Button>
               <Button
                 variant="outline"
                 className="rounded-xl"
@@ -200,6 +196,10 @@ export function ComputePageClient({
               >
                 <Wrench className="mr-2 h-4 w-4" />
                 {t("compute.actions.managePools")}
+              </Button>
+              <Button className="rounded-xl" onClick={() => setCreatePoolOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                {t("compute.actions.createPool")}
               </Button>
             </div>
           </div>
