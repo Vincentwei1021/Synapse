@@ -1405,7 +1405,7 @@
     "title": "Research Projects",
     "subtitle": "Create, group, and track the research work your team and agents are driving forward.",
     "loadingProjects": "Loading research projects...",
-    "newProject": "New project",
+    "newProject": "New Project",
     "noProjects": "No research projects yet",
     "noProjectsDesc": "Create your first research project to start coordinating ideas, experiments, and synthesis.",
     "createFirst": "Create your first project",
@@ -1448,7 +1448,7 @@
     }
   },
   "projectGroups": {
-    "newProjectGroup": "New group",
+    "newProjectGroup": "New Group",
     "manageProjects": "Manage Projects",
     "manageProjectsDescription": "Delete groups you no longer need. Projects inside a deleted group will be moved to Ungrouped.",
     "newGroupTitle": "Create project group",
