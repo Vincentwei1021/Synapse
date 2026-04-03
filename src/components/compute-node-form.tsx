@@ -81,6 +81,9 @@ export function ComputeNodeForm({
     const payload = new FormData();
     payload.set("poolUuid", String(formData.get("poolUuid") || ""));
     payload.set("label", String(formData.get("label") || "").trim());
+    payload.set("ec2InstanceId", String(formData.get("ec2InstanceId") || "").trim());
+    payload.set("instanceType", String(formData.get("instanceType") || "").trim());
+    payload.set("region", String(formData.get("region") || "").trim());
     payload.set("notes", String(formData.get("notes") || "").trim());
     payload.set("ssmTarget", String(formData.get("ssmTarget") || "").trim());
     payload.set("lifecycle", String(formData.get("lifecycle") || "idle"));
@@ -212,6 +215,33 @@ export function ComputeNodeForm({
           <input
             name="label"
             placeholder={t("compute.register.labelPlaceholder")}
+            className="w-full rounded-2xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          />
+        </label>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <label className="space-y-2 text-sm">
+          <span className="text-muted-foreground">{t("compute.machine.instanceType")}</span>
+          <input
+            name="instanceType"
+            placeholder={t("compute.register.instanceTypePlaceholder")}
+            className="w-full rounded-2xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          />
+        </label>
+        <label className="space-y-2 text-sm">
+          <span className="text-muted-foreground">{t("compute.machine.region")}</span>
+          <input
+            name="region"
+            placeholder={t("compute.register.regionPlaceholder")}
+            className="w-full rounded-2xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          />
+        </label>
+        <label className="space-y-2 text-sm">
+          <span className="text-muted-foreground">{t("compute.register.ec2InstanceId")}</span>
+          <input
+            name="ec2InstanceId"
+            placeholder={t("compute.register.ec2InstanceIdPlaceholder")}
             className="w-full rounded-2xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
           />
         </label>

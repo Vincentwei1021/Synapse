@@ -71,6 +71,40 @@ function formatTimestamp(value: string | null, locale: string, fallback: string)
   }).format(new Date(value));
 }
 
+function inferAwsRegionFromHost(host: string | null) {
+  if (!host) {
+    return null;
+  }
+
+  const normalized = host.toLowerCase();
+  const directMatch = normalized.match(/\.([a-z]{2}(?:-gov)?-[a-z-]+-\d)\.compute\.amazonaws\.com$/);
+  if (directMatch?.[1]) {
+    return directMatch[1];
+  }
+
+  if (normalized.endsWith(".compute-1.amazonaws.com")) {
+    return "us-east-1";
+  }
+
+  return null;
+}
+
+function getInstanceTypeDisplay(node: ComputePoolSnapshot["nodes"][number]) {
+  if (node.instanceType) {
+    return node.instanceType;
+  }
+
+  if (/^[a-z]+\d[\w.-]*$/i.test(node.label)) {
+    return node.label;
+  }
+
+  return null;
+}
+
+function getRegionDisplay(node: ComputePoolSnapshot["nodes"][number]) {
+  return node.region || inferAwsRegionFromHost(node.sshHost);
+}
+
 type DeleteTarget =
   | {
       type: "pool";
@@ -229,8 +263,8 @@ export function ComputePageClient({
                               </span>
                             </div>
                             <div className="grid gap-x-6 gap-y-1 text-sm text-muted-foreground md:grid-cols-2">
-                              <p>{t("compute.machine.instanceType")}: {node.instanceType ?? t("compute.machine.pending")}</p>
-                              <p>{t("compute.machine.region")}: {node.region ?? t("compute.machine.pending")}</p>
+                              <p>{t("compute.machine.instanceType")}: {getInstanceTypeDisplay(node) ?? t("compute.machine.pending")}</p>
+                              <p>{t("compute.machine.region")}: {getRegionDisplay(node) ?? t("compute.machine.pending")}</p>
                               <p>{t("compute.machine.lastProbe")}: {formatTimestamp(node.lastReportedAt, locale, t("compute.machine.waitingProbe"))}</p>
                               <p>{t("compute.machine.connection")}: {formatAccess(node) || t("compute.machine.noAccess")}</p>
                             </div>
