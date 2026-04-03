@@ -1449,7 +1449,7 @@
   },
   "projectGroups": {
     "newProjectGroup": "新建分组",
-    "manageProjects": "管理项目分组",
+    "manageProjects": "管理分组",
     "manageProjectsDescription": "删除不再需要的分组。分组中的项目会自动移动到“未分组”。",
     "newGroupTitle": "创建项目分组",
     "groupName": "分组名称",

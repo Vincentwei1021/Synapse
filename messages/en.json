@@ -1449,7 +1449,7 @@
   },
   "projectGroups": {
     "newProjectGroup": "New Group",
-    "manageProjects": "Manage Projects",
+    "manageProjects": "Manage Groups",
     "manageProjectsDescription": "Delete groups you no longer need. Projects inside a deleted group will be moved to Ungrouped.",
     "newGroupTitle": "Create project group",
     "groupName": "Group name",
