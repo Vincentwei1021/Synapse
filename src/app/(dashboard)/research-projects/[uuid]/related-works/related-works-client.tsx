@@ -413,6 +413,11 @@ export function RelatedWorksClient({
       <div>
         <p className="mb-4 text-sm text-muted-foreground">
           {t("papersCount", { count: works.length })}
+          {works.length > 0 && (
+            <span className="ml-1 text-muted-foreground/60">
+              ({t("lastUpdated", { time: new Date(works[0].createdAt).toLocaleDateString() })})
+            </span>
+          )}
         </p>
 
         {works.length === 0 ? (

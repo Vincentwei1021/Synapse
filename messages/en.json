@@ -150,6 +150,7 @@
     "generate": "Generate",
     "selectAgent": "Select agent...",
     "papersCount": "{count} papers collected",
+    "lastUpdated": "last updated {time}",
     "noPapers": "No papers collected yet",
     "noPapersDesc": "Add papers manually or use paper search",
     "addPaperTitle": "Add Paper",
