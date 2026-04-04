@@ -18,8 +18,6 @@ export default async function RelatedWorksPage({ params }: PageProps) {
     where: { uuid: projectUuid, companyUuid: auth.companyUuid },
     select: {
       uuid: true,
-      autoSearchEnabled: true,
-      autoSearchAgentUuid: true,
       deepResearchDocUuid: true,
     },
   });
@@ -36,8 +34,6 @@ export default async function RelatedWorksPage({ params }: PageProps) {
         projectUuid={projectUuid}
         initialWorks={works}
         agents={agents.map((a) => ({ uuid: a.uuid, name: a.name }))}
-        autoSearchEnabled={project.autoSearchEnabled}
-        autoSearchAgentUuid={project.autoSearchAgentUuid}
         deepResearchDocUuid={project.deepResearchDocUuid}
       />
     </div>

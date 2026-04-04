@@ -148,6 +148,9 @@ export class SynapseEventRouter {
         case "deep_research_requested":
           this.handleDeepResearchRequested(notification);
           break;
+        case "auto_search_triggered":
+          this.handleAutoSearchTriggered(notification);
+          break;
         case "experiment_report_requested":
           this.handleExperimentReportRequested(notification);
           break;
@@ -331,6 +334,22 @@ Proposed experiments will enter "pending_review" status and require human approv
 3. Analyze how each paper relates to the project's goals — identify key methods, findings, and gaps in the literature
 4. Create a comprehensive literature review document summarizing your analysis`,
       { notificationUuid: n.uuid, action: "deep_research_requested", entityUuid: n.entityUuid, projectUuid }
+    );
+  }
+
+  private handleAutoSearchTriggered(n: NotificationDetail): void {
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
+
+    this.triggerAgent(
+      `[Synapse] Auto-search enabled for project "${n.entityTitle}" (projectUuid: ${projectUuid}).
+
+Search for academic papers related to this research project:
+1. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to understand the research objectives, datasets, and methods
+2. Based on the project description, research questions, and keywords, use synapse_search_papers to find relevant academic papers
+3. For each relevant paper found, use synapse_add_related_work with researchProjectUuid "${projectUuid}" to add it to the project's related works collection
+4. Focus on papers that are directly relevant to the project's research questions and methodology
+5. Search with multiple query variations to maximize coverage (e.g. different keyword combinations, related terms)`,
+      { notificationUuid: n.uuid, action: "auto_search_triggered", entityUuid: n.entityUuid, projectUuid }
     );
   }
 

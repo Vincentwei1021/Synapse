@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { BookOpen, ExternalLink, Plus, Trash2, Sparkles } from "lucide-react";
+import { BookOpen, Check, ExternalLink, Loader2, Plus, Search, Trash2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -18,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
 import type { RelatedWorkResponse } from "@/services/related-work.service";
 
@@ -31,8 +30,6 @@ interface RelatedWorksClientProps {
   projectUuid: string;
   initialWorks: RelatedWorkResponse[];
   agents: AgentOption[];
-  autoSearchEnabled: boolean;
-  autoSearchAgentUuid: string | null;
   deepResearchDocUuid: string | null;
 }
 
@@ -40,24 +37,22 @@ export function RelatedWorksClient({
   projectUuid,
   initialWorks,
   agents,
-  autoSearchEnabled: initialAutoSearch,
-  autoSearchAgentUuid: initialAutoSearchAgent,
   deepResearchDocUuid: initialDeepResearchDoc,
 }: RelatedWorksClientProps) {
   const router = useRouter();
   const t = useTranslations("relatedWorks");
   const [works, setWorks] = useState(initialWorks);
 
-  // Auto-search state
-  const [autoSearchEnabled, setAutoSearchEnabled] = useState(initialAutoSearch);
-  const [autoSearchAgentUuid, setAutoSearchAgentUuid] = useState<string | null>(
-    initialAutoSearchAgent,
-  );
+  // Auto-search state (one-shot trigger)
+  const [autoSearchAgentUuid, setAutoSearchAgentUuid] = useState<string>("");
+  const [searchingPapers, setSearchingPapers] = useState(false);
+  const [searchTriggeredAgent, setSearchTriggeredAgent] = useState<string | null>(null);
 
   // Deep research state
   const [deepResearchDocUuid] = useState<string | null>(initialDeepResearchDoc);
   const [deepResearchAgentUuid, setDeepResearchAgentUuid] = useState<string>("");
   const [generatingDeepResearch, setGeneratingDeepResearch] = useState(false);
+  const [deepResearchTriggeredAgent, setDeepResearchTriggeredAgent] = useState<string | null>(null);
 
   // Add paper dialog
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -72,45 +67,36 @@ export function RelatedWorksClient({
   // Realtime refresh — auto-refreshes server data on SSE events
   useRealtimeRefresh();
 
-  // --- Auto-search toggle ---
-  const handleAutoSearchToggle = useCallback(
-    async (enabled: boolean) => {
-      setAutoSearchEnabled(enabled);
-      const newAgentUuid = enabled ? autoSearchAgentUuid : null;
-      await fetch(`/api/research-projects/${projectUuid}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          autoSearchEnabled: enabled,
-          autoSearchAgentUuid: newAgentUuid,
-        }),
-      });
-    },
-    [projectUuid, autoSearchAgentUuid],
-  );
-
-  const handleAutoSearchAgentChange = useCallback(
-    async (agentUuid: string) => {
-      const val = agentUuid || null;
-      setAutoSearchAgentUuid(val);
-      await fetch(`/api/research-projects/${projectUuid}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          autoSearchEnabled,
-          autoSearchAgentUuid: val,
-        }),
-      });
-    },
-    [projectUuid, autoSearchEnabled],
-  );
+  // --- Auto-search (one-shot trigger) ---
+  const handleAutoSearch = useCallback(async () => {
+    if (!autoSearchAgentUuid) return;
+    setSearchingPapers(true);
+    setSearchTriggeredAgent(null);
+    try {
+      const res = await fetch(
+        `/api/research-projects/${projectUuid}/related-works/auto-search`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agentUuid: autoSearchAgentUuid }),
+        },
+      );
+      if (res.ok) {
+        const agentName = agents.find((a) => a.uuid === autoSearchAgentUuid)?.name ?? "";
+        setSearchTriggeredAgent(agentName);
+      }
+    } finally {
+      setSearchingPapers(false);
+    }
+  }, [projectUuid, autoSearchAgentUuid, agents]);
 
   // --- Deep research ---
   const handleGenerateDeepResearch = useCallback(async () => {
     if (!deepResearchAgentUuid) return;
     setGeneratingDeepResearch(true);
+    setDeepResearchTriggeredAgent(null);
     try {
-      await fetch(
+      const res = await fetch(
         `/api/research-projects/${projectUuid}/related-works/deep-research`,
         {
           method: "POST",
@@ -118,11 +104,14 @@ export function RelatedWorksClient({
           body: JSON.stringify({ agentUuid: deepResearchAgentUuid }),
         },
       );
-      router.refresh();
+      if (res.ok) {
+        const agentName = agents.find((a) => a.uuid === deepResearchAgentUuid)?.name ?? "";
+        setDeepResearchTriggeredAgent(agentName);
+      }
     } finally {
       setGeneratingDeepResearch(false);
     }
-  }, [projectUuid, deepResearchAgentUuid, router]);
+  }, [projectUuid, deepResearchAgentUuid, agents]);
 
   // --- URL metadata fetch (client-side arXiv API) ---
   const handleUrlBlur = useCallback(async () => {
@@ -215,8 +204,6 @@ export function RelatedWorksClient({
     [projectUuid],
   );
 
-  const selectedAutoAgent = agents.find((a) => a.uuid === autoSearchAgentUuid);
-
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -240,9 +227,10 @@ export function RelatedWorksClient({
       <div className="grid gap-4 md:grid-cols-2">
         {/* Auto-search control */}
         <Card className="rounded-2xl border-border bg-card p-5">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
             <div className="flex-1">
               <div className="flex items-center gap-2">
+                <Search className="h-4 w-4 text-primary" />
                 <h3 className="text-sm font-medium text-foreground">
                   {t("autoSearch")}
                 </h3>
@@ -251,38 +239,44 @@ export function RelatedWorksClient({
                 {t("autoSearchDesc")}
               </p>
             </div>
-            <Switch
-              checked={autoSearchEnabled}
-              onCheckedChange={handleAutoSearchToggle}
-            />
           </div>
 
-          {autoSearchEnabled && (
-            <div className="mt-4 space-y-3">
-              <select
-                value={autoSearchAgentUuid || ""}
-                onChange={(e) => handleAutoSearchAgentChange(e.target.value)}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-              >
-                <option value="">{t("selectAgent")}</option>
-                {agents.map((agent) => (
-                  <option key={agent.uuid} value={agent.uuid}>
-                    {agent.name}
-                  </option>
-                ))}
-              </select>
+          <div className="mt-4 flex items-center gap-2">
+            <select
+              value={autoSearchAgentUuid}
+              onChange={(e) => { setAutoSearchAgentUuid(e.target.value); setSearchTriggeredAgent(null); }}
+              disabled={searchingPapers}
+              className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
+            >
+              <option value="">{t("selectAgent")}</option>
+              {agents.map((agent) => (
+                <option key={agent.uuid} value={agent.uuid}>
+                  {agent.name}
+                </option>
+              ))}
+            </select>
+            <Button
+              size="sm"
+              disabled={!autoSearchAgentUuid || searchingPapers}
+              onClick={handleAutoSearch}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {searchingPapers ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : null}
+              {t("search")}
+            </Button>
+          </div>
 
-              {autoSearchEnabled && !autoSearchAgentUuid && (
-                <p className="text-xs text-amber-600 dark:text-amber-400">
-                  {t("selectAgentToActivate")}
-                </p>
-              )}
-
-              {autoSearchEnabled && selectedAutoAgent && (
-                <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                  {t("activeWith", { agent: selectedAutoAgent.name })}
-                </p>
-              )}
+          {searchTriggeredAgent && (
+            <div className="mt-3 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 dark:bg-emerald-500/10">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                {t("searchTriggered", { agent: searchTriggeredAgent })}
+              </span>
             </div>
           )}
         </Card>
@@ -320,8 +314,9 @@ export function RelatedWorksClient({
           <div className="mt-4 flex items-center gap-2">
             <select
               value={deepResearchAgentUuid}
-              onChange={(e) => setDeepResearchAgentUuid(e.target.value)}
-              className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+              onChange={(e) => { setDeepResearchAgentUuid(e.target.value); setDeepResearchTriggeredAgent(null); }}
+              disabled={generatingDeepResearch}
+              className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
             >
               <option value="">{t("selectAgent")}</option>
               {agents.map((agent) => (
@@ -336,9 +331,24 @@ export function RelatedWorksClient({
               onClick={handleGenerateDeepResearch}
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
+              {generatingDeepResearch ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : null}
               {t("generate")}
             </Button>
           </div>
+
+          {deepResearchTriggeredAgent && (
+            <div className="mt-3 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 dark:bg-emerald-500/10">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                {t("deepResearchTriggered", { agent: deepResearchTriggeredAgent })}
+              </span>
+            </div>
+          )}
         </Card>
       </div>
 
