@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { eventBus } from "@/lib/event-bus";
 
 export interface RelatedWorkResponse {
   uuid: string;
@@ -62,6 +63,24 @@ export async function createRelatedWork(input: {
   addedBy: string;
   addedByAgentUuid?: string | null;
 }): Promise<RelatedWorkResponse> {
+  // Dedup: skip if same url or arxivId already exists in this project
+  const orConditions: Array<Record<string, string>> = [{ url: input.url }];
+  if (input.arxivId) orConditions.push({ arxivId: input.arxivId });
+
+  const existing = await prisma.relatedWork.findFirst({
+    where: {
+      companyUuid: input.companyUuid,
+      researchProjectUuid: input.researchProjectUuid,
+      OR: orConditions,
+    },
+    select: { uuid: true },
+  });
+  if (existing) {
+    // Return the existing record instead of creating a duplicate
+    const full = await prisma.relatedWork.findFirst({ where: { uuid: existing.uuid } });
+    return formatRelatedWork(full!);
+  }
+
   const rw = await prisma.relatedWork.create({
     data: {
       companyUuid: input.companyUuid,
@@ -76,6 +95,16 @@ export async function createRelatedWork(input: {
       addedByAgentUuid: input.addedByAgentUuid ?? null,
     },
   });
+
+  // Emit SSE event so the UI auto-refreshes
+  eventBus.emitChange({
+    companyUuid: input.companyUuid,
+    researchProjectUuid: input.researchProjectUuid,
+    entityType: "related_work",
+    entityUuid: rw.uuid,
+    action: "created",
+  });
+
   return formatRelatedWork(rw);
 }
 
