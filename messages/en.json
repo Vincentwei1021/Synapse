@@ -151,6 +151,7 @@
     "selectAgent": "Select agent...",
     "papersCount": "{count} papers collected",
     "lastUpdated": "last updated {time}",
+    "filterPlaceholder": "Filter papers...",
     "noPapers": "No papers collected yet",
     "noPapersDesc": "Add papers manually or use paper search",
     "addPaperTitle": "Add Paper",

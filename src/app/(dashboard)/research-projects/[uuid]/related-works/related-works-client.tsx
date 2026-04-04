@@ -108,6 +108,7 @@ export function RelatedWorksClient({
   const [fetchingMeta, setFetchingMeta] = useState(false);
   const [addingPaper, setAddingPaper] = useState(false);
   const [addPaperError, setAddPaperError] = useState<string | null>(null);
+  const [filterQuery, setFilterQuery] = useState("");
 
   // Realtime refresh — auto-refreshes server data on SSE events
   useRealtimeRefresh();
@@ -411,14 +412,24 @@ export function RelatedWorksClient({
 
       {/* Paper list */}
       <div>
-        <p className="mb-4 text-sm text-muted-foreground">
-          {t("papersCount", { count: works.length })}
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">
+            {t("papersCount", { count: works.length })}
+            {works.length > 0 && (
+              <span className="ml-1 text-muted-foreground/60">
+                ({t("lastUpdated", { time: new Date(works[0].createdAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) })})
+              </span>
+            )}
+          </p>
           {works.length > 0 && (
-            <span className="ml-1 text-muted-foreground/60">
-              ({t("lastUpdated", { time: new Date(works[0].createdAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) })})
-            </span>
+            <Input
+              value={filterQuery}
+              onChange={(e) => setFilterQuery(e.target.value)}
+              placeholder={t("filterPlaceholder")}
+              className="h-8 w-56 text-xs"
+            />
           )}
-        </p>
+        </div>
 
         {works.length === 0 ? (
           <Card className="flex flex-col items-center justify-center rounded-2xl border-border bg-card px-6 py-16 text-center">
@@ -432,7 +443,16 @@ export function RelatedWorksClient({
           </Card>
         ) : (
           <div className="grid gap-3">
-            {works.map((paper) => (
+            {works.filter((p) => {
+              if (!filterQuery) return true;
+              const q = filterQuery.toLowerCase();
+              return (
+                p.title.toLowerCase().includes(q) ||
+                (p.authors?.toLowerCase().includes(q)) ||
+                (p.abstract?.toLowerCase().includes(q)) ||
+                (p.arxivId?.toLowerCase().includes(q))
+              );
+            }).map((paper) => (
               <a
                 key={paper.uuid}
                 href={paper.url}

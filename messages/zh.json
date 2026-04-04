@@ -151,6 +151,7 @@
     "selectAgent": "选择智能体...",
     "papersCount": "已收集 {count} 篇论文",
     "lastUpdated": "最后更新 {time}",
+    "filterPlaceholder": "筛选论文...",
     "noPapers": "暂无论文",
     "noPapersDesc": "手动添加论文或使用论文搜索",
     "addPaperTitle": "添加论文",
