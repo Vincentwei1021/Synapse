@@ -312,25 +312,20 @@ export function RelatedWorksClient({
             </select>
             <Button
               size="sm"
-              disabled={!autoSearchAgentUuid || searchingPapers}
+              disabled={!autoSearchAgentUuid || searchingPapers || !!searchTriggeredAgent}
               onClick={handleAutoSearch}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              className={searchTriggeredAgent
+                ? "bg-emerald-600 text-white hover:bg-emerald-600"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"}
             >
               {searchingPapers ? (
                 <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : searchTriggeredAgent ? (
+                <Check className="mr-1.5 h-3.5 w-3.5" />
               ) : null}
-              {t("search")}
+              {searchTriggeredAgent ? t("sent") : t("search")}
             </Button>
           </div>
-
-          {searchTriggeredAgent && (
-            <div className="mt-3 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 dark:bg-emerald-500/10">
-              <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                {t("searchTriggered", { agent: searchTriggeredAgent })}
-              </span>
-            </div>
-          )}
         </Card>
 
         {/* Deep Research control */}
@@ -388,25 +383,20 @@ export function RelatedWorksClient({
             </select>
             <Button
               size="sm"
-              disabled={!deepResearchAgentUuid || generatingDeepResearch}
+              disabled={!deepResearchAgentUuid || generatingDeepResearch || !!deepResearchTriggeredAgent}
               onClick={handleGenerateDeepResearch}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              className={deepResearchTriggeredAgent
+                ? "bg-emerald-600 text-white hover:bg-emerald-600"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"}
             >
               {generatingDeepResearch ? (
                 <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : deepResearchTriggeredAgent ? (
+                <Check className="mr-1.5 h-3.5 w-3.5" />
               ) : null}
-              {t("generate")}
+              {deepResearchTriggeredAgent ? t("sent") : t("generate")}
             </Button>
           </div>
-
-          {deepResearchTriggeredAgent && (
-            <div className="mt-3 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 dark:bg-emerald-500/10">
-              <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                {t("deepResearchTriggered", { agent: deepResearchTriggeredAgent })}
-              </span>
-            </div>
-          )}
         </Card>
       </div>
 
