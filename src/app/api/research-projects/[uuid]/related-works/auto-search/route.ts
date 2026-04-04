@@ -8,7 +8,7 @@ import * as notificationService from "@/services/notification.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
-const bodySchema = z.object({ agentUuid: z.string() });
+const bodySchema = z.object({ agentUuid: z.string(), customPrompt: z.string().optional() });
 
 export const POST = withErrorHandler<{ uuid: string }>(
   async (request: NextRequest, context: RouteContext) => {
@@ -37,7 +37,7 @@ export const POST = withErrorHandler<{ uuid: string }>(
       entityTitle: project.name,
       projectName: project.name,
       action: "auto_search_triggered",
-      message: "Search for related papers for this project.",
+      message: parsed.data.customPrompt || "Search for related papers for this project.",
       actorType: "user",
       actorUuid: auth.actorUuid,
       actorName: "User",

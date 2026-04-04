@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { BookOpen, Check, ExternalLink, Loader2, Plus, Search, Trash2, Sparkles } from "lucide-react";
+import { BookOpen, Check, ExternalLink, Loader2, Plus, Search, Settings, Trash2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -67,6 +67,47 @@ export function RelatedWorksClient({
     return () => clearTimeout(t);
   }, [deepResearchTriggeredAgent]);
 
+  // Prompt editing state
+  const defaultSearchPrompt = t("defaultSearchPrompt");
+  const defaultDeepResearchPrompt = t("defaultDeepResearchPrompt");
+
+  const [searchPrompt, setSearchPrompt] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem(`${projectUuid}:searchPrompt`) ?? "";
+  });
+  const [deepResearchPrompt, setDeepResearchPrompt] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem(`${projectUuid}:deepResearchPrompt`) ?? "";
+  });
+  const [promptDialogOpen, setPromptDialogOpen] = useState<"search" | "deepResearch" | null>(null);
+  const [promptDraft, setPromptDraft] = useState("");
+
+  const openPromptDialog = useCallback((type: "search" | "deepResearch") => {
+    const current = type === "search"
+      ? (searchPrompt || defaultSearchPrompt)
+      : (deepResearchPrompt || defaultDeepResearchPrompt);
+    setPromptDraft(current);
+    setPromptDialogOpen(type);
+  }, [searchPrompt, deepResearchPrompt, defaultSearchPrompt, defaultDeepResearchPrompt]);
+
+  const savePrompt = useCallback(() => {
+    if (!promptDialogOpen) return;
+    const key = promptDialogOpen === "search" ? "searchPrompt" : "deepResearchPrompt";
+    const defaultVal = promptDialogOpen === "search" ? defaultSearchPrompt : defaultDeepResearchPrompt;
+    const trimmed = promptDraft.trim();
+    // If user cleared or matches default, remove custom override
+    if (!trimmed || trimmed === defaultVal) {
+      localStorage.removeItem(`${projectUuid}:${key}`);
+      if (promptDialogOpen === "search") setSearchPrompt("");
+      else setDeepResearchPrompt("");
+    } else {
+      localStorage.setItem(`${projectUuid}:${key}`, trimmed);
+      if (promptDialogOpen === "search") setSearchPrompt(trimmed);
+      else setDeepResearchPrompt(trimmed);
+    }
+    setPromptDialogOpen(null);
+  }, [promptDialogOpen, promptDraft, projectUuid, defaultSearchPrompt, defaultDeepResearchPrompt]);
+
   // Add paper dialog
   const [dialogOpen, setDialogOpen] = useState(false);
   const [paperUrl, setPaperUrl] = useState("");
@@ -91,7 +132,7 @@ export function RelatedWorksClient({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ agentUuid: autoSearchAgentUuid }),
+          body: JSON.stringify({ agentUuid: autoSearchAgentUuid, customPrompt: searchPrompt || undefined }),
         },
       );
       if (res.ok) {
@@ -101,7 +142,7 @@ export function RelatedWorksClient({
     } finally {
       setSearchingPapers(false);
     }
-  }, [projectUuid, autoSearchAgentUuid, agents]);
+  }, [projectUuid, autoSearchAgentUuid, agents, searchPrompt]);
 
   // --- Deep research ---
   const handleGenerateDeepResearch = useCallback(async () => {
@@ -114,7 +155,7 @@ export function RelatedWorksClient({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ agentUuid: deepResearchAgentUuid }),
+          body: JSON.stringify({ agentUuid: deepResearchAgentUuid, customPrompt: deepResearchPrompt || undefined }),
         },
       );
       if (res.ok) {
@@ -124,7 +165,7 @@ export function RelatedWorksClient({
     } finally {
       setGeneratingDeepResearch(false);
     }
-  }, [projectUuid, deepResearchAgentUuid, agents]);
+  }, [projectUuid, deepResearchAgentUuid, agents, deepResearchPrompt]);
 
   // --- URL metadata fetch (client-side arXiv API) ---
   const handleUrlBlur = useCallback(async () => {
@@ -252,6 +293,15 @@ export function RelatedWorksClient({
                 {t("autoSearchDesc")}
               </p>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              onClick={() => openPromptDialog("search")}
+              title={t("editPrompt")}
+            >
+              <Settings className="h-3.5 w-3.5" />
+            </Button>
           </div>
 
           <div className="mt-4 flex items-center gap-2">
@@ -319,6 +369,15 @@ export function RelatedWorksClient({
                 </p>
               )}
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              onClick={() => openPromptDialog("deepResearch")}
+              title={t("editPrompt")}
+            >
+              <Settings className="h-3.5 w-3.5" />
+            </Button>
           </div>
 
           <div className="mt-4 flex items-center gap-2">
@@ -502,6 +561,35 @@ export function RelatedWorksClient({
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {t("addPaper")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Prompt editing dialog */}
+      <Dialog open={!!promptDialogOpen} onOpenChange={(open) => { if (!open) setPromptDialogOpen(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{t("editPromptTitle")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label>{t("promptLabel")}</Label>
+            <Textarea
+              value={promptDraft}
+              onChange={(e) => setPromptDraft(e.target.value)}
+              rows={10}
+              className="font-mono text-xs"
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("promptHint")}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPromptDialogOpen(null)}>
+              {t("cancel")}
+            </Button>
+            <Button onClick={savePrompt} className="bg-primary text-primary-foreground hover:bg-primary/90">
+              {t("save")}
             </Button>
           </DialogFooter>
         </DialogContent>
