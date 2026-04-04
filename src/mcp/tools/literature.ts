@@ -7,43 +7,25 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
   server.registerTool(
     "synapse_search_papers",
     {
-      description: "Search for academic papers using Semantic Scholar. Returns titles, abstracts, authors, and URLs.",
+      description: "Search for academic papers across Semantic Scholar, OpenAlex, and arXiv. Returns titles, abstracts, authors, and URLs.",
       inputSchema: z.object({
         query: z.string().describe("Search query, e.g. 'speech recognition Chinese accent'"),
         limit: z.number().int().min(1).max(20).default(10),
       }),
     },
     async ({ query, limit }) => {
-      const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(query)}&limit=${limit}&fields=title,abstract,authors,externalIds,url`;
-      const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
-      if (!resp.ok) {
-        return { content: [{ type: "text" as const, text: `Semantic Scholar API error: ${resp.status}` }], isError: true };
+      try {
+        const { searchPapers } = await import("@/services/paper-search.service");
+        const papers = await searchPapers(query, limit);
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ papers }, null, 2) }],
+        };
+      } catch (err) {
+        return {
+          content: [{ type: "text" as const, text: `Paper search failed: ${err instanceof Error ? err.message : String(err)}` }],
+          isError: true,
+        };
       }
-      const data = await resp.json() as {
-        data?: Array<{
-          paperId: string;
-          title: string;
-          abstract: string | null;
-          authors: Array<{ name: string }>;
-          externalIds: { ArXiv?: string } | null;
-          url: string;
-        }>;
-      };
-
-      const papers = (data.data ?? []).map(p => ({
-        title: p.title,
-        abstract: p.abstract,
-        authors: p.authors.map(a => a.name).join(", "),
-        url: p.externalIds?.ArXiv
-          ? `https://arxiv.org/abs/${p.externalIds.ArXiv}`
-          : p.url,
-        arxivId: p.externalIds?.ArXiv ?? null,
-        source: p.externalIds?.ArXiv ? "arxiv" : "semantic_scholar",
-      }));
-
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify({ papers }, null, 2) }],
-      };
     }
   );
 
