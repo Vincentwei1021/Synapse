@@ -4,6 +4,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { formatCreatedBy } from "@/lib/uuid-resolver";
+import { eventBus } from "@/lib/event-bus";
 
 // ===== Type Definitions =====
 
@@ -178,6 +179,14 @@ export async function createDocument(
       createdAt: true,
       updatedAt: true,
     },
+  });
+
+  eventBus.emitChange({
+    companyUuid: params.companyUuid,
+    researchProjectUuid: params.researchProjectUuid,
+    entityType: "document",
+    entityUuid: doc.uuid,
+    action: "created",
   });
 
   return formatDocumentResponse(doc, true);
