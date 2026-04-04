@@ -330,22 +330,27 @@ Proposed experiments will enter "pending_review" status and require human approv
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
     const hasCustomPrompt = n.message !== SynapseEventRouter.DEFAULT_DEEP_RESEARCH_MSG;
 
-    const defaultPrompt = `1. Use synapse_get_related_works with researchProjectUuid "${projectUuid}" to read all collected papers
+    const basePrompt = `[Synapse] Deep research literature review requested for project (projectUuid: ${projectUuid}).
+
+1. Use synapse_get_related_works with researchProjectUuid "${projectUuid}" to read all collected papers
 2. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to understand the research objectives
 3. Analyze how each paper relates to the project's goals — identify key methods, findings, and gaps in the literature
 4. Create a comprehensive literature review document summarizing your analysis`;
 
-    this.triggerAgent(
-      `[Synapse] Deep research literature review requested for project (projectUuid: ${projectUuid}).\n\n${hasCustomPrompt ? n.message : defaultPrompt}`,
-      { notificationUuid: n.uuid, action: "deep_research_requested", entityUuid: n.entityUuid, projectUuid }
-    );
+    const prompt = hasCustomPrompt
+      ? `${basePrompt}\n\nAdditional instructions from the user:\n${n.message}`
+      : basePrompt;
+
+    this.triggerAgent(prompt, { notificationUuid: n.uuid, action: "deep_research_requested", entityUuid: n.entityUuid, projectUuid });
   }
 
   private handleAutoSearchTriggered(n: NotificationDetail): void {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
     const hasCustomPrompt = n.message !== SynapseEventRouter.DEFAULT_AUTO_SEARCH_MSG;
 
-    const defaultPrompt = `Search for academic papers related to this research project:
+    const basePrompt = `[Synapse] Paper search requested for project "${n.entityTitle}" (projectUuid: ${projectUuid}).
+
+Search for academic papers related to this research project:
 1. Use synapse_get_related_works with researchProjectUuid "${projectUuid}" to see what papers are already collected — avoid searching for topics already well-covered
 2. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to understand the research objectives, datasets, and methods
 3. Based on the project context and gaps in existing papers, use synapse_search_papers to find new relevant academic papers
@@ -353,10 +358,11 @@ Proposed experiments will enter "pending_review" status and require human approv
 5. Search with multiple query variations to maximize coverage, but call synapse_search_papers sequentially (one at a time) to avoid rate limits
 6. Focus on papers that fill gaps not covered by existing related works`;
 
-    this.triggerAgent(
-      `[Synapse] Paper search requested for project "${n.entityTitle}" (projectUuid: ${projectUuid}).\n\n${hasCustomPrompt ? n.message : defaultPrompt}`,
-      { notificationUuid: n.uuid, action: "auto_search_triggered", entityUuid: n.entityUuid, projectUuid }
-    );
+    const prompt = hasCustomPrompt
+      ? `${basePrompt}\n\nAdditional instructions from the user:\n${n.message}`
+      : basePrompt;
+
+    this.triggerAgent(prompt, { notificationUuid: n.uuid, action: "auto_search_triggered", entityUuid: n.entityUuid, projectUuid });
   }
 
   private handleExperimentReportRequested(n: NotificationDetail): void {

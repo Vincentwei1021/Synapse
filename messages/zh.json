@@ -165,11 +165,12 @@
     "cancel": "取消",
     "save": "保存",
     "editPrompt": "编辑提示词",
-    "editPromptTitle": "编辑 Agent 提示词",
-    "promptLabel": "发送给 Agent 的提示词",
-    "promptHint": "编辑发送给 Agent 的指令。清空文本可恢复默认。",
-    "defaultSearchPrompt": "搜索与本研究项目相关的学术论文：\n1. 先检查已有论文，避免重复\n2. 根据研究目标、数据集和方法进行搜索\n3. 重点搜索已有文献未覆盖的方向\n4. 使用多种关键词组合扩大搜索范围\n5. 逐个调用搜索以避免频率限制",
-    "defaultDeepResearchPrompt": "为本项目生成综合文献综述：\n1. 阅读所有已收集的论文和项目背景\n2. 分析每篇论文与项目目标的关系\n3. 识别关键方法、发现和文献空白\n4. 创建详细的文献综述文档",
+    "editPromptTitle": "附加指令",
+    "promptLabel": "给 Agent 的额外指令",
+    "promptPlaceholder": "例如：重点搜索 2023-2024 年关于 transformer 架构的论文...",
+    "promptHint": "这些指令会追加到内置提示词之后。Agent 始终可以使用工具、项目上下文和已有论文。留空则只使用默认指令。",
+    "defaultSearchPrompt": "",
+    "defaultDeepResearchPrompt": "",
     "addPaperError": "添加论文失败。如果无法自动获取，请手动填写标题。"
   },
   "priority": {

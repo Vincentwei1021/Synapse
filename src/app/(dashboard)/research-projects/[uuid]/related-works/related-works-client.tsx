@@ -67,10 +67,7 @@ export function RelatedWorksClient({
     return () => clearTimeout(t);
   }, [deepResearchTriggeredAgent]);
 
-  // Prompt editing state
-  const defaultSearchPrompt = t("defaultSearchPrompt");
-  const defaultDeepResearchPrompt = t("defaultDeepResearchPrompt");
-
+  // Prompt editing state — additional instructions appended to built-in prompt
   const [searchPrompt, setSearchPrompt] = useState<string>(() => {
     if (typeof window === "undefined") return "";
     return localStorage.getItem(`${projectUuid}:searchPrompt`) ?? "";
@@ -83,30 +80,24 @@ export function RelatedWorksClient({
   const [promptDraft, setPromptDraft] = useState("");
 
   const openPromptDialog = useCallback((type: "search" | "deepResearch") => {
-    const current = type === "search"
-      ? (searchPrompt || defaultSearchPrompt)
-      : (deepResearchPrompt || defaultDeepResearchPrompt);
+    const current = type === "search" ? searchPrompt : deepResearchPrompt;
     setPromptDraft(current);
     setPromptDialogOpen(type);
-  }, [searchPrompt, deepResearchPrompt, defaultSearchPrompt, defaultDeepResearchPrompt]);
+  }, [searchPrompt, deepResearchPrompt]);
 
   const savePrompt = useCallback(() => {
     if (!promptDialogOpen) return;
     const key = promptDialogOpen === "search" ? "searchPrompt" : "deepResearchPrompt";
-    const defaultVal = promptDialogOpen === "search" ? defaultSearchPrompt : defaultDeepResearchPrompt;
     const trimmed = promptDraft.trim();
-    // If user cleared or matches default, remove custom override
-    if (!trimmed || trimmed === defaultVal) {
+    if (!trimmed) {
       localStorage.removeItem(`${projectUuid}:${key}`);
-      if (promptDialogOpen === "search") setSearchPrompt("");
-      else setDeepResearchPrompt("");
     } else {
       localStorage.setItem(`${projectUuid}:${key}`, trimmed);
-      if (promptDialogOpen === "search") setSearchPrompt(trimmed);
-      else setDeepResearchPrompt(trimmed);
     }
+    if (promptDialogOpen === "search") setSearchPrompt(trimmed);
+    else setDeepResearchPrompt(trimmed);
     setPromptDialogOpen(null);
-  }, [promptDialogOpen, promptDraft, projectUuid, defaultSearchPrompt, defaultDeepResearchPrompt]);
+  }, [promptDialogOpen, promptDraft, projectUuid]);
 
   // Add paper dialog
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -577,7 +568,8 @@ export function RelatedWorksClient({
             <Textarea
               value={promptDraft}
               onChange={(e) => setPromptDraft(e.target.value)}
-              rows={10}
+              placeholder={t("promptPlaceholder")}
+              rows={6}
               className="font-mono text-xs"
             />
             <p className="text-xs text-muted-foreground">

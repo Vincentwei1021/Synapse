@@ -165,11 +165,12 @@
     "cancel": "Cancel",
     "save": "Save",
     "editPrompt": "Edit prompt",
-    "editPromptTitle": "Edit Agent Prompt",
-    "promptLabel": "Prompt sent to the agent",
-    "promptHint": "Edit the instructions sent to the agent. Reset to default by clearing the text.",
-    "defaultSearchPrompt": "Search for academic papers related to this research project:\n1. Check existing papers first to avoid duplicates\n2. Search based on research objectives, datasets, and methods\n3. Focus on papers that fill gaps not covered by existing works\n4. Search with multiple query variations for better coverage\n5. Call searches sequentially to avoid rate limits",
-    "defaultDeepResearchPrompt": "Generate a comprehensive literature review for this project:\n1. Read all collected papers and the project context\n2. Analyze how each paper relates to the project goals\n3. Identify key methods, findings, and gaps in the literature\n4. Create a detailed literature review document",
+    "editPromptTitle": "Additional Instructions",
+    "promptLabel": "Extra instructions for the agent",
+    "promptPlaceholder": "e.g. Focus on papers from 2023-2024 about transformer architectures...",
+    "promptHint": "These instructions are appended to the built-in prompt. The agent will always have access to tools, project context, and existing papers. Leave empty to use defaults only.",
+    "defaultSearchPrompt": "",
+    "defaultDeepResearchPrompt": "",
     "addPaperError": "Failed to add paper. Please provide a title if auto-fetch is unavailable."
   },
   "priority": {
