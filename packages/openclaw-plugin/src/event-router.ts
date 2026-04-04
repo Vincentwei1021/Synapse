@@ -323,9 +323,12 @@ Proposed experiments will enter "pending_review" status and require human approv
     );
   }
 
+  private static readonly DEFAULT_DEEP_RESEARCH_MSG = "Generate a deep research literature review for this project.";
+  private static readonly DEFAULT_AUTO_SEARCH_MSG = "Search for related papers for this project.";
+
   private handleDeepResearchRequested(n: NotificationDetail): void {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
-    const hasCustomPrompt = n.message.length > 100;
+    const hasCustomPrompt = n.message !== SynapseEventRouter.DEFAULT_DEEP_RESEARCH_MSG;
 
     const defaultPrompt = `1. Use synapse_get_related_works with researchProjectUuid "${projectUuid}" to read all collected papers
 2. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to understand the research objectives
@@ -340,7 +343,7 @@ Proposed experiments will enter "pending_review" status and require human approv
 
   private handleAutoSearchTriggered(n: NotificationDetail): void {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
-    const hasCustomPrompt = n.message.length > 100;
+    const hasCustomPrompt = n.message !== SynapseEventRouter.DEFAULT_AUTO_SEARCH_MSG;
 
     const defaultPrompt = `Search for academic papers related to this research project:
 1. Use synapse_get_related_works with researchProjectUuid "${projectUuid}" to see what papers are already collected — avoid searching for topics already well-covered
