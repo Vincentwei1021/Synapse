@@ -341,7 +341,7 @@ Proposed experiments will enter "pending_review" status and require human approv
       ? `${basePrompt}\n\nAdditional instructions from the user:\n${n.message}`
       : basePrompt;
 
-    this.triggerAgent(prompt, { notificationUuid: n.uuid, action: "deep_research_requested", entityUuid: n.entityUuid, projectUuid });
+    this.triggerAgent(prompt, { notificationUuid: n.uuid, action: "deep_research_requested", entityUuid: n.entityUuid, projectUuid, timeoutSeconds: 1800 });
   }
 
   private handleAutoSearchTriggered(n: NotificationDetail): void {
@@ -362,7 +362,7 @@ Search for academic papers related to this research project:
       ? `${basePrompt}\n\nAdditional instructions from the user:\n${n.message}`
       : basePrompt;
 
-    this.triggerAgent(prompt, { notificationUuid: n.uuid, action: "auto_search_triggered", entityUuid: n.entityUuid, projectUuid });
+    this.triggerAgent(prompt, { notificationUuid: n.uuid, action: "auto_search_triggered", entityUuid: n.entityUuid, projectUuid, timeoutSeconds: 600 });
   }
 
   private handleExperimentReportRequested(n: NotificationDetail): void {
