@@ -415,7 +415,7 @@ export function RelatedWorksClient({
           {t("papersCount", { count: works.length })}
           {works.length > 0 && (
             <span className="ml-1 text-muted-foreground/60">
-              ({t("lastUpdated", { time: new Date(works[0].createdAt).toLocaleDateString() })})
+              ({t("lastUpdated", { time: new Date(works[0].createdAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) })})
             </span>
           )}
         </p>
