@@ -32,7 +32,7 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
   server.registerTool(
     "synapse_add_related_work",
     {
-      description: "Add a paper to a research project's Related Works collection.",
+      description: "Add a paper to a research project's Related Works collection. Returns isNew=true if newly added, isNew=false if already exists (duplicate by URL or arXiv ID).",
       inputSchema: z.object({
         researchProjectUuid: z.string(),
         title: z.string(),
@@ -40,7 +40,7 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
         authors: z.string().optional(),
         abstract: z.string().optional(),
         arxivId: z.string().optional(),
-        source: z.enum(["arxiv", "semantic_scholar"]).default("arxiv"),
+        source: z.enum(["arxiv", "semantic_scholar", "openalex"]).default("arxiv"),
       }),
     },
     async ({ researchProjectUuid, title, url, authors, abstract, arxivId, source }) => {

@@ -62,7 +62,7 @@ export async function createRelatedWork(input: {
   source: string;
   addedBy: string;
   addedByAgentUuid?: string | null;
-}): Promise<RelatedWorkResponse> {
+}): Promise<RelatedWorkResponse & { isNew: boolean }> {
   // Dedup: skip if same url or arxivId already exists in this project
   const orConditions: Array<Record<string, string>> = [{ url: input.url }];
   if (input.arxivId) orConditions.push({ arxivId: input.arxivId });
@@ -76,9 +76,8 @@ export async function createRelatedWork(input: {
     select: { uuid: true },
   });
   if (existing) {
-    // Return the existing record instead of creating a duplicate
     const full = await prisma.relatedWork.findFirst({ where: { uuid: existing.uuid } });
-    return formatRelatedWork(full!);
+    return { ...formatRelatedWork(full!), isNew: false };
   }
 
   const rw = await prisma.relatedWork.create({
@@ -105,7 +104,7 @@ export async function createRelatedWork(input: {
     action: "created",
   });
 
-  return formatRelatedWork(rw);
+  return { ...formatRelatedWork(rw), isNew: true };
 }
 
 export async function deleteRelatedWork(
