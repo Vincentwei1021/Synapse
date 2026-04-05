@@ -2,6 +2,9 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { AgentAuthContext } from "@/types/auth";
 import { createRelatedWork, listRelatedWorks } from "@/services/related-work.service";
+import { prisma } from "@/lib/prisma";
+import * as documentService from "@/services/document.service";
+import { updateResearchProject } from "@/services/research-project.service";
 
 export function registerLiteratureTools(server: McpServer, auth: AgentAuthContext) {
   server.registerTool(
@@ -74,6 +77,76 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
       const works = await listRelatedWorks(auth.companyUuid, researchProjectUuid);
       return {
         content: [{ type: "text" as const, text: JSON.stringify({ relatedWorks: works }, null, 2) }],
+      };
+    }
+  );
+
+  // Deep research report — upsert with versioning
+  server.registerTool(
+    "synapse_get_deep_research_report",
+    {
+      description: "Get the deep research literature review document for a project. Returns null if none exists yet.",
+      inputSchema: z.object({
+        researchProjectUuid: z.string(),
+      }),
+    },
+    async ({ researchProjectUuid }) => {
+      const project = await prisma.researchProject.findFirst({
+        where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid },
+        select: { deepResearchDocUuid: true },
+      });
+      if (!project?.deepResearchDocUuid) {
+        return { content: [{ type: "text" as const, text: JSON.stringify({ document: null }) }] };
+      }
+      const doc = await documentService.getDocument(auth.companyUuid, project.deepResearchDocUuid);
+      return { content: [{ type: "text" as const, text: JSON.stringify({ document: doc }, null, 2) }] };
+    }
+  );
+
+  server.registerTool(
+    "synapse_save_deep_research_report",
+    {
+      description: "Create or update the deep research literature review for a project. If a report already exists, updates it and increments the version (v1 → v2 → v3...). If none exists, creates a new one.",
+      inputSchema: z.object({
+        researchProjectUuid: z.string(),
+        title: z.string().describe("Report title"),
+        content: z.string().describe("Full report content (Markdown)"),
+      }),
+    },
+    async ({ researchProjectUuid, title, content }) => {
+      const project = await prisma.researchProject.findFirst({
+        where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid },
+        select: { uuid: true, deepResearchDocUuid: true },
+      });
+      if (!project) {
+        return { content: [{ type: "text" as const, text: "Research Project not found" }], isError: true };
+      }
+
+      let doc;
+      if (project.deepResearchDocUuid) {
+        // Update existing — increment version
+        doc = await documentService.updateDocument(project.deepResearchDocUuid, {
+          title,
+          content,
+          incrementVersion: true,
+        });
+      } else {
+        // Create new
+        doc = await documentService.createDocument({
+          companyUuid: auth.companyUuid,
+          researchProjectUuid,
+          type: "literature_review",
+          title,
+          content,
+          experimentDesignUuid: null,
+          createdByUuid: auth.actorUuid,
+        });
+        // Link to project
+        await updateResearchProject(project.uuid, { deepResearchDocUuid: doc.uuid });
+      }
+
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ document: { uuid: doc.uuid, title: doc.title, version: doc.version } }, null, 2) }],
       };
     }
   );

@@ -1,6 +1,6 @@
 {
   "name": "@vincentwei1021/synapse-openclaw-plugin",
-  "version": "0.5.7",
+  "version": "0.5.8",
   "description": "OpenClaw plugin for Synapse research orchestration — SSE notifications, MCP tools, experiment lifecycle, autonomous loop",
   "license": "MIT",
   "type": "module",
