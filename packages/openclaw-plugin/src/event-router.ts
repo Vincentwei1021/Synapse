@@ -332,11 +332,14 @@ Proposed experiments will enter "pending_review" status and require human approv
 
     const basePrompt = `[Synapse] Deep research literature review requested for project (projectUuid: ${projectUuid}).
 
+IMPORTANT: You MUST save the report back to Synapse using synapse_save_deep_research_report. Do NOT just output text — the report must be saved via the tool call.
+
+Steps:
 1. Use synapse_get_deep_research_report with researchProjectUuid "${projectUuid}" to check if a previous report exists — if so, read it to understand what was covered before
 2. Use synapse_get_related_works with researchProjectUuid "${projectUuid}" to read all collected papers
 3. Use synapse_get_research_project with researchProjectUuid "${projectUuid}" to understand the research objectives, datasets, and evaluation methods
 4. Analyze how each paper relates to the project's goals — identify key methods, findings, and gaps in the literature
-5. Use synapse_save_deep_research_report with researchProjectUuid "${projectUuid}" to save the report (this automatically creates v1 or updates to v2/v3 etc.)`;
+5. REQUIRED: Use synapse_save_deep_research_report with researchProjectUuid "${projectUuid}", title, and content (Markdown) to save the report. This creates v1 or updates to v2/v3 automatically.`;
 
     const prompt = hasCustomPrompt
       ? `${basePrompt}\n\nAdditional instructions from the user:\n${n.message}`
