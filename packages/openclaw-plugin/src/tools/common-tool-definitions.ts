@@ -22,18 +22,6 @@ export const commonToolDefinitions = defineOpenClawTools([
     targetToolName: "synapse_checkin",
     mapArgs: () => ({}),
   }),
-  createPassthroughTool({
-    name: "synapse_get_my_assignments",
-    description: "Get all research questions and experiment runs currently assigned to you.",
-    parameters: {
-      type: "object",
-      properties: {},
-      additionalProperties: false,
-    },
-    targetToolName: "synapse_get_my_assignments",
-    mapArgs: () => ({}),
-  }),
-
   // =========================================================================
   // Research Projects
   // =========================================================================

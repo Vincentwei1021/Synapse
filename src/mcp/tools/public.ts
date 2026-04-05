@@ -8,8 +8,6 @@ import type { AgentAuthContext } from "@/types/auth";
 import * as researchProjectService from "@/services/research-project.service";
 import * as researchQuestionService from "@/services/research-question.service";
 import * as documentService from "@/services/document.service";
-import * as experimentRunService from "@/services/experiment-run.service";
-import * as experimentDesignService from "@/services/experiment-design.service";
 import * as activityService from "@/services/activity.service";
 import * as commentService from "@/services/comment.service";
 import * as assignmentService from "@/services/assignment.service";
@@ -146,98 +144,6 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       }
       return {
         content: [{ type: "text", text: JSON.stringify(document, null, 2) }],
-      };
-    }
-  );
-
-  // synapse_get_experiment_designs - Get Experiment Designs list
-  server.registerTool(
-    "synapse_get_experiment_designs",
-    {
-      description: "Get the list of Experiment Designs and their statuses for a research project",
-      inputSchema: z.object({
-        researchProjectUuid: z.string().describe("Research Project UUID"),
-        status: z.string().optional().describe("Filter by status: pending, approved, rejected, revised"),
-        page: z.number().optional().default(1),
-        pageSize: z.number().optional().default(20),
-      }),
-    },
-    async ({ researchProjectUuid, status, page = 1, pageSize = 20 }) => {
-      // Verify project exists
-      const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, researchProjectUuid);
-      if (!project) {
-        return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
-      }
-
-      const skip = (page - 1) * pageSize;
-      const { experimentDesigns, total } = await experimentDesignService.listExperimentDesigns({
-        companyUuid: auth.companyUuid,
-        researchProjectUuid,
-        skip,
-        take: pageSize,
-        status,
-      });
-
-      return {
-        content: [{ type: "text", text: JSON.stringify({ experimentDesigns, total, page, pageSize }, null, 2) }],
-      };
-    }
-  );
-
-  // synapse_get_experiment_run - Get Experiment Run details
-  server.registerTool(
-    "synapse_get_experiment_run",
-    {
-      description: "Get detailed information and context for a single Experiment Run",
-      inputSchema: z.object({
-        runUuid: z.string().describe("Experiment Run UUID"),
-      }),
-    },
-    async ({ runUuid }) => {
-      const run = await experimentRunService.getExperimentRun(auth.companyUuid, runUuid);
-      if (!run) {
-        return { content: [{ type: "text", text: "Experiment Run not found" }], isError: true };
-      }
-      return {
-        content: [{ type: "text", text: JSON.stringify(run, null, 2) }],
-      };
-    }
-  );
-
-  // synapse_list_experiment_runs - List Experiment Runs
-  server.registerTool(
-    "synapse_list_experiment_runs",
-    {
-      description: "List Experiment Runs for a research project",
-      inputSchema: z.object({
-        researchProjectUuid: z.string().describe("Research Project UUID"),
-        status: z.string().optional().describe("Filter by status: open, assigned, in_progress, to_verify, done, closed"),
-        priority: z.string().optional().describe("Filter by priority: low, medium, high"),
-        experimentDesignUuids: z.array(z.string()).optional().describe("Filter experiment runs by Experiment Design UUIDs"),
-        page: z.number().optional().default(1),
-        pageSize: z.number().optional().default(20),
-      }),
-    },
-    async ({ researchProjectUuid, status, priority, experimentDesignUuids, page = 1, pageSize = 20 }) => {
-      // Verify project exists
-      const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, researchProjectUuid);
-      if (!project) {
-        return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
-      }
-
-      const skip = (page - 1) * pageSize;
-      const { tasks, total } = await experimentRunService.listExperimentRuns({
-        companyUuid: auth.companyUuid,
-        researchProjectUuid,
-        skip,
-        take: pageSize,
-        status,
-        priority,
-        experimentDesignUuids,
-      });
-
-      return {
-        content: [{ type: "text", text: JSON.stringify({ experimentRuns: tasks, total, page, pageSize }, null, 2) }],
       };
     }
   );
@@ -409,22 +315,6 @@ Work style: rigorous, efficient, quality-focused`,
     }
   );
 
-  // synapse_get_my_assignments - Get own claimed Research Questions + Experiment Runs
-  server.registerTool(
-    "synapse_get_my_assignments",
-    {
-      description: "Get all Research Questions and Experiment Runs claimed by the current Agent",
-      inputSchema: z.object({}),
-    },
-    async () => {
-      const { researchQuestions, experimentRuns } = await assignmentService.getMyAssignments(auth, auth.researchProjectUuids);
-
-      return {
-        content: [{ type: "text", text: JSON.stringify({ researchQuestions, experimentRuns }, null, 2) }],
-      };
-    }
-  );
-
   // synapse_get_available_research_questions - Get claimable Research Questions
   server.registerTool(
     "synapse_get_available_research_questions",
@@ -454,37 +344,6 @@ Work style: rigorous, efficient, quality-focused`,
     }
   );
 
-  // synapse_get_available_experiment_runs - Get claimable Experiment Runs
-  server.registerTool(
-    "synapse_get_available_experiment_runs",
-    {
-      description: "Get Experiment Runs available to claim in a research project (status=open)",
-      inputSchema: z.object({
-        researchProjectUuid: z.string().describe("Research Project UUID"),
-        experimentDesignUuids: z.array(z.string()).optional().describe("Filter experiment runs by Experiment Design UUIDs"),
-      }),
-    },
-    async ({ researchProjectUuid, experimentDesignUuids }) => {
-      // Verify project exists
-      const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, researchProjectUuid);
-      if (!project) {
-        return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
-      }
-
-      const { experimentRuns } = await assignmentService.getAvailableItems(
-        auth.companyUuid,
-        researchProjectUuid,
-        false,
-        true,
-        experimentDesignUuids
-      );
-
-      return {
-        content: [{ type: "text", text: JSON.stringify({ experimentRuns }, null, 2) }],
-      };
-    }
-  );
-
   // synapse_get_research_question - Get single Research Question details
   server.registerTool(
     "synapse_get_research_question",
@@ -501,56 +360,6 @@ Work style: rigorous, efficient, quality-focused`,
       }
       return {
         content: [{ type: "text", text: JSON.stringify(researchQuestion, null, 2) }],
-      };
-    }
-  );
-
-  // synapse_get_experiment_design - Get single Experiment Design details (including drafts)
-  server.registerTool(
-    "synapse_get_experiment_design",
-    {
-      description: "Get detailed information for a single Experiment Design, including document drafts and experiment run drafts",
-      inputSchema: z.object({
-        experimentDesignUuid: z.string().describe("Experiment Design UUID"),
-      }),
-    },
-    async ({ experimentDesignUuid }) => {
-      // Use getProposal to return the full formatted response, including drafts
-      const experimentDesign = await experimentDesignService.getExperimentDesign(auth.companyUuid, experimentDesignUuid);
-      if (!experimentDesign) {
-        return { content: [{ type: "text", text: "Experiment Design not found" }], isError: true };
-      }
-      return {
-        content: [{ type: "text", text: JSON.stringify(experimentDesign, null, 2) }],
-      };
-    }
-  );
-
-  // synapse_get_unblocked_experiment_runs - Get unblocked experiment runs (all dependencies resolved)
-  server.registerTool(
-    "synapse_get_unblocked_experiment_runs",
-    {
-      description: "Get experiment runs that are ready to start — status is open/assigned and all dependencies are resolved (done/to_verify). Useful for discovering what work can begin next after an experiment run completes.",
-      inputSchema: z.object({
-        researchProjectUuid: z.string().describe("Research Project UUID"),
-        experimentDesignUuids: z.array(z.string()).optional().describe("Filter experiment runs by Experiment Design UUIDs"),
-      }),
-    },
-    async ({ researchProjectUuid, experimentDesignUuids }) => {
-      // Verify project exists
-      const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, researchProjectUuid);
-      if (!project) {
-        return { content: [{ type: "text", text: "Research Project not found" }], isError: true };
-      }
-
-      const { tasks, total } = await experimentRunService.getUnblockedExperimentRuns({
-        companyUuid: auth.companyUuid,
-        researchProjectUuid,
-        experimentDesignUuids,
-      });
-
-      return {
-        content: [{ type: "text", text: JSON.stringify({ experimentRuns: tasks, total }, null, 2) }],
       };
     }
   );

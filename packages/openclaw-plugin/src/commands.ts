@@ -39,11 +39,6 @@ interface AssignedRun {
   project: { uuid: string; name: string };
 }
 
-interface AssignmentsResponse {
-  researchQuestions?: AssignedQuestion[];
-  experimentRuns?: AssignedRun[];
-}
-
 // ===== Formatting helpers =====
 
 function formatStatus(checkin: CheckinResponse, connectionStatus: string): string {
@@ -122,10 +117,10 @@ export function registerSynapseCommands(
       if (sub === "experiments" || sub === "tasks") {
         try {
           const data = (await mcpClient.callTool(
-            "synapse_get_my_assignments",
+            "synapse_checkin",
             {}
-          )) as AssignmentsResponse;
-          return { text: formatExperimentList(data?.experimentRuns) };
+          )) as CheckinResponse;
+          return { text: formatExperimentList(data?.assignments?.experimentRuns) };
         } catch (err) {
           return { text: `Failed to fetch experiments: ${err instanceof Error ? err.message : String(err)}` };
         }
@@ -135,10 +130,10 @@ export function registerSynapseCommands(
       if (sub === "questions" || sub === "ideas") {
         try {
           const data = (await mcpClient.callTool(
-            "synapse_get_my_assignments",
+            "synapse_checkin",
             {}
-          )) as AssignmentsResponse;
-          return { text: formatQuestionList(data?.researchQuestions) };
+          )) as CheckinResponse;
+          return { text: formatQuestionList(data?.assignments?.researchQuestions) };
         } catch (err) {
           return { text: `Failed to fetch research questions: ${err instanceof Error ? err.message : String(err)}` };
         }

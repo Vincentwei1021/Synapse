@@ -133,46 +133,6 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
       },
     }),
     createMcpTool({
-      name: "synapse_session_checkin_experiment_run",
-      description: "Check in a Session to a specified Experiment Run",
-      inputSchema: z.object({
-        sessionUuid: z.string().describe("Session UUID"),
-        runUuid: z.string().describe("Experiment Run UUID"),
-      }),
-      async execute({ sessionUuid, runUuid }) {
-        const result = await getOwnedSession(sessionUuid);
-        if (!result.ok) {
-          return result.error;
-        }
-
-        const checkin = await sessionService.sessionCheckinToRun(
-          auth.companyUuid,
-          result.session.uuid,
-          runUuid
-        );
-
-        return jsonTextResult({ sessionUuid, runUuid, checkedInAt: checkin.checkinAt });
-      },
-    }),
-    createMcpTool({
-      name: "synapse_session_checkout_experiment_run",
-      description: "Check out a Session from a specified Experiment Run",
-      inputSchema: z.object({
-        sessionUuid: z.string().describe("Session UUID"),
-        runUuid: z.string().describe("Experiment Run UUID"),
-      }),
-      async execute({ sessionUuid, runUuid }) {
-        const result = await getOwnedSession(sessionUuid);
-        if (!result.ok) {
-          return result.error;
-        }
-
-        await sessionService.sessionCheckoutFromRun(auth.companyUuid, result.session.uuid, runUuid);
-
-        return textResult(`Successfully checked out from experiment run ${runUuid}`);
-      },
-    }),
-    createMcpTool({
       name: "synapse_session_heartbeat",
       description: "Session heartbeat (updates lastActiveAt)",
       inputSchema: z.object({
