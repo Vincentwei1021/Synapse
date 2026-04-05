@@ -43,6 +43,11 @@ export function RelatedWorksClient({
   const t = useTranslations("relatedWorks");
   const [works, setWorks] = useState(initialWorks);
 
+  // Sync works when server component re-renders with new data (e.g. after SSE refresh)
+  useEffect(() => {
+    setWorks(initialWorks);
+  }, [initialWorks]);
+
   // Auto-search state (one-shot trigger)
   const [autoSearchAgentUuid, setAutoSearchAgentUuid] = useState<string>("");
   const [searchingPapers, setSearchingPapers] = useState(false);
