@@ -804,7 +804,9 @@
       "preResearch": "Pre-research",
       "research": "Research",
       "experiment": "Experiment",
-      "report": "Report"
+      "report": "Report",
+      "admin": "Admin",
+      "adminDesc": "Create/delete projects, manage groups, review research questions"
     },
     "fields": {
       "name": "Agent Name",

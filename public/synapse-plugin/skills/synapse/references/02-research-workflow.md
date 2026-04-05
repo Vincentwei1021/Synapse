@@ -43,33 +43,6 @@ open --> elaborating --> proposal_created --> completed
 
 ---
 
-## Hypothesis Formulation
-
-After claiming a research question, formulate hypotheses to guide experiment design. The hypothesis formulation process uses structured rounds of questions and answers.
-
-### Check Existing State
-
-```
-synapse_get_hypothesis_formulation({ researchQuestionUuid: "..." })
-```
-
-Returns all rounds, questions, answers, and any summary.
-
-### Answer Formulation Questions
-
-```
-synapse_answer_hypothesis_formulation({
-  researchQuestionUuid: "...",
-  roundUuid: "...",
-  answers: [
-    { questionId: "q1", selectedOptionId: "opt-a", customText: null },
-    { questionId: "q2", selectedOptionId: null, customText: "Custom reasoning..." }
-  ]
-})
-```
-
----
-
 ## Literature and Related Works
 
 Use literature search to ground research questions in existing work.
@@ -109,10 +82,9 @@ synapse_get_related_works({ researchProjectUuid: "..." })
 3. **Claim a question**: `synapse_claim_research_question()`
 4. **Search literature**: `synapse_search_papers()` to find relevant prior work
 5. **Add related works**: `synapse_add_related_work()` for papers that inform the research
-6. **Formulate hypotheses**: `synapse_answer_hypothesis_formulation()` to structure thinking
-7. **Update status**: Move question to `elaborating` or `proposal_created`
-8. **Comment**: `synapse_add_comment({ targetType: "research_question", ... })` to document reasoning
-9. **Propose experiments**: See [03-experiment-workflow.md](03-experiment-workflow.md) for next steps
+6. **Update status**: Move question to `elaborating` or `proposal_created`
+7. **Comment**: `synapse_add_comment({ targetType: "research_question", ... })` to document reasoning
+8. **Propose experiments**: See [03-experiment-workflow.md](03-experiment-workflow.md) for next steps
 
 ---
 

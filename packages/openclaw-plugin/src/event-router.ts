@@ -130,14 +130,6 @@ export class SynapseEventRouter {
         case "mentioned":
           this.handleMentioned(notification);
           break;
-        case "elaboration_requested":
-        case "hypothesis_formulation_requested":
-          this.handleHypothesisFormulationRequested(notification);
-          break;
-        case "elaboration_answered":
-        case "hypothesis_formulation_answered":
-          this.handleHypothesisFormulationAnswered(notification);
-          break;
         case "research_question_claimed":
         case "idea_claimed":
           this.handleResearchQuestionClaimed(notification);
@@ -270,27 +262,6 @@ export class SynapseEventRouter {
       `Review the ${n.entityType} content and use synapse_get_comments (targetType: "${n.entityType}", targetUuid: "${n.entityUuid}") to see the full conversation, then respond.\n` +
       mentionGuidance,
       { notificationUuid: n.uuid, action: "mentioned", entityUuid: n.entityUuid, projectUuid }
-    );
-  }
-
-  private handleHypothesisFormulationRequested(n: NotificationDetail): void {
-    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
-    this.triggerAgent(
-      `[Synapse] Hypothesis formulation requested for research question '${n.entityTitle}' (questionUuid: ${n.entityUuid}, projectUuid: ${projectUuid}). Use synapse_get_hypothesis_formulation to review questions.`,
-      { notificationUuid: n.uuid, action: "hypothesis_formulation_requested", entityUuid: n.entityUuid, projectUuid }
-    );
-  }
-
-  private handleHypothesisFormulationAnswered(n: NotificationDetail): void {
-    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
-    const mentionGuidance = this.buildMentionGuidance(n, "research question");
-
-    this.triggerAgent(
-      `[Synapse] Hypothesis formulation answers submitted for research question '${n.entityTitle}' (questionUuid: ${n.entityUuid}, projectUuid: ${projectUuid}). ` +
-      `Review the answers with synapse_get_hypothesis_formulation, then either resolve the round or start a follow-up round.\n\n` +
-      `After reviewing, @mention the answerer to ask if they have any further questions before you proceed.\n` +
-      mentionGuidance,
-      { notificationUuid: n.uuid, action: "hypothesis_formulation_answered", entityUuid: n.entityUuid, projectUuid }
     );
   }
 

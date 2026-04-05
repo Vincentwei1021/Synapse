@@ -255,12 +255,13 @@ Default to these tools for new work. Do not prefer legacy `experiment_run` tools
 
 ### Agent permission model
 
-Agents use 4 composable permissions stored in the `roles` field:
+Agents use 5 composable permissions stored in the `roles` field:
 
 - `pre_research`: literature search, research project context reading
 - `research`: research question CRUD, hypothesis formulation
 - `experiment`: experiment start/complete/submit, compute tools
 - `report`: document CRUD, synthesis tools
+- `admin`: create/delete projects, manage groups, review research questions
 
 These replace the old roles (`researcher_agent`, `research_lead_agent`, `pi_agent`). Old role values are still accepted for backward compatibility but new agents should use the new permission names. An agent can have any combination of permissions.
 
@@ -396,7 +397,7 @@ Global navigation (sidebar):
 
 - `Research Projects`
 - `Compute`
-- `Agents` (agent management with 4 composable permissions)
+- `Agents` (agent management with 5 composable permissions)
 - `Settings` (language, theme, notification preferences only — agents moved to /agents)
 
 Project-level navigation:

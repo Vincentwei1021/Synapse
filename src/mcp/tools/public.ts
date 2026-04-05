@@ -13,116 +13,12 @@ import * as experimentDesignService from "@/services/experiment-design.service";
 import * as activityService from "@/services/activity.service";
 import * as commentService from "@/services/comment.service";
 import * as assignmentService from "@/services/assignment.service";
-import { zArray } from "./schema-utils";
 import * as notificationService from "@/services/notification.service";
-import * as hypothesisFormulationService from "@/services/hypothesis-formulation.service";
 import * as projectGroupService from "@/services/project-group.service";
 import * as mentionService from "@/services/mention.service";
 import { prisma } from "@/lib/prisma";
-import {
-  createCompatAliasTool,
-  defineCompatAliasTools,
-  jsonTextResult,
-  notFoundTextResult,
-  registerCompatAliasTools,
-} from "./compat-alias-tools";
 
 export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
-  // Compatibility aliases ----------------------------------------------------
-  const compatibilityAliasTools = defineCompatAliasTools([
-    createCompatAliasTool({
-      name: "synapse_get_project",
-      description: "Compatibility alias for synapse_get_research_project.",
-      inputSchema: z.object({
-        projectUuid: z.string().describe("Research Project UUID"),
-      }),
-      async execute({ projectUuid }) {
-        const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, projectUuid);
-        return project ? jsonTextResult(project) : notFoundTextResult("Research Project");
-      },
-    }),
-    createCompatAliasTool({
-      name: "synapse_list_projects",
-      description: "Compatibility alias for synapse_list_research_projects.",
-      inputSchema: z.object({
-        page: z.number().default(1).describe("Page number"),
-        pageSize: z.number().default(20).describe("Items per page"),
-      }),
-      async execute({ page, pageSize }) {
-        const skip = (page - 1) * pageSize;
-        const result = await researchProjectService.listResearchProjects({
-          companyUuid: auth.companyUuid,
-          skip,
-          take: pageSize,
-        });
-        return jsonTextResult(result);
-      },
-    }),
-    createCompatAliasTool({
-      name: "synapse_get_idea",
-      description: "Compatibility alias for synapse_get_research_question.",
-      inputSchema: z.object({
-        ideaUuid: z.string().describe("Research Question UUID"),
-      }),
-      async execute({ ideaUuid }) {
-        const researchQuestion = await researchQuestionService.getResearchQuestion(auth.companyUuid, ideaUuid);
-        return researchQuestion
-          ? jsonTextResult(researchQuestion)
-          : notFoundTextResult("Research Question");
-      },
-    }),
-    createCompatAliasTool({
-      name: "synapse_get_task",
-      description: "Compatibility alias for synapse_get_experiment_run.",
-      inputSchema: z.object({
-        taskUuid: z.string().describe("Experiment Run UUID"),
-      }),
-      async execute({ taskUuid }) {
-        const experimentRun = await experimentRunService.getExperimentRun(auth.companyUuid, taskUuid);
-        return experimentRun
-          ? jsonTextResult(experimentRun)
-          : notFoundTextResult("Experiment Run");
-      },
-    }),
-    createCompatAliasTool({
-      name: "synapse_get_proposal",
-      description: "Compatibility alias for synapse_get_experiment_design.",
-      inputSchema: z.object({
-        proposalUuid: z.string().describe("Experiment Design UUID"),
-      }),
-      async execute({ proposalUuid }) {
-        const experimentDesign = await experimentDesignService.getExperimentDesign(auth.companyUuid, proposalUuid);
-        return experimentDesign
-          ? jsonTextResult(experimentDesign)
-          : notFoundTextResult("Experiment Design");
-      },
-    }),
-    createCompatAliasTool({
-      name: "synapse_get_unblocked_tasks",
-      description: "Compatibility alias for synapse_get_unblocked_experiment_runs.",
-      inputSchema: z.object({
-        projectUuid: z.string().describe("Research Project UUID"),
-        proposalUuids: z.array(z.string()).optional().describe("Filter by Experiment Design UUIDs"),
-      }),
-      async execute({ projectUuid, proposalUuids }) {
-        const project = await researchProjectService.getResearchProjectByUuid(auth.companyUuid, projectUuid);
-        if (!project) {
-          return notFoundTextResult("Research Project");
-        }
-
-        const { tasks, total } = await experimentRunService.getUnblockedExperimentRuns({
-          companyUuid: auth.companyUuid,
-          researchProjectUuid: projectUuid,
-          experimentDesignUuids: proposalUuids,
-        });
-
-        return jsonTextResult({ tasks, total });
-      },
-    }),
-  ]);
-
-  registerCompatAliasTools(server, compatibilityAliasTools);
-
   // synapse_get_research_project - Get research project details and context
   server.registerTool(
     "synapse_get_research_project",
@@ -748,74 +644,6 @@ Work style: rigorous, efficient, quality-focused`,
       }
       await notificationService.markRead(params.notificationUuid, auth.companyUuid, auth.type, auth.actorUuid);
       return { content: [{ type: "text" as const, text: JSON.stringify({ success: true }, null, 2) }] };
-    }
-  );
-
-  // ===== Hypothesis Formulation Tools =====
-
-  // synapse_answer_hypothesis_formulation - Answer hypothesis formulation questions
-  server.registerTool(
-    "synapse_answer_hypothesis_formulation",
-    {
-      description: "Answer hypothesis formulation questions for a Research Question. Submits answers for a specific hypothesis formulation round. When all required questions are answered, the round moves to validation. Also use this to record decisions made outside the formal hypothesis formulation flow — if the user clarified requirements in conversation, capture those decisions here as answers so they are persisted to the Research Question as an audit trail.",
-      inputSchema: z.object({
-        researchQuestionUuid: z.string().describe("Research Question UUID"),
-        roundUuid: z.string().describe("Hypothesis formulation round UUID"),
-        answers: zArray(z.object({
-          questionId: z.string().describe("Question ID to answer"),
-          selectedOptionId: z.string().nullable().describe("Selected option ID. Set to null for free-text 'Other' answers."),
-          customText: z.string().nullable().describe("Optional note when an option is selected, or REQUIRED free-text when selectedOptionId is null ('Other'). At least one of selectedOptionId or customText must be non-null."),
-        })).describe("Answers to submit"),
-      }),
-    },
-    async ({ researchQuestionUuid, roundUuid, answers }) => {
-      try {
-        const round = await hypothesisFormulationService.answerHypothesisFormulation({
-          companyUuid: auth.companyUuid,
-          researchQuestionUuid,
-          roundUuid,
-          actorUuid: auth.actorUuid,
-          actorType: auth.type,
-          answers,
-        });
-
-        return {
-          content: [{ type: "text", text: JSON.stringify(round, null, 2) }],
-        };
-      } catch (error) {
-        return {
-          content: [{ type: "text", text: `Failed to answer hypothesis formulation: ${error instanceof Error ? error.message : "Unknown error"}` }],
-          isError: true,
-        };
-      }
-    }
-  );
-
-  // synapse_get_hypothesis_formulation - Get hypothesis formulation status and rounds for a Research Question
-  server.registerTool(
-    "synapse_get_hypothesis_formulation",
-    {
-      description: "Get the full hypothesis formulation state for a Research Question, including all rounds, questions, answers, and a summary of progress.",
-      inputSchema: z.object({
-        researchQuestionUuid: z.string().describe("Research Question UUID"),
-      }),
-    },
-    async ({ researchQuestionUuid }) => {
-      try {
-        const hypothesisFormulation = await hypothesisFormulationService.getHypothesisFormulation({
-          companyUuid: auth.companyUuid,
-          researchQuestionUuid,
-        });
-
-        return {
-          content: [{ type: "text", text: JSON.stringify(hypothesisFormulation, null, 2) }],
-        };
-      } catch (error) {
-        return {
-          content: [{ type: "text", text: `Failed to get hypothesis formulation: ${error instanceof Error ? error.message : "Unknown error"}` }],
-          isError: true,
-        };
-      }
     }
   );
 

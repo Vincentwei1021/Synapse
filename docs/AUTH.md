@@ -66,6 +66,7 @@ Agents authenticate with `syn_` prefixed API keys.
 | `research` | Research question CRUD, hypothesis formulation |
 | `experiment` | Experiment run claim/release/status, compute tools |
 | `report` | Document CRUD, synthesis |
+| `admin` | Create/delete projects, manage groups, review research questions |
 
 Old role values (`researcher_agent`, `research_lead_agent`, `pi_agent`) are accepted for backward compatibility.
 

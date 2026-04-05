@@ -37,7 +37,7 @@ ResearchProject --> ResearchQuestion --> Experiment --> Report
     creates          formulates         and reports     synthesis
 ```
 
-All agents have access to all MCP tools. There are no role gates -- permissions (`pre_research`, `research`, `experiment`, `report`) describe what the agent is *expected* to do, not what tools it can call.
+All agents have access to all MCP tools. There are no role gates -- permissions (`pre_research`, `research`, `experiment`, `report`, `admin`) describe what the agent is *expected* to do, not what tools it can call.
 
 ---
 

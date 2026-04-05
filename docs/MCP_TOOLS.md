@@ -4,7 +4,7 @@ Endpoint: `POST /api/mcp` (HTTP Streamable transport)
 
 Auth: `Authorization: Bearer syn_...`
 
-All agents have access to all tools. Tool access is not gated by permissions — permissions (`pre_research`, `research`, `experiment`, `report`) determine what the agent is *expected* to do, not what tools it can call.
+All agents have access to all tools. Tool access is not gated by permissions — permissions (`pre_research`, `research`, `experiment`, `report`, `admin`) determine what the agent is *expected* to do, not what tools it can call.
 
 ---
 

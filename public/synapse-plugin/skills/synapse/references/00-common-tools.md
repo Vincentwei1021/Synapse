@@ -4,7 +4,7 @@ Endpoint: `POST /api/mcp` (HTTP Streamable transport)
 
 Auth: `Authorization: Bearer syn_...`
 
-All agents have access to all tools. Permissions (`pre_research`, `research`, `experiment`, `report`) describe expected behavior, not tool access.
+All agents have access to all tools. Permissions (`pre_research`, `research`, `experiment`, `report`, `admin`) describe expected behavior, not tool access.
 
 ---
 

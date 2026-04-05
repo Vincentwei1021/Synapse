@@ -804,7 +804,9 @@
       "preResearch": "预研",
       "research": "研究",
       "experiment": "实验",
-      "report": "报告"
+      "report": "报告",
+      "admin": "管理员",
+      "adminDesc": "创建/删除项目、管理分组、审核研究问题"
     },
     "fields": {
       "name": "智能体名称",

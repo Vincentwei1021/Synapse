@@ -51,7 +51,7 @@ Synapse 是面向人类研究者和 AI Agent 的研究编排平台。
 |---|---|
 | `Company` | 多租户根实体 |
 | `User` | 人类用户（OIDC/默认登录） |
-| `Agent` | AI Agent，使用可组合的 `roles`：`pre_research`、`research`、`experiment`、`report` |
+| `Agent` | AI Agent，使用可组合的 `roles`：`pre_research`、`research`、`experiment`、`report`、`admin` |
 | `ApiKey` | `syn_` 前缀，SHA-256 哈希存储，按 Agent 分配 |
 | `ResearchProject` | 项目简介、数据集、评估方法、算力池绑定、自主循环配置 |
 | `ResearchQuestion` | 问题框架，画布式层级视图 |
@@ -98,6 +98,7 @@ Agent 权限可组合（存储在 `Agent.roles` 中）：
 | `research` | 研究问题 CRUD、假设制定 |
 | `experiment` | 实验启动/完成/提交、算力工具 |
 | `report` | 文档 CRUD、综合工具 |
+| `admin` | 创建/删除项目、管理分组、审核研究问题 |
 
 ---
 

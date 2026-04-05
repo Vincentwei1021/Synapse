@@ -51,7 +51,7 @@ Synapse is a research orchestration platform for human researchers and AI agents
 |---|---|
 | `Company` | Multi-tenant root |
 | `User` | Human user (OIDC/default login) |
-| `Agent` | AI agent with composable `roles`: `pre_research`, `research`, `experiment`, `report` |
+| `Agent` | AI agent with composable `roles`: `pre_research`, `research`, `experiment`, `report`, `admin` |
 | `ApiKey` | `syn_` prefixed, SHA-256 hash stored, per-agent |
 | `ResearchProject` | Project brief, datasets, evaluation methods, compute pool binding, autonomous loop config |
 | `ResearchQuestion` | Problem framing, canvas-style hierarchy |
@@ -98,6 +98,7 @@ Agent permissions are composable (stored in `Agent.roles`):
 | `research` | Research question CRUD, hypothesis formulation |
 | `experiment` | Experiment start/complete/submit, compute tools |
 | `report` | Document CRUD, synthesis tools |
+| `admin` | Create/delete projects, manage groups, review research questions |
 
 ---
 

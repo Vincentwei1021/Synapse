@@ -147,7 +147,7 @@ The most important active models are:
 
 - `Company`
 - `User`
-- `Agent` (has composable `roles`: `pre_research`, `research`, `experiment`, `report`)
+- `Agent` (has composable `roles`: `pre_research`, `research`, `experiment`, `report`, `admin`)
 - `ApiKey`
 - `ProjectGroup`
 - `ResearchProject` (has `computePoolUuid`, `autonomousLoopEnabled/AgentUuid`, `autoSearchEnabled/AgentUuid`)
@@ -255,12 +255,13 @@ Default to these tools for new work. Do not prefer legacy `experiment_run` tools
 
 ### Agent permission model
 
-Agents use 4 composable permissions stored in the `roles` field:
+Agents use 5 composable permissions stored in the `roles` field:
 
-- `pre_research`: literature search, research project context reading
-- `research`: research question CRUD, hypothesis formulation
-- `experiment`: experiment start/complete/submit, compute tools
-- `report`: document CRUD, synthesis tools
+- `pre_research`: literature search, paper collection, research project context reading
+- `research`: research question CRUD, research question management
+- `experiment`: experiment start/complete/submit, compute tools, metrics/baseline
+- `report`: document CRUD, deep research reports, synthesis tools
+- `admin`: create/delete research projects, manage project groups, review/close/delete research questions
 
 These replace the old roles (`researcher_agent`, `research_lead_agent`, `pi_agent`). Old role values are still accepted for backward compatibility but new agents should use the new permission names. An agent can have any combination of permissions.
 
@@ -396,7 +397,7 @@ Global navigation (sidebar):
 
 - `Research Projects`
 - `Compute`
-- `Agents` (agent management with 4 composable permissions)
+- `Agents` (agent management with 5 composable permissions)
 - `Settings` (language, theme, notification preferences only — agents moved to /agents)
 
 Project-level navigation:
@@ -561,7 +562,7 @@ Recent examples:
    For `Experiment`, an empty `computeBudgetHours` input means unlimited (`null`), not zero. The UI label is "Time Limit" but the field name remains `computeBudgetHours`.
 
 16. Using old agent roles
-   New agents should use `pre_research`, `research`, `experiment`, `report` — not the old `researcher_agent`, `research_lead_agent`, `pi_agent`. Old values are accepted for backward compat but should not be used for new agents.
+   New agents should use `pre_research`, `research`, `experiment`, `report`, `admin` — not the old `researcher_agent`, `research_lead_agent`, `pi_agent`. Old values are accepted for backward compat but should not be used for new agents.
 
 17. Forgetting compute pool binding validation
    When a project has `computePoolUuid` set, GPU reservations must be from that pool. The `validatePoolBinding` helper in `compute.service.ts` handles this.
@@ -576,4 +577,4 @@ Recent examples:
    Experiment PATCH is locked down — callers cannot change `status`, `outcome`, or `results` directly. These fields are only modifiable through the dedicated start/complete/submit endpoints.
 
 21. Forgetting notification permission grouping
-   Notification preferences in Settings are grouped by the 4 agent permission categories (pre_research, research, experiment, report). Keep new notification types in the correct group.
+   Notification preferences in Settings are grouped by the 5 agent permission categories (pre_research, research, experiment, report, admin). Keep new notification types in the correct group.

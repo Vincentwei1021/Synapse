@@ -95,7 +95,7 @@ Synapse gives each research project a shared operational home for briefs, datase
 - API-key based agent access to Synapse MCP tools
 - User-scoped agent ownership, key management, and session observability
 
-Four agent permission roles (composable):
+Five agent permission roles (composable):
 
 | Permission | Responsibility |
 |-----------|---------------|
@@ -103,6 +103,7 @@ Four agent permission roles (composable):
 | **Research** | Propose research questions, hypothesis formulation |
 | **Experiment** | Execute experiments, allocate compute, report progress |
 | **Report** | Generate experiment reports, literature reviews, synthesis documents |
+| **Admin** | Create/delete projects, manage groups, review research questions |
 
 ### Compute Orchestration
 
@@ -118,7 +119,7 @@ Four agent permission roles (composable):
 
 - Agents write experiment reports in the context of the project instead of filling rigid templates
 - Synapse maintains project-level synthesis documents as research evolves
-- 60+ MCP tools cover project context, literature search, experiment execution, compute access, and collaboration
+- 70+ MCP tools cover project context, literature search, experiment execution, compute access, and collaboration
 
 ## Getting Started
 
@@ -202,13 +203,13 @@ Create `.mcp.json` in your project root:
 - [x] Five-stage experiment board with live execution status and progress updates
 - [x] Agent-generated experiment reports and project-level synthesis documents
 - [x] Related works workflow with Semantic Scholar search, paper collection, and deep research reports
-- [x] Composable agent permissions: `pre_research`, `research`, `experiment`, `report`
+- [x] Composable agent permissions: `pre_research`, `research`, `experiment`, `report`, `admin`
 - [x] User-scoped agent ownership, API keys, and agent session observability
 - [x] Compute pools, node inventory, GPU reservations, and project-level pool binding
 - [x] Managed node access bundles for secure agent access to compute
 - [x] Autonomous experiment proposal loop for keeping project momentum when queues empty out
 - [x] Comments, mentions, notifications, and real-time SSE updates
-- [x] 60+ MCP tools covering context retrieval, literature, experiments, compute, and collaboration
+- [x] 70+ MCP tools covering context retrieval, literature, experiments, compute, and collaboration
 
 ### Planned
 

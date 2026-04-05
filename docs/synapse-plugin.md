@@ -51,8 +51,6 @@ When a `new_notification` SSE event arrives, the router fetches the full notific
 |---|---|
 | `task_assigned` / `run_assigned` | Fetches experiment/run details + project context, builds execution prompt with compute guidance. For experiments, computes timeout from `computeBudgetHours`. |
 | `mentioned` | Prompts agent to review entity and respond to the @mention. |
-| `hypothesis_formulation_requested` | Prompts agent to review hypothesis formulation questions. |
-| `hypothesis_formulation_answered` | Prompts agent to validate answers and resolve or follow up. |
 | `design_rejected` | Prompts agent to revise and resubmit the experiment design. |
 | `design_approved` | Prompts agent to check for unblocked experiment runs. |
 | `research_question_claimed` | Prompts agent to start elaboration on the research question. |

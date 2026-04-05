@@ -160,7 +160,7 @@ ${DEPENDED_BY_LIST}"
 
       # Case 1: Admin already marked all AC → auto-verify
       if [ "${AC_TOTAL:-0}" -gt 0 ] && [ "$AC_TOTAL" = "$ADMIN_PASSED" ]; then
-        VERIFY_RESULT=$("$API" mcp-tool "synapse_pi_verify_experiment_run" \
+        VERIFY_RESULT=$("$API" mcp-tool "synapse_verify_experiment_run" \
           "$(printf '{"runUuid":"%s"}' "$FIRST_TASK_UUID")" 2>/dev/null) || true
         VERIFY_OK=$(echo "$VERIFY_RESULT" | jq -r '.status // empty' 2>/dev/null) || true
         if [ "$VERIFY_OK" = "done" ]; then
@@ -173,19 +173,19 @@ Experiment run '${TASK_TITLE}' (${FIRST_TASK_UUID}) — admin AC all passed, aut
       elif [ "${AC_TOTAL:-0}" -gt 0 ] && [ "${DEV_PASSED:-0}" = "$AC_TOTAL" ]; then
         VERIFY_INFO="
 === VERIFY NEEDED ===
-Experiment run '${TASK_TITLE}' (${FIRST_TASK_UUID}) — dev self-check passed all ${AC_TOTAL} required criteria (admin: ${ADMIN_PASSED}/${AC_TOTAL}). Please review with synapse_get_experiment_run, mark AC with synapse_mark_acceptance_criteria, then synapse_pi_verify_experiment_run.${DOWNSTREAM_NOTE}"
+Experiment run '${TASK_TITLE}' (${FIRST_TASK_UUID}) — dev self-check passed all ${AC_TOTAL} required criteria (admin: ${ADMIN_PASSED}/${AC_TOTAL}). Please review with synapse_get_experiment_run, mark AC with synapse_mark_acceptance_criteria, then synapse_verify_experiment_run.${DOWNSTREAM_NOTE}"
 
       # Case 3: Dev self-check incomplete → warn
       elif [ "${AC_TOTAL:-0}" -gt 0 ]; then
         VERIFY_INFO="
 === VERIFY WARNING ===
-Experiment run '${TASK_TITLE}' (${FIRST_TASK_UUID}) — dev self-check INCOMPLETE (${DEV_PASSED}/${AC_TOTAL}). Work may be unfinished. Review with synapse_get_experiment_run, consider synapse_pi_reopen_experiment_run.${DOWNSTREAM_NOTE}"
+Experiment run '${TASK_TITLE}' (${FIRST_TASK_UUID}) — dev self-check INCOMPLETE (${DEV_PASSED}/${AC_TOTAL}). Work may be unfinished. Review with synapse_get_experiment_run, consider synapse_reopen_experiment_run.${DOWNSTREAM_NOTE}"
 
       # Case 4: No structured AC → generic reminder
       else
         VERIFY_INFO="
 === VERIFY NEEDED ===
-Experiment run '${TASK_TITLE}' (${FIRST_TASK_UUID}) is in to_verify status. Please review and call synapse_pi_verify_experiment_run or synapse_pi_reopen_experiment_run.${DOWNSTREAM_NOTE}"
+Experiment run '${TASK_TITLE}' (${FIRST_TASK_UUID}) is in to_verify status. Please review and call synapse_verify_experiment_run or synapse_reopen_experiment_run.${DOWNSTREAM_NOTE}"
       fi
     fi
 

@@ -470,42 +470,6 @@ export const commonToolDefinitions = defineOpenClawTools([
   }),
 
   // =========================================================================
-  // Hypothesis Formulation
-  // =========================================================================
-  createPassthroughTool<{ researchQuestionUuid: string; roundUuid: string; answers: Array<Record<string, unknown>> }>({
-    name: "synapse_answer_hypothesis_formulation",
-    description: "Answer hypothesis formulation questions for a research question.",
-    parameters: {
-      type: "object",
-      properties: {
-        researchQuestionUuid: { type: "string", description: "Research Question UUID" },
-        roundUuid: { type: "string", description: "Hypothesis formulation round UUID" },
-        answers: {
-          type: "array",
-          description: "Array of answers. Each: { questionId, selectedOptionId, customText }",
-          items: { type: "object" },
-        },
-      },
-      required: ["researchQuestionUuid", "roundUuid", "answers"],
-      additionalProperties: false,
-    },
-    targetToolName: "synapse_answer_hypothesis_formulation",
-  }),
-  createPassthroughTool<{ researchQuestionUuid: string }>({
-    name: "synapse_get_hypothesis_formulation",
-    description: "Get the full hypothesis formulation state for a research question, including all rounds, questions, answers, and progress summary.",
-    parameters: {
-      type: "object",
-      properties: {
-        researchQuestionUuid: { type: "string", description: "Research Question UUID" },
-      },
-      required: ["researchQuestionUuid"],
-      additionalProperties: false,
-    },
-    targetToolName: "synapse_get_hypothesis_formulation",
-  }),
-
-  // =========================================================================
   // Project Groups
   // =========================================================================
   createPassthroughTool({
