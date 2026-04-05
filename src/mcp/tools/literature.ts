@@ -43,10 +43,11 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
         authors: z.string().optional(),
         abstract: z.string().optional(),
         arxivId: z.string().optional(),
+        year: z.number().int().optional().describe("Publication year"),
         source: z.enum(["arxiv", "semantic_scholar", "openalex"]).default("arxiv"),
       }),
     },
-    async ({ researchProjectUuid, title, url, authors, abstract, arxivId, source }) => {
+    async ({ researchProjectUuid, title, url, authors, abstract, arxivId, year, source }) => {
       const rw = await createRelatedWork({
         companyUuid: auth.companyUuid,
         researchProjectUuid,
@@ -58,6 +59,7 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
         source,
         addedBy: "auto",
         addedByAgentUuid: auth.actorUuid,
+        publishedYear: year,
       });
       return {
         content: [{ type: "text" as const, text: JSON.stringify({ relatedWork: rw }) }],

@@ -16,6 +16,7 @@ export interface PaperResult {
   url: string;
   arxivId: string | null;
   doi: string | null;
+  year: number | null;
   source: "arxiv" | "semantic_scholar" | "openalex";
 }
 
@@ -85,6 +86,7 @@ interface SemanticScholarPaper {
   authors: Array<{ name: string }>;
   externalIds: { ArXiv?: string; DOI?: string } | null;
   url: string;
+  year: number | null;
 }
 
 export async function searchSemanticScholar(
@@ -94,7 +96,7 @@ export async function searchSemanticScholar(
   const params = new URLSearchParams({
     query,
     limit: String(limit),
-    fields: "title,abstract,authors,externalIds,url",
+    fields: "title,abstract,authors,externalIds,url,year",
   });
   const url = `https://api.semanticscholar.org/graph/v1/paper/search?${params}`;
 
@@ -115,6 +117,7 @@ export async function searchSemanticScholar(
       : p.url,
     arxivId: p.externalIds?.ArXiv ?? null,
     doi: p.externalIds?.DOI ?? null,
+    year: p.year ?? null,
     source: "semantic_scholar" as const,
   }));
 }
@@ -130,6 +133,7 @@ interface OpenAlexWork {
   doi: string | null;
   ids: { openalex?: string };
   primary_location?: { landing_page_url?: string } | null;
+  publication_year: number | null;
 }
 
 /**
@@ -180,6 +184,7 @@ export async function searchOpenAlex(
       url: w.primary_location?.landing_page_url ?? w.doi ?? "",
       arxivId: null,
       doi,
+      year: w.publication_year ?? null,
       source: "openalex" as const,
     };
   });
@@ -219,6 +224,8 @@ export async function searchArxiv(
     // Extract arXiv ID from URL like http://arxiv.org/abs/2301.12345v1
     const arxivId = idRaw.replace(/^https?:\/\/arxiv\.org\/abs\//, "").replace(/v\d+$/, "") || null;
     const doi = (entry.match(/<arxiv:doi[^>]*>([\s\S]*?)<\/arxiv:doi>/) ?? [])[1]?.trim() ?? null;
+    const published = (entry.match(/<published>([\s\S]*?)<\/published>/) ?? [])[1]?.trim() ?? null;
+    const year = published ? new Date(published).getFullYear() : null;
 
     return {
       title,
@@ -227,6 +234,7 @@ export async function searchArxiv(
       url: arxivId ? `https://arxiv.org/abs/${arxivId}` : idRaw,
       arxivId,
       doi,
+      year: (year && !isNaN(year)) ? year : null,
       source: "arxiv" as const,
     };
   });

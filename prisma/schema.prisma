@@ -605,6 +605,7 @@ model RelatedWork {
   source              String
   addedBy             String
   addedByAgentUuid    String?
+  publishedYear       Int?
   createdAt           DateTime        @default(now())
 
   @@index([companyUuid])

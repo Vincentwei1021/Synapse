@@ -11,6 +11,7 @@ export interface RelatedWorkResponse {
   source: string;
   addedBy: string;
   addedByAgentUuid: string | null;
+  publishedYear: number | null;
   createdAt: string;
 }
 
@@ -24,6 +25,7 @@ function formatRelatedWork(rw: {
   source: string;
   addedBy: string;
   addedByAgentUuid: string | null;
+  publishedYear: number | null;
   createdAt: Date;
 }): RelatedWorkResponse {
   return {
@@ -36,6 +38,7 @@ function formatRelatedWork(rw: {
     source: rw.source,
     addedBy: rw.addedBy,
     addedByAgentUuid: rw.addedByAgentUuid,
+    publishedYear: rw.publishedYear,
     createdAt: rw.createdAt.toISOString(),
   };
 }
@@ -62,6 +65,7 @@ export async function createRelatedWork(input: {
   source: string;
   addedBy: string;
   addedByAgentUuid?: string | null;
+  publishedYear?: number | null;
 }): Promise<RelatedWorkResponse & { isNew: boolean }> {
   // Dedup: skip if same url or arxivId already exists in this project
   const orConditions: Array<Record<string, string>> = [{ url: input.url }];
@@ -92,6 +96,7 @@ export async function createRelatedWork(input: {
       source: input.source,
       addedBy: input.addedBy,
       addedByAgentUuid: input.addedByAgentUuid ?? null,
+      publishedYear: input.publishedYear ?? null,
     },
   });
 

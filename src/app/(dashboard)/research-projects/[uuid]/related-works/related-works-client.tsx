@@ -472,10 +472,8 @@ export function RelatedWorksClient({
                         {paper.arxivId && (
                           <span className="font-mono">{paper.arxivId}</span>
                         )}
-                        {paper.createdAt && (
-                          <span>
-                            {new Date(paper.createdAt).getFullYear()}
-                          </span>
+                        {paper.publishedYear && (
+                          <span>{paper.publishedYear}</span>
                         )}
                       </div>
 
