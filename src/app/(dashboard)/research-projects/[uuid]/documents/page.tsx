@@ -7,23 +7,19 @@ import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ClipboardList, FileEdit, Palette, BookOpen, FileText, FilePlus, FlaskConical, Beaker, type LucideIcon } from "lucide-react";
+import { BookOpen, FileText, FilePlus, FlaskConical, Beaker, type LucideIcon } from "lucide-react";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { listDocuments } from "@/services/document.service";
 import { researchProjectExists } from "@/services/research-project.service";
 import { CreateDocumentDialog } from "./create-document-dialog";
 
 const docTypeConfig: Record<string, { labelKey: string; color: string; icon: LucideIcon }> = {
-  prd: { labelKey: "documents.typePrd", color: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300", icon: ClipboardList },
-  spec: { labelKey: "documents.typeSpec", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300", icon: FileEdit },
-  design: { labelKey: "documents.typeDesign", color: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300", icon: Palette },
   experiment_result: { labelKey: "documents.typeExperimentResult", color: "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300", icon: Beaker },
   literature_review: { labelKey: "documents.typeLiteratureReview", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300", icon: BookOpen },
   analysis: { labelKey: "documents.typeAnalysis", color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300", icon: FlaskConical },
   methodology: { labelKey: "documents.typeMethodology", color: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300", icon: FlaskConical },
   rdr: { labelKey: "documents.typeRdr", color: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300", icon: FileText },
   results_report: { labelKey: "documents.typeResultsReport", color: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300", icon: Beaker },
-  note: { labelKey: "documents.typeNote", color: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300", icon: BookOpen },
   other: { labelKey: "documents.typeOther", color: "bg-secondary text-muted-foreground", icon: FileText },
 };
 

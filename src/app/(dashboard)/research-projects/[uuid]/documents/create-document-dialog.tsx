@@ -152,7 +152,6 @@ export function CreateDocumentDialog({ projectUuid, trigger }: CreateDocumentDia
                 <SelectItem value="literature_review">{t("documents.typeLiteratureReview")}</SelectItem>
                 <SelectItem value="analysis">{t("documents.typeAnalysis")}</SelectItem>
                 <SelectItem value="methodology">{t("documents.typeMethodology")}</SelectItem>
-                <SelectItem value="note">{t("documents.typeNote")}</SelectItem>
                 <SelectItem value="other">{t("documents.typeOther")}</SelectItem>
               </SelectContent>
             </Select>

@@ -184,7 +184,7 @@ export function registerResearchTools(server: McpServer, auth: AgentAuthContext)
       description: "Create a document (PRD, tech design, ADR, spec, guide, etc.)",
       inputSchema: z.object({
         researchProjectUuid: z.string().describe("Research Project UUID"),
-        type: z.enum(["prd", "tech_design", "adr", "spec", "guide", "literature_review", "experiment_result", "analysis", "methodology", "note"]).describe("Document type"),
+        type: z.enum(["experiment_result", "literature_review", "analysis", "methodology", "rdr", "results_report", "other"]).describe("Document type"),
         title: z.string().describe("Document title"),
         content: z.string().optional().describe("Document content (Markdown)"),
         experimentDesignUuid: z.string().optional().describe("Associated Experiment Design UUID (optional)"),
