@@ -597,6 +597,38 @@ export const commonToolDefinitions = defineOpenClawTools([
   }),
 
   // =========================================================================
+  // Deep Research Reports
+  // =========================================================================
+  createPassthroughTool<{ researchProjectUuid: string }>({
+    name: "synapse_get_deep_research_report",
+    description: "Get the deep research literature review document for a project. Returns null if none exists yet.",
+    parameters: {
+      type: "object",
+      properties: {
+        researchProjectUuid: { type: "string", description: "Research Project UUID" },
+      },
+      required: ["researchProjectUuid"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_get_deep_research_report",
+  }),
+  createPassthroughTool<{ researchProjectUuid: string; title: string; content: string }>({
+    name: "synapse_save_deep_research_report",
+    description: "Create or update the deep research literature review for a project. If a report already exists, updates it and increments the version (v1 → v2 → v3...). If none exists, creates a new one.",
+    parameters: {
+      type: "object",
+      properties: {
+        researchProjectUuid: { type: "string", description: "Research Project UUID" },
+        title: { type: "string", description: "Report title" },
+        content: { type: "string", description: "Full report content (Markdown)" },
+      },
+      required: ["researchProjectUuid", "title", "content"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_save_deep_research_report",
+  }),
+
+  // =========================================================================
   // Sessions
   // =========================================================================
   createPassthroughTool<{ status?: string }>({
