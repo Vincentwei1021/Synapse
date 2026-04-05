@@ -163,6 +163,8 @@ openclaw plugins install @vincentwei1021/synapse-openclaw-plugin
 
 然后在 OpenClaw 设置中配置 `synapseUrl` 和 `apiKey`。
 
+> **提示：** 如果遇到 `Request timed out before a response was generated`，请在 OpenClaw 配置中增大空闲超时：将 `agents.defaults.llm.idleTimeoutSeconds` 设为 `300`。
+
 #### 方式二：Claude Code 插件
 
 ```bash

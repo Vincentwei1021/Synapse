@@ -161,6 +161,8 @@ openclaw plugins install @vincentwei1021/synapse-openclaw-plugin
 
 Then configure in OpenClaw settings: set `synapseUrl` and `apiKey`.
 
+> **Tip:** If you encounter `Request timed out before a response was generated`, increase the idle timeout in your OpenClaw config: set `agents.defaults.llm.idleTimeoutSeconds` to `300`.
+
 #### Option 2: Claude Code Plugin
 
 ```bash
