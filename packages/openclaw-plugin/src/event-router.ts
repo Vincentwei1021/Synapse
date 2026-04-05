@@ -334,6 +334,12 @@ Proposed experiments will enter "pending_review" status and require human approv
 
 IMPORTANT: You MUST save the report back to Synapse using synapse_save_deep_research_report. Do NOT just output text — the report must be saved via the tool call.
 
+You may ONLY use these Synapse tools for this task:
+- synapse_get_deep_research_report
+- synapse_get_related_works
+- synapse_get_research_project
+- synapse_save_deep_research_report
+
 Steps:
 1. Use synapse_get_deep_research_report with researchProjectUuid "${projectUuid}" to check if a previous report exists — if so, read it to understand what was covered before
 2. Use synapse_get_related_works with researchProjectUuid "${projectUuid}" to read all collected papers
@@ -354,9 +360,15 @@ Steps:
 
     const basePrompt = `[Synapse] Paper search requested for project "${n.entityTitle}" (projectUuid: ${projectUuid}).
 
-Search for academic papers related to this research project:
+You may ONLY use these Synapse tools for this task:
+- synapse_get_related_works
+- synapse_get_research_project
+- synapse_search_papers
+- synapse_add_related_work
+
+Steps:
 1. Use synapse_get_related_works with researchProjectUuid "${projectUuid}" to see what papers are already collected — avoid searching for topics already well-covered
-2. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to understand the research objectives, datasets, and methods
+2. Use synapse_get_research_project with researchProjectUuid "${projectUuid}" to understand the research objectives, datasets, and methods
 3. Based on the project context and gaps in existing papers, use synapse_search_papers to find new relevant academic papers
 4. For each relevant paper found, use synapse_add_related_work with researchProjectUuid "${projectUuid}" to add it (duplicates are automatically skipped — if isNew=false, the paper already existed)
 5. Search with multiple query variations to maximize coverage, but call synapse_search_papers sequentially (one at a time) to avoid rate limits
