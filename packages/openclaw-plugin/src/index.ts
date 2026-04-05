@@ -33,7 +33,7 @@ async function wakeAgent(
         message: text,
         name: "Synapse",
         wakeMode: "now",
-        deliver: true,
+        deliver: false,
         timeoutSeconds: timeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS,
       }),
     });
