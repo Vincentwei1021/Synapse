@@ -29,10 +29,14 @@ export function createMcpServer(auth: AgentAuthContext): McpServer {
   // Register role-specific tools based on agent roles
   const roles = auth.roles || [];
 
-  // Support two role formats: "research_lead" / "research_lead_agent", "researcher" / "researcher_agent", "pi" / "pi_agent"
-  const hasResearchLeadRole = roles.some(r => r === "research_lead" || r === "research_lead_agent");
-  const hasResearcherRole = roles.some(r => r === "researcher" || r === "researcher_agent");
-  const hasPiRole = roles.some(r => r === "pi" || r === "pi_agent");
+  // Helper: check if agent has any of the given role names
+  const hasRole = (...names: string[]) => roles.some(r => names.includes(r));
+
+  // Old roles (backward compat): research_lead / research_lead_agent, researcher / researcher_agent, pi / pi_agent
+  // New permissions: pre_research, research, experiment, report
+  const hasResearchLeadRole = hasRole("research_lead", "research_lead_agent", "research", "report");
+  const hasResearcherRole = hasRole("researcher", "researcher_agent", "experiment");
+  const hasPiRole = hasRole("pi", "pi_agent");
 
   if (hasPiRole) {
     registerPiTools(server, auth);
