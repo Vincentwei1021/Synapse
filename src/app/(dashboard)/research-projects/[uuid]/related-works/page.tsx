@@ -23,6 +23,18 @@ export default async function RelatedWorksPage({ params }: PageProps) {
   });
   if (!project) redirect("/research-projects");
 
+  // Fetch deep research doc metadata if it exists
+  let deepResearchDoc: { uuid: string; version: number; updatedAt: string } | null = null;
+  if (project.deepResearchDocUuid) {
+    const doc = await prisma.document.findFirst({
+      where: { uuid: project.deepResearchDocUuid },
+      select: { uuid: true, version: true, updatedAt: true },
+    });
+    if (doc) {
+      deepResearchDoc = { uuid: doc.uuid, version: doc.version, updatedAt: doc.updatedAt.toISOString() };
+    }
+  }
+
   const [works, agents] = await Promise.all([
     listRelatedWorks(auth.companyUuid, projectUuid),
     listAgentSummaries(auth.companyUuid),
@@ -34,7 +46,7 @@ export default async function RelatedWorksPage({ params }: PageProps) {
         projectUuid={projectUuid}
         initialWorks={works}
         agents={agents.map((a) => ({ uuid: a.uuid, name: a.name }))}
-        deepResearchDocUuid={project.deepResearchDocUuid}
+        deepResearchDoc={deepResearchDoc}
       />
     </div>
   );

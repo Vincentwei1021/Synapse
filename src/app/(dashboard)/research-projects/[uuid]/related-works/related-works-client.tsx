@@ -26,27 +26,32 @@ interface AgentOption {
   name: string;
 }
 
+interface DeepResearchDocInfo {
+  uuid: string;
+  version: number;
+  updatedAt: string;
+}
+
 interface RelatedWorksClientProps {
   projectUuid: string;
   initialWorks: RelatedWorkResponse[];
   agents: AgentOption[];
-  deepResearchDocUuid: string | null;
+  deepResearchDoc: DeepResearchDocInfo | null;
 }
 
 export function RelatedWorksClient({
   projectUuid,
   initialWorks,
   agents,
-  deepResearchDocUuid: initialDeepResearchDoc,
+  deepResearchDoc: initialDeepResearchDoc,
 }: RelatedWorksClientProps) {
   const router = useRouter();
   const t = useTranslations("relatedWorks");
   const [works, setWorks] = useState(initialWorks);
 
-  // Sync works when server component re-renders with new data (e.g. after SSE refresh)
-  useEffect(() => {
-    setWorks(initialWorks);
-  }, [initialWorks]);
+  // Sync state when server component re-renders with new data (e.g. after SSE refresh)
+  useEffect(() => { setWorks(initialWorks); }, [initialWorks]);
+  useEffect(() => { setDeepResearchDoc(initialDeepResearchDoc); }, [initialDeepResearchDoc]);
 
   // Auto-search state (one-shot trigger)
   const [autoSearchAgentUuid, setAutoSearchAgentUuid] = useState<string>("");
@@ -54,7 +59,7 @@ export function RelatedWorksClient({
   const [searchTriggeredAgent, setSearchTriggeredAgent] = useState<string | null>(null);
 
   // Deep research state
-  const [deepResearchDocUuid] = useState<string | null>(initialDeepResearchDoc);
+  const [deepResearchDoc, setDeepResearchDoc] = useState<DeepResearchDocInfo | null>(initialDeepResearchDoc);
   const [deepResearchAgentUuid, setDeepResearchAgentUuid] = useState<string>("");
   const [generatingDeepResearch, setGeneratingDeepResearch] = useState(false);
   const [deepResearchTriggeredAgent, setDeepResearchTriggeredAgent] = useState<string | null>(null);
@@ -343,18 +348,13 @@ export function RelatedWorksClient({
                   {t("deepResearch")}
                 </h3>
               </div>
-              {deepResearchDocUuid ? (
-                <div className="mt-1 flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    {t("lastGenerated")}
-                  </span>
-                  <Link
-                    href={`/research-projects/${projectUuid}/documents/${deepResearchDocUuid}`}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-                  >
-                    {t("viewDocument")} &rarr;
-                  </Link>
-                </div>
+              {deepResearchDoc ? (
+                <Link
+                  href={`/research-projects/${projectUuid}/documents/${deepResearchDoc.uuid}`}
+                  className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                >
+                  v{deepResearchDoc.version} {t("lastUpdated", { time: new Date(deepResearchDoc.updatedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) })} &rarr;
+                </Link>
               ) : (
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {t("noReport")}
