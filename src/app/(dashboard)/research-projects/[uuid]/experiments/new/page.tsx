@@ -46,8 +46,8 @@ export default async function NewExperimentPage({ params }: PageProps) {
   return (
     <div className="space-y-6 p-4 md:p-8">
       <div>
-        <h1 className="text-2xl font-semibold text-[#2C2C2C]">{t("experiments.createTitle")}</h1>
-        <p className="mt-1 text-sm text-[#6B6B6B]">{t("experiments.createSubtitle")}</p>
+        <h1 className="text-2xl font-semibold text-foreground">{t("experiments.createTitle")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t("experiments.createSubtitle")}</p>
       </div>
 
       <CreateExperimentForm

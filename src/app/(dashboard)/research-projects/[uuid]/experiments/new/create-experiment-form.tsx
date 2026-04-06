@@ -76,7 +76,7 @@ export function CreateExperimentForm({
 
   return (
     <form action={(formData) => startTransition(() => { void handleSubmit(formData); })} className="space-y-6">
-      <Card className="space-y-5 rounded-3xl border-[#E5DED3] p-6">
+      <Card className="space-y-5 rounded-3xl border-border p-6">
         <div className="grid gap-5 md:grid-cols-2">
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="title">{t("experiments.fields.title")}</Label>
@@ -87,7 +87,7 @@ export function CreateExperimentForm({
             <div className="space-y-2 md:col-span-2">
               <Label>{t("experiments.fields.copyFromExperiment")}</Label>
               <select
-                className="w-full rounded-xl border border-[#E5DED3] bg-[#FBF8F3] px-3 py-2 text-sm text-[#2C2C2C]"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
                 onChange={(e) => {
                   const exp = existingExperiments.find((ex) => ex.uuid === e.target.value);
                   if (exp?.description) {
@@ -123,7 +123,7 @@ export function CreateExperimentForm({
             <select
               id="researchQuestionUuid"
               name="researchQuestionUuid"
-              className="w-full rounded-xl border border-[#E5DED3] bg-[#FBF8F3] px-3 py-2 text-sm text-[#2C2C2C]"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
               defaultValue=""
             >
               <option value="">{t("experiments.fields.noQuestion")}</option>
@@ -141,7 +141,7 @@ export function CreateExperimentForm({
               id="status"
               name="status"
               defaultValue="pending_start"
-              className="w-full rounded-xl border border-[#E5DED3] bg-[#FBF8F3] px-3 py-2 text-sm text-[#2C2C2C]"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
             >
               <option value="pending_start">{t("experiments.columns.pendingStart")}</option>
               <option value="pending_review">{t("experiments.columns.pendingReview")}</option>
@@ -156,7 +156,7 @@ export function CreateExperimentForm({
               id="priority"
               name="priority"
               defaultValue="medium"
-              className="w-full rounded-xl border border-[#E5DED3] bg-[#FBF8F3] px-3 py-2 text-sm text-[#2C2C2C]"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
             >
               <option value="low">{t("priority.low")}</option>
               <option value="medium">{t("priority.medium")}</option>
@@ -186,7 +186,7 @@ export function CreateExperimentForm({
                 value={baseBranch}
                 onChange={(e) => setBaseBranch(e.target.value)}
                 disabled={branchesLoading}
-                className="w-full rounded-xl border border-[#E5DED3] bg-[#FBF8F3] px-3 py-2 text-sm text-[#2C2C2C]"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
               >
                 {branchesLoading ? (
                   <option value="">{t("experiments.fields.baseBranchPlaceholder")}</option>
@@ -207,12 +207,12 @@ export function CreateExperimentForm({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-[#D8CEBF] bg-[#FBF8F3] px-4 py-4 text-left"
+              className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-border bg-background px-4 py-4 text-left"
             >
-              <Upload className="h-5 w-5 text-[#8E8478]" />
+              <Upload className="h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="text-sm text-[#2C2C2C]">{t("experiments.fields.attachmentsHelp")}</p>
-                <p className="text-xs text-[#8E8478]">.md .txt .markdown .pdf .docx</p>
+                <p className="text-sm text-foreground">{t("experiments.fields.attachmentsHelp")}</p>
+                <p className="text-xs text-muted-foreground">.md .txt .markdown .pdf .docx</p>
               </div>
             </button>
             <input
@@ -224,7 +224,7 @@ export function CreateExperimentForm({
               onChange={(event) => setSelectedFiles(Array.from(event.target.files || []))}
             />
             {selectedFiles.length > 0 ? (
-              <div className="space-y-1 text-xs text-[#6B6B6B]">
+              <div className="space-y-1 text-xs text-muted-foreground">
                 {selectedFiles.map((file) => (
                   <p key={`${file.name}-${file.size}`}>{file.name}</p>
                 ))}
@@ -233,13 +233,13 @@ export function CreateExperimentForm({
           </div>
         </div>
 
-        {error ? <p className="text-sm text-[#B94C4C]">{error}</p> : null}
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
         <div className="flex justify-end gap-3">
           <Button type="button" variant="outline" onClick={() => router.back()}>
             {t("common.cancel")}
           </Button>
-          <Button type="submit" disabled={isPending} className="bg-[#C67A52] text-white hover:bg-[#B56A42]">
+          <Button type="submit" disabled={isPending} className="bg-primary text-primary-foreground hover:bg-primary/90">
             {isPending ? t("common.creating") : t("experiments.create")}
           </Button>
         </div>
