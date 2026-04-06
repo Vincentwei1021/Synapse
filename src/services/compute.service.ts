@@ -1,20 +1,8 @@
-import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
-import { promisify } from "node:util";
 import { prisma } from "@/lib/prisma";
-
-const execFileAsync = promisify(execFile);
-const GPU_POLL_INTERVAL_MS = 10_000;
-const SSH_TIMEOUT_MS = 8_000;
 
 const NODE_IDLE = "idle";
 const GPU_AVAILABLE = "available";
-
-const globalForGpuPoller = globalThis as unknown as {
-  synapseGpuPollerStarted?: boolean;
-  synapseGpuPollerTimer?: NodeJS.Timeout;
-  synapseGpuPollerRunning?: boolean;
-};
 
 export interface ComputeGpuSnapshot {
   uuid: string;
@@ -57,6 +45,7 @@ export interface ComputeNodeSnapshot {
   gpuCount: number;
   busyGpuCount: number;
   availableGpuCount: number;
+  telemetryEnabled: boolean;
   inventoryPending: boolean;
   gpus: ComputeGpuSnapshot[];
 }
@@ -83,45 +72,6 @@ export interface ComputeNodeAccessBundle {
   ssmTarget: string | null;
 }
 
-type PolledGpuSnapshot = {
-  slotIndex: number;
-  model: string;
-  memoryGb?: number;
-  memoryUsedGb?: number;
-  utilizationPercent?: number;
-  temperatureC?: number;
-};
-
-function roundToGb(memoryMb?: number) {
-  if (memoryMb === undefined || Number.isNaN(memoryMb)) {
-    return undefined;
-  }
-
-  return Math.round((memoryMb / 1024) * 10) / 10;
-}
-
-function parseNvidiaSmiOutput(stdout: string): PolledGpuSnapshot[] {
-  return stdout
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [slotIndex, model, memoryTotalMb, memoryUsedMb, utilizationPercent, temperatureC] = line
-        .split(",")
-        .map((part) => part.trim());
-
-      return {
-        slotIndex: Number(slotIndex),
-        model,
-        memoryGb: roundToGb(Number(memoryTotalMb)),
-        memoryUsedGb: roundToGb(Number(memoryUsedMb)),
-        utilizationPercent: Number(utilizationPercent),
-        temperatureC: Number(temperatureC),
-      };
-    })
-    .filter((gpu) => Number.isFinite(gpu.slotIndex) && !!gpu.model);
-}
-
 function serializeNode(node: {
   uuid: string;
   label: string;
@@ -129,6 +79,7 @@ function serializeNode(node: {
   instanceType: string | null;
   region: string | null;
   lifecycle: string;
+  telemetryEnabled: boolean;
   sshHost: string | null;
   sshUser: string | null;
   sshPort: number | null;
@@ -233,140 +184,13 @@ function serializeNode(node: {
     ssmTarget: node.ssmTarget,
     notes: node.notes,
     lastReportedAt: node.lastReportedAt?.toISOString() ?? null,
+    telemetryEnabled: node.telemetryEnabled,
     gpuCount: gpus.length,
     busyGpuCount: gpus.filter((gpu) => gpu.computedStatus === "busy").length,
     availableGpuCount: gpus.filter((gpu) => gpu.computedStatus === GPU_AVAILABLE).length,
     inventoryPending: gpus.length === 0,
     gpus,
   };
-}
-
-async function listPollableNodes() {
-  return prisma.computeNode.findMany({
-    where: {
-      lifecycle: NODE_IDLE,
-      sshHost: { not: null },
-    },
-    select: {
-      uuid: true,
-      sshHost: true,
-      sshUser: true,
-      sshPort: true,
-      sshKeyPath: true,
-      sshKeyName: true,
-      sshKeyFingerprint: true,
-      sshKeySource: true,
-    },
-  });
-}
-
-async function probeNodeViaSsh(node: {
-  sshHost: string | null;
-  sshUser: string | null;
-  sshPort: number | null;
-  sshKeyPath: string | null;
-}) {
-  if (!node.sshHost) {
-    return [];
-  }
-
-  const destination = `${node.sshUser ?? "ubuntu"}@${node.sshHost}`;
-  const args = [
-    "-o",
-    "BatchMode=yes",
-    "-o",
-    "ConnectTimeout=5",
-    "-o",
-    "StrictHostKeyChecking=no",
-    "-p",
-    String(node.sshPort ?? 22),
-  ];
-
-  if (node.sshKeyPath) {
-    args.push("-i", node.sshKeyPath);
-  }
-
-  args.push(
-    destination,
-    "nvidia-smi --query-gpu=index,name,memory.total,memory.used,utilization.gpu,temperature.gpu --format=csv,noheader,nounits"
-  );
-
-  const { stdout } = await execFileAsync("ssh", args, {
-    timeout: SSH_TIMEOUT_MS,
-    maxBuffer: 1024 * 1024,
-  });
-
-  return parseNvidiaSmiOutput(stdout);
-}
-
-async function runGpuPollCycle() {
-  if (globalForGpuPoller.synapseGpuPollerRunning) {
-    return;
-  }
-
-  globalForGpuPoller.synapseGpuPollerRunning = true;
-
-  try {
-    const nodes = await listPollableNodes();
-    await Promise.all(
-      nodes.map(async (node) => {
-        try {
-          const gpus = await probeNodeViaSsh(node);
-          if (gpus.length === 0) {
-            return;
-          }
-          await syncNodeInventory({
-            nodeUuid: node.uuid,
-            gpus: gpus.map((gpu) => ({
-              slotIndex: gpu.slotIndex,
-              model: gpu.model,
-              memoryGb: gpu.memoryGb ? Math.round(gpu.memoryGb) : undefined,
-            })),
-          });
-          const existing = await prisma.computeGpu.findMany({
-            where: { nodeUuid: node.uuid },
-            select: { uuid: true, slotIndex: true },
-          });
-          const gpuBySlot = new Map(existing.map((gpu) => [gpu.slotIndex, gpu.uuid]));
-          await updateGpuStatuses({
-            nodeUuid: node.uuid,
-            gpus: gpus
-              .map((gpu) => {
-                const gpuUuid = gpuBySlot.get(gpu.slotIndex);
-                if (!gpuUuid) return null;
-                return {
-                  gpuUuid,
-                  utilizationPercent: gpu.utilizationPercent,
-                  memoryUsedGb: gpu.memoryUsedGb,
-                  temperatureC: gpu.temperatureC,
-                };
-              })
-              .filter((gpu): gpu is NonNullable<typeof gpu> => Boolean(gpu)),
-          });
-        } catch {
-          // Keep the last known state when the remote probe fails.
-        }
-      })
-    );
-  } finally {
-    globalForGpuPoller.synapseGpuPollerRunning = false;
-  }
-}
-
-export function ensureGpuTelemetryPollerStarted() {
-  if (globalForGpuPoller.synapseGpuPollerStarted) {
-    return;
-  }
-
-  globalForGpuPoller.synapseGpuPollerStarted = true;
-  void runGpuPollCycle();
-  globalForGpuPoller.synapseGpuPollerTimer = setInterval(() => {
-    void runGpuPollCycle();
-  }, GPU_POLL_INTERVAL_MS);
-}
-
-export function startGpuTelemetryPoller() {
-  ensureGpuTelemetryPollerStarted();
 }
 
 export async function listComputePools(companyUuid: string): Promise<ComputePoolSnapshot[]> {

@@ -1411,7 +1411,9 @@
       "idle": "空闲",
       "offline": "离线",
       "maintenance": "维护中"
-    }
+    },
+    "telemetry": "自动刷新",
+    "telemetryDesc": "每 30 秒轮询 GPU 状态"
   },
   "projects": {
     "title": "研究项目",

@@ -147,7 +147,7 @@ Declarative registry helpers: `src/mcp/tools/tool-registry.ts` and `src/mcp/tool
 - Activities emitted through `EventBus` (Redis or in-memory)
 - Notifications streamed via SSE at `/api/events/notifications`
 - Experiments have `liveStatus`/`liveMessage` updated by agents via `synapse_report_experiment_progress`
-- GPU telemetry started explicitly via `SYNAPSE_GPU_TELEMETRY_AUTOSTART=true`
+- GPU telemetry controlled per-node via toggle on compute page (30s interval)
 
 ---
 

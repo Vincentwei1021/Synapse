@@ -31,6 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import { authFetch } from "@/lib/auth-client";
 import type { ComputePoolSnapshot } from "@/services/compute.service";
 
@@ -261,6 +262,20 @@ export function ComputePageClient({
                               <span className="rounded-full bg-background px-2.5 py-1 text-[11px] text-muted-foreground">
                                 {t(`compute.lifecycle.${node.lifecycle}`)}
                               </span>
+                              <div className="flex items-center gap-2">
+                                <Switch
+                                  checked={node.telemetryEnabled}
+                                  onCheckedChange={async (checked) => {
+                                    await fetch(`/api/compute-nodes/${node.uuid}`, {
+                                      method: "PATCH",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ telemetryEnabled: checked }),
+                                    });
+                                    router.refresh();
+                                  }}
+                                />
+                                <span className="text-xs text-muted-foreground">{t("compute.telemetry")}</span>
+                              </div>
                             </div>
                             <div className="grid gap-x-6 gap-y-1 text-sm text-muted-foreground md:grid-cols-2">
                               <p>{t("compute.machine.instanceType")}: {getInstanceTypeDisplay(node) ?? t("compute.machine.pending")}</p>

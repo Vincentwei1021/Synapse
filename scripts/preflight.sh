@@ -82,12 +82,6 @@ else
   fail "standalone build artifact is missing; run 'pnpm build' first"
 fi
 
-if [ "${SYNAPSE_GPU_TELEMETRY_AUTOSTART:-false}" = "true" ]; then
-  pass "GPU telemetry autostart is enabled"
-else
-  warn "GPU telemetry autostart is disabled; compute pages will show the last persisted snapshot only"
-fi
-
 if command -v curl >/dev/null 2>&1 && curl --silent --fail --max-time 2 "http://127.0.0.1:${PORT}/api/health" >/dev/null 2>&1; then
   pass "health endpoint responded on port ${PORT}"
 else

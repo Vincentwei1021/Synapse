@@ -350,7 +350,7 @@ Never assume a path like `/home/ubuntu/.synapse/keys/...` exists on the agent ma
 ### Compute telemetry
 
 GPU telemetry no longer starts from `listComputePools()` or other request-path helpers.
-Startup is explicit and currently gated by `SYNAPSE_GPU_TELEMETRY_AUTOSTART=true`.
+GPU telemetry is controlled per-node via a toggle on the compute page (30s polling interval, auto-disables after 3 consecutive SSH failures).
 Treat compute polling as background infrastructure, not page-load logic.
 
 ## Experiment vs Document

@@ -144,4 +144,4 @@ pnpm dev              # Start dev server
 - Set a strong `NEXTAUTH_SECRET` (not the default)
 - OIDC configuration is per-company, managed through the super admin panel at `/admin`
 - Redis is recommended for multi-instance deployments (SSE event propagation)
-- GPU telemetry is opt-in via `SYNAPSE_GPU_TELEMETRY_AUTOSTART=true`
+- GPU telemetry is controlled per-node via the compute page toggle

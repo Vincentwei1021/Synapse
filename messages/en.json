@@ -1411,7 +1411,9 @@
       "idle": "Idle",
       "offline": "Offline",
       "maintenance": "Maintenance"
-    }
+    },
+    "telemetry": "Auto-refresh",
+    "telemetryDesc": "Poll GPU status every 30s"
   },
   "projects": {
     "title": "Research Projects",

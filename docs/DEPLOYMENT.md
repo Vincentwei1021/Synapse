@@ -129,7 +129,6 @@ SUPER_ADMIN_PASSWORD_HASH="$2b$10$..."       # bcrypt hash
 REDIS_URL="redis://host:6379"                # Required for multi-instance
 SEMANTIC_SCHOLAR_API_KEY="..."               # Improves paper search rate limit
 OPENALEX_EMAIL="your@email.com"             # OpenAlex polite pool (higher rate limit)
-SYNAPSE_GPU_TELEMETRY_AUTOSTART="true"      # Enable GPU telemetry polling
 ```
 
 ### Database

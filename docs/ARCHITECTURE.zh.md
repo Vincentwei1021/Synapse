@@ -147,7 +147,7 @@ Agent 权限可组合（存储在 `Agent.roles` 中）：
 - 活动通过 `EventBus` 发出（Redis 或内存）
 - 通知通过 SSE 在 `/api/events/notifications` 流式传输
 - 实验有 `liveStatus`/`liveMessage`，由 Agent 通过 `synapse_report_experiment_progress` 更新
-- GPU 遥测通过 `SYNAPSE_GPU_TELEMETRY_AUTOSTART=true` 显式启动
+- GPU 遥测通过算力页面的逐节点开关控制（30 秒轮询间隔）
 
 ---
 

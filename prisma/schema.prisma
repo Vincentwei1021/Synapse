@@ -503,7 +503,8 @@ model ComputeNode {
   sshKeyFingerprint String?
   sshKeySource   String?
   ssmTarget      String?
-  notes          String?
+  notes             String?
+  telemetryEnabled  Boolean   @default(false)
   lastReportedAt DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

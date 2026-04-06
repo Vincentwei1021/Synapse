@@ -8,6 +8,7 @@ import { z } from "zod";
 import { errors, success } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
 import { createComputeNode } from "@/services/compute.service";
+import { probeNodeOnce } from "@/services/gpu-telemetry.service";
 
 const optionalNumber = <T extends z.ZodTypeAny>(schema: T) =>
   z.preprocess((value) => {
@@ -215,6 +216,9 @@ export async function POST(request: NextRequest) {
     ssmTarget: parsed.data.ssmTarget,
     notes: parsed.data.notes,
   });
+
+  // Auto-probe GPU inventory on first add (fire and forget)
+  probeNodeOnce(node.uuid).catch(() => {});
 
   return success({
     node: {
