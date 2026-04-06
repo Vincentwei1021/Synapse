@@ -1316,7 +1316,8 @@
       "pools": "Pools",
       "machines": "Machines",
       "idleGpus": "Idle GPUs",
-      "busyGpus": "Busy GPUs"
+      "busyGpus": "Busy GPUs",
+      "available": "available"
     },
     "empty": "No compute pools are registered yet. Create a pool and register a machine to expose GPU capacity to your agents.",
     "pool": {

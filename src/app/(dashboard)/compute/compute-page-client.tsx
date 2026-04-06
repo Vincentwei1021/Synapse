@@ -233,7 +233,7 @@ export function ComputePageClient({
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="rounded-full bg-secondary px-3 py-1 text-xs text-muted-foreground">
                       {pool.nodes.length} {t("compute.metrics.machines")} ·{" "}
-                      {pool.nodes.reduce((sum, node) => sum + node.gpuCount, 0)} GPUs
+                      {pool.nodes.reduce((sum, node) => sum + node.availableGpuCount, 0)}/{pool.nodes.reduce((sum, node) => sum + node.gpuCount, 0)} GPUs {t("compute.metrics.available")}
                     </div>
                     <Button
                       variant="outline"
@@ -259,9 +259,6 @@ export function ComputePageClient({
                           <div className="space-y-2">
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="text-base font-semibold text-foreground">{node.label}</p>
-                              <span className="rounded-full bg-background px-2.5 py-1 text-[11px] text-muted-foreground">
-                                {t(`compute.lifecycle.${node.lifecycle}`)}
-                              </span>
                               <div className="flex items-center gap-2">
                                 <Switch
                                   checked={node.telemetryEnabled}

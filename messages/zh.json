@@ -1316,7 +1316,8 @@
       "pools": "资源池",
       "machines": "机器",
       "idleGpus": "空闲 GPU",
-      "busyGpus": "占用中 GPU"
+      "busyGpus": "占用中 GPU",
+      "available": "可用"
     },
     "empty": "还没有注册任何算力池。先创建资源池，再注册机器，agent 才能看到 GPU 资源。",
     "pool": {
