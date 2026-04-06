@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
   FileText,
+  GitBranch,
   Lightbulb,
   FolderOpen,
   X,
@@ -63,6 +64,10 @@ export default function NewProjectPage() {
   const [ideas, setIdeas] = useState<string[]>([""]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [githubOpen, setGithubOpen] = useState(false);
+  const [repoUrl, setRepoUrl] = useState("");
+  const [githubUsername, setGithubUsername] = useState("");
+  const [githubToken, setGithubToken] = useState("");
 
   // Sync groupUuid from URL param once groups are loaded
   useEffect(() => {
@@ -201,6 +206,18 @@ export default function NewProjectPage() {
       });
 
       if (result.success && result.researchProjectUuid) {
+        // Save GitHub config if provided (PATCH after creation)
+        if (repoUrl.trim() || githubUsername.trim() || githubToken.trim()) {
+          const githubBody: Record<string, string> = {};
+          if (repoUrl.trim()) githubBody.repoUrl = repoUrl.trim();
+          if (githubUsername.trim()) githubBody.githubUsername = githubUsername.trim();
+          if (githubToken.trim()) githubBody.githubToken = githubToken.trim();
+          await fetch(`/api/research-projects/${result.researchProjectUuid}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(githubBody),
+          }).catch(() => {}); // non-blocking
+        }
         localStorage.setItem("currentProjectUuid", result.researchProjectUuid);
         router.push(`/research-projects/${result.researchProjectUuid}/dashboard`);
       } else {
@@ -375,6 +392,64 @@ export default function NewProjectPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* GitHub Repository (Optional) */}
+          <Collapsible open={githubOpen} onOpenChange={setGithubOpen}>
+            <Card className="overflow-hidden rounded-2xl border-l-3 border-l-primary border-t-0 border-r-0 border-b-0 shadow-none">
+              <CardHeader
+                className="cursor-pointer pb-4"
+                onClick={() => setGithubOpen(!githubOpen)}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                    <GitBranch className="ml-8 h-4 w-4 text-primary" />
+                    {t("projectSettings.github")} ({t("common.optional")})
+                  </CardTitle>
+                  <ChevronDown
+                    className={`h-4 w-4 text-muted-foreground transition-transform ${
+                      githubOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </div>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent className="space-y-4">
+                  <p className="text-xs text-muted-foreground">
+                    {t("projectSettings.githubDesc")}
+                  </p>
+                  <div className="space-y-2">
+                    <Label>{t("projectSettings.repoUrl")}</Label>
+                    <Input
+                      value={repoUrl}
+                      onChange={(e) => setRepoUrl(e.target.value)}
+                      placeholder={t("projectSettings.repoUrlPlaceholder")}
+                    />
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>{t("projectSettings.githubUsername")}</Label>
+                      <Input
+                        value={githubUsername}
+                        onChange={(e) => setGithubUsername(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{t("projectSettings.githubToken")}</Label>
+                      <Input
+                        type="password"
+                        value={githubToken}
+                        onChange={(e) => setGithubToken(e.target.value)}
+                        placeholder={t("projectSettings.githubTokenPlaceholder")}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {t("projectSettings.githubTokenHint")}
+                  </p>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
 
           {/* Step 2: Initial Ideas Card */}
           <Collapsible open={ideasOpen} onOpenChange={setIdeasOpen}>
