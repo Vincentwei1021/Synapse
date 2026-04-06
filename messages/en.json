@@ -379,7 +379,17 @@
     "deleteQuestion": "Delete research question",
     "deleteQuestionConfirm": "Are you sure you want to delete \"{title}\"? This cannot be undone.",
     "noExperiments": "No experiments",
-    "noQuestions": "No research questions"
+    "noQuestions": "No research questions",
+    "github": "GitHub Repository",
+    "githubDesc": "Connect a GitHub repo to track experiment code in branches",
+    "repoUrl": "Repository URL",
+    "repoUrlPlaceholder": "https://github.com/owner/repo",
+    "githubUsername": "GitHub Username",
+    "githubToken": "Access Token",
+    "githubTokenPlaceholder": "ghp_...",
+    "githubTokenHint": "Personal access token with repo scope. Never shown after saving.",
+    "githubConfigured": "Token configured",
+    "githubNotConfigured": "No token configured"
   },
   "researchProjects": {
     "title": "Research Projects",
@@ -1256,6 +1266,9 @@
       "computeBudgetHoursHelp": "Maximum runtime for this experiment (hours)",
       "copyFromExperiment": "Copy from existing experiment",
       "writeYourOwn": "Write your own",
+      "baseBranch": "Base Branch",
+      "baseBranchPlaceholder": "Select branch...",
+      "baseBranchHint": "Experiment code will branch from here",
       "attachments": "Experiment documents",
       "attachmentsHelp": "Upload notes or specs to keep this experiment self-contained."
     },
@@ -1273,6 +1286,9 @@
       "noParentContext": "This experiment does not inherit any direct parent-question experiments.",
       "results": "Structured results",
       "noResults": "No structured results have been captured yet.",
+      "experimentBranch": "Code Branch",
+      "commitSha": "Commit",
+      "viewOnGithub": "View on GitHub",
       "progressLog": "Progress Log",
       "noProgress": "No progress updates yet",
       "saveFailed": "Failed to save experiment changes."

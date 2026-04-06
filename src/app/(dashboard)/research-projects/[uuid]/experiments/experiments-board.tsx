@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { CheckCircle2, CornerUpLeft, FileText, Save, Send } from "lucide-react";
+import { CheckCircle2, CornerUpLeft, FileText, GitBranch, Save, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -92,6 +92,7 @@ export function ExperimentsBoard({
   projectUuid,
   autonomousLoopEnabled,
   autonomousLoopAgentUuid,
+  repoUrl,
   researchQuestions,
 }: {
   experiments: ExperimentResponse[];
@@ -101,6 +102,7 @@ export function ExperimentsBoard({
   projectUuid: string;
   autonomousLoopEnabled: boolean;
   autonomousLoopAgentUuid: string | null;
+  repoUrl: string | null;
   researchQuestions: Array<{ uuid: string; title: string }>;
 }) {
   const t = useTranslations();
@@ -540,6 +542,33 @@ export function ExperimentsBoard({
                     <Badge variant="outline">{selectedExperiment.assignee.name}</Badge>
                   ) : null}
                 </div>
+
+                {selectedExperiment.experimentBranch && repoUrl ? (() => {
+                  const cleanRepoUrl = repoUrl.replace(/\.git$/, "");
+                  return (
+                    <div className="flex items-center gap-2 text-sm">
+                      <GitBranch className="h-4 w-4 text-muted-foreground" />
+                      <a
+                        href={`${cleanRepoUrl}/tree/${selectedExperiment.experimentBranch}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        {selectedExperiment.experimentBranch}
+                      </a>
+                      {selectedExperiment.commitSha && (
+                        <a
+                          href={`${cleanRepoUrl}/commit/${selectedExperiment.commitSha}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono text-xs text-muted-foreground hover:text-primary"
+                        >
+                          {selectedExperiment.commitSha.slice(0, 7)}
+                        </a>
+                      )}
+                    </div>
+                  );
+                })() : null}
 
                 {selectedExperiment.status === "draft" ? (
                   <Card className="rounded-2xl border-border bg-card p-4 shadow-none">

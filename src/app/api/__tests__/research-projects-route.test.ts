@@ -5,6 +5,7 @@ const mockGetAuthContext = vi.fn();
 const mockListResearchProjectsWithStats = vi.fn();
 const mockCreateResearchProject = vi.fn();
 const mockGetResearchProject = vi.fn();
+const mockGetResearchProjectByUuid = vi.fn();
 const mockGetResearchProjectDetailRef = vi.fn();
 const mockUpdateResearchProject = vi.fn();
 const mockDeleteResearchProject = vi.fn();
@@ -21,6 +22,7 @@ vi.mock("@/services/research-project.service", () => ({
   listResearchProjectsWithStats: (...args: unknown[]) => mockListResearchProjectsWithStats(...args),
   createResearchProject: (...args: unknown[]) => mockCreateResearchProject(...args),
   getResearchProject: (...args: unknown[]) => mockGetResearchProject(...args),
+  getResearchProjectByUuid: (...args: unknown[]) => mockGetResearchProjectByUuid(...args),
   getResearchProjectDetailRef: (...args: unknown[]) => mockGetResearchProjectDetailRef(...args),
   updateResearchProject: (...args: unknown[]) => mockUpdateResearchProject(...args),
   deleteResearchProject: (...args: unknown[]) => mockDeleteResearchProject(...args),
@@ -142,6 +144,12 @@ describe("research projects routes", () => {
       updatedAt: now,
       _count: { activities: 12 },
     });
+    mockGetResearchProjectByUuid.mockResolvedValue({
+      uuid: projectUuid,
+      repoUrl: "https://github.com/example/repo",
+      githubUsername: "example-user",
+      githubToken: "ghp_secret",
+    });
     mockGetProjectMetricsSnapshot.mockResolvedValue({ researchProjectUuid: projectUuid });
 
     const response = await getProjectDetail(makeRequest(`/api/research-projects/${projectUuid}`), makeContext(projectUuid));
@@ -158,6 +166,10 @@ describe("research projects routes", () => {
         activities: 12,
       })
     );
+    expect(body.data.repoUrl).toBe("https://github.com/example/repo");
+    expect(body.data.githubUsername).toBe("example-user");
+    expect(body.data.githubConfigured).toBe(true);
+    expect(body.data.githubToken).toBeUndefined();
     expect(mockGetProjectMetricsSnapshot).toHaveBeenCalledWith(companyUuid, projectUuid);
   });
 

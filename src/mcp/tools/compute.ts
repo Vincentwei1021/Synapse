@@ -366,9 +366,11 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
         outcome: z.string().optional(),
         experimentResults: z.unknown().optional(),
         sessionUuid: z.string().optional(),
+        experimentBranch: z.string().optional().describe("Git branch name where experiment code was pushed"),
+        commitSha: z.string().optional().describe("Git commit SHA of the final experiment code"),
       }),
     },
-    async ({ runUuid, experimentUuid, outcome, experimentResults, sessionUuid }) => {
+    async ({ runUuid, experimentUuid, outcome, experimentResults, sessionUuid, experimentBranch, commitSha }) => {
       if (experimentUuid) {
         const experiment = await experimentService.getExperiment(auth.companyUuid, experimentUuid);
         if (!experiment) {
@@ -387,6 +389,8 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
           ownerUuid: auth.ownerUuid,
           outcome,
           results: experimentResults,
+          experimentBranch,
+          commitSha,
         });
 
         await computeService.releaseGpuReservationsForExperiment(auth.companyUuid, experimentUuid);
@@ -561,6 +565,48 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
 
       return {
         content: [{ type: "text", text: JSON.stringify({ experiment, note: "Experiment created in pending_review. Human review required before execution." }, null, 2) }],
+      };
+    }
+  );
+
+  server.registerTool(
+    "synapse_get_repo_access",
+    {
+      description: "Get GitHub repository credentials for a research project. Returns repoUrl, username, token, and the experiment's base branch. Token is for cloning/pushing.",
+      inputSchema: z.object({
+        researchProjectUuid: z.string(),
+        experimentUuid: z.string().optional().describe("If provided, returns the experiment's baseBranch"),
+      }),
+    },
+    async ({ researchProjectUuid, experimentUuid }) => {
+      const project = await prisma.researchProject.findFirst({
+        where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid },
+        select: { repoUrl: true, githubUsername: true, githubToken: true },
+      });
+      if (!project?.repoUrl || !project?.githubToken) {
+        return { content: [{ type: "text", text: JSON.stringify({ configured: false }) }] };
+      }
+
+      let baseBranch: string | null = null;
+      if (experimentUuid) {
+        const experiment = await prisma.experiment.findFirst({
+          where: { uuid: experimentUuid, companyUuid: auth.companyUuid },
+          select: { baseBranch: true },
+        });
+        baseBranch = experiment?.baseBranch ?? null;
+      }
+
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({
+            configured: true,
+            repoUrl: project.repoUrl,
+            githubUsername: project.githubUsername,
+            githubToken: project.githubToken,
+            baseBranch,
+          }),
+        }],
       };
     }
   );

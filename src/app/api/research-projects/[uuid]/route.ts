@@ -9,6 +9,7 @@ import { getAuthContext, isUser } from "@/lib/auth";
 import {
   deleteResearchProject,
   getResearchProject,
+  getResearchProjectByUuid,
   getResearchProjectDetailRef,
   updateResearchProject,
 } from "@/services/research-project.service";
@@ -25,9 +26,10 @@ export const GET = withErrorHandler(async (request: NextRequest, context: RouteC
 
   const { uuid } = await context.params;
 
-  const [researchProject, metrics] = await Promise.all([
+  const [researchProject, metrics, projectGithub] = await Promise.all([
     getResearchProject(auth.companyUuid, uuid),
     getProjectMetricsSnapshot(auth.companyUuid, uuid),
+    getResearchProjectByUuid(auth.companyUuid, uuid),
   ]);
 
   if (!researchProject) {
@@ -40,6 +42,9 @@ export const GET = withErrorHandler(async (request: NextRequest, context: RouteC
     description: researchProject.description,
     createdAt: researchProject.createdAt.toISOString(),
     updatedAt: researchProject.updatedAt.toISOString(),
+    repoUrl: projectGithub?.repoUrl ?? null,
+    githubUsername: projectGithub?.githubUsername ?? null,
+    githubConfigured: !!(projectGithub?.githubToken),
     counts: {
       ...toProjectCompatibilityCounts(metrics),
       activities: researchProject._count.activities,
@@ -78,6 +83,9 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
     autonomousLoopAgentUuid?: string | null;
     autoSearchEnabled?: boolean;
     autoSearchAgentUuid?: string | null;
+    repoUrl?: string | null;
+    githubUsername?: string | null;
+    githubToken?: string | null;
   }>(request);
 
   // Build update data
@@ -91,6 +99,9 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
     autonomousLoopAgentUuid?: string | null;
     autoSearchEnabled?: boolean;
     autoSearchAgentUuid?: string | null;
+    repoUrl?: string | null;
+    githubUsername?: string | null;
+    githubToken?: string | null;
   } = {};
 
   if (body.name !== undefined) {
@@ -134,6 +145,18 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
 
   if (body.autoSearchAgentUuid !== undefined) {
     updateData.autoSearchAgentUuid = body.autoSearchAgentUuid || null;
+  }
+
+  if (body.repoUrl !== undefined) {
+    updateData.repoUrl = body.repoUrl?.trim() || null;
+  }
+
+  if (body.githubUsername !== undefined) {
+    updateData.githubUsername = body.githubUsername?.trim() || null;
+  }
+
+  if (body.githubToken && body.githubToken.trim() !== "") {
+    updateData.githubToken = body.githubToken.trim();
   }
 
   const researchProject = await updateResearchProject(existing.uuid, updateData);

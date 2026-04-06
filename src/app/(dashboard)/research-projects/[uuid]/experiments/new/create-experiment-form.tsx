@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Upload } from "lucide-react";
@@ -12,10 +12,12 @@ import { Textarea } from "@/components/ui/textarea";
 
 export function CreateExperimentForm({
   projectUuid,
+  hasRepo,
   researchQuestions,
   existingExperiments,
 }: {
   projectUuid: string;
+  hasRepo?: boolean;
   researchQuestions: Array<{ uuid: string; title: string }>;
   existingExperiments: Array<{ uuid: string; title: string; description: string | null }>;
 }) {
@@ -26,6 +28,24 @@ export function CreateExperimentForm({
   const [error, setError] = useState<string | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [description, setDescription] = useState("");
+  const [branches, setBranches] = useState<Array<{ name: string; sha: string }>>([]);
+  const [baseBranch, setBaseBranch] = useState<string>("");
+  const [branchesLoading, setBranchesLoading] = useState(false);
+
+  useEffect(() => {
+    if (!hasRepo) return;
+    setBranchesLoading(true);
+    fetch(`/api/research-projects/${projectUuid}/github/branches`)
+      .then((res) => res.json())
+      .then((data: { branches?: Array<{ name: string; sha: string }> }) => {
+        const list = data.branches ?? [];
+        setBranches(list);
+        const mainBranch = list.find((b) => b.name === "main") ?? list[0];
+        if (mainBranch) setBaseBranch(mainBranch.name);
+      })
+      .catch(() => setBranches([]))
+      .finally(() => setBranchesLoading(false));
+  }, [hasRepo, projectUuid]);
 
   async function handleSubmit(formData: FormData) {
     setError(null);
@@ -37,6 +57,7 @@ export function CreateExperimentForm({
     payload.set("priority", String(formData.get("priority") || "medium"));
     payload.set("computeBudgetHours", String(formData.get("computeBudgetHours") || ""));
     payload.set("researchQuestionUuid", String(formData.get("researchQuestionUuid") || ""));
+    if (baseBranch) payload.set("baseBranch", baseBranch);
     selectedFiles.forEach((file) => payload.append("attachments", file));
 
     const response = await fetch(`/api/research-projects/${projectUuid}/experiments`, {
@@ -156,6 +177,30 @@ export function CreateExperimentForm({
             />
             <p className="text-xs text-muted-foreground">{t("experiments.fields.computeBudgetHoursHelp")}</p>
           </div>
+
+          {hasRepo && (
+            <div className="space-y-2">
+              <Label htmlFor="baseBranch">{t("experiments.fields.baseBranch")}</Label>
+              <select
+                id="baseBranch"
+                value={baseBranch}
+                onChange={(e) => setBaseBranch(e.target.value)}
+                disabled={branchesLoading}
+                className="w-full rounded-xl border border-[#E5DED3] bg-[#FBF8F3] px-3 py-2 text-sm text-[#2C2C2C]"
+              >
+                {branchesLoading ? (
+                  <option value="">{t("experiments.fields.baseBranchPlaceholder")}</option>
+                ) : branches.length === 0 ? (
+                  <option value="">{t("experiments.fields.baseBranchPlaceholder")}</option>
+                ) : (
+                  branches.map((b) => (
+                    <option key={b.name} value={b.name}>{b.name}</option>
+                  ))
+                )}
+              </select>
+              <p className="text-xs text-muted-foreground">{t("experiments.fields.baseBranchHint")}</p>
+            </div>
+          )}
 
           <div className="space-y-2 md:col-span-2">
             <Label>{t("experiments.fields.attachments")}</Label>

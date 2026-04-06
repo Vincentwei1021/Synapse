@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getServerAuthContext } from "@/lib/auth-server";
+import { prisma } from "@/lib/prisma";
 import { listExperiments } from "@/services/experiment.service";
 import { researchProjectExists } from "@/services/research-project.service";
 import { listResearchQuestions } from "@/services/research-question.service";
@@ -23,7 +24,7 @@ export default async function NewExperimentPage({ params }: PageProps) {
   }
 
   const t = await getTranslations();
-  const [{ researchQuestions }, { experiments: existingExperiments }] = await Promise.all([
+  const [{ researchQuestions }, { experiments: existingExperiments }, project] = await Promise.all([
     listResearchQuestions({
       companyUuid: auth.companyUuid,
       researchProjectUuid: projectUuid,
@@ -36,6 +37,10 @@ export default async function NewExperimentPage({ params }: PageProps) {
       skip: 0,
       take: 200,
     }),
+    prisma.researchProject.findFirst({
+      where: { uuid: projectUuid, companyUuid: auth.companyUuid },
+      select: { repoUrl: true },
+    }),
   ]);
 
   return (
@@ -47,6 +52,7 @@ export default async function NewExperimentPage({ params }: PageProps) {
 
       <CreateExperimentForm
         projectUuid={projectUuid}
+        hasRepo={!!project?.repoUrl}
         researchQuestions={researchQuestions.map((question) => ({
           uuid: question.uuid,
           title: question.title,

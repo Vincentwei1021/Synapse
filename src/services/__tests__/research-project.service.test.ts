@@ -399,6 +399,9 @@ describe("getResearchProjectByUuid", () => {
       latestSynthesisAt: null,
       latestSynthesisIdeaCount: null,
       latestSynthesisSummary: null,
+      repoUrl: null,
+      githubUsername: null,
+      githubToken: null,
     };
     mockPrisma.researchProject.findFirst.mockResolvedValue(project);
 
@@ -417,6 +420,9 @@ describe("getResearchProjectByUuid", () => {
         latestSynthesisAt: true,
         latestSynthesisIdeaCount: true,
         latestSynthesisSummary: true,
+        repoUrl: true,
+        githubUsername: true,
+        githubToken: true,
       },
     });
   });

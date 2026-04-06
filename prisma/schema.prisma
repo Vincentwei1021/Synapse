@@ -137,6 +137,9 @@ model ResearchProject {
   autoSearchEnabled        Boolean  @default(false)
   autoSearchAgentUuid      String?
   deepResearchDocUuid      String?
+  repoUrl              String?
+  githubUsername        String?
+  githubToken          String?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -257,6 +260,9 @@ model Experiment {
   liveStatus    String?
   liveMessage   String?
   liveUpdatedAt DateTime?
+  baseBranch           String?
+  experimentBranch     String?
+  commitSha            String?
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
 

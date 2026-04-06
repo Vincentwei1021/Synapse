@@ -215,7 +215,7 @@ export const commonToolDefinitions = defineOpenClawTools([
       workingNotes,
     }),
   }),
-  createPassthroughTool<{ experimentUuid: string; outcome?: string; experimentResults?: unknown }>({
+  createPassthroughTool<{ experimentUuid: string; outcome?: string; experimentResults?: unknown; experimentBranch?: string; commitSha?: string }>({
     name: "synapse_submit_experiment_results",
     description: "Submit experiment outcome and structured results, releasing any reserved GPU resources.",
     parameters: {
@@ -224,6 +224,8 @@ export const commonToolDefinitions = defineOpenClawTools([
         experimentUuid: { type: "string", description: "Experiment UUID" },
         outcome: { type: "string", description: "Human-readable summary of the outcome" },
         experimentResults: { type: "object", description: "Structured results payload" },
+        experimentBranch: { type: "string", description: "Git branch name where experiment code was pushed" },
+        commitSha: { type: "string", description: "Git commit SHA of the final experiment code" },
       },
       required: ["experimentUuid"],
       additionalProperties: true,
@@ -333,6 +335,20 @@ export const commonToolDefinitions = defineOpenClawTools([
       additionalProperties: false,
     },
     targetToolName: "synapse_report_gpu_status",
+  }),
+  createPassthroughTool<{ researchProjectUuid: string; experimentUuid?: string }>({
+    name: "synapse_get_repo_access",
+    description: "Get GitHub repository credentials for a research project.",
+    parameters: {
+      type: "object",
+      properties: {
+        researchProjectUuid: { type: "string", description: "Research Project UUID" },
+        experimentUuid: { type: "string", description: "Experiment UUID (optional, to get baseBranch)" },
+      },
+      required: ["researchProjectUuid"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_get_repo_access",
   }),
 
   // =========================================================================

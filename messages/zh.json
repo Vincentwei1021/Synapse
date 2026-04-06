@@ -379,7 +379,17 @@
     "deleteQuestion": "删除研究问题",
     "deleteQuestionConfirm": "确定要删除「{title}」吗？此操作不可撤销。",
     "noExperiments": "暂无实验",
-    "noQuestions": "暂无研究问题"
+    "noQuestions": "暂无研究问题",
+    "github": "GitHub 仓库",
+    "githubDesc": "关联 GitHub 仓库，自动将实验代码推送到分支",
+    "repoUrl": "仓库地址",
+    "repoUrlPlaceholder": "https://github.com/owner/repo",
+    "githubUsername": "GitHub 用户名",
+    "githubToken": "访问令牌",
+    "githubTokenPlaceholder": "ghp_...",
+    "githubTokenHint": "需要 repo 权限的个人访问令牌。保存后不会在前端展示。",
+    "githubConfigured": "令牌已配置",
+    "githubNotConfigured": "未配置令牌"
   },
   "researchProjects": {
     "title": "研究项目",
@@ -1256,6 +1266,9 @@
       "computeBudgetHoursHelp": "实验的最大运行时间（小时）",
       "copyFromExperiment": "从已有实验复制描述",
       "writeYourOwn": "自行填写",
+      "baseBranch": "基础分支",
+      "baseBranchPlaceholder": "选择分支...",
+      "baseBranchHint": "实验代码将从此分支创建",
       "attachments": "实验文档",
       "attachmentsHelp": "上传说明文档或实验规范，方便后续追溯。"
     },
@@ -1273,6 +1286,9 @@
       "noParentContext": "这个实验当前没有继承任何父问题直属实验。",
       "results": "结构化结果",
       "noResults": "尚未写入结构化结果。",
+      "experimentBranch": "代码分支",
+      "commitSha": "提交",
+      "viewOnGithub": "在 GitHub 上查看",
       "progressLog": "进度日志",
       "noProgress": "暂无进度更新",
       "saveFailed": "保存实验修改失败。"

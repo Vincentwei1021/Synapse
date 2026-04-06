@@ -35,6 +35,9 @@ export interface ResearchProjectUpdateParams {
   autoSearchEnabled?: boolean;
   autoSearchAgentUuid?: string | null;
   deepResearchDocUuid?: string | null;
+  repoUrl?: string | null;
+  githubUsername?: string | null;
+  githubToken?: string | null;
 }
 
 export interface ResearchProjectDashboardData {
@@ -173,6 +176,9 @@ export async function getResearchProjectByUuid(companyUuid: string, uuid: string
       latestSynthesisAt: true,
       latestSynthesisIdeaCount: true,
       latestSynthesisSummary: true,
+      repoUrl: true,
+      githubUsername: true,
+      githubToken: true,
     },
   });
 }
@@ -254,6 +260,19 @@ export async function updateResearchProject(uuid: string, data: ResearchProjectU
     updateData.deepResearchDocUuid = data.deepResearchDocUuid ?? null;
   }
 
+  if (data.repoUrl !== undefined) {
+    updateData.repoUrl = data.repoUrl ?? null;
+  }
+
+  if (data.githubUsername !== undefined) {
+    updateData.githubUsername = data.githubUsername ?? null;
+  }
+
+  // Only update githubToken if a non-empty string is provided
+  if (data.githubToken && data.githubToken.trim() !== "") {
+    updateData.githubToken = data.githubToken.trim();
+  }
+
   return prisma.researchProject.update({
     where: { uuid },
     data: updateData,
@@ -270,6 +289,8 @@ export async function updateResearchProject(uuid: string, data: ResearchProjectU
       autoSearchEnabled: true,
       autoSearchAgentUuid: true,
       deepResearchDocUuid: true,
+      repoUrl: true,
+      githubUsername: true,
       latestSynthesisAt: true,
       latestSynthesisIdeaCount: true,
       latestSynthesisSummary: true,

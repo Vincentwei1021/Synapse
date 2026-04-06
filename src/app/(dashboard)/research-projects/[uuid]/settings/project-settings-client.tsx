@@ -47,6 +47,9 @@ interface Project {
   datasets: unknown;
   evaluationMethods: unknown;
   computePoolUuid: string | null;
+  repoUrl: string | null;
+  githubUsername: string | null;
+  githubConfigured: boolean;
   experiments: Experiment[];
   researchQuestions: ResearchQuestion[];
 }
@@ -98,6 +101,13 @@ export function ProjectSettingsClient({ project, pools }: ProjectSettingsClientP
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
+  // GitHub config state
+  const [repoUrl, setRepoUrl] = useState(project.repoUrl || "");
+  const [githubUsername, setGithubUsername] = useState(project.githubUsername || "");
+  const [githubToken, setGithubToken] = useState("");
+  const [savingGithub, setSavingGithub] = useState(false);
+  const [githubMessage, setGithubMessage] = useState<string | null>(null);
+
   // Delete experiment state
   const [deleteExperimentTarget, setDeleteExperimentTarget] = useState<Experiment | null>(null);
   const [deletingExperiment, setDeletingExperiment] = useState(false);
@@ -145,6 +155,39 @@ export function ProjectSettingsClient({ project, pools }: ProjectSettingsClientP
       setSaveMessage(t("saveFailed"));
     }
     setSaving(false);
+  }
+
+  async function handleSaveGithub() {
+    setSavingGithub(true);
+    setGithubMessage(null);
+    try {
+      const body: Record<string, unknown> = {
+        repoUrl: repoUrl.trim() || null,
+        githubUsername: githubUsername.trim() || null,
+      };
+      // Only send token if user typed a new value
+      if (githubToken.trim()) {
+        body.githubToken = githubToken.trim();
+      }
+      const response = await fetch(`/api/research-projects/${project.uuid}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (response.ok) {
+        setGithubMessage(t("saved"));
+        setGithubToken("");
+        startTransition(() => {
+          router.refresh();
+        });
+        setTimeout(() => setGithubMessage(null), 3000);
+      } else {
+        setGithubMessage(t("saveFailed"));
+      }
+    } catch {
+      setGithubMessage(t("saveFailed"));
+    }
+    setSavingGithub(false);
   }
 
   async function handleDeleteExperiment() {
@@ -281,7 +324,61 @@ export function ProjectSettingsClient({ project, pools }: ProjectSettingsClientP
         </div>
       </Card>
 
-      {/* Section 2: Manage Experiments */}
+      {/* Section 2: GitHub Repository */}
+      <Card className="p-6">
+        <h2 className="text-lg font-semibold text-foreground">{t("github")}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{t("githubDesc")}</p>
+        <div className="mt-5 space-y-4">
+          <div className="space-y-2">
+            <Label>{t("repoUrl")}</Label>
+            <Input
+              value={repoUrl}
+              onChange={(e) => setRepoUrl(e.target.value)}
+              placeholder={t("repoUrlPlaceholder")}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{t("githubUsername")}</Label>
+            <Input
+              value={githubUsername}
+              onChange={(e) => setGithubUsername(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{t("githubToken")}</Label>
+            <Input
+              type="password"
+              value={githubToken}
+              onChange={(e) => setGithubToken(e.target.value)}
+              placeholder={project.githubConfigured ? "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" : t("githubTokenPlaceholder")}
+            />
+            <p className="text-xs text-muted-foreground">
+              {project.githubConfigured ? t("githubConfigured") + ". " : t("githubNotConfigured") + ". "}
+              {t("githubTokenHint")}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => startTransition(() => { void handleSaveGithub(); })}
+              disabled={isPending || savingGithub}
+            >
+              {savingGithub ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t("saving")}
+                </>
+              ) : (
+                t("saveChanges")
+              )}
+            </Button>
+            {githubMessage && (
+              <span className="text-sm text-muted-foreground">{githubMessage}</span>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Manage Experiments */}
       <Card className="p-6">
         <div className="flex items-center justify-between">
           <div>
@@ -322,7 +419,7 @@ export function ProjectSettingsClient({ project, pools }: ProjectSettingsClientP
         </div>
       </Card>
 
-      {/* Section 3: Manage Research Questions */}
+      {/* Manage Research Questions */}
       <Card className="p-6">
         <div className="flex items-center justify-between">
           <div>
@@ -365,7 +462,7 @@ export function ProjectSettingsClient({ project, pools }: ProjectSettingsClientP
         </div>
       </Card>
 
-      {/* Section 4: Danger Zone */}
+      {/* Danger Zone */}
       <Card className="border-destructive/40 p-6">
         <h2 className="text-lg font-semibold text-destructive">{t("dangerZone")}</h2>
         <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 px-5 py-4">

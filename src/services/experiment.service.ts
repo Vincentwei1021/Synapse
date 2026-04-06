@@ -34,6 +34,9 @@ export interface ExperimentResponse {
   outcome: string | null;
   results: unknown;
   attachments: ExperimentAttachment[] | null;
+  baseBranch: string | null;
+  experimentBranch: string | null;
+  commitSha: string | null;
   liveStatus: string | null;
   liveMessage: string | null;
   liveUpdatedAt: string | null;
@@ -84,6 +87,7 @@ export interface ExperimentCreateParams {
   priority?: string;
   computeBudgetHours?: number | null;
   attachments?: ExperimentAttachment[] | null;
+  baseBranch?: string | null;
   createdByUuid: string;
   createdByType?: "user" | "agent";
 }
@@ -293,6 +297,9 @@ async function formatExperiment(
     outcome: string | null;
     results: unknown;
     attachments: unknown;
+    baseBranch: string | null;
+    experimentBranch: string | null;
+    commitSha: string | null;
     liveStatus: string | null;
     liveMessage: string | null;
     liveUpdatedAt: Date | null;
@@ -353,6 +360,9 @@ async function formatExperiment(
     outcome: experiment.outcome,
     results: experiment.results ?? null,
     attachments: (experiment.attachments as ExperimentAttachment[] | null) ?? null,
+    baseBranch: experiment.baseBranch,
+    experimentBranch: experiment.experimentBranch,
+    commitSha: experiment.commitSha,
     liveStatus: experiment.liveStatus,
     liveMessage: experiment.liveMessage,
     liveUpdatedAt: experiment.liveUpdatedAt?.toISOString() ?? null,
@@ -498,6 +508,7 @@ export async function createExperiment(params: ExperimentCreateParams) {
       status,
       computeBudgetHours: params.computeBudgetHours ?? null,
       attachments: params.attachments ? (params.attachments as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
+      baseBranch: params.baseBranch ?? null,
       createdByUuid: params.createdByUuid,
       createdByType: params.createdByType ?? "user",
     },
@@ -822,6 +833,8 @@ export async function completeExperiment(input: {
   outcome?: string | null;
   results?: unknown;
   computeUsedHours?: number | null;
+  experimentBranch?: string | null;
+  commitSha?: string | null;
 }) {
   const existing = await prisma.experiment.findFirst({
     where: { uuid: input.experimentUuid, companyUuid: input.companyUuid },
@@ -847,6 +860,8 @@ export async function completeExperiment(input: {
       results: jsonInput(input.results),
       computeUsedHours: input.computeUsedHours ?? existing.computeUsedHours,
       completedAt: new Date(),
+      ...(input.experimentBranch !== undefined ? { experimentBranch: input.experimentBranch } : {}),
+      ...(input.commitSha !== undefined ? { commitSha: input.commitSha } : {}),
     },
     include: {
       researchQuestion: {

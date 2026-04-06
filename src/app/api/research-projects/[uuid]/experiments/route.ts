@@ -25,6 +25,7 @@ const createExperimentSchema = z.object({
   status: z.enum(["draft", "pending_review", "pending_start"]).default("pending_start"),
   priority: z.string().default("medium"),
   computeBudgetHours: optionalNumber(z.coerce.number().min(0)),
+  baseBranch: z.string().optional(),
 });
 
 function sanitizeFileName(name: string) {
@@ -104,6 +105,7 @@ export const POST = withErrorHandler<{ uuid: string }>(async (request: NextReque
     status: String(formData.get("status") || "pending_start"),
     priority: String(formData.get("priority") || "medium"),
     computeBudgetHours: formData.get("computeBudgetHours"),
+    baseBranch: formData.get("baseBranch") ? String(formData.get("baseBranch")) : undefined,
   });
 
   if (!parsed.success) {
@@ -119,6 +121,7 @@ export const POST = withErrorHandler<{ uuid: string }>(async (request: NextReque
     status: parsed.data.status,
     priority: parsed.data.priority,
     computeBudgetHours: parsed.data.computeBudgetHours ?? null,
+    baseBranch: parsed.data.baseBranch || null,
     createdByUuid: auth.actorUuid,
     createdByType: "user",
   });

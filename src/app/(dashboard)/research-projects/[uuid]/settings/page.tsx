@@ -23,6 +23,9 @@ export default async function ProjectSettingsPage({ params }: PageProps) {
       datasets: true,
       evaluationMethods: true,
       computePoolUuid: true,
+      repoUrl: true,
+      githubUsername: true,
+      githubToken: true,
       experiments: {
         select: { uuid: true, title: true, status: true },
         orderBy: { createdAt: "desc" },
@@ -38,10 +41,24 @@ export default async function ProjectSettingsPage({ params }: PageProps) {
 
   const pools = await listComputePools(auth.companyUuid);
 
+  const projectForClient = {
+    uuid: project.uuid,
+    name: project.name,
+    description: project.description,
+    datasets: project.datasets,
+    evaluationMethods: project.evaluationMethods,
+    computePoolUuid: project.computePoolUuid,
+    repoUrl: project.repoUrl,
+    githubUsername: project.githubUsername,
+    githubConfigured: !!project.githubToken,
+    experiments: project.experiments,
+    researchQuestions: project.researchQuestions,
+  };
+
   return (
     <div className="space-y-6 p-4 md:p-8">
       <ProjectSettingsClient
-        project={project}
+        project={projectForClient}
         pools={pools.map((p) => ({ uuid: p.uuid, name: p.name }))}
       />
     </div>

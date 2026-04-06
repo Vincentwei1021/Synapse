@@ -226,6 +226,7 @@ export class SynapseEventRouter {
             .map((item) => `${item.title} [${item.status}]${item.outcome ? ` outcome: ${item.outcome}` : ""}`)
             .join("; ")}`
         : null,
+      "If the project has a GitHub repo configured, call synapse_get_repo_access with the researchProjectUuid and experimentUuid to get repo credentials and base branch. Clone the repo using the token (git clone https://{username}:{token}@github.com/{owner}/{repo}.git), checkout the base branch, create a new branch named experiment/{experimentUuid}-{experimentTitle} (sanitize title: lowercase, replace spaces with hyphens, remove special chars), commit your code changes, and push. Include experimentBranch and commitSha when calling synapse_submit_experiment_results.",
       "If a selected compute node exposes managedKeyAvailable=true, call synapse_get_node_access_bundle with the experimentUuid and nodeUuid. Write the returned privateKeyPemBase64 to a local PEM file with chmod 600 before using ssh.",
     ].filter(Boolean);
 
