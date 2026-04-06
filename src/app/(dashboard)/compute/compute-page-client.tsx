@@ -259,7 +259,7 @@ export function ComputePageClient({
                           <div className="space-y-2">
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="text-base font-semibold text-foreground">{node.label}</p>
-                              <div className="flex items-center gap-2">
+                              <label className="flex cursor-pointer items-center gap-2">
                                 <Switch
                                   checked={node.telemetryEnabled}
                                   onCheckedChange={async (checked) => {
@@ -272,7 +272,7 @@ export function ComputePageClient({
                                   }}
                                 />
                                 <span className="text-xs text-muted-foreground">{t("compute.telemetry")}</span>
-                              </div>
+                              </label>
                             </div>
                             <div className="grid gap-x-6 gap-y-1 text-sm text-muted-foreground md:grid-cols-2">
                               <p>{t("compute.machine.instanceType")}: {getInstanceTypeDisplay(node) ?? t("compute.machine.pending")}</p>
