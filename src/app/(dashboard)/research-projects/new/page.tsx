@@ -402,7 +402,10 @@ export default function NewProjectPage() {
               >
                 <div className="flex items-center justify-between gap-3">
                   <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                    <GitBranch className="ml-8 h-4 w-4 text-primary" />
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
+                      2
+                    </span>
+                    <GitBranch className="h-4 w-4 text-primary" />
                     {t("projectSettings.github")} ({t("common.optional")})
                   </CardTitle>
                   <ChevronDown
@@ -461,7 +464,7 @@ export default function NewProjectPage() {
                 <div className="flex items-center justify-between gap-3">
                   <CardTitle className="flex items-center gap-2 text-sm font-medium">
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
-                      2
+                      3
                     </span>
                     <Lightbulb className="h-4 w-4 text-primary" />
                     {t("projects.createNew.initialIdeas")}
@@ -529,7 +532,7 @@ export default function NewProjectPage() {
                 <div className="flex items-center justify-between gap-3">
                   <CardTitle className="flex items-center gap-2 text-sm font-medium">
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
-                      3
+                      4
                     </span>
                     <FolderOpen className="h-4 w-4 text-primary" />
                     {t("projects.createNew.documents")}
