@@ -63,6 +63,14 @@ export default function NewProjectPage() {
   const [ideas, setIdeas] = useState<string[]>([""]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
+
+  // Sync groupUuid from URL param once groups are loaded
+  useEffect(() => {
+    const groupUuid = searchParams.get("groupUuid");
+    if (groupUuid && groups.some((g) => g.uuid === groupUuid)) {
+      setFormData((prev) => ({ ...prev, groupUuid }));
+    }
+  }, [groups, searchParams]);
   const [ideasOpen, setIdeasOpen] = useState(false);
   const [documentsOpen, setDocumentsOpen] = useState(false);
 
@@ -80,7 +88,7 @@ export default function NewProjectPage() {
     fetch("/api/project-groups")
       .then((res) => res.json())
       .then((data) => {
-        const groups = data?.data ?? [];
+        const groups = data?.data?.groups ?? data?.data ?? [];
         if (groups.length) setGroups(groups);
       })
       .catch(() => {
