@@ -37,8 +37,8 @@ export function CreateExperimentForm({
     setBranchesLoading(true);
     fetch(`/api/research-projects/${projectUuid}/github/branches`)
       .then((res) => res.json())
-      .then((data: { branches?: Array<{ name: string; sha: string }> }) => {
-        const list = data.branches ?? [];
+      .then((data: { data?: { branches?: Array<{ name: string; sha: string }> }; branches?: Array<{ name: string; sha: string }> }) => {
+        const list = data.data?.branches ?? data.branches ?? [];
         setBranches(list);
         const mainBranch = list.find((b) => b.name === "main") ?? list[0];
         if (mainBranch) setBaseBranch(mainBranch.name);
