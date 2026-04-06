@@ -94,6 +94,9 @@ export default async function DashboardPage({ params }: PageProps) {
                 description: project.description,
                 datasets: Array.isArray(project.datasets) ? (project.datasets as string[]) : null,
                 evaluationMethods: Array.isArray(project.evaluationMethods) ? (project.evaluationMethods as string[]) : null,
+                repoUrl: project.repoUrl ?? null,
+                githubUsername: project.githubUsername ?? null,
+                githubConfigured: !!project.githubToken,
               }}
             />
           </div>

@@ -23,6 +23,9 @@ interface EditProjectDialogProps {
     description: string | null;
     datasets: string[] | null;
     evaluationMethods: string[] | null;
+    repoUrl: string | null;
+    githubUsername: string | null;
+    githubConfigured: boolean;
   };
 }
 
@@ -44,30 +47,42 @@ export function EditProjectDialog({
   const [evaluationMethods, setEvaluationMethods] = useState(
     (initialData.evaluationMethods || []).join("\n")
   );
+  const [repoUrl, setRepoUrl] = useState(initialData.repoUrl || "");
+  const [githubUsername, setGithubUsername] = useState(initialData.githubUsername || "");
+  const [githubToken, setGithubToken] = useState("");
 
   function resetForm() {
     setName(initialData.name);
     setDescription(initialData.description || "");
     setDatasets((initialData.datasets || []).join("\n"));
     setEvaluationMethods((initialData.evaluationMethods || []).join("\n"));
+    setRepoUrl(initialData.repoUrl || "");
+    setGithubUsername(initialData.githubUsername || "");
+    setGithubToken("");
   }
 
   async function handleSave() {
+    const body: Record<string, unknown> = {
+      name: name.trim(),
+      description: description.trim() || null,
+      datasets: datasets
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean),
+      evaluationMethods: evaluationMethods
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean),
+      repoUrl: repoUrl.trim() || null,
+      githubUsername: githubUsername.trim() || null,
+    };
+    if (githubToken.trim()) {
+      body.githubToken = githubToken.trim();
+    }
     const response = await fetch(`/api/research-projects/${projectUuid}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: name.trim(),
-        description: description.trim() || null,
-        datasets: datasets
-          .split("\n")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        evaluationMethods: evaluationMethods
-          .split("\n")
-          .map((s) => s.trim())
-          .filter(Boolean),
-      }),
+      body: JSON.stringify(body),
     });
 
     if (response.ok) {
@@ -127,6 +142,34 @@ export function EditProjectDialog({
                 rows={3}
                 placeholder={t("projectGroups.evaluationMethodsPlaceholder")}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("projectSettings.repoUrl")}</Label>
+              <Input
+                value={repoUrl}
+                onChange={(e) => setRepoUrl(e.target.value)}
+                placeholder={t("projectSettings.repoUrlPlaceholder")}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("projectSettings.githubUsername")}</Label>
+              <Input
+                value={githubUsername}
+                onChange={(e) => setGithubUsername(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("projectSettings.githubToken")}</Label>
+              <Input
+                type="password"
+                value={githubToken}
+                onChange={(e) => setGithubToken(e.target.value)}
+                placeholder={initialData.githubConfigured ? "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" : t("projectSettings.githubTokenPlaceholder")}
+              />
+              <p className="text-xs text-muted-foreground">
+                {initialData.githubConfigured ? t("projectSettings.githubConfigured") + ". " : t("projectSettings.githubNotConfigured") + ". "}
+                {t("projectSettings.githubTokenHint")}
+              </p>
             </div>
           </div>
           <DialogFooter>

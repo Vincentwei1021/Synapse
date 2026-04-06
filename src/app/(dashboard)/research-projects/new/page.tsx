@@ -18,7 +18,6 @@ import {
   Plus,
   Upload,
   Rocket,
-  Bell,
   ChevronDown,
 } from "lucide-react";
 import { createResearchProjectAction } from "./actions";
@@ -217,12 +216,6 @@ export default function NewProjectPage() {
             </Link>
             <span className="mx-1">/</span>
             <span>{t("projects.newProject")}</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Bell className="h-4 w-4" />
-            </Button>
-            <div className="h-7 w-7 rounded-full bg-secondary" />
           </div>
         </div>
 
