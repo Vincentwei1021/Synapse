@@ -6,6 +6,7 @@ export async function createProgressLog(input: {
   experimentUuid: string;
   message: string;
   phase?: string;
+  liveStatus?: string;
   actorUuid: string;
 }) {
   const log = await prisma.experimentProgressLog.create({
@@ -18,8 +19,8 @@ export async function createProgressLog(input: {
     },
   });
 
-  // Update experiment's live message for card display
-  await updateExperimentLiveStatus(input.experimentUuid, "running", input.message);
+  // Update experiment's live status and message for card display
+  await updateExperimentLiveStatus(input.experimentUuid, input.liveStatus ?? "running", input.message);
 
   return log;
 }

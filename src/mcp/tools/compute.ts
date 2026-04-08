@@ -501,14 +501,19 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
           .string()
           .optional()
           .describe("Optional phase label, e.g. 'data_download', 'training', 'evaluation'"),
+        liveStatus: z
+          .enum(["queuing", "checking_resources", "running"])
+          .optional()
+          .describe("Live status badge shown on the experiment card. Default: 'running'. Use 'queuing' when waiting for GPU resources."),
       }),
     },
-    async ({ experimentUuid, message, phase }) => {
+    async ({ experimentUuid, message, phase, liveStatus }) => {
       const log = await createProgressLog({
         companyUuid: auth.companyUuid,
         experimentUuid,
         message,
         phase,
+        liveStatus,
         actorUuid: auth.actorUuid,
       });
 
