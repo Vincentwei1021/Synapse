@@ -276,21 +276,46 @@ Base branch: ${repoAccess.baseBranch ?? "main"}`;
     }
 
     // --- Build steps ---
-    const steps = [
-      `1. Call synapse_start_experiment with experimentUuid "${n.entityUuid}" to mark the experiment as in-progress.`,
-      `2. Call synapse_list_compute_nodes to find available machines and GPUs.`,
-      "3. If a compute node has managedKeyAvailable=true, call synapse_get_node_access_bundle with the experimentUuid and nodeUuid. Write the returned privateKeyPemBase64 to a local PEM file (chmod 600) and SSH using the returned host/user/port.",
-      repoAccess?.configured
-        ? `4. Clone the repo: git clone ${repoAccess.repoUrl ? `<clone URL above>` : "the repo"}. Checkout branch "${repoAccess?.baseBranch ?? "main"}".`
-        : null,
-      "5. Execute the experiment on the compute node according to the experiment description.",
-      `6. During execution, call synapse_report_experiment_progress with experimentUuid "${n.entityUuid}" at each major step (e.g. data download, training start, evaluation).`,
-      repoAccess?.configured
-        ? `7. After completing the experiment, create a new branch named experiment/{experimentUuid}-{experimentTitle} (sanitize title: lowercase, hyphens instead of spaces, remove special chars; if Chinese, translate to English — do not use pinyin). Commit your code and push.`
-        : null,
-      `${repoAccess?.configured ? "8" : "7"}. Call synapse_submit_experiment_results with experimentUuid "${n.entityUuid}"${repoAccess?.configured ? ", experimentBranch (the branch name you pushed), and commitSha" : ""} to complete the experiment.`,
-      mentionGuidance,
-    ].filter((step) => step !== null);
+    const hasRepo = repoAccess?.configured && repoAccess.repoUrl && repoAccess.githubToken;
+    const baseBranch = repoAccess?.baseBranch ?? "main";
+    const experimentUuid = n.entityUuid;
+
+    let stepNum = 1;
+    const steps: string[] = [];
+
+    steps.push(`${stepNum++}. Call synapse_list_compute_nodes to check available machines and GPUs. You need enough available GPUs for this experiment (decide based on the experiment description). If no GPUs are available, report via synapse_report_experiment_progress that the experiment is queued waiting for GPU resources, then wait and retry periodically until GPUs become available.`);
+
+    steps.push(`${stepNum++}. Once sufficient GPUs are found, call synapse_reserve_gpus with experimentUuid "${experimentUuid}" and the list of gpuUuids you will use. This marks the GPUs as busy so other experiments cannot use them.`);
+
+    steps.push(`${stepNum++}. Call synapse_start_experiment with experimentUuid "${experimentUuid}" to mark the experiment as in-progress.`);
+
+    steps.push(`${stepNum++}. If the compute node has managedKeyAvailable=true, call synapse_get_node_access_bundle with experimentUuid "${experimentUuid}" and the nodeUuid. Write the returned privateKeyPemBase64 to a local PEM file (chmod 600) and SSH using the returned host/user/port.`);
+
+    if (hasRepo) {
+      steps.push(`${stepNum++}. On the compute node, clone the repo: git clone <Clone URL above>. Then checkout the base branch: git checkout ${baseBranch}.`);
+    }
+
+    steps.push(`${stepNum++}. Execute the experiment on the compute node according to the experiment description.`);
+
+    steps.push(`${stepNum++}. For long-running experiments (training jobs, multi-hour evaluations), set up automated monitoring:
+   a. Write a monitoring script on the compute node that reads the latest training/evaluation logs, extracts key metrics (loss, accuracy, eval scores, etc.), and outputs a concise summary.
+   b. Test the script to make sure it works correctly.
+   c. Create a cron job that runs every 30 minutes: the script should call synapse_report_experiment_progress with experimentUuid "${experimentUuid}" to report the latest metrics summary.
+   d. The cron job should also deliver updates to the latest channel.
+   e. IMPORTANT: The monitoring script must also detect when the experiment finishes (e.g. training completes, final evaluation done). When it detects completion, the script should:
+      ${hasRepo ? `- Create a new branch: experiment/${experimentUuid}-{experimentTitle} (sanitize: lowercase, hyphens for spaces, remove special chars; if Chinese title, translate to English — do not use pinyin). Commit all code changes and push.\n      ` : ""}- Call synapse_submit_experiment_results with experimentUuid "${experimentUuid}"${hasRepo ? ", experimentBranch, and commitSha" : ""} to mark the experiment as completed.
+      - Remove the cron job after successful completion.
+   For short experiments that you can monitor directly, skip the cron setup and proceed to the next steps manually.`);
+
+    steps.push(`${stepNum++}. If you are monitoring the experiment directly (no cron), call synapse_report_experiment_progress with experimentUuid "${experimentUuid}" at each major step (data download, training start, each evaluation checkpoint, etc.).`);
+
+    if (hasRepo) {
+      steps.push(`${stepNum++}. After the experiment completes, create a new branch: experiment/${experimentUuid}-{experimentTitle} (sanitize: lowercase, hyphens for spaces, remove special chars; if Chinese title, translate to English — do not use pinyin). Commit all code changes and push.`);
+    }
+
+    steps.push(`${stepNum++}. Call synapse_submit_experiment_results with experimentUuid "${experimentUuid}"${hasRepo ? ", experimentBranch (the branch name you pushed), and commitSha" : ""} to complete the experiment. GPU reservations are automatically released.`);
+
+    steps.push(mentionGuidance);
 
     const prompt = `[Synapse] Experiment assigned: ${n.entityTitle}
 
