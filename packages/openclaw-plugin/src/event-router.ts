@@ -34,6 +34,7 @@ interface ExperimentDetail {
   description: string | null;
   priority: string;
   computeBudgetHours: number | null;
+  baseBranch: string | null;
   attachments: Array<{ originalName: string }> | null;
   researchQuestion?: { uuid: string; title: string } | null;
   parentQuestionExperiments?: Array<{ title: string; status: string; outcome: string | null }> | null;
@@ -46,6 +47,15 @@ interface ResearchProjectDetail {
   goal: string | null;
   datasets: Array<unknown> | null;
   evaluationMethods: Array<unknown> | null;
+  repoUrl: string | null;
+}
+
+interface RepoAccessDetail {
+  configured: boolean;
+  repoUrl?: string;
+  githubUsername?: string;
+  githubToken?: string;
+  baseBranch?: string | null;
 }
 
 export class SynapseEventRouter {
@@ -187,6 +197,7 @@ export class SynapseEventRouter {
 
     let experiment: ExperimentDetail | null = null;
     let project: ResearchProjectDetail | null = null;
+    let repoAccess: RepoAccessDetail | null = null;
 
     try {
       const result = await this.mcpClient.callTool("synapse_get_experiment", {
@@ -209,38 +220,85 @@ export class SynapseEventRouter {
       this.logger.warn(`Failed to fetch research project detail for wake prompt: ${err}`);
     }
 
-    const contextLines = [
-      project?.name ? `Research project: ${project.name}` : null,
-      project?.goal ? `Goal: ${project.goal}` : null,
-      project?.description ? `Project brief: ${project.description}` : null,
+    // Fetch GitHub repo access if project has a repo configured
+    if (project?.repoUrl) {
+      try {
+        const result = await this.mcpClient.callTool("synapse_get_repo_access", {
+          researchProjectUuid: experiment?.researchProjectUuid ?? projectUuid,
+          experimentUuid: n.entityUuid,
+        }) as RepoAccessDetail | null;
+        repoAccess = result;
+      } catch (err) {
+        this.logger.warn(`Failed to fetch repo access for wake prompt: ${err}`);
+      }
+    }
+
+    // --- Build context section ---
+    const context = [
+      `Project: ${project?.name ?? "Unknown"}`,
+      project?.description ? `Brief: ${project.description}` : null,
       project ? `Datasets: ${this.formatList(project.datasets)}` : null,
       project ? `Evaluation methods: ${this.formatList(project.evaluationMethods)}` : null,
-      experiment?.description ? `Experiment description: ${experiment.description}` : null,
-      experiment?.researchQuestion?.title ? `Linked research question: ${experiment.researchQuestion.title}` : null,
-      experiment?.computeBudgetHours != null ? `Compute budget (hours): ${experiment.computeBudgetHours}` : "Compute budget (hours): Unlimited",
+      "",
+      `Experiment: ${n.entityTitle}`,
+      `Experiment UUID: ${n.entityUuid}`,
+      `Project UUID: ${projectUuid}`,
+      `Priority: ${experiment?.priority ?? "medium"}`,
+      experiment?.computeBudgetHours != null ? `Time limit: ${experiment.computeBudgetHours} hours` : "Time limit: Unlimited",
+      experiment?.researchQuestion?.title ? `Research question: ${experiment.researchQuestion.title}` : null,
+      experiment?.baseBranch ? `Base branch: ${experiment.baseBranch}` : null,
       experiment?.attachments?.length
         ? `Attached files: ${experiment.attachments.map((item) => item.originalName).join(", ")}`
         : null,
       experiment?.parentQuestionExperiments?.length
-        ? `Parent-question experiment context: ${experiment.parentQuestionExperiments
-            .map((item) => `${item.title} [${item.status}]${item.outcome ? ` outcome: ${item.outcome}` : ""}`)
+        ? `Related experiments: ${experiment.parentQuestionExperiments
+            .map((item) => `${item.title} [${item.status}]${item.outcome ? ` → ${item.outcome}` : ""}`)
             .join("; ")}`
         : null,
-      "If the project has a GitHub repo configured, call synapse_get_repo_access with the researchProjectUuid and experimentUuid to get repo credentials and base branch. Clone the repo using the token (git clone https://{username}:{token}@github.com/{owner}/{repo}.git), checkout the base branch, create a new branch named experiment/{experimentUuid}-{experimentTitle} (sanitize title: lowercase, replace spaces with hyphens, remove special chars; if the title is in Chinese, translate it to English for the branch name — do not use pinyin), commit your code changes, and push. Include experimentBranch and commitSha when calling synapse_submit_experiment_results.",
-      "If a selected compute node exposes managedKeyAvailable=true, call synapse_get_node_access_bundle with the experimentUuid and nodeUuid. Write the returned privateKeyPemBase64 to a local PEM file with chmod 600 before using ssh.",
-    ].filter(Boolean);
+    ].filter((line) => line !== null).join("\n");
 
-    const prompt = [
-      `[Synapse] Experiment assigned: ${n.entityTitle}. Experiment UUID: ${n.entityUuid}, Project UUID: ${projectUuid}.`,
-      ...contextLines,
-      "Use synapse_get_assigned_experiments to inspect your current queue. Execute the highest-priority item first; experiments with priority 'immediate' must jump to the front of the queue, and experiments with the same priority should be handled FIFO.",
-      `Then use synapse_get_experiment with experimentUuid "${n.entityUuid}" to inspect full details, use synapse_list_compute_nodes to inspect available machines and GPUs, call synapse_start_experiment when you begin execution.`,
-      `During execution, call synapse_report_experiment_progress with experimentUuid "${n.entityUuid}" at each major step (e.g. data download, training start, evaluation) to update the live status on the experiment card.`,
-      `When finished, call synapse_submit_experiment_results with experimentUuid "${n.entityUuid}" to complete the experiment.`,
+    // --- Build description section ---
+    const description = experiment?.description
+      ? `\nExperiment description:\n${experiment.description}`
+      : "";
+
+    // --- Build GitHub section ---
+    let githubSection = "";
+    if (repoAccess?.configured && repoAccess.repoUrl && repoAccess.githubToken) {
+      const match = repoAccess.repoUrl.match(/github\.com\/([^/]+)\/([^/.]+)/);
+      const cloneUrl = match
+        ? `https://${repoAccess.githubUsername ?? "git"}:${repoAccess.githubToken}@github.com/${match[1]}/${match[2]}.git`
+        : repoAccess.repoUrl;
+      githubSection = `
+GitHub repo: ${repoAccess.repoUrl}
+Clone URL (with token): ${cloneUrl}
+Base branch: ${repoAccess.baseBranch ?? "main"}`;
+    }
+
+    // --- Build steps ---
+    const steps = [
+      `1. Call synapse_start_experiment with experimentUuid "${n.entityUuid}" to mark the experiment as in-progress.`,
+      `2. Call synapse_list_compute_nodes to find available machines and GPUs.`,
+      "3. If a compute node has managedKeyAvailable=true, call synapse_get_node_access_bundle with the experimentUuid and nodeUuid. Write the returned privateKeyPemBase64 to a local PEM file (chmod 600) and SSH using the returned host/user/port.",
+      repoAccess?.configured
+        ? `4. Clone the repo: git clone ${repoAccess.repoUrl ? `<clone URL above>` : "the repo"}. Checkout branch "${repoAccess?.baseBranch ?? "main"}".`
+        : null,
+      "5. Execute the experiment on the compute node according to the experiment description.",
+      `6. During execution, call synapse_report_experiment_progress with experimentUuid "${n.entityUuid}" at each major step (e.g. data download, training start, evaluation).`,
+      repoAccess?.configured
+        ? `7. After completing the experiment, create a new branch named experiment/{experimentUuid}-{experimentTitle} (sanitize title: lowercase, hyphens instead of spaces, remove special chars; if Chinese, translate to English — do not use pinyin). Commit your code and push.`
+        : null,
+      `${repoAccess?.configured ? "8" : "7"}. Call synapse_submit_experiment_results with experimentUuid "${n.entityUuid}"${repoAccess?.configured ? ", experimentBranch (the branch name you pushed), and commitSha" : ""} to complete the experiment.`,
       mentionGuidance,
-    ].join("\n");
+    ].filter((step) => step !== null);
 
-    // Compute timeout: use experiment's computeBudgetHours, or 24h if unlimited
+    const prompt = `[Synapse] Experiment assigned: ${n.entityTitle}
+
+${context}${description}${githubSection}
+
+Steps:
+${steps.join("\n")}`;
+
     const budgetHours = experiment?.computeBudgetHours;
     const timeoutSeconds = budgetHours != null ? Math.ceil(budgetHours * 3600) : 7 * 24 * 3600;
 
