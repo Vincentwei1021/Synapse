@@ -13,7 +13,7 @@ import { registerSynapseCommands } from "./commands.js";
  * the gateway's /hooks/agent endpoint. This treats the Synapse assignment as
  * a primary prompt instead of a side-channel wake event.
  */
-const DEFAULT_TIMEOUT_SECONDS = 24 * 3600; // 24 hours for unlimited budget
+const DEFAULT_TIMEOUT_SECONDS = 7 * 24 * 3600; // 7 days for unlimited budget
 
 async function wakeAgent(
   gatewayUrl: string,
