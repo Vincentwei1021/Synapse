@@ -300,11 +300,9 @@ Base branch: ${repoAccess.baseBranch ?? "main"}`;
     steps.push(`${stepNum++}. For long-running experiments (training jobs, multi-hour evaluations), set up automated monitoring:
    a. Write a monitoring script on the compute node that reads the latest training/evaluation logs, extracts key metrics (loss, accuracy, eval scores, etc.), and outputs a concise summary.
    b. Test the script to make sure it works correctly.
-   c. Create a cron job that runs every 30 minutes: the script should call synapse_report_experiment_progress with experimentUuid "${experimentUuid}" to report the latest metrics summary.
-   d. The cron job should also deliver updates to the latest channel.
-   e. IMPORTANT: The monitoring script must also detect when the experiment finishes (e.g. training completes, final evaluation done). When it detects completion, the script should:
-      ${hasRepo ? `- Create a new branch: experiment/${experimentUuid}-{experimentTitle} (sanitize: lowercase, hyphens for spaces, remove special chars; if Chinese title, translate to English — do not use pinyin). Commit all code changes and push.\n      ` : ""}- Call synapse_submit_experiment_results with experimentUuid "${experimentUuid}"${hasRepo ? ", experimentBranch, and commitSha" : ""} to mark the experiment as completed.
-      - Remove the cron job after successful completion.
+   c. Create a cron job that runs every 30 minutes: the script calls synapse_report_experiment_progress with experimentUuid "${experimentUuid}" to report the latest metrics summary, and delivers updates to the latest channel.
+   d. The monitoring script should also detect when the experiment finishes (e.g. training completes, final evaluation done). When completion is detected, the script should send a message notifying you (the agent) that the experiment has finished.
+   e. Once you receive the completion notification, you are responsible for the remaining steps: ${hasRepo ? "push code to a branch, " : ""}submit results, and clean up. Remove the cron job after you have completed everything.
    For short experiments that you can monitor directly, skip the cron setup and proceed to the next steps manually.`);
 
     steps.push(`${stepNum++}. If you are monitoring the experiment directly (no cron), call synapse_report_experiment_progress with experimentUuid "${experimentUuid}" at each major step (data download, training start, each evaluation checkpoint, etc.).`);
@@ -313,7 +311,7 @@ Base branch: ${repoAccess.baseBranch ?? "main"}`;
       steps.push(`${stepNum++}. After the experiment completes, create a new branch: experiment/${experimentUuid}-{experimentTitle} (sanitize: lowercase, hyphens for spaces, remove special chars; if Chinese title, translate to English — do not use pinyin). Commit all code changes and push.`);
     }
 
-    steps.push(`${stepNum++}. Call synapse_submit_experiment_results with experimentUuid "${experimentUuid}"${hasRepo ? ", experimentBranch (the branch name you pushed), and commitSha" : ""} to complete the experiment. GPU reservations are automatically released.`);
+    steps.push(`${stepNum++}. Call synapse_submit_experiment_results with experimentUuid "${experimentUuid}"${hasRepo ? ", experimentBranch (the branch name you pushed), and commitSha" : ""} to complete the experiment. This also releases the reserved GPUs (the GPUs you reserved in step 2 are released by matching experimentUuid).`);
 
     steps.push(mentionGuidance);
 
