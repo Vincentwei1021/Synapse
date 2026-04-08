@@ -628,6 +628,42 @@ export async function reserveGpusForExperiment(input: {
   });
 }
 
+export async function reserveGpusForExperiment(params: {
+  companyUuid: string;
+  experimentUuid: string;
+  gpuUuids: string[];
+}) {
+  // Verify all GPUs exist and belong to the company
+  const gpus = await prisma.computeGpu.findMany({
+    where: { uuid: { in: params.gpuUuids }, companyUuid: params.companyUuid },
+    select: { uuid: true },
+  });
+  if (gpus.length !== params.gpuUuids.length) {
+    throw new Error(`Some GPUs not found. Requested ${params.gpuUuids.length}, found ${gpus.length}.`);
+  }
+
+  // Check none are already reserved
+  const existing = await prisma.experimentGpuReservation.findMany({
+    where: { gpuUuid: { in: params.gpuUuids }, releasedAt: null },
+    select: { gpuUuid: true, experimentUuid: true },
+  });
+  if (existing.length > 0) {
+    const busyIds = existing.map((r) => r.gpuUuid).join(", ");
+    throw new Error(`GPUs already reserved: ${busyIds}`);
+  }
+
+  // Create reservations
+  await prisma.experimentGpuReservation.createMany({
+    data: params.gpuUuids.map((gpuUuid) => ({
+      companyUuid: params.companyUuid,
+      experimentUuid: params.experimentUuid,
+      gpuUuid,
+    })),
+  });
+
+  return { reserved: params.gpuUuids.length };
+}
+
 export async function releaseGpuReservationsForExperiment(companyUuid: string, experimentUuid: string) {
   await prisma.experimentGpuReservation.updateMany({
     where: {

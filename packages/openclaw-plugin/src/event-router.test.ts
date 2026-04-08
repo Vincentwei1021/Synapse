@@ -75,7 +75,7 @@ describe("SynapseEventRouter", () => {
     expect(triggerAgent).toHaveBeenCalledTimes(1);
     const [prompt, metadata] = triggerAgent.mock.calls[0];
     expect(prompt).toContain("Experiment assigned: Train the baseline");
-    expect(prompt).toContain("Compute budget (hours): Unlimited");
+    expect(prompt).toContain("Time limit: Unlimited");
     expect(prompt).toContain("post a comment on this experiment");
     expect(prompt).toContain("@[Alice](user:user-1)");
     expect(prompt).toContain("synapse_report_experiment_progress");

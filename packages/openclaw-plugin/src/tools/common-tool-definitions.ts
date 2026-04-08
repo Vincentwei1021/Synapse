@@ -322,6 +322,20 @@ export const commonToolDefinitions = defineOpenClawTools([
     },
     targetToolName: "synapse_sync_node_inventory",
   }),
+  createPassthroughTool<{ experimentUuid: string; gpuUuids: string[] }>({
+    name: "synapse_reserve_gpus",
+    description: "Reserve GPUs for an experiment. Reserved GPUs show as busy. Automatically released on experiment completion.",
+    parameters: {
+      type: "object",
+      properties: {
+        experimentUuid: { type: "string", description: "Experiment UUID" },
+        gpuUuids: { type: "array", items: { type: "string" }, description: "GPU UUIDs to reserve" },
+      },
+      required: ["experimentUuid", "gpuUuids"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_reserve_gpus",
+  }),
   createPassthroughTool<{ nodeUuid: string; gpus: Array<Record<string, unknown>> }>({
     name: "synapse_report_gpu_status",
     description: "Report latest GPU lifecycle or telemetry after running a workload.",

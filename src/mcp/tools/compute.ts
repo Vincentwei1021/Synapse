@@ -327,6 +327,34 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
   );
 
   server.registerTool(
+    "synapse_reserve_gpus",
+    {
+      description: "Reserve one or more GPUs for an experiment. Reserved GPUs show as 'busy' and cannot be reserved by other experiments. GPUs are automatically released when the experiment is completed via synapse_submit_experiment_results.",
+      inputSchema: z.object({
+        experimentUuid: z.string().describe("Experiment UUID"),
+        gpuUuids: z.array(z.string()).min(1).describe("List of GPU UUIDs to reserve"),
+      }),
+    },
+    async ({ experimentUuid, gpuUuids }) => {
+      try {
+        const result = await computeService.reserveGpusForExperiment({
+          companyUuid: auth.companyUuid,
+          experimentUuid,
+          gpuUuids,
+        });
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ success: true, ...result }) }],
+        };
+      } catch (err) {
+        return {
+          content: [{ type: "text" as const, text: `GPU reservation failed: ${err instanceof Error ? err.message : String(err)}` }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.registerTool(
     "synapse_report_gpu_status",
     {
       description: "Report the latest GPU lifecycle or telemetry after running a workload.",
