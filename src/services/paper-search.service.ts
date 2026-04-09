@@ -99,12 +99,39 @@ export async function fetchWithRetry(
 // DeepXiv auth helper
 // ---------------------------------------------------------------------------
 
-function deepxivHeaders(): Record<string, string> {
-  const token = process.env.DEEPXIV_TOKEN;
-  if (token) {
-    return { Authorization: `Bearer ${token}` };
+let _cachedToken: { value: string | null; expiresAt: number } | null = null;
+const TOKEN_CACHE_MS = 60_000; // cache DB lookup for 1 minute
+
+async function deepxivHeaders(): Promise<Record<string, string>> {
+  // 1. Env var takes precedence (operator override)
+  const envToken = process.env.DEEPXIV_TOKEN;
+  if (envToken) {
+    return { Authorization: `Bearer ${envToken}` };
+  }
+
+  // 2. DB-stored company token (cached)
+  const now = Date.now();
+  if (!_cachedToken || now > _cachedToken.expiresAt) {
+    try {
+      const { prisma } = await import("@/lib/prisma");
+      const company = await prisma.company.findFirst({
+        select: { deepxivToken: true },
+      });
+      _cachedToken = { value: company?.deepxivToken ?? null, expiresAt: now + TOKEN_CACHE_MS };
+    } catch {
+      _cachedToken = { value: null, expiresAt: now + TOKEN_CACHE_MS };
+    }
+  }
+
+  if (_cachedToken.value) {
+    return { Authorization: `Bearer ${_cachedToken.value}` };
   }
   return {};
+}
+
+/** Clear cached token (call after updating the token in DB). */
+export function clearDeepxivTokenCache(): void {
+  _cachedToken = null;
 }
 
 // ---------------------------------------------------------------------------
@@ -133,7 +160,7 @@ export async function searchDeepXiv(
   });
   const url = `${DEEPXIV_BASE}?${params}`;
 
-  const resp = await fetchWithRetry(url, { headers: deepxivHeaders() });
+  const resp = await fetchWithRetry(url, { headers: await deepxivHeaders() });
   if (!resp) return [];
 
   let data: DeepXivSearchResult[];
@@ -169,7 +196,7 @@ export async function readPaperBrief(arxivId: string): Promise<DeepXivBrief | nu
   const params = new URLSearchParams({ type: "brief", arxiv_id: arxivId });
   const url = `${DEEPXIV_BASE}?${params}`;
 
-  const resp = await fetchWithRetry(url, { headers: deepxivHeaders() });
+  const resp = await fetchWithRetry(url, { headers: await deepxivHeaders() });
   if (!resp) return null;
 
   try {
@@ -195,7 +222,7 @@ export async function readPaperHead(arxivId: string): Promise<DeepXivHead | null
   const params = new URLSearchParams({ type: "head", arxiv_id: arxivId });
   const url = `${DEEPXIV_BASE}?${params}`;
 
-  const resp = await fetchWithRetry(url, { headers: deepxivHeaders() });
+  const resp = await fetchWithRetry(url, { headers: await deepxivHeaders() });
   if (!resp) return null;
 
   try {
@@ -229,7 +256,7 @@ export async function readPaperSection(
   });
   const url = `${DEEPXIV_BASE}?${params}`;
 
-  const resp = await fetchWithRetry(url, { headers: deepxivHeaders() });
+  const resp = await fetchWithRetry(url, { headers: await deepxivHeaders() });
   if (!resp) return null;
 
   try {
@@ -251,7 +278,7 @@ export async function readPaperFull(arxivId: string): Promise<string | null> {
   const params = new URLSearchParams({ type: "raw", arxiv_id: arxivId });
   const url = `${DEEPXIV_BASE}?${params}`;
 
-  const resp = await fetchWithRetry(url, { headers: deepxivHeaders() });
+  const resp = await fetchWithRetry(url, { headers: await deepxivHeaders() });
   if (!resp) return null;
 
   try {

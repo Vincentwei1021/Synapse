@@ -21,6 +21,8 @@ model Company {
   oidcIssuer   String? // OIDC Provider URL
   oidcClientId String? // Client ID
   oidcEnabled  Boolean  @default(false)
+  // Third-party integration tokens
+  deepxivToken String?  // DeepXiv API token for paper search & reading
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
