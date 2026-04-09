@@ -8,6 +8,7 @@ import * as experimentService from "@/services/experiment.service";
 import * as experimentRunService from "@/services/experiment-run.service";
 import { createProgressLog } from "@/services/experiment-progress.service";
 import * as sessionService from "@/services/session.service";
+import * as notificationService from "@/services/notification.service";
 
 function serializeAccess(node: {
   sshHost: string | null;
@@ -424,6 +425,53 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
         await computeService.releaseGpuReservationsForExperiment(auth.companyUuid, experimentUuid);
 
         await experimentService.updateExperimentLiveStatus(experimentUuid, null, null);
+
+        // Re-trigger queued experiments now that GPUs are freed
+        // Find all experiments with liveStatus='queuing', sorted by priority then assignedAt
+        const queuedExperiments = await prisma.experiment.findMany({
+          where: {
+            companyUuid: auth.companyUuid,
+            liveStatus: "queuing",
+            assigneeUuid: { not: null },
+            assigneeType: { not: null },
+          },
+          select: {
+            uuid: true,
+            title: true,
+            assigneeType: true,
+            assigneeUuid: true,
+            assignedByUuid: true,
+            researchProjectUuid: true,
+            researchProject: { select: { name: true } },
+            priority: true,
+            assignedAt: true,
+          },
+          orderBy: [{ assignedAt: "asc" }],
+        });
+
+        // Sort by priority: immediate > high > medium > low
+        const priorityOrder: Record<string, number> = { immediate: 0, high: 1, medium: 2, low: 3 };
+        queuedExperiments.sort((a, b) => (priorityOrder[a.priority] ?? 3) - (priorityOrder[b.priority] ?? 3));
+
+        // Send task_assigned notification for each queued experiment
+        for (const qExp of queuedExperiments) {
+          if (!qExp.assigneeUuid || !qExp.assigneeType) continue;
+          await notificationService.create({
+            companyUuid: auth.companyUuid,
+            researchProjectUuid: qExp.researchProjectUuid,
+            recipientType: qExp.assigneeType,
+            recipientUuid: qExp.assigneeUuid,
+            entityType: "experiment",
+            entityUuid: qExp.uuid,
+            entityTitle: qExp.title,
+            projectName: qExp.researchProject.name,
+            action: "task_assigned",
+            message: `GPUs released. Retrying: ${qExp.title}`,
+            actorType: "agent",
+            actorUuid: auth.actorUuid,
+            actorName: "Synapse",
+          });
+        }
 
         await activityService.createActivity({
           companyUuid: auth.companyUuid,
