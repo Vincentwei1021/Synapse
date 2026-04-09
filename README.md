@@ -16,27 +16,19 @@ Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.co
 
 ---
 
-## 🚀 What's New
+## What's New
 
-### v0.5.1 — [DeepXiv](https://github.com/DeepXiv/deepxiv_sdk) Integration &nbsp; <sup>`2026-04-10`</sup>
+**v0.5.1** — [DeepXiv](https://github.com/DeepXiv/deepxiv_sdk) Integration (2026-04-10)
+- Paper search now uses [DeepXiv](https://github.com/DeepXiv/deepxiv_sdk) hybrid search (BM25 + vector) over arXiv, with arXiv API as fallback. Removed Semantic Scholar and OpenAlex.
+- Agents can read full paper content via progressive reading tools: `synapse_read_paper_brief`, `synapse_read_paper_head`, `synapse_read_paper_section`, `synapse_read_paper_full`
+- Deep research literature reviews are now based on actual paper content, not just abstracts
+- DeepXiv token configurable from Settings > Integrations
 
-| | |
-|---|---|
-| 🔍 **Hybrid Paper Search** | Powered by [DeepXiv](https://github.com/DeepXiv/deepxiv_sdk) (BM25 + vector retrieval) — replaces Semantic Scholar & OpenAlex |
-| 📖 **Full-Text Paper Reading** | Agents read actual papers via progressive tools: `brief` → `head` → `section` → `full` |
-| 📝 **Smarter Literature Reviews** | Deep research reports now cite specific methods, results, and findings from full paper content |
-| ⚙️ **Token Configuration** | DeepXiv API token configurable from **Settings > Integrations** |
-
-<details>
-<summary><b>Previous releases</b></summary>
-
-### v0.5.0 — Autonomous Loop & Related Works &nbsp; <sup>`2026-03-29`</sup>
+**v0.5.0** — Autonomous Loop & Related Works (2026-03-29)
 - Autonomous experiment loop: agents propose → humans review → agents execute
 - Related Works page with auto-search, manual arXiv URL addition, and deep research reports
 - Experiment live status tracking (sent/ack/checking/queuing/running)
 - Compute pool binding per project
-
-</details>
 
 ---
 
