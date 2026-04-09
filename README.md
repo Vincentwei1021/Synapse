@@ -18,7 +18,7 @@ Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.co
 
 ## What's New
 
-**v0.5.1** — [DeepXiv](https://github.com/DeepXiv/deepxiv_sdk) Integration (2026-04-10) &nbsp; 🟢 `NEW`
+**v0.5.1** — [DeepXiv](https://github.com/DeepXiv/deepxiv_sdk) Integration (2026-04-10) &nbsp; 🔴 `New`
 - Paper search now uses [DeepXiv](https://github.com/DeepXiv/deepxiv_sdk) hybrid search (BM25 + vector) over arXiv, with arXiv API as fallback. Removed Semantic Scholar and OpenAlex.
 - Agents can read full paper content via progressive reading tools: `synapse_read_paper_brief`, `synapse_read_paper_head`, `synapse_read_paper_section`, `synapse_read_paper_full`
 - Deep research literature reviews are now based on actual paper content, not just abstracts
