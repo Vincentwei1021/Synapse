@@ -620,3 +620,14 @@ Recent examples:
 
 21. Forgetting notification permission grouping
    Notification preferences in Settings are grouped by the 5 agent permission categories (pre_research, research, experiment, report, admin). Keep new notification types in the correct group.
+
+## Release Conventions
+
+### What's New section in README
+
+Both `README.md` and `README.zh.md` have a "What's New" / "最新动态" section before the Table of Contents. When releasing a new version:
+
+1. Add a new entry at the top of the section with the version number, feature name, and date
+2. List 3-5 bullet points summarizing user-facing changes
+3. Keep previous entries below (most recent first)
+4. The section should stay concise — link to CHANGELOG or PR for full details if needed
