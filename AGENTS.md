@@ -473,9 +473,21 @@ SSH details for `synapse` and `openclaw` are in the local `~/.ssh/config`. Use `
 Rules for code changes:
 
 - any code change must be synced to both local and synapse remote working copies
-- **git commit and push must be done on the synapse remote**, not locally: `ssh synapse 'cd /home/ubuntu/Synapse && git add ... && git commit -m "..." && git push'`
-- after pushing from remote, pull locally: `git fetch && git reset --hard origin/main`
+- **git commit and push must be done on the synapse remote**, not locally
 - do not leave local and remote code in diverged states after finishing work
+- when syncing to remote, exclude `.env` to preserve remote-specific config (e.g. DB port): `rsync --exclude .env`
+
+### Git branching workflow
+
+**All changes go on feature branches, never commit directly to main.**
+
+- When starting a new session (no conversation history), create a new branch from main:
+  `ssh synapse 'cd /home/ubuntu/Synapse && git checkout main && git pull && git checkout -b session/YYYY-MM-DD-topic'`
+- Multiple commits on the branch are fine during a session
+- When ready to release, open a PR from the branch to main and merge
+- All commits and pushes happen on the synapse remote:
+  `ssh synapse 'cd /home/ubuntu/Synapse && git add ... && git commit -m "..." && git push -u origin session/YYYY-MM-DD-topic'`
+- After pushing, sync locally: `git fetch && git checkout session/YYYY-MM-DD-topic && git reset --hard origin/session/YYYY-MM-DD-topic`
 - when syncing to remote, exclude `.env` to preserve remote-specific config (e.g. DB port): `rsync --exclude .env`
 
 ### OpenClaw plugin deployment
