@@ -533,7 +533,7 @@ export const commonToolDefinitions = defineOpenClawTools([
   // =========================================================================
   createPassthroughTool<{ query: string; limit?: number }>({
     name: "synapse_search_papers",
-    description: "Search for academic papers using Semantic Scholar.",
+    description: "Search for academic papers. Uses DeepXiv hybrid search (BM25 + vector) over arXiv, with arXiv API as fallback.",
     parameters: {
       type: "object",
       properties: {
@@ -558,7 +558,7 @@ export const commonToolDefinitions = defineOpenClawTools([
         abstract: { type: "string", description: "Abstract" },
         arxivId: { type: "string", description: "ArXiv ID" },
         year: { type: "number", description: "Publication year" },
-        source: { type: "string", description: "Source: arxiv | semantic_scholar | openalex" },
+        source: { type: "string", description: "Source: deepxiv | arxiv | semantic_scholar | openalex (default: deepxiv)" },
       },
       required: ["researchProjectUuid", "title", "url"],
       additionalProperties: false,
@@ -577,6 +577,61 @@ export const commonToolDefinitions = defineOpenClawTools([
       additionalProperties: false,
     },
     targetToolName: "synapse_get_related_works",
+  }),
+
+  // Paper Reading (DeepXiv progressive reading)
+  createPassthroughTool<{ arxivId: string }>({
+    name: "synapse_read_paper_brief",
+    description: "Get a quick summary of an arXiv paper: TLDR, keywords, citation count, GitHub URL. Low token cost (~500 tokens). Use to decide if a paper is worth reading.",
+    parameters: {
+      type: "object",
+      properties: {
+        arxivId: { type: "string", description: "arXiv paper ID, e.g. '2401.12345'" },
+      },
+      required: ["arxivId"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_read_paper_brief",
+  }),
+  createPassthroughTool<{ arxivId: string }>({
+    name: "synapse_read_paper_head",
+    description: "Get paper structure: all sections with AI-generated TLDRs and token counts. Use to understand paper coverage and decide which sections to read (~1-2k tokens).",
+    parameters: {
+      type: "object",
+      properties: {
+        arxivId: { type: "string", description: "arXiv paper ID, e.g. '2401.12345'" },
+      },
+      required: ["arxivId"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_read_paper_head",
+  }),
+  createPassthroughTool<{ arxivId: string; sectionName: string }>({
+    name: "synapse_read_paper_section",
+    description: "Read one section of an arXiv paper in full (~1-5k tokens). Case-insensitive partial match. Use synapse_read_paper_head first to see available sections.",
+    parameters: {
+      type: "object",
+      properties: {
+        arxivId: { type: "string", description: "arXiv paper ID, e.g. '2401.12345'" },
+        sectionName: { type: "string", description: "Section name, e.g. 'Introduction', 'Related Work', 'Experiments'" },
+      },
+      required: ["arxivId", "sectionName"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_read_paper_section",
+  }),
+  createPassthroughTool<{ arxivId: string }>({
+    name: "synapse_read_paper_full",
+    description: "Read the complete paper as Markdown (~10-50k tokens). CAUTION: High token cost. Prefer synapse_read_paper_section for targeted reading.",
+    parameters: {
+      type: "object",
+      properties: {
+        arxivId: { type: "string", description: "arXiv paper ID, e.g. '2401.12345'" },
+      },
+      required: ["arxivId"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_read_paper_full",
   }),
 
   // =========================================================================

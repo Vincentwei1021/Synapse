@@ -127,8 +127,7 @@ SUPER_ADMIN_PASSWORD_HASH="$2b$10$..."       # bcrypt hash
 
 # Optional
 REDIS_URL="redis://host:6379"                # Required for multi-instance
-SEMANTIC_SCHOLAR_API_KEY="..."               # Improves paper search rate limit
-OPENALEX_EMAIL="your@email.com"             # OpenAlex polite pool (higher rate limit)
+DEEPXIV_TOKEN="..."                         # Paper search & reading (optional, 1000 req/day without)
 ```
 
 ### Database

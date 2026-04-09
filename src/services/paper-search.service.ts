@@ -1,8 +1,10 @@
 /**
- * Multi-source academic paper search service.
+ * Paper search and reading service.
  *
- * Searches Semantic Scholar, OpenAlex, and arXiv in parallel,
- * deduplicates results, and returns a unified list.
+ * Primary source: DeepXiv (data.rag.ac.cn)
+ * Fallback:       arXiv Atom API (export.arxiv.org)
+ *
+ * DeepXiv also provides structured paper reading (brief, head, section, full).
  */
 
 // ---------------------------------------------------------------------------
@@ -17,28 +19,46 @@ export interface PaperResult {
   arxivId: string | null;
   doi: string | null;
   year: number | null;
-  source: "arxiv" | "semantic_scholar" | "openalex";
+  citationCount: number | null;
+  source: "arxiv" | "deepxiv" | "semantic_scholar" | "openalex";
+}
+
+/** Brief summary returned by DeepXiv `type=brief`. */
+export interface DeepXivBrief {
+  arxivId: string;
+  title: string;
+  authors: string;
+  abstract: string | null;
+  tldr: string | null;
+  keywords: string[];
+  citationCount: number | null;
+  githubUrl: string | null;
+  year: number | null;
+}
+
+/** Paper structure returned by DeepXiv `type=head`. */
+export interface DeepXivHead {
+  arxivId: string;
+  title: string;
+  sections: Array<{
+    name: string;
+    tldr: string | null;
+    tokenCount: number | null;
+  }>;
+}
+
+/** Section content returned by DeepXiv `type=section`. */
+export interface DeepXivSectionContent {
+  arxivId: string;
+  sectionName: string;
+  content: string;
 }
 
 // ---------------------------------------------------------------------------
-// Rate limiter
+// Constants
 // ---------------------------------------------------------------------------
 
-export class RateLimiter {
-  private lastCall: Map<string, number> = new Map();
-
-  constructor(private minIntervalMs: number) {}
-
-  async acquire(source: string): Promise<void> {
-    const now = Date.now();
-    const last = this.lastCall.get(source) ?? 0;
-    const elapsed = now - last;
-    if (elapsed < this.minIntervalMs) {
-      await new Promise((r) => setTimeout(r, this.minIntervalMs - elapsed));
-    }
-    this.lastCall.set(source, Date.now());
-  }
-}
+const DEEPXIV_BASE = "https://data.rag.ac.cn/arxiv/";
 
 // ---------------------------------------------------------------------------
 // Fetch with retry (429 / 5xx)
@@ -76,118 +96,196 @@ export async function fetchWithRetry(
 }
 
 // ---------------------------------------------------------------------------
-// Semantic Scholar adapter
+// DeepXiv auth helper
 // ---------------------------------------------------------------------------
 
-interface SemanticScholarPaper {
-  paperId: string;
-  title: string;
-  abstract: string | null;
-  authors: Array<{ name: string }>;
-  externalIds: { ArXiv?: string; DOI?: string } | null;
-  url: string;
-  year: number | null;
-}
+let _cachedToken: { value: string | null; expiresAt: number } | null = null;
+const TOKEN_CACHE_MS = 60_000; // cache DB lookup for 1 minute
 
-export async function searchSemanticScholar(
-  query: string,
-  limit: number,
-): Promise<PaperResult[]> {
-  const params = new URLSearchParams({
-    query,
-    limit: String(limit),
-    fields: "title,abstract,authors,externalIds,url,year",
-  });
-  const url = `https://api.semanticscholar.org/graph/v1/paper/search?${params}`;
+async function deepxivHeaders(): Promise<Record<string, string>> {
+  // 1. Env var takes precedence (operator override)
+  const envToken = process.env.DEEPXIV_TOKEN;
+  if (envToken) {
+    return { Authorization: `Bearer ${envToken}` };
+  }
 
-  const headers: Record<string, string> = {};
-  const apiKey = process.env.SEMANTIC_SCHOLAR_API_KEY;
-  if (apiKey) headers["x-api-key"] = apiKey;
-
-  const resp = await fetchWithRetry(url, { headers });
-  if (!resp) return [];
-
-  const json = (await resp.json()) as { data?: SemanticScholarPaper[] };
-  return (json.data ?? []).map((p) => ({
-    title: p.title,
-    abstract: p.abstract,
-    authors: p.authors.map((a) => a.name).join(", "),
-    url: p.externalIds?.ArXiv
-      ? `https://arxiv.org/abs/${p.externalIds.ArXiv}`
-      : p.url,
-    arxivId: p.externalIds?.ArXiv ?? null,
-    doi: p.externalIds?.DOI ?? null,
-    year: p.year ?? null,
-    source: "semantic_scholar" as const,
-  }));
-}
-
-// ---------------------------------------------------------------------------
-// OpenAlex adapter
-// ---------------------------------------------------------------------------
-
-interface OpenAlexWork {
-  title: string;
-  abstract_inverted_index: Record<string, number[]> | null;
-  authorships: Array<{ author: { display_name: string } }>;
-  doi: string | null;
-  ids: { openalex?: string };
-  primary_location?: { landing_page_url?: string } | null;
-  publication_year: number | null;
-}
-
-/**
- * Reconstruct abstract from OpenAlex inverted index format.
- * Keys are words, values are arrays of 0-based positions.
- */
-export function reconstructAbstract(
-  invertedIndex: Record<string, number[]> | null | undefined,
-): string | null {
-  if (!invertedIndex) return null;
-  const entries = Object.entries(invertedIndex);
-  if (entries.length === 0) return null;
-
-  const words: string[] = [];
-  for (const [word, positions] of entries) {
-    for (const pos of positions) {
-      words[pos] = word;
+  // 2. DB-stored company token (cached)
+  const now = Date.now();
+  if (!_cachedToken || now > _cachedToken.expiresAt) {
+    try {
+      const { prisma } = await import("@/lib/prisma");
+      const company = await prisma.company.findFirst({
+        select: { deepxivToken: true },
+      });
+      _cachedToken = { value: company?.deepxivToken ?? null, expiresAt: now + TOKEN_CACHE_MS };
+    } catch {
+      _cachedToken = { value: null, expiresAt: now + TOKEN_CACHE_MS };
     }
   }
-  return words.join(" ");
+
+  if (_cachedToken.value) {
+    return { Authorization: `Bearer ${_cachedToken.value}` };
+  }
+  return {};
 }
 
-export async function searchOpenAlex(
+/** Clear cached token (call after updating the token in DB). */
+export function clearDeepxivTokenCache(): void {
+  _cachedToken = null;
+}
+
+// ---------------------------------------------------------------------------
+// DeepXiv search adapter
+// ---------------------------------------------------------------------------
+
+interface DeepXivSearchResult {
+  arxiv_id?: string;
+  title?: string;
+  authors?: string;
+  abstract?: string;
+  url?: string;
+  year?: number;
+  citation_count?: number;
+}
+
+export async function searchDeepXiv(
   query: string,
   limit: number,
 ): Promise<PaperResult[]> {
   const params = new URLSearchParams({
-    search: query,
-    per_page: String(limit),
+    type: "retrieve",
+    query,
+    size: String(limit),
+    search_mode: "hybrid",
   });
-  const email = process.env.OPENALEX_EMAIL;
-  if (email) params.set("mailto", email);
+  const url = `${DEEPXIV_BASE}?${params}`;
 
-  const url = `https://api.openalex.org/works?${params}`;
-  const resp = await fetchWithRetry(url);
+  const resp = await fetchWithRetry(url, { headers: await deepxivHeaders() });
   if (!resp) return [];
 
-  const json = (await resp.json()) as { results?: OpenAlexWork[] };
-  return (json.results ?? []).map((w) => {
-    // Strip leading "https://doi.org/" if present
-    const rawDoi = w.doi;
-    const doi = rawDoi ? rawDoi.replace(/^https?:\/\/doi\.org\//, "") : null;
+  let data: DeepXivSearchResult[];
+  try {
+    const json = await resp.json();
+    data = Array.isArray(json) ? json : [];
+  } catch {
+    return [];
+  }
 
+  return data.map((item) => {
+    const arxivId = item.arxiv_id ?? null;
     return {
-      title: w.title,
-      abstract: reconstructAbstract(w.abstract_inverted_index),
-      authors: w.authorships.map((a) => a.author.display_name).join(", "),
-      url: w.primary_location?.landing_page_url ?? w.doi ?? "",
-      arxivId: null,
-      doi,
-      year: w.publication_year ?? null,
-      source: "openalex" as const,
+      title: item.title ?? "",
+      abstract: item.abstract ?? null,
+      authors: item.authors ?? "",
+      url: item.url ?? (arxivId ? `https://arxiv.org/abs/${arxivId}` : ""),
+      arxivId,
+      doi: null,
+      year: item.year ?? null,
+      citationCount: item.citation_count ?? null,
+      source: "deepxiv" as const,
     };
   });
+}
+
+// ---------------------------------------------------------------------------
+// DeepXiv paper reading functions
+// ---------------------------------------------------------------------------
+
+/** Get brief summary: TLDR, keywords, citation count, GitHub URL. */
+export async function readPaperBrief(arxivId: string): Promise<DeepXivBrief | null> {
+  const params = new URLSearchParams({ type: "brief", arxiv_id: arxivId });
+  const url = `${DEEPXIV_BASE}?${params}`;
+
+  const resp = await fetchWithRetry(url, { headers: await deepxivHeaders() });
+  if (!resp) return null;
+
+  try {
+    const json = await resp.json();
+    return {
+      arxivId: json.arxiv_id ?? arxivId,
+      title: json.title ?? "",
+      authors: json.authors ?? "",
+      abstract: json.abstract ?? null,
+      tldr: json.tldr ?? null,
+      keywords: Array.isArray(json.keywords) ? json.keywords : [],
+      citationCount: json.citation_count ?? null,
+      githubUrl: json.github_url ?? null,
+      year: json.year ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Get paper structure with per-section TLDRs and token counts. */
+export async function readPaperHead(arxivId: string): Promise<DeepXivHead | null> {
+  const params = new URLSearchParams({ type: "head", arxiv_id: arxivId });
+  const url = `${DEEPXIV_BASE}?${params}`;
+
+  const resp = await fetchWithRetry(url, { headers: await deepxivHeaders() });
+  if (!resp) return null;
+
+  try {
+    const json = await resp.json();
+    const sections = Array.isArray(json.sections)
+      ? json.sections.map((s: { name?: string; tldr?: string; token_count?: number }) => ({
+          name: s.name ?? "",
+          tldr: s.tldr ?? null,
+          tokenCount: s.token_count ?? null,
+        }))
+      : [];
+    return {
+      arxivId: json.arxiv_id ?? arxivId,
+      title: json.title ?? "",
+      sections,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Get full text of one section. */
+export async function readPaperSection(
+  arxivId: string,
+  sectionName: string,
+): Promise<DeepXivSectionContent | null> {
+  const params = new URLSearchParams({
+    type: "section",
+    arxiv_id: arxivId,
+    section: sectionName,
+  });
+  const url = `${DEEPXIV_BASE}?${params}`;
+
+  const resp = await fetchWithRetry(url, { headers: await deepxivHeaders() });
+  if (!resp) return null;
+
+  try {
+    const raw = await resp.json();
+    // Handle both string and {content: string} response formats
+    const content = typeof raw === "string" ? raw : (raw.content ?? "");
+    return {
+      arxivId,
+      sectionName,
+      content: String(content),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Get complete paper as raw Markdown. */
+export async function readPaperFull(arxivId: string): Promise<string | null> {
+  const params = new URLSearchParams({ type: "raw", arxiv_id: arxivId });
+  const url = `${DEEPXIV_BASE}?${params}`;
+
+  const resp = await fetchWithRetry(url, { headers: await deepxivHeaders() });
+  if (!resp) return null;
+
+  try {
+    return await resp.text();
+  } catch {
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -235,6 +333,7 @@ export async function searchArxiv(
       arxivId,
       doi,
       year: (year && !isNaN(year)) ? year : null,
+      citationCount: null,
       source: "arxiv" as const,
     };
   });
@@ -279,23 +378,17 @@ export function deduplicatePapers(papers: PaperResult[]): PaperResult[] {
 // Main entry point
 // ---------------------------------------------------------------------------
 
-const rateLimiter = new RateLimiter(1100);
-
 export async function searchPapers(
   query: string,
   limit: number = 10,
 ): Promise<PaperResult[]> {
-  const [ssResult, oaResult, axResult] = await Promise.allSettled([
-    rateLimiter.acquire("semantic_scholar").then(() => searchSemanticScholar(query, limit)),
-    rateLimiter.acquire("openalex").then(() => searchOpenAlex(query, limit)),
-    rateLimiter.acquire("arxiv").then(() => searchArxiv(query, limit)),
-  ]);
+  // Try DeepXiv first
+  let results = await searchDeepXiv(query, limit);
 
-  const all: PaperResult[] = [
-    ...(ssResult.status === "fulfilled" ? ssResult.value : []),
-    ...(oaResult.status === "fulfilled" ? oaResult.value : []),
-    ...(axResult.status === "fulfilled" ? axResult.value : []),
-  ];
+  // Fall back to arXiv if DeepXiv returned nothing
+  if (results.length === 0) {
+    results = await searchArxiv(query, limit);
+  }
 
-  return deduplicatePapers(all).slice(0, limit);
+  return deduplicatePapers(results).slice(0, limit);
 }

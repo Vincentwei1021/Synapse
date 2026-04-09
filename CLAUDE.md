@@ -247,7 +247,11 @@ For the current research workflow, the main tools are the experiment-oriented on
 - `synapse_get_comments`
 - `synapse_get_project_full_context` — full project context for autonomous analysis
 - `synapse_propose_experiment` — agent proposes draft experiment (autonomous loop only)
-- `synapse_search_papers` — search Semantic Scholar for academic papers
+- `synapse_search_papers` — search for academic papers (DeepXiv hybrid search, arXiv API fallback)
+- `synapse_read_paper_brief` — quick paper summary: TLDR, keywords, citations (~500 tokens)
+- `synapse_read_paper_head` — paper structure with per-section TLDRs and token counts (~1-2k tokens)
+- `synapse_read_paper_section` — read one section in full (~1-5k tokens)
+- `synapse_read_paper_full` — read complete paper as Markdown (~10-50k tokens)
 - `synapse_add_related_work` — add a paper to project's related works
 - `synapse_get_related_works` — list all related works for a project
 
@@ -301,10 +305,10 @@ Research projects can enable an autonomous loop via `autonomousLoopEnabled` + `a
 New project-level page at `/research-projects/[uuid]/related-works`:
 
 - Manual paper addition (paste arXiv URL → auto-fetch metadata) or auto-search via `pre_research` agent
-- Auto-search toggle (three-state with agent selector) — agent uses `synapse_search_papers` + `synapse_add_related_work`
+- Auto-search toggle (three-state with agent selector) — agent uses `synapse_search_papers` + `synapse_read_paper_brief` + `synapse_add_related_work`
 - Deep Research action — user selects agent + clicks Generate → agent produces `literature_review` Document
 - Papers are stored in the `RelatedWork` model, linked to project
-- Literature tools: `synapse_search_papers` (Semantic Scholar API), `synapse_add_related_work`, `synapse_get_related_works`
+- Literature tools: `synapse_search_papers` (DeepXiv hybrid search, arXiv API fallback), `synapse_read_paper_brief/head/section/full` (progressive full-text reading via DeepXiv), `synapse_add_related_work`, `synapse_get_related_works`
 
 ### Declarative MCP / plugin tool registration
 
@@ -616,3 +620,14 @@ Recent examples:
 
 21. Forgetting notification permission grouping
    Notification preferences in Settings are grouped by the 5 agent permission categories (pre_research, research, experiment, report, admin). Keep new notification types in the correct group.
+
+## Release Conventions
+
+### What's New section in README
+
+Both `README.md` and `README.zh.md` have a "What's New" / "最新动态" section before the Table of Contents. When releasing a new version:
+
+1. Add a new entry at the top of the section with the version number, feature name, and date
+2. List 3-5 bullet points summarizing user-facing changes
+3. Keep previous entries below (most recent first)
+4. The section should stay concise — link to CHANGELOG or PR for full details if needed

@@ -10,7 +10,7 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
   server.registerTool(
     "synapse_search_papers",
     {
-      description: "Search for academic papers across Semantic Scholar, OpenAlex, and arXiv. Returns titles, abstracts, authors, and URLs.",
+      description: "Search for academic papers. Uses DeepXiv hybrid search (BM25 + vector) over arXiv, with arXiv API as fallback. Returns titles, abstracts, authors, and URLs.",
       inputSchema: z.object({
         query: z.string().describe("Search query, e.g. 'speech recognition Chinese accent'"),
         limit: z.number().int().min(1).max(20).default(10),
@@ -33,6 +33,95 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
   );
 
   server.registerTool(
+    "synapse_read_paper_brief",
+    {
+      description: "Get a brief summary of an arXiv paper: TLDR, keywords, citation count, GitHub URL. ~500 tokens.",
+      inputSchema: z.object({
+        arxivId: z.string().describe("arXiv paper ID, e.g. '2301.07041'"),
+      }),
+    },
+    async ({ arxivId }) => {
+      try {
+        const { readPaperBrief } = await import("@/services/paper-search.service");
+        const result = await readPaperBrief(arxivId);
+        if (!result) {
+          return { content: [{ type: "text" as const, text: `Paper not found: ${arxivId}` }], isError: true };
+        }
+        return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+      } catch (err) {
+        return { content: [{ type: "text" as const, text: `Error: ${err instanceof Error ? err.message : String(err)}` }], isError: true };
+      }
+    }
+  );
+
+  server.registerTool(
+    "synapse_read_paper_head",
+    {
+      description: "Get paper structure with section names, per-section TLDRs, and token counts. Use to plan which sections to read. ~1-2k tokens.",
+      inputSchema: z.object({
+        arxivId: z.string().describe("arXiv paper ID, e.g. '2301.07041'"),
+      }),
+    },
+    async ({ arxivId }) => {
+      try {
+        const { readPaperHead } = await import("@/services/paper-search.service");
+        const result = await readPaperHead(arxivId);
+        if (!result) {
+          return { content: [{ type: "text" as const, text: `Paper not found: ${arxivId}` }], isError: true };
+        }
+        return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+      } catch (err) {
+        return { content: [{ type: "text" as const, text: `Error: ${err instanceof Error ? err.message : String(err)}` }], isError: true };
+      }
+    }
+  );
+
+  server.registerTool(
+    "synapse_read_paper_section",
+    {
+      description: "Read the full text of a specific section from an arXiv paper. Use synapse_read_paper_head first to discover section names. ~1-5k tokens.",
+      inputSchema: z.object({
+        arxivId: z.string().describe("arXiv paper ID, e.g. '2301.07041'"),
+        sectionName: z.string().describe("Exact section name from the paper head"),
+      }),
+    },
+    async ({ arxivId, sectionName }) => {
+      try {
+        const { readPaperSection } = await import("@/services/paper-search.service");
+        const result = await readPaperSection(arxivId, sectionName);
+        if (!result) {
+          return { content: [{ type: "text" as const, text: `Section not found: "${sectionName}" in paper ${arxivId}` }], isError: true };
+        }
+        return { content: [{ type: "text" as const, text: result.content }] };
+      } catch (err) {
+        return { content: [{ type: "text" as const, text: `Error: ${err instanceof Error ? err.message : String(err)}` }], isError: true };
+      }
+    }
+  );
+
+  server.registerTool(
+    "synapse_read_paper_full",
+    {
+      description: "Get the complete paper as raw Markdown. ~10-50k tokens, CAUTION: High token cost. Prefer synapse_read_paper_section for targeted reading.",
+      inputSchema: z.object({
+        arxivId: z.string().describe("arXiv paper ID, e.g. '2301.07041'"),
+      }),
+    },
+    async ({ arxivId }) => {
+      try {
+        const { readPaperFull } = await import("@/services/paper-search.service");
+        const result = await readPaperFull(arxivId);
+        if (!result) {
+          return { content: [{ type: "text" as const, text: `Paper not found: ${arxivId}` }], isError: true };
+        }
+        return { content: [{ type: "text" as const, text: result }] };
+      } catch (err) {
+        return { content: [{ type: "text" as const, text: `Error: ${err instanceof Error ? err.message : String(err)}` }], isError: true };
+      }
+    }
+  );
+
+  server.registerTool(
     "synapse_add_related_work",
     {
       description: "Add a paper to a research project's Related Works collection. Returns isNew=true if newly added, isNew=false if already exists (duplicate by URL or arXiv ID).",
@@ -44,7 +133,7 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
         abstract: z.string().optional(),
         arxivId: z.string().optional(),
         year: z.number().int().optional().describe("Publication year"),
-        source: z.enum(["arxiv", "semantic_scholar", "openalex"]).default("arxiv"),
+        source: z.enum(["arxiv", "deepxiv", "semantic_scholar", "openalex"]).default("deepxiv"),
       }),
     },
     async ({ researchProjectUuid, title, url, authors, abstract, arxivId, year, source }) => {
