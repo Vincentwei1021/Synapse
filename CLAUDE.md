@@ -465,13 +465,16 @@ In practice:
 This project has three environments that must stay in sync:
 
 1. **Local**: `/Users/weiyihao/personal/Synapse`
-2. **Synapse remote**: `synapse:/home/ubuntu/Synapse` (SSH target in local config)
-3. **OpenClaw machine**: `openclaw` (SSH target in local config) — runs the OpenClaw gateway with the Synapse plugin
+2. **Synapse remote**: `synapse:/home/ubuntu/Synapse`
+3. **OpenClaw machine**: `openclaw` — runs the OpenClaw gateway with the Synapse plugin
+
+SSH details for `synapse` and `openclaw` are in the local `~/.ssh/config`. Use `ssh synapse` and `ssh openclaw` directly.
 
 Rules for code changes:
 
 - any code change must be synced to both local and synapse remote working copies
-- when pushing to GitHub, push from the `synapse` machine
+- **git commit and push must be done on the synapse remote**, not locally: `ssh synapse 'cd /home/ubuntu/Synapse && git add ... && git commit -m "..." && git push'`
+- after pushing from remote, pull locally: `git fetch && git reset --hard origin/main`
 - do not leave local and remote code in diverged states after finishing work
 - when syncing to remote, exclude `.env` to preserve remote-specific config (e.g. DB port): `rsync --exclude .env`
 
