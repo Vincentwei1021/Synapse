@@ -460,20 +460,43 @@ In practice:
 
 ## Development Conventions
 
-### Keep local and remote repos in sync
+### Keep all environments in sync
 
-This project has two active working copies:
+This project has three environments that must stay in sync:
 
-- local: `/Users/weiyihao/personal/Synapse`
-- remote: `synapse:/home/ubuntu/Synapse`
+1. **Local**: `/Users/weiyihao/personal/Synapse`
+2. **Synapse remote**: `synapse:/home/ubuntu/Synapse` (SSH target in local config)
+3. **OpenClaw machine**: `openclaw` (SSH target in local config) — runs the OpenClaw gateway with the Synapse plugin
 
-The `synapse` SSH target details are available in local SSH config.
+Rules for code changes:
 
-Rules:
-
-- any code change must be synced to both local and remote working copies
+- any code change must be synced to both local and synapse remote working copies
 - when pushing to GitHub, push from the `synapse` machine
 - do not leave local and remote code in diverged states after finishing work
+- when syncing to remote, exclude `.env` to preserve remote-specific config (e.g. DB port): `rsync --exclude .env`
+
+### OpenClaw plugin deployment
+
+When `packages/openclaw-plugin/` has changes, the plugin must be published and deployed:
+
+1. **Bump version** in `packages/openclaw-plugin/package.json`
+2. **Publish** from synapse: `ssh synapse 'cd /home/ubuntu/Synapse/packages/openclaw-plugin && npm publish --access public'`
+3. **Install on openclaw**: `ssh openclaw 'export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && rm -rf /home/ubuntu/.openclaw/extensions/synapse-openclaw-plugin && openclaw plugins install @vincentwei1021/synapse-openclaw-plugin'`
+4. **Restart gateway**: `ssh openclaw '... && openclaw gateway restart'`
+
+The `openclaw` command requires nvm initialization (`. "$NVM_DIR/nvm.sh"`) before use.
+
+If only Synapse MCP server code changes (e.g. `src/mcp/tools/*.ts`, `src/services/*.ts`), the OpenClaw plugin does NOT need updating — only sync to synapse remote and restart the dev server.
+
+### Three-environment sync verification
+
+After finishing work, verify all three environments:
+
+```bash
+git log --oneline -1                    # local
+ssh synapse 'cd /home/ubuntu/Synapse && git log --oneline -1'  # synapse
+ssh openclaw 'cat /home/ubuntu/.openclaw/extensions/synapse-openclaw-plugin/package.json | grep version'  # openclaw plugin
+```
 
 ### Keep `docs/design.pen` updated
 
