@@ -391,14 +391,28 @@ You may ONLY use these Synapse tools for this task:
 - synapse_get_deep_research_report
 - synapse_get_related_works
 - synapse_get_research_project
+- synapse_read_paper_brief
+- synapse_read_paper_head
+- synapse_read_paper_section
+- synapse_read_paper_full
 - synapse_save_deep_research_report
 
 Steps:
 1. Use synapse_get_deep_research_report with researchProjectUuid "${projectUuid}" to check if a previous report exists — if so, read it to understand what was covered before
-2. Use synapse_get_related_works with researchProjectUuid "${projectUuid}" to read all collected papers
+2. Use synapse_get_related_works with researchProjectUuid "${projectUuid}" to get the full list of collected papers
 3. Use synapse_get_research_project with researchProjectUuid "${projectUuid}" to understand the research objectives, datasets, and evaluation methods
-4. Analyze how each paper relates to the project's goals — identify key methods, findings, and gaps in the literature
-5. REQUIRED: Use synapse_save_deep_research_report with researchProjectUuid "${projectUuid}", title, and content (Markdown) to save the report. This creates v1 or updates to v2/v3 automatically.`;
+4. For each paper with an arxivId, use progressive reading to understand its content:
+   a. synapse_read_paper_head — get the paper structure and section TLDRs
+   b. synapse_read_paper_section — read key sections relevant to the project (e.g. Introduction, Methods, Results, Conclusion)
+   c. synapse_read_paper_full — only if needed for papers central to the research
+5. Analyze how each paper relates to the project's goals — identify key methods, findings, and gaps in the literature
+6. REQUIRED: Use synapse_save_deep_research_report with researchProjectUuid "${projectUuid}", title, and content (Markdown) to save the report. This creates v1 or updates to v2/v3 automatically.
+
+Writing guidelines:
+- Base your review on actual paper content, not just abstracts
+- Cite specific methods, results, and findings from the papers
+- Identify research gaps and how they relate to the project objectives
+- Organize thematically, not just paper-by-paper`;
 
     const prompt = hasCustomPrompt
       ? `${basePrompt}\n\nAdditional instructions from the user:\n${n.message}`
@@ -417,15 +431,17 @@ You may ONLY use these Synapse tools for this task:
 - synapse_get_related_works
 - synapse_get_research_project
 - synapse_search_papers
+- synapse_read_paper_brief
 - synapse_add_related_work
 
 Steps:
 1. Use synapse_get_related_works with researchProjectUuid "${projectUuid}" to see what papers are already collected — avoid searching for topics already well-covered
 2. Use synapse_get_research_project with researchProjectUuid "${projectUuid}" to understand the research objectives, datasets, and methods
 3. Based on the project context and gaps in existing papers, use synapse_search_papers to find new relevant academic papers
-4. For each relevant paper found, use synapse_add_related_work with researchProjectUuid "${projectUuid}" to add it (duplicates are automatically skipped — if isNew=false, the paper already existed)
-5. Search with multiple query variations to maximize coverage, but call synapse_search_papers sequentially (one at a time) to avoid rate limits
-6. Focus on papers that fill gaps not covered by existing related works`;
+4. For each candidate paper with an arxivId, use synapse_read_paper_brief to check its TLDR and keywords — only add papers that are genuinely relevant to the project
+5. For each relevant paper, use synapse_add_related_work with researchProjectUuid "${projectUuid}" to add it (duplicates are automatically skipped — if isNew=false, the paper already existed)
+6. Search with multiple query variations to maximize coverage, but call synapse_search_papers sequentially (one at a time) to avoid rate limits
+7. Focus on papers that fill gaps not covered by existing related works`;
 
     const prompt = hasCustomPrompt
       ? `${basePrompt}\n\nAdditional instructions from the user:\n${n.message}`
