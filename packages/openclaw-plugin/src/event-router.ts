@@ -283,9 +283,9 @@ Base branch: ${repoAccess.baseBranch ?? "main"}`;
     let stepNum = 1;
     const steps: string[] = [];
 
-    steps.push(`${stepNum++}. Call synapse_list_compute_nodes to check available machines and GPUs. You need enough available GPUs for this experiment (decide based on the experiment description). If no GPUs are available, report via synapse_report_experiment_progress that the experiment is queued waiting for GPU resources, then wait and retry periodically until GPUs become available.`);
+    steps.push(`${stepNum++}. Call synapse_list_compute_nodes to check available machines and GPUs. Determine how many GPUs you need based on the experiment description.`);
 
-    steps.push(`${stepNum++}. Once sufficient GPUs are found, call synapse_reserve_gpus with experimentUuid "${experimentUuid}" and the list of gpuUuids you will use. This marks the GPUs as busy so other experiments cannot use them.`);
+    steps.push(`${stepNum++}. If enough GPUs are available, call synapse_reserve_gpus with experimentUuid "${experimentUuid}" and the gpuUuids to reserve them. If the reservation fails (another experiment reserved them first), go back to step 1 and re-check available GPUs. If not enough GPUs are available (or reservation keeps failing), report via synapse_report_experiment_progress with liveStatus "queuing" and a message like "Waiting for N GPUs to become available", then wait and retry periodically until you can successfully reserve.`);
 
     steps.push(`${stepNum++}. Call synapse_start_experiment with experimentUuid "${experimentUuid}" to mark the experiment as in-progress.`);
 
