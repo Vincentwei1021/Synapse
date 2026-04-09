@@ -167,6 +167,15 @@ pnpm dev
 open http://localhost:3000
 ```
 
+The default `.env.example` includes a built-in login account:
+
+| Field | Value |
+|-------|-------|
+| Email | `dev@synapse.local` |
+| Password | `synapse123` |
+
+You can change these by editing `DEFAULT_USER` and `DEFAULT_PASSWORD` in your `.env` file. When both variables are set, Synapse enables a simple email/password login without requiring OIDC configuration.
+
 ### Connect AI Agents
 
 #### Option 1: OpenClaw (Recommended)
