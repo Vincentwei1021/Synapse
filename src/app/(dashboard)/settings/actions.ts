@@ -67,6 +67,7 @@ export async function getApiKeysAction(): Promise<{
 interface CreateAgentKeyInput {
   name: string;
   roles: string[];
+  type?: string;
   persona: string | null;
 }
 
@@ -96,6 +97,7 @@ export async function createAgentAndKeyAction(input: CreateAgentKeyInput): Promi
       companyUuid: auth.companyUuid,
       name,
       roles,
+      type: input.type || "openclaw",
       ownerUuid: auth.actorUuid,
       persona: input.persona?.trim() || null,
     });
@@ -221,6 +223,7 @@ interface UpdateAgentInput {
   agentUuid: string;
   name: string;
   roles: string[];
+  type?: string;
   persona: string | null;
 }
 
@@ -251,6 +254,7 @@ export async function updateAgentAction(input: UpdateAgentInput): Promise<{
     await updateAgent(input.agentUuid, {
       name,
       roles,
+      type: input.type,
       persona: input.persona?.trim() || null,
     }, auth.companyUuid);
 

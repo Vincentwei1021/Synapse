@@ -834,7 +834,16 @@
       "name": "Agent Name",
       "persona": "Persona",
       "personaPlaceholder": "Brief description of this agent's personality and approach",
-      "permissions": "Permissions"
+      "permissions": "Permissions",
+      "type": "Type"
+    },
+    "type": {
+      "openclaw": "OpenClaw",
+      "claude_code": "Claude Code"
+    },
+    "typeDesc": {
+      "openclaw": "Receives tasks in real-time via SSE notifications",
+      "claude_code": "Discovers tasks at session start"
     },
     "detail": {
       "apiKeys": "API Keys",

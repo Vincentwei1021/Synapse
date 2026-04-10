@@ -55,6 +55,7 @@ interface AgentSummary {
   uuid: string;
   name: string;
   roles: string[];
+  type: string;
   persona: string | null;
   ownerUuid: string | null;
   lastActiveAt: Date | null;
@@ -100,6 +101,13 @@ const ROLE_I18N_KEY: Record<string, string> = {
   admin: "agents.permissions.admin",
 };
 
+const AGENT_TYPES = ["openclaw", "claude_code"] as const;
+
+const TYPE_BADGE_CLASSES: Record<string, string> = {
+  openclaw: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300",
+  claude_code: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300",
+};
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function formatRelativeTime(date: Date | string | null, t: ReturnType<typeof useTranslations>): string {
@@ -133,6 +141,7 @@ export function AgentsPageClient({
   const [createName, setCreateName] = useState("");
   const [createRoles, setCreateRoles] = useState<string[]>([]);
   const [createPersona, setCreatePersona] = useState("");
+  const [createType, setCreateType] = useState<string>("openclaw");
   const [submitting, setSubmitting] = useState(false);
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -142,6 +151,7 @@ export function AgentsPageClient({
   const [editName, setEditName] = useState("");
   const [editRoles, setEditRoles] = useState<string[]>([]);
   const [editPersona, setEditPersona] = useState("");
+  const [editType, setEditType] = useState<string>("openclaw");
   const [saving, setSaving] = useState(false);
 
   // API keys for detail panel
@@ -171,6 +181,7 @@ export function AgentsPageClient({
     // Filter out legacy roles — only keep values in ROLES
     setEditRoles(selectedAgent.roles.filter((r) => (ROLES as readonly string[]).includes(r)));
     setEditPersona(selectedAgent.persona || "");
+    setEditType(selectedAgent.type || "openclaw");
 
     // Fetch API keys
     setLoadingKeys(true);
@@ -210,6 +221,7 @@ export function AgentsPageClient({
       const result = await createAgentAndKeyAction({
         name: createName.trim(),
         roles: createRoles,
+        type: createType,
         persona: createPersona.trim() || null,
       });
 
@@ -223,6 +235,7 @@ export function AgentsPageClient({
             setAgents(
               json.data.map((a: Record<string, unknown>) => ({
                 ...a,
+                type: (a.type as string) || "openclaw",
                 lastActiveAt: a.lastActiveAt
                   ? new Date(a.lastActiveAt as string)
                   : null,
@@ -244,6 +257,7 @@ export function AgentsPageClient({
     setCreateName("");
     setCreateRoles([]);
     setCreatePersona("");
+    setCreateType("openclaw");
     setCreatedKey(null);
     setCopied(false);
   };
@@ -280,6 +294,7 @@ export function AgentsPageClient({
         agentUuid: selectedAgent.uuid,
         name: editName.trim(),
         roles: editRoles,
+        type: editType,
         persona: editPersona.trim() || null,
       });
 
@@ -291,6 +306,7 @@ export function AgentsPageClient({
                   ...a,
                   name: editName.trim(),
                   roles: editRoles,
+                  type: editType,
                   persona: editPersona.trim() || null,
                 }
               : a,
@@ -302,6 +318,7 @@ export function AgentsPageClient({
                 ...prev,
                 name: editName.trim(),
                 roles: editRoles,
+                type: editType,
                 persona: editPersona.trim() || null,
               }
             : null,
@@ -433,6 +450,13 @@ export function AgentsPageClient({
                   ))}
                 </div>
 
+                {/* Type badge */}
+                <div className="mt-2">
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${TYPE_BADGE_CLASSES[agent.type] || "bg-secondary text-muted-foreground"}`}>
+                    {t(`agents.type.${agent.type || "openclaw"}`)}
+                  </span>
+                </div>
+
                 {/* Persona excerpt */}
                 {agent.persona && (
                   <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
@@ -506,6 +530,27 @@ export function AgentsPageClient({
                       placeholder={t("settings.namePlaceholder")}
                       required
                     />
+                  </div>
+
+                  {/* Type */}
+                  <div className="space-y-2">
+                    <Label className="text-[13px]">
+                      {t("agents.fields.type")}
+                    </Label>
+                    <select
+                      value={createType}
+                      onChange={(e) => setCreateType(e.target.value)}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                    >
+                      {AGENT_TYPES.map((agentType) => (
+                        <option key={agentType} value={agentType}>
+                          {t(`agents.type.${agentType}`)}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-muted-foreground">
+                      {t(`agents.typeDesc.${createType}`)}
+                    </p>
                   </div>
 
                   {/* Permissions */}
@@ -596,6 +641,24 @@ export function AgentsPageClient({
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                   />
+                </div>
+
+                {/* Type */}
+                <div className="space-y-2">
+                  <Label className="text-[13px]">
+                    {t("agents.fields.type")}
+                  </Label>
+                  <select
+                    value={editType}
+                    onChange={(e) => setEditType(e.target.value)}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  >
+                    {AGENT_TYPES.map((agentType) => (
+                      <option key={agentType} value={agentType}>
+                        {t(`agents.type.${agentType}`)}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Permissions checkboxes */}
