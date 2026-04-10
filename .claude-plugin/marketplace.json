@@ -11,9 +11,9 @@
       "name": "synapse",
       "source": "./public/synapse-plugin",
       "description": "Synapse research orchestration plugin. Automates session lifecycle, provides 60+ MCP tools for experiment execution, literature search, progress reporting, and autonomous research loops.",
-      "version": "0.5.0",
+      "version": "0.5.1",
       "category": "project-management",
-      "tags": ["research", "orchestration", "mcp", "experiments", "ai-agents", "literature-search"]
+      "tags": ["research", "orchestration", "mcp", "experiments", "ai-agents", "literature-search", "deepxiv"]
     }
   ]
 }
