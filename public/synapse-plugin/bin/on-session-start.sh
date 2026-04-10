@@ -61,6 +61,42 @@ if command -v jq >/dev/null 2>&1; then
   fi
 fi
 
+# Parse pending assignments for Claude context
+ASSIGNMENTS_BLOCK=""
+if command -v jq >/dev/null 2>&1; then
+  # Count experiments
+  EXP_COUNT=$(echo "$CHECKIN_RESULT" | jq -r '.assignments.experiments | length // 0' 2>/dev/null) || EXP_COUNT=0
+  # Count experiment runs (legacy)
+  RUN_COUNT=$(echo "$CHECKIN_RESULT" | jq -r '.assignments.experimentRuns | length // 0' 2>/dev/null) || RUN_COUNT=0
+
+  TOTAL_ASSIGNMENTS=$((EXP_COUNT + RUN_COUNT))
+
+  if [ "$TOTAL_ASSIGNMENTS" -gt 0 ]; then
+    ASSIGNMENTS_BLOCK="
+## Pending Assignments
+
+You have ${TOTAL_ASSIGNMENTS} pending task(s) from Synapse. **Ask the user before starting any of them.**
+"
+    # List experiments
+    if [ "$EXP_COUNT" -gt 0 ]; then
+      EXP_LIST=$(echo "$CHECKIN_RESULT" | jq -r '.assignments.experiments[] | "- [Experiment] \"\(.title)\" (uuid: `\(.uuid)`) — status: \(.status), project: \"\(.projectName)\""' 2>/dev/null) || true
+      if [ -n "$EXP_LIST" ]; then
+        ASSIGNMENTS_BLOCK="${ASSIGNMENTS_BLOCK}
+${EXP_LIST}"
+      fi
+    fi
+
+    # List experiment runs (legacy)
+    if [ "$RUN_COUNT" -gt 0 ]; then
+      RUN_LIST=$(echo "$CHECKIN_RESULT" | jq -r '.assignments.experimentRuns[] | "- [ExperimentRun] \"\(.title)\" (uuid: `\(.uuid)`) — status: \(.status), project: \"\(.project.name // "unknown")\""' 2>/dev/null) || true
+      if [ -n "$RUN_LIST" ]; then
+        ASSIGNMENTS_BLOCK="${ASSIGNMENTS_BLOCK}
+${RUN_LIST}"
+      fi
+    fi
+  fi
+fi
+
 # Build context for Claude (additionalContext)
 CONTEXT="# Synapse Plugin — Active
 
@@ -70,7 +106,7 @@ Session lifecycle hooks are enabled: SubagentStart, SubagentStop, TeammateIdle, 
 ## Checkin Result
 
 ${CHECKIN_RESULT}
-
+${ASSIGNMENTS_BLOCK}
 ## Session Management — IMPORTANT
 
 The Synapse Plugin **fully automates** Synapse session lifecycle:
