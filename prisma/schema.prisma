@@ -70,6 +70,7 @@ model Agent {
   company      Company   @relation(fields: [companyUuid], references: [uuid])
   name         String
   roles        String[]  @default(["researcher"]) // pm | researcher (multi-select)
+  type         String    @default("openclaw") // openclaw | claude_code
   // Agent persona definition (Zero Context Injection)
   persona      String? // Custom persona description (brief)
   systemPrompt String? // Full system prompt (optional, overrides default template)
