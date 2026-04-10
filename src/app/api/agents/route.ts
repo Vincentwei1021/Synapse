@@ -77,7 +77,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   }
 
   // Validate roles
-  const validRoles = ["pre_research", "research", "experiment", "report"];
+  const validRoles = ["pre_research", "research", "experiment", "report", "admin"];
   const roles = body.roles || ["research"];
   for (const role of roles) {
     if (!validRoles.includes(role)) {

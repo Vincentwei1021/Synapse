@@ -99,11 +99,11 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
     }
 
     if (body.roles !== undefined) {
-      const validRoles = ["pre_research", "research", "experiment", "report"];
+      const validRoles = ["pre_research", "research", "experiment", "report", "admin"];
       for (const role of body.roles) {
         if (!validRoles.includes(role)) {
           return errors.validationError({
-            roles: "Roles must be pre_research, research, experiment, or report",
+            roles: "Roles must be pre_research, research, experiment, report, or admin",
           });
         }
       }
