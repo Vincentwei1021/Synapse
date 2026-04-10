@@ -4,6 +4,7 @@ import { withErrorHandler } from "@/lib/api-handler";
 import { errors, success } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isRealtimeAgent } from "@/lib/agent-transport";
 import * as notificationService from "@/services/notification.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
@@ -26,6 +27,18 @@ export const POST = withErrorHandler<{ uuid: string }>(
     const body = await request.json();
     const parsed = bodySchema.safeParse(body);
     if (!parsed.success) return errors.validationError(parsed.error.flatten().fieldErrors);
+
+    // Validate agent supports realtime dispatch
+    const agent = await prisma.agent.findFirst({
+      where: { uuid: parsed.data.agentUuid, companyUuid: auth.companyUuid },
+      select: { type: true },
+    });
+    if (!agent) return errors.notFound("Agent");
+    if (!isRealtimeAgent(agent.type)) {
+      return errors.validationError({
+        agentUuid: "This agent does not support real-time task dispatch. Select an OpenClaw agent.",
+      });
+    }
 
     await notificationService.create({
       companyUuid: auth.companyUuid,

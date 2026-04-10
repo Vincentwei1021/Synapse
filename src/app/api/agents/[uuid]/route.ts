@@ -7,6 +7,7 @@ import { withErrorHandler, parseBody } from "@/lib/api-handler";
 import { success, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
 import { deleteAgent, getAgent, getAgentByUuid, updateAgent } from "@/services/agent.service";
+import { VALID_AGENT_TYPES } from "@/lib/agent-transport";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
@@ -35,6 +36,7 @@ export const GET = withErrorHandler<{ uuid: string }>(
       uuid: agent.uuid,
       name: agent.name,
       roles: agent.roles,
+      type: agent.type,
       persona: agent.persona,
       systemPrompt: agent.systemPrompt,
       ownerUuid: agent.ownerUuid,
@@ -76,6 +78,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
     const body = await parseBody<{
       name?: string;
       roles?: string[];
+      type?: string;
       persona?: string | null;
       systemPrompt?: string | null;
     }>(request);
@@ -83,6 +86,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
     const updateData: {
       name?: string;
       roles?: string[];
+      type?: string;
       persona?: string | null;
       systemPrompt?: string | null;
     } = {};
@@ -111,6 +115,15 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
       updateData.roles = body.roles;
     }
 
+    if (body.type !== undefined) {
+      if (!VALID_AGENT_TYPES.includes(body.type)) {
+        return errors.validationError({
+          type: `Type must be one of: ${VALID_AGENT_TYPES.join(", ")}`,
+        });
+      }
+      updateData.type = body.type;
+    }
+
     if (body.persona !== undefined) {
       updateData.persona = body.persona?.trim() || null;
     }
@@ -125,6 +138,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
       uuid: updated.uuid,
       name: updated.name,
       roles: updated.roles,
+      type: updated.type,
       persona: updated.persona,
       systemPrompt: updated.systemPrompt,
       ownerUuid: updated.ownerUuid,

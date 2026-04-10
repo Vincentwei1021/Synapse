@@ -7,6 +7,7 @@ import { withErrorHandler, parseBody, parsePagination } from "@/lib/api-handler"
 import { success, paginated, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
 import { createAgent, listAgents } from "@/services/agent.service";
+import { VALID_AGENT_TYPES } from "@/lib/agent-transport";
 
 // GET /api/agents - List Agents
 export const GET = withErrorHandler(async (request: NextRequest) => {
@@ -22,17 +23,24 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   const { page, pageSize, skip, take } = parsePagination(request);
 
+  const url = new URL(request.url);
+  const type = url.searchParams.get("type") || undefined;
+  const transport = url.searchParams.get("transport") || undefined;
+
   const { agents, total } = await listAgents({
     companyUuid: auth.companyUuid,
     skip,
     take,
     ownerUuid: auth.actorUuid,
+    type,
+    transport,
   });
 
   const data = agents.map((a) => ({
     uuid: a.uuid,
     name: a.name,
     roles: a.roles,
+    type: a.type,
     persona: a.persona,
     ownerUuid: a.ownerUuid,
     lastActiveAt: a.lastActiveAt?.toISOString() || null,
@@ -58,6 +66,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const body = await parseBody<{
     name: string;
     roles?: string[];
+    type?: string;
     persona?: string | null;
     systemPrompt?: string | null;
   }>(request);
@@ -78,10 +87,18 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     }
   }
 
+  const type = body.type || "openclaw";
+  if (!VALID_AGENT_TYPES.includes(type)) {
+    return errors.validationError({
+      type: `Type must be one of: ${VALID_AGENT_TYPES.join(", ")}`,
+    });
+  }
+
   const agent = await createAgent({
     companyUuid: auth.companyUuid,
     name: body.name.trim(),
     roles,
+    type,
     persona: body.persona?.trim() || null,
     systemPrompt: body.systemPrompt?.trim() || null,
     ownerUuid: auth.actorUuid,
@@ -91,6 +108,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     uuid: agent.uuid,
     name: agent.name,
     roles: agent.roles,
+    type: agent.type,
     persona: agent.persona,
     systemPrompt: agent.systemPrompt,
     ownerUuid: agent.ownerUuid,
