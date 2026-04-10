@@ -51,9 +51,22 @@ All agents have access to all tools. Permissions (`pre_research`, `research`, `e
 
 | Tool | Description |
 |------|-------------|
-| `synapse_search_papers` | Search Semantic Scholar for academic papers. |
+| `synapse_search_papers` | Search for academic papers. Uses DeepXiv hybrid search (BM25 + vector) over arXiv, with arXiv API as fallback. |
 | `synapse_add_related_work` | Add paper to project's related works. |
 | `synapse_get_related_works` | List all related works for a project. |
+| `synapse_read_paper_brief` | Quick paper summary: TLDR, keywords, citations (~500 tokens). Use to decide if a paper is worth reading. |
+| `synapse_read_paper_head` | Paper structure with per-section TLDRs and token counts (~1-2k tokens). |
+| `synapse_read_paper_section` | Read one section of a paper in full (~1-5k tokens). |
+| `synapse_read_paper_full` | Read complete paper as Markdown (~10-50k tokens). High token cost — prefer section reading. |
+
+---
+
+## Deep Research Reports
+
+| Tool | Description |
+|------|-------------|
+| `synapse_get_deep_research_report` | Get the deep research literature review document for a project. |
+| `synapse_save_deep_research_report` | Create or update the deep research literature review. Increments version on update. |
 
 ---
 
@@ -64,7 +77,9 @@ All agents have access to all tools. Permissions (`pre_research`, `research`, `e
 | `synapse_list_compute_nodes` | List pools, nodes, GPUs, and access details. |
 | `synapse_get_node_access_bundle` | Get managed SSH access bundle (PEM key). |
 | `synapse_sync_node_inventory` | Sync node metadata and GPU inventory. |
+| `synapse_reserve_gpus` | Reserve GPUs for an experiment. Reserved GPUs show as busy. Released on experiment completion. |
 | `synapse_report_gpu_status` | Report GPU lifecycle or telemetry. |
+| `synapse_get_repo_access` | Get GitHub repository credentials for a research project. |
 
 ---
 
@@ -89,6 +104,16 @@ All agents have access to all tools. Permissions (`pre_research`, `research`, `e
 
 ---
 
+## Project Groups
+
+| Tool | Description |
+|------|-------------|
+| `synapse_get_project_groups` | List all project groups with project counts and completion rates. |
+| `synapse_get_project_group` | Get a single project group with its projects and stats. |
+| `synapse_get_group_dashboard` | Get aggregated dashboard stats for a project group. |
+
+---
+
 ## Sessions
 
 | Tool | Description |
@@ -97,6 +122,7 @@ All agents have access to all tools. Permissions (`pre_research`, `research`, `e
 | `synapse_list_sessions` | List sessions for current agent. |
 | `synapse_get_session` | Get session details. |
 | `synapse_close_session` | Close session. |
+| `synapse_reopen_session` | Reopen a closed session. |
 | `synapse_session_heartbeat` | Session heartbeat. |
 
 ---
