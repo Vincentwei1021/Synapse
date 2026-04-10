@@ -244,6 +244,7 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
           uuid: true,
           name: true,
           roles: true,
+          type: true,
           persona: true,
           systemPrompt: true,
           ownerUuid: true,
@@ -253,6 +254,25 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
 
       // Get pending Research Questions and Experiment Runs
       const { researchQuestions, experimentRuns } = await assignmentService.getMyAssignments(auth, auth.researchProjectUuids);
+
+      // Get assigned experiments (primary entity)
+      const assignedExperiments = await prisma.experiment.findMany({
+        where: {
+          companyUuid: auth.companyUuid,
+          assigneeUuid: auth.actorUuid,
+          status: { in: ["pending_start", "in_progress"] },
+          ...(auth.researchProjectUuids && auth.researchProjectUuids.length > 0
+            ? { researchProjectUuid: { in: auth.researchProjectUuids } }
+            : {}),
+        },
+        select: {
+          uuid: true,
+          title: true,
+          status: true,
+          researchProject: { select: { uuid: true, name: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      });
 
       // Get unread notification count
       const unreadNotificationCount = await notificationService.getUnreadCount(
@@ -292,11 +312,19 @@ Work style: rigorous, efficient, quality-focused`,
           uuid: agent.uuid,
           name: agent.name,
           roles: agent.roles,
+          type: agent.type,
           persona: effectivePersona,
           systemPrompt: agent.systemPrompt,
           owner: agent.owner ? { uuid: agent.owner.uuid, name: agent.owner.name, email: agent.owner.email } : null,
         },
         assignments: {
+          experiments: assignedExperiments.map((e) => ({
+            uuid: e.uuid,
+            title: e.title,
+            status: e.status,
+            projectUuid: e.researchProject.uuid,
+            projectName: e.researchProject.name,
+          })),
           researchQuestions: researchQuestions.filter((i: { status: string }) => ["assigned", "in_progress"].includes(i.status)),
           experimentRuns: experimentRuns.filter((t: { status: string }) => ["assigned", "in_progress"].includes(t.status)),
         },
