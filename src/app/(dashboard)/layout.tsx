@@ -27,6 +27,7 @@ import { authFetch, logout as authLogout, clearUserManager } from "@/lib/auth-cl
 import { RealtimeProvider } from "@/contexts/realtime-context";
 import { NotificationProvider } from "@/contexts/notification-context";
 import { NotificationBell } from "@/components/notification-bell";
+import { NavigationProgress } from "@/components/navigation-progress";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 interface User {
@@ -420,6 +421,7 @@ export default function DashboardLayout({
 
   return (
     <NotificationProvider>
+    <NavigationProgress />
     <div className="flex min-h-screen bg-background">
       {/* Mobile Header - visible below md */}
       <header className="fixed top-0 left-0 right-0 z-30 flex h-14 items-center justify-between border-b border-border bg-card px-4 md:hidden">
