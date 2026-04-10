@@ -169,6 +169,15 @@ pnpm dev
 open http://localhost:3000
 ```
 
+`.env.example` 中已包含内置登录账户：
+
+| 字段 | 值 |
+|------|-----|
+| 邮箱 | `dev@synapse.local` |
+| 密码 | `synapse123` |
+
+可在 `.env` 中修改 `DEFAULT_USER` 和 `DEFAULT_PASSWORD`。当两个变量均已设置时，Synapse 启用简单的邮箱/密码登录，无需配置 OIDC。
+
 ### 连接 AI Agent
 
 #### 方式一：OpenClaw（推荐）

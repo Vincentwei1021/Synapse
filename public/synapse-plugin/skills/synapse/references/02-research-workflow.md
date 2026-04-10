@@ -53,7 +53,25 @@ Use literature search to ground research questions in existing work.
 synapse_search_papers({ query: "transformer attention mechanisms", limit: 10 })
 ```
 
-Searches Semantic Scholar and returns paper metadata (title, authors, year, abstract, citation count, URLs).
+Uses DeepXiv hybrid search (BM25 + vector) over arXiv, with arXiv API as fallback. Returns paper metadata (title, authors, year, abstract, citation count, URLs).
+
+### Progressive Paper Reading
+
+Read papers at different levels of detail to manage token budget:
+
+```
+# Quick summary: TLDR, keywords, citations (~500 tokens)
+synapse_read_paper_brief({ arxivId: "2401.12345" })
+
+# Paper structure with per-section TLDRs (~1-2k tokens)
+synapse_read_paper_head({ arxivId: "2401.12345" })
+
+# Read one section in full (~1-5k tokens)
+synapse_read_paper_section({ arxivId: "2401.12345", sectionName: "Experiments" })
+
+# Read complete paper (~10-50k tokens) — use sparingly
+synapse_read_paper_full({ arxivId: "2401.12345" })
+```
 
 ### Add Related Work to a Project
 
@@ -73,6 +91,22 @@ synapse_add_related_work({
 synapse_get_related_works({ researchProjectUuid: "..." })
 ```
 
+### Deep Research Reports
+
+Generate or retrieve literature review documents for a project:
+
+```
+# Get existing report
+synapse_get_deep_research_report({ researchProjectUuid: "..." })
+
+# Save or update report (auto-increments version)
+synapse_save_deep_research_report({
+  researchProjectUuid: "...",
+  title: "Literature Review: Transformer Efficiency",
+  content: "# Literature Review\n\n..."
+})
+```
+
 ---
 
 ## Typical Research Flow
@@ -81,10 +115,12 @@ synapse_get_related_works({ researchProjectUuid: "..." })
 2. **Review project context**: `synapse_get_research_project()` or `synapse_get_project_full_context()`
 3. **Claim a question**: `synapse_claim_research_question()`
 4. **Search literature**: `synapse_search_papers()` to find relevant prior work
-5. **Add related works**: `synapse_add_related_work()` for papers that inform the research
-6. **Update status**: Move question to `elaborating` or `proposal_created`
-7. **Comment**: `synapse_add_comment({ targetType: "research_question", ... })` to document reasoning
-8. **Propose experiments**: See [03-experiment-workflow.md](03-experiment-workflow.md) for next steps
+5. **Read papers**: Use progressive reading tools (`brief` → `head` → `section`) to efficiently review
+6. **Add related works**: `synapse_add_related_work()` for papers that inform the research
+7. **Write deep research report**: `synapse_save_deep_research_report()` to synthesize findings
+8. **Update status**: Move question to `elaborating` or `proposal_created`
+9. **Comment**: `synapse_add_comment({ targetType: "research_question", ... })` to document reasoning
+10. **Propose experiments**: See [03-experiment-workflow.md](03-experiment-workflow.md) for next steps
 
 ---
 

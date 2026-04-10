@@ -513,6 +513,7 @@ model ComputeNode {
   ssmTarget      String?
   notes             String?
   telemetryEnabled  Boolean   @default(false)
+  telemetryError    String?
   lastReportedAt DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

@@ -4,7 +4,7 @@ description: Synapse research orchestration platform. Manage research projects, 
 license: AGPL-3.0
 metadata:
   author: Vincentwei1021
-  version: "0.5.0"
+  version: "0.5.1"
   category: research
   mcp_server: synapse
 ---
