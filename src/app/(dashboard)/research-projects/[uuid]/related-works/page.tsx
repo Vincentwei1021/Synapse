@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { prisma } from "@/lib/prisma";
 import { listRelatedWorks } from "@/services/related-work.service";
-import { listAgentSummaries } from "@/services/agent.service";
+import { listRealtimeAgentSummaries } from "@/services/agent.service";
 import { RelatedWorksClient } from "./related-works-client";
 
 interface PageProps {
@@ -37,7 +37,7 @@ export default async function RelatedWorksPage({ params }: PageProps) {
 
   const [works, agents] = await Promise.all([
     listRelatedWorks(auth.companyUuid, projectUuid),
-    listAgentSummaries(auth.companyUuid),
+    listRealtimeAgentSummaries(auth.companyUuid),
   ]);
 
   return (
