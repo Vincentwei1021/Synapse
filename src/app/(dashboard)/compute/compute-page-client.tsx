@@ -259,18 +259,24 @@ export function ComputePageClient({
                           <div className="space-y-2">
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="text-base font-semibold text-foreground">{node.label}</p>
-                              <Switch
-                                checked={node.telemetryEnabled}
-                                onCheckedChange={async (checked) => {
-                                  await fetch(`/api/compute-nodes/${node.uuid}`, {
-                                    method: "PATCH",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ telemetryEnabled: checked }),
-                                  });
-                                  router.refresh();
-                                }}
-                              />
+                              <div className="flex items-center gap-1.5">
+                                <Switch
+                                  checked={node.telemetryEnabled}
+                                  onCheckedChange={async (checked) => {
+                                    await fetch(`/api/compute-nodes/${node.uuid}`, {
+                                      method: "PATCH",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ telemetryEnabled: checked }),
+                                    });
+                                    router.refresh();
+                                  }}
+                                />
+                                <span className="text-xs text-muted-foreground">{t("compute.telemetry")}</span>
+                              </div>
                             </div>
+                            {node.telemetryError && !node.telemetryEnabled && (
+                              <p className="text-xs text-destructive">{node.telemetryError}</p>
+                            )}
                             <div className="grid gap-x-6 gap-y-1 text-sm text-muted-foreground md:grid-cols-2">
                               <p>{t("compute.machine.instanceType")}: {getInstanceTypeDisplay(node) ?? t("compute.machine.pending")}</p>
                               <p>{t("compute.machine.region")}: {getRegionDisplay(node) ?? t("compute.machine.pending")}</p>

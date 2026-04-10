@@ -46,6 +46,7 @@ export interface ComputeNodeSnapshot {
   busyGpuCount: number;
   availableGpuCount: number;
   telemetryEnabled: boolean;
+  telemetryError: string | null;
   inventoryPending: boolean;
   gpus: ComputeGpuSnapshot[];
 }
@@ -80,6 +81,7 @@ function serializeNode(node: {
   region: string | null;
   lifecycle: string;
   telemetryEnabled: boolean;
+  telemetryError: string | null;
   sshHost: string | null;
   sshUser: string | null;
   sshPort: number | null;
@@ -185,6 +187,7 @@ function serializeNode(node: {
     notes: node.notes,
     lastReportedAt: node.lastReportedAt?.toISOString() ?? null,
     telemetryEnabled: node.telemetryEnabled,
+    telemetryError: node.telemetryError ?? null,
     gpuCount: gpus.length,
     busyGpuCount: gpus.filter((gpu) => gpu.computedStatus === "busy").length,
     availableGpuCount: gpus.filter((gpu) => gpu.computedStatus === GPU_AVAILABLE).length,

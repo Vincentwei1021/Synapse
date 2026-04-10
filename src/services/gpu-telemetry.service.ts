@@ -166,11 +166,16 @@ async function pollNode(nodeUuid: string): Promise<void> {
         .filter((gpu): gpu is NonNullable<typeof gpu> => Boolean(gpu)),
     });
 
-    // Reset fail count on success
+    // Reset fail count and clear error on success
     if (entry) {
       entry.failCount = 0;
     }
-  } catch {
+    await prisma.computeNode.update({
+      where: { uuid: nodeUuid },
+      data: { telemetryError: null },
+    }).catch(() => {});
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     if (entry) {
       entry.failCount += 1;
 
@@ -178,11 +183,14 @@ async function pollNode(nodeUuid: string): Promise<void> {
         // Auto-disable telemetry after too many consecutive failures
         await prisma.computeNode.update({
           where: { uuid: nodeUuid },
-          data: { telemetryEnabled: false },
-        }).catch(() => {
-          // Swallow DB errors during cleanup
-        });
+          data: { telemetryEnabled: false, telemetryError: message },
+        }).catch(() => {});
         stopNodeTelemetry(nodeUuid);
+      } else {
+        await prisma.computeNode.update({
+          where: { uuid: nodeUuid },
+          data: { telemetryError: message },
+        }).catch(() => {});
       }
     }
   }
