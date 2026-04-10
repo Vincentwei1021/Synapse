@@ -4,18 +4,22 @@
 
 import { prisma } from "@/lib/prisma";
 import { generateApiKey } from "@/lib/api-key";
+import { getTypesByTransport } from "@/lib/agent-transport";
 
 export interface AgentListParams {
   companyUuid: string;
   skip: number;
   take: number;
   ownerUuid?: string;
+  type?: string;       // filter by exact type
+  transport?: string;  // filter by transport capability (maps to types)
 }
 
 export interface AgentCreateParams {
   companyUuid: string;
   name: string;
   roles: string[];
+  type?: string;
   ownerUuid: string;
   persona?: string | null;
   systemPrompt?: string | null;
@@ -24,6 +28,7 @@ export interface AgentCreateParams {
 export interface AgentUpdateParams {
   name?: string;
   roles?: string[];
+  type?: string;
   persona?: string | null;
   systemPrompt?: string | null;
 }
@@ -36,8 +41,13 @@ export interface ApiKeyCreateParams {
 }
 
 // List agents query
-export async function listAgents({ companyUuid, skip, take, ownerUuid }: AgentListParams) {
-  const where = { companyUuid, ...(ownerUuid ? { ownerUuid } : {}) };
+export async function listAgents({ companyUuid, skip, take, ownerUuid, type, transport }: AgentListParams) {
+  const where: Record<string, unknown> = { companyUuid, ...(ownerUuid ? { ownerUuid } : {}) };
+  if (type) {
+    where.type = type;
+  } else if (transport) {
+    where.type = { in: getTypesByTransport(transport as "realtime" | "poll") };
+  }
   const [agents, total] = await Promise.all([
     prisma.agent.findMany({
       where,
@@ -48,6 +58,7 @@ export async function listAgents({ companyUuid, skip, take, ownerUuid }: AgentLi
         uuid: true,
         name: true,
         roles: true,
+        type: true,
         persona: true,
         ownerUuid: true,
         lastActiveAt: true,
@@ -85,7 +96,7 @@ export async function getAgent(companyUuid: string, uuid: string, ownerUuid?: st
 export async function getAgentByUuid(companyUuid: string, uuid: string, ownerUuid?: string) {
   return prisma.agent.findFirst({
     where: { uuid, companyUuid, ...(ownerUuid ? { ownerUuid } : {}) },
-    select: { uuid: true, name: true, roles: true, ownerUuid: true },
+    select: { uuid: true, name: true, roles: true, type: true, ownerUuid: true },
   });
 }
 
@@ -94,16 +105,18 @@ export async function createAgent({
   companyUuid,
   name,
   roles,
+  type,
   ownerUuid,
   persona,
   systemPrompt,
 }: AgentCreateParams) {
   return prisma.agent.create({
-    data: { companyUuid, name, roles, ownerUuid, persona, systemPrompt },
+    data: { companyUuid, name, roles, type: type || "openclaw", ownerUuid, persona, systemPrompt },
     select: {
       uuid: true,
       name: true,
       roles: true,
+      type: true,
       persona: true,
       systemPrompt: true,
       ownerUuid: true,
@@ -132,6 +145,7 @@ export async function updateAgent(uuid: string, data: AgentUpdateParams, company
       uuid: true,
       name: true,
       roles: true,
+      type: true,
       persona: true,
       systemPrompt: true,
       ownerUuid: true,
@@ -249,7 +263,19 @@ export async function listAgentSummaries(companyUuid: string) {
       uuid: true,
       name: true,
       roles: true,
+      type: true,
     },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
+export async function listRealtimeAgentSummaries(companyUuid: string) {
+  return prisma.agent.findMany({
+    where: {
+      companyUuid,
+      type: { in: getTypesByTransport("realtime") },
+    },
+    select: { uuid: true, name: true, roles: true, type: true },
     orderBy: { createdAt: "asc" },
   });
 }
