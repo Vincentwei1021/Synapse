@@ -274,6 +274,45 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
         orderBy: { createdAt: "asc" },
       });
 
+      // Get research projects with progress summaries
+      const projects = await prisma.researchProject.findMany({
+        where: { companyUuid: auth.companyUuid },
+        select: {
+          uuid: true,
+          name: true,
+          description: true,
+          deepResearchDocUuid: true,
+          researchQuestions: {
+            select: { uuid: true, title: true, status: true },
+            orderBy: { createdAt: "asc" },
+          },
+          _count: {
+            select: { relatedWorks: true },
+          },
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+
+      // Get experiment counts per project (grouped by status)
+      const experimentCountsByProject: Record<string, Record<string, number>> = {};
+      if (projects.length > 0) {
+        const projectUuids = projects.map((p) => p.uuid);
+        const experiments = await prisma.experiment.groupBy({
+          by: ["researchProjectUuid", "status"],
+          where: {
+            companyUuid: auth.companyUuid,
+            researchProjectUuid: { in: projectUuids },
+          },
+          _count: true,
+        });
+        for (const row of experiments) {
+          if (!experimentCountsByProject[row.researchProjectUuid]) {
+            experimentCountsByProject[row.researchProjectUuid] = {};
+          }
+          experimentCountsByProject[row.researchProjectUuid][row.status] = row._count;
+        }
+      }
+
       // Get unread notification count
       const unreadNotificationCount = await notificationService.getUnreadCount(
         auth.companyUuid,
@@ -335,6 +374,19 @@ Work style: rigorous, efficient, quality-focused`,
         notifications: {
           unreadCount: unreadNotificationCount,
         },
+        projects: projects.map((p) => ({
+          uuid: p.uuid,
+          name: p.name,
+          description: p.description,
+          relatedWorksCount: p._count.relatedWorks,
+          deepResearchExists: !!p.deepResearchDocUuid,
+          researchQuestions: p.researchQuestions.map((q) => ({
+            uuid: q.uuid,
+            title: q.title,
+            status: q.status,
+          })),
+          experimentCounts: experimentCountsByProject[p.uuid] || {},
+        })),
       };
 
       return {
