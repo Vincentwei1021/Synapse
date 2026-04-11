@@ -9,7 +9,7 @@ import { clearDeepxivTokenCache } from "@/services/paper-search.service";
  */
 export async function GET(request: NextRequest) {
   const auth = await getAuthContext(request);
-  if (!isUser(auth)) {
+  if (!auth || !isUser(auth)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   const auth = await getAuthContext(request);
-  if (!isUser(auth)) {
+  if (!auth || !isUser(auth)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
