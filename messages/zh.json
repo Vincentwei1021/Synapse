@@ -1542,5 +1542,85 @@
     "groupDescription": "描述",
     "saving": "保存中...",
     "saveChanges": "保存更改"
+  },
+  "onboarding": {
+    "skipSetup": "跳过设置",
+    "skip": "跳过",
+    "next": "下一步",
+    "back": "上一步",
+    "stepOf": "第 {current} 步，共 {total} 步",
+
+    "step1": {
+      "title": "创建你的第一个 Agent",
+      "subtitle": "Agent 是一个 AI 助手，可以代替你运行实验和搜索文献。",
+      "nameLabel": "Agent 名称",
+      "namePlaceholder": "例如：研究助手",
+      "typeLabel": "Agent 类型",
+      "typeClaudeCode": "Claude Code",
+      "typeClaudeCodeDesc": "通过 checkin 在会话开始时获取任务",
+      "typeOpenClaw": "OpenClaw",
+      "typeOpenClawDesc": "通过 SSE 实时接收任务",
+      "rolesLabel": "权限",
+      "rolePreResearch": "文献搜索",
+      "roleResearch": "研究问题",
+      "roleExperiment": "实验",
+      "roleReport": "报告",
+      "roleAdmin": "管理员",
+      "createAgent": "创建 Agent"
+    },
+
+    "step2": {
+      "title": "连接你的 Agent",
+      "subtitle": "使用以下 API Key 和端点配置你的 Agent，然后测试连接。",
+      "apiKeyLabel": "API Key",
+      "apiKeyWarning": "此密钥仅显示一次，请立即复制。",
+      "endpointLabel": "MCP 端点",
+      "configTitle": "配置方法",
+      "configClaudeCode": "将此 MCP 服务器添加到你的 Claude Code 设置中：",
+      "configOpenClaw": "在 OpenClaw 网关中安装 Synapse 插件：",
+      "testConnection": "已配置完成，测试连接",
+      "waiting": "等待 Agent 连接...",
+      "waitingHint": "使用上面的配置启动你的 Agent。此页面将自动检测连接。",
+      "connected": "Agent 已连接！",
+      "timeout": "未检测到连接，请检查 Agent 配置。",
+      "retry": "重试"
+    },
+
+    "step3": {
+      "title": "设置算力",
+      "subtitle": "创建算力池并添加机器，以便 Agent 运行 GPU 任务。",
+      "poolPhase": "创建算力池",
+      "poolNameLabel": "算力池名称",
+      "poolNamePlaceholder": "例如：GPU 集群",
+      "poolDescLabel": "描述",
+      "poolDescPlaceholder": "可选描述",
+      "createPool": "创建算力池",
+      "machinePhase": "添加机器",
+      "hostLabel": "主机名 / IP",
+      "hostPlaceholder": "例如：10.0.1.5",
+      "userLabel": "SSH 用户名",
+      "portLabel": "SSH 端口",
+      "authLabel": "认证方式",
+      "authPassword": "密码",
+      "authKey": "SSH 密钥",
+      "passwordPlaceholder": "SSH 密码",
+      "keyPlaceholder": "在此粘贴私钥内容",
+      "gpuCountLabel": "GPU 数量",
+      "gpuCountHint": "可选 — 首次遥测后自动检测",
+      "addMachine": "添加机器"
+    },
+
+    "complete": {
+      "title": "设置完成！",
+      "summary": "已创建 {agentCount} 个 Agent、{poolCount} 个算力池和 {nodeCount} 台机器。",
+      "redirecting": "正在跳转到项目页..."
+    },
+
+    "sidebar": {
+      "setupProgress": "设置进度",
+      "agentConfigured": "Agent 已配置",
+      "computeConfigured": "算力已配置",
+      "completeSetup": "完成设置"
+    }
   }
 }

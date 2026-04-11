@@ -28,6 +28,7 @@ import { RealtimeProvider } from "@/contexts/realtime-context";
 import { NotificationProvider } from "@/contexts/notification-context";
 import { NotificationBell } from "@/components/notification-bell";
 import { NavigationProgress } from "@/components/navigation-progress";
+import { OnboardingProgress } from "@/components/onboarding-progress";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 interface User {
@@ -61,6 +62,7 @@ export default function DashboardLayout({
   const [loading, setLoading] = useState(true);
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
 
   // Close mobile drawer on navigation
   useEffect(() => {
@@ -217,6 +219,23 @@ export default function DashboardLayout({
     }, 45 * 60 * 1000); // every 45 minutes
     return () => clearInterval(interval);
   }, [user]);
+
+  // Auto-redirect to onboarding for brand-new users
+  useEffect(() => {
+    if (!user || onboardingChecked) return;
+    authFetch("/api/onboarding/status")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) {
+          const s = json.data;
+          if (!s.hasAgent && !s.hasComputePool && !s.hasProject) {
+            router.replace("/onboarding");
+          }
+        }
+      })
+      .catch(() => {})
+      .finally(() => setOnboardingChecked(true));
+  }, [user, onboardingChecked, router]);
 
   if (loading) {
     return (
@@ -390,6 +409,7 @@ export default function DashboardLayout({
         </nav>
       </div>
 
+      <OnboardingProgress />
       {/* User Profile */}
       <div className="p-6">
         <div className="flex items-center gap-2">

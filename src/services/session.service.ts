@@ -96,6 +96,15 @@ export async function createSession(params: SessionCreateParams): Promise<Sessio
     },
   });
 
+  eventBus.emitChange({
+    companyUuid: params.companyUuid,
+    researchProjectUuid: "",
+    entityType: "agent_session",
+    entityUuid: session.uuid,
+    action: "created",
+    actorUuid: params.agentUuid,
+  });
+
   return formatSessionResponse(session);
 }
 

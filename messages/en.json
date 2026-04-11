@@ -1542,5 +1542,85 @@
     "groupDescription": "Description",
     "saving": "Saving...",
     "saveChanges": "Save changes"
+  },
+  "onboarding": {
+    "skipSetup": "Skip setup",
+    "skip": "Skip",
+    "next": "Next",
+    "back": "Back",
+    "stepOf": "Step {current} of {total}",
+
+    "step1": {
+      "title": "Create Your First Agent",
+      "subtitle": "An agent is an AI assistant that runs experiments and searches literature on your behalf.",
+      "nameLabel": "Agent Name",
+      "namePlaceholder": "e.g. Research Assistant",
+      "typeLabel": "Agent Type",
+      "typeClaudeCode": "Claude Code",
+      "typeClaudeCodeDesc": "Discovers tasks at session start via checkin",
+      "typeOpenClaw": "OpenClaw",
+      "typeOpenClawDesc": "Receives tasks in real-time via SSE",
+      "rolesLabel": "Permissions",
+      "rolePreResearch": "Literature Search",
+      "roleResearch": "Research Questions",
+      "roleExperiment": "Experiments",
+      "roleReport": "Reports",
+      "roleAdmin": "Admin",
+      "createAgent": "Create Agent"
+    },
+
+    "step2": {
+      "title": "Connect Your Agent",
+      "subtitle": "Configure your agent with the API key and endpoint below, then test the connection.",
+      "apiKeyLabel": "API Key",
+      "apiKeyWarning": "This key is shown only once. Copy it now.",
+      "endpointLabel": "MCP Endpoint",
+      "configTitle": "Configuration",
+      "configClaudeCode": "Add this MCP server to your Claude Code settings:",
+      "configOpenClaw": "Install the Synapse plugin in your OpenClaw gateway:",
+      "testConnection": "I've configured the agent — Test Connection",
+      "waiting": "Waiting for agent to connect...",
+      "waitingHint": "Start your agent with the configuration above. This page will detect the connection automatically.",
+      "connected": "Agent connected!",
+      "timeout": "No connection detected. Please check your agent configuration.",
+      "retry": "Retry"
+    },
+
+    "step3": {
+      "title": "Set Up Compute",
+      "subtitle": "Create a compute pool and add a machine so agents can run GPU workloads.",
+      "poolPhase": "Create Compute Pool",
+      "poolNameLabel": "Pool Name",
+      "poolNamePlaceholder": "e.g. GPU Cluster",
+      "poolDescLabel": "Description",
+      "poolDescPlaceholder": "Optional description",
+      "createPool": "Create Pool",
+      "machinePhase": "Add Machine",
+      "hostLabel": "Hostname / IP",
+      "hostPlaceholder": "e.g. 10.0.1.5",
+      "userLabel": "SSH User",
+      "portLabel": "SSH Port",
+      "authLabel": "Authentication",
+      "authPassword": "Password",
+      "authKey": "SSH Key",
+      "passwordPlaceholder": "SSH password",
+      "keyPlaceholder": "Paste private key content here",
+      "gpuCountLabel": "GPU Count",
+      "gpuCountHint": "Optional — auto-detected after first telemetry",
+      "addMachine": "Add Machine"
+    },
+
+    "complete": {
+      "title": "Setup Complete!",
+      "summary": "Created {agentCount} agent, {poolCount} compute pool, and {nodeCount} machine.",
+      "redirecting": "Redirecting to projects..."
+    },
+
+    "sidebar": {
+      "setupProgress": "Setup Progress",
+      "agentConfigured": "Agent configured",
+      "computeConfigured": "Compute configured",
+      "completeSetup": "Complete setup"
+    }
   }
 }
