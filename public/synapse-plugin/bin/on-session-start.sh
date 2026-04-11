@@ -97,6 +97,92 @@ ${RUN_LIST}"
   fi
 fi
 
+# Parse research projects for Claude context
+PROJECTS_BLOCK=""
+if command -v jq >/dev/null 2>&1; then
+  PROJECT_COUNT=$(echo "$CHECKIN_RESULT" | jq -r '.projects | length // 0' 2>/dev/null) || PROJECT_COUNT=0
+
+  if [ "$PROJECT_COUNT" -gt 0 ]; then
+    PROJECTS_BLOCK="
+## Research Projects
+
+Ask the user which project to work on:
+"
+    PROJECT_LIST=$(echo "$CHECKIN_RESULT" | jq -r '
+      .projects | to_entries[] |
+      "\(.key + 1). \"\(.value.name)\" (uuid: `\(.value.uuid)`)\n   \(.value.relatedWorksCount) papers | deep research: \(if .value.deepResearchExists then "yes" else "no" end) | \(.value.researchQuestions | length) questions | experiments: \([.value.experimentCounts | to_entries[] | "\(.key)=\(.value)"] | join(", ") | if . == "" then "none" else . end)"
+    ' 2>/dev/null) || true
+    if [ -n "$PROJECT_LIST" ]; then
+      PROJECTS_BLOCK="${PROJECTS_BLOCK}
+${PROJECT_LIST}"
+    fi
+  else
+    PROJECTS_BLOCK="
+## Research Projects
+
+No research projects found. The user can create one on the Synapse web UI."
+  fi
+fi
+
+# Static workflow guide for Research Copilot
+WORKFLOW_GUIDE="
+## Research Copilot — Workflow Guide
+
+When the user selects a project:
+
+1. Call \`synapse_get_project_full_context({ researchProjectUuid })\` to load full context.
+2. Present the project's current state to the user:
+   - Collected papers (count + highlights if any)
+   - Deep research status
+   - Research questions (list titles)
+   - Experiments (count by status, key results if completed)
+3. Explain the full research lifecycle:
+   a. **Paper Search** — find and collect relevant papers
+   b. **Deep Research** — synthesize papers into a literature review
+   c. **Research Questions** — formulate specific research questions
+   d. **Experiments** — design, execute, and submit results
+   e. **Analysis & Iteration** — analyze results, identify gaps, loop back
+4. Based on current state, suggest the most natural next step:
+   - relatedWorksCount = 0 → suggest starting with Paper Search
+   - relatedWorksCount > 0 but deepResearchExists = false → suggest Deep Research
+   - no research questions → suggest formulating Research Questions
+   - no experiments → suggest proposing Experiments
+   - some experiments completed → suggest analyzing results and planning next iteration
+5. Tell the user they can jump to any stage — the suggestion is a guide, not a constraint.
+
+### Tool Reference by Stage
+
+**Paper Search:**
+  - \`synapse_search_papers({ query })\` — search for papers
+  - \`synapse_read_paper_brief({ arxivId })\` — quick summary (~500 tokens)
+  - \`synapse_read_paper_head({ arxivId })\` — section structure (~1-2k tokens)
+  - \`synapse_read_paper_section({ arxivId, sectionTitle })\` — full section
+  - \`synapse_add_related_work({ researchProjectUuid, ... })\` — add paper to project
+  - \`synapse_get_related_works({ researchProjectUuid })\` — list collected papers
+
+**Deep Research:**
+  - \`synapse_get_related_works\` — review collected papers
+  - \`synapse_get_deep_research_report({ researchProjectUuid })\` — get existing report
+  - \`synapse_upsert_deep_research_report({ researchProjectUuid, content })\` — create/update report
+
+**Research Questions:**
+  - \`synapse_get_research_project({ researchProjectUuid })\` — project context
+  - Research question CRUD is available if agent has the research role
+
+**Experiments:**
+  - \`synapse_start_experiment({ experimentUuid })\` — begin execution
+  - \`synapse_report_experiment_progress({ experimentUuid, message })\` — report progress
+  - \`synapse_submit_experiment_results({ experimentUuid, results, outcome })\` — submit results
+  - \`synapse_get_experiment({ experimentUuid })\` — check experiment details
+
+**Analysis:**
+  - \`synapse_get_project_full_context({ researchProjectUuid })\` — reload full state
+  - Review experiment outcomes and propose next steps
+
+### Language
+
+Respond in the same language the user uses. If the user writes in Chinese, respond in Chinese. If in English, respond in English."
+
 # Build context for Claude (additionalContext)
 CONTEXT="# Synapse Plugin — Active
 
@@ -107,6 +193,9 @@ Session lifecycle hooks are enabled: SubagentStart, SubagentStop, TeammateIdle, 
 
 ${CHECKIN_RESULT}
 ${ASSIGNMENTS_BLOCK}
+${PROJECTS_BLOCK}
+${WORKFLOW_GUIDE}
+
 ## Session Management — IMPORTANT
 
 The Synapse Plugin **fully automates** Synapse session lifecycle:
