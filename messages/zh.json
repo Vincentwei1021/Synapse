@@ -834,7 +834,16 @@
       "name": "智能体名称",
       "persona": "人格描述",
       "personaPlaceholder": "简述此智能体的个性和工作方式",
-      "permissions": "权限"
+      "permissions": "权限",
+      "type": "类型"
+    },
+    "type": {
+      "openclaw": "OpenClaw",
+      "claude_code": "Claude Code"
+    },
+    "typeDesc": {
+      "openclaw": "通过 SSE 通知实时接收任务",
+      "claude_code": "在会话启动时发现任务"
     },
     "detail": {
       "apiKeys": "API 密钥",

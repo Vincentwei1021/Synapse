@@ -147,7 +147,7 @@ The most important active models are:
 
 - `Company`
 - `User`
-- `Agent` (has composable `roles`: `pre_research`, `research`, `experiment`, `report`, `admin`)
+- `Agent` (has composable `roles`: `pre_research`, `research`, `experiment`, `report`, `admin`; has `type`: `openclaw` | `claude_code`)
 - `ApiKey`
 - `ProjectGroup`
 - `ResearchProject` (has `computePoolUuid`, `autonomousLoopEnabled/AgentUuid`, `autoSearchEnabled/AgentUuid`)
@@ -268,6 +268,17 @@ Agents use 5 composable permissions stored in the `roles` field:
 - `admin`: create/delete research projects, manage project groups, review/close/delete research questions
 
 These replace the old roles (`researcher_agent`, `research_lead_agent`, `pi_agent`). Old role values are still accepted for backward compatibility but new agents should use the new permission names. An agent can have any combination of permissions.
+
+### Agent types
+
+Agents have a `type` field that determines their notification transport capability:
+
+- `openclaw` (default) — receives tasks in real-time via SSE notification stream
+- `claude_code` — discovers tasks at session start via checkin assignments
+
+Web UI task dispatch features (auto-search, deep research, autonomous loop) only list `realtime` transport agents (currently `openclaw`). Experiment assignment dropdowns show all agent types.
+
+The mapping from type to transport is in `src/lib/agent-transport.ts`. When adding new agent types, add an entry there.
 
 ### Experiment live status
 
@@ -620,6 +631,9 @@ Recent examples:
 
 21. Forgetting notification permission grouping
    Notification preferences in Settings are grouped by the 5 agent permission categories (pre_research, research, experiment, report, admin). Keep new notification types in the correct group.
+
+22. Dispatching tasks to poll-transport agents
+   Auto-search, deep research, and autonomous loop require realtime transport. Only agents with `type = "openclaw"` (or future realtime types) can receive these. The API validates this — UI dropdowns should also filter by `?transport=realtime`.
 
 ## Release Conventions
 

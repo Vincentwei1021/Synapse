@@ -87,6 +87,7 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
 export function ExperimentsBoard({
   experiments,
   agents,
+  realtimeAgents,
   initialSelectedExperimentUuid = null,
   viewerUuid,
   projectUuid,
@@ -97,6 +98,7 @@ export function ExperimentsBoard({
 }: {
   experiments: ExperimentResponse[];
   agents: Array<{ uuid: string; name: string }>;
+  realtimeAgents: Array<{ uuid: string; name: string }>;
   initialSelectedExperimentUuid?: string | null;
   viewerUuid: string;
   projectUuid: string;
@@ -368,7 +370,7 @@ export function ExperimentsBoard({
   };
 
   const activeAgentName = loopEnabled && loopAgentUuid
-    ? agents.find((a) => a.uuid === loopAgentUuid)?.name ?? ""
+    ? realtimeAgents.find((a) => a.uuid === loopAgentUuid)?.name ?? ""
     : "";
 
   return (
@@ -426,7 +428,7 @@ export function ExperimentsBoard({
               className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm"
             >
               <option value="">{t("experiments.selectAgent")}</option>
-              {agents.map((a) => (
+              {realtimeAgents.map((a) => (
                 <option key={a.uuid} value={a.uuid}>
                   {a.name}
                 </option>
