@@ -88,9 +88,10 @@ export default function OnboardingPage() {
     setWizardState((prev) => ({ ...prev, poolUuid, nodeAdded: true }));
     invalidateOnboardingCache();
     setTimeout(() => {
-      router.push("/research-projects");
+      // Full page navigation to ensure server components re-fetch fresh data
+      window.location.href = "/research-projects";
     }, 3000);
-  }, [router]);
+  }, []);
 
   const handleSkipStep = () => {
     if (currentStep < TOTAL_STEPS) {

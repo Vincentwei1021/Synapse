@@ -41,7 +41,7 @@ RUN pnpm build
 # Production stage (standalone)
 FROM node:22-alpine AS production
 
-RUN apk add --no-cache openssl && corepack enable
+RUN apk add --no-cache openssl openssh-client && corepack enable
 
 WORKDIR /app
 
