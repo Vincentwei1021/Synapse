@@ -64,6 +64,17 @@ export default function LoginPage() {
         return;
       }
 
+      // Check if user needs onboarding before redirecting
+      try {
+        const statusRes = await fetch("/api/onboarding/status");
+        const statusData = await statusRes.json();
+        if (statusData.success && !statusData.data.hasAgent && !statusData.data.hasComputeNode && !statusData.data.hasProject) {
+          router.push("/onboarding");
+          return;
+        }
+      } catch {
+        // Fall through to default redirect
+      }
       router.push("/research-projects");
     } catch {
       setError(t("login.networkError"));
