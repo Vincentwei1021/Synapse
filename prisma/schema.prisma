@@ -137,6 +137,7 @@ model ResearchProject {
   computePoolUuid      String?
   autonomousLoopEnabled    Boolean  @default(false)
   autonomousLoopAgentUuid  String?
+  autonomousLoopMode       String?  @default("human_review")
   autoSearchEnabled        Boolean  @default(false)
   autoSearchAgentUuid      String?
   deepResearchDocUuid      String?
