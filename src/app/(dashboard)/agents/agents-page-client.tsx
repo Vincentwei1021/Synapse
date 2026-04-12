@@ -12,6 +12,7 @@ import {
   Key,
   Loader2,
   Plus,
+  RefreshCw,
   X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -217,6 +218,11 @@ export function AgentsPageClient({
     setGeneratingKey(true);
     setGeneratedKey(null);
     try {
+      // Delete all existing keys for this agent first
+      for (const existingKey of agentApiKeys) {
+        await fetch(`/api/api-keys/${existingKey.uuid}`, { method: "DELETE" });
+      }
+      // Create new key
       const res = await fetch("/api/api-keys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -774,9 +780,25 @@ export function AgentsPageClient({
                       {t("common.loading")}
                     </p>
                   ) : agentApiKeys.length === 0 ? (
-                    <p className="text-xs italic text-muted-foreground">
-                      {t("settings.noApiKeys")}
-                    </p>
+                    <div className="space-y-2">
+                      <p className="text-xs italic text-muted-foreground">
+                        {t("settings.noApiKeys")}
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs"
+                        onClick={handleGenerateKey}
+                        disabled={generatingKey}
+                      >
+                        {generatingKey ? (
+                          <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                        ) : (
+                          <Plus className="mr-2 h-3 w-3" />
+                        )}
+                        {t("settings.createApiKey")}
+                      </Button>
+                    </div>
                   ) : (
                     <div className="space-y-2">
                       {agentApiKeys.map((key) => (
@@ -799,32 +821,24 @@ export function AgentsPageClient({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                            className="h-7 px-2 text-xs"
                             onClick={() => {
                               setKeyToDelete(key.uuid);
-                              setDeleteConfirmOpen(true);
+                              handleGenerateKey();
                             }}
+                            disabled={generatingKey}
                           >
-                            {t("common.delete")}
+                            {generatingKey ? (
+                              <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                            ) : (
+                              <RefreshCw className="mr-1.5 h-3 w-3" />
+                            )}
+                            {t("agents.detail.regenerate")}
                           </Button>
                         </div>
                       ))}
                     </div>
                   )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full text-xs"
-                    onClick={handleGenerateKey}
-                    disabled={generatingKey}
-                  >
-                    {generatingKey ? (
-                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                    ) : (
-                      <Plus className="mr-2 h-3 w-3" />
-                    )}
-                    {t("settings.createApiKey")}
-                  </Button>
                 </div>
 
                 <div className="border-t border-border" />

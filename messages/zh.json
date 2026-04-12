@@ -849,7 +849,8 @@
       "apiKeys": "API 密钥",
       "sessions": "会话",
       "noSessions": "暂无会话",
-      "lastActive": "上次活跃"
+      "lastActive": "上次活跃",
+      "regenerate": "重新生成"
     },
     "time": {
       "justNow": "刚刚",
@@ -1609,7 +1610,9 @@
       "keyUpload": "上传 .pem 密钥文件",
       "gpuCountLabel": "GPU 数量",
       "gpuCountHint": "可选 — 首次遥测后自动检测",
-      "addMachine": "添加机器"
+      "addMachine": "添加机器",
+      "probing": "正在测试 SSH 连接...",
+      "probingHint": "正在连接机器并检测 GPU 硬件信息，最多需要一分钟。"
     },
 
     "complete": {

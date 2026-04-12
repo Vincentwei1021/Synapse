@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { Check, X, ArrowRight } from "lucide-react";
@@ -11,22 +11,33 @@ interface OnboardingStatus {
   hasComputeNode: boolean;
 }
 
+// Module-level cache to prevent re-fetching across remounts
+let cachedStatus: OnboardingStatus | null = null;
+let fetchPromise: Promise<void> | null = null;
+
 export function OnboardingProgress() {
   const t = useTranslations("onboarding.sidebar");
-  const [status, setStatus] = useState<OnboardingStatus | null>(null);
-  const fetchedRef = useRef(false);
+  const [status, setStatus] = useState<OnboardingStatus | null>(cachedStatus);
 
   useEffect(() => {
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
-    authFetch("/api/onboarding/status")
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.success) {
-          setStatus({ hasAgent: json.data.hasAgent, hasComputeNode: json.data.hasComputeNode });
-        }
-      })
-      .catch(() => {});
+    if (cachedStatus) {
+      setStatus(cachedStatus);
+      return;
+    }
+    if (!fetchPromise) {
+      fetchPromise = authFetch("/api/onboarding/status")
+        .then((res) => res.json())
+        .then((json) => {
+          if (json.success) {
+            cachedStatus = { hasAgent: json.data.hasAgent, hasComputeNode: json.data.hasComputeNode };
+          }
+        })
+        .catch(() => {})
+        .finally(() => { fetchPromise = null; });
+    }
+    fetchPromise.then(() => {
+      if (cachedStatus) setStatus(cachedStatus);
+    });
   }, []);
 
   // Don't render if status unknown or everything is set up

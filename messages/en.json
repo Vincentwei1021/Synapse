@@ -849,7 +849,8 @@
       "apiKeys": "API Keys",
       "sessions": "Sessions",
       "noSessions": "No sessions",
-      "lastActive": "Last active"
+      "lastActive": "Last active",
+      "regenerate": "Regenerate"
     },
     "time": {
       "justNow": "just now",
@@ -1609,7 +1610,9 @@
       "keyUpload": "Upload .pem key file",
       "gpuCountLabel": "GPU Count",
       "gpuCountHint": "Optional — auto-detected after first telemetry",
-      "addMachine": "Add Machine"
+      "addMachine": "Add Machine",
+      "probing": "Testing SSH connection...",
+      "probingHint": "Connecting to the machine and detecting GPU inventory. This may take up to a minute."
     },
 
     "complete": {

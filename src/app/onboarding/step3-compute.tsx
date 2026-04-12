@@ -14,7 +14,7 @@ interface Props {
   onSkip: () => void;
 }
 
-type Phase = "pool" | "machine" | "done";
+type Phase = "pool" | "machine" | "probing" | "done";
 
 export function OnboardingStep3({ onComplete, onSkip }: Props) {
   const t = useTranslations("onboarding.step3");
@@ -93,10 +93,32 @@ export function OnboardingStep3({ onComplete, onSkip }: Props) {
       });
       const json = await res.json();
       if (json.success) {
-        setPhase("done");
-        onComplete(poolUuid);
+        // Machine created — server fires probeNodeOnce in the background.
+        // Poll onboarding status to wait for SSH probe to succeed (lastReportedAt set).
+        setPhase("probing");
+        const maxAttempts = 12; // 12 * 5s = 60s
+        let attempt = 0;
+        const poll = setInterval(async () => {
+          attempt++;
+          try {
+            const statusRes = await authFetch("/api/onboarding/status");
+            const statusJson = await statusRes.json();
+            if (statusJson.success && statusJson.data.hasComputeNode) {
+              clearInterval(poll);
+              setPhase("done");
+              onComplete(poolUuid);
+            } else if (attempt >= maxAttempts) {
+              clearInterval(poll);
+              // Probe didn't succeed in time — still mark as done but note the issue
+              setPhase("done");
+              onComplete(poolUuid);
+            }
+          } catch {
+            // ignore
+          }
+        }, 5000);
       } else {
-        setError(json.error || "Failed to add machine");
+        setError(typeof json.error === "string" ? json.error : json.error?.message || "Failed to add machine");
       }
     } catch {
       setError("Network error");
@@ -261,6 +283,14 @@ export function OnboardingStep3({ onComplete, onSkip }: Props) {
               {t("addMachine")}
             </Button>
           </div>
+        </div>
+      )}
+
+      {phase === "probing" && (
+        <div className="mt-8 flex flex-col items-center gap-3 py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm font-medium text-foreground">{t("probing")}</p>
+          <p className="text-xs text-muted-foreground text-center max-w-sm">{t("probingHint")}</p>
         </div>
       )}
 
