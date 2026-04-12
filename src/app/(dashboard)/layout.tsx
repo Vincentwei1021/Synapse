@@ -26,6 +26,7 @@ import {
 import { authFetch, logout as authLogout, clearUserManager } from "@/lib/auth-client";
 import { RealtimeProvider } from "@/contexts/realtime-context";
 import { NotificationProvider } from "@/contexts/notification-context";
+import { ToastProvider } from "@/contexts/toast-context";
 import { NotificationBell } from "@/components/notification-bell";
 import { NavigationProgress } from "@/components/navigation-progress";
 import { OnboardingProgress } from "@/components/onboarding-progress";
@@ -440,6 +441,7 @@ export default function DashboardLayout({
   };
 
   return (
+    <ToastProvider>
     <NotificationProvider>
     <NavigationProgress />
     <div className="flex min-h-screen bg-background">
@@ -479,5 +481,6 @@ export default function DashboardLayout({
       )}
     </div>
     </NotificationProvider>
+    </ToastProvider>
   );
 }

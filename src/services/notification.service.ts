@@ -172,6 +172,8 @@ export async function create(
   eventBus.emit(`notification:${params.recipientType}:${params.recipientUuid}`, {
     type: "new_notification",
     notificationUuid: notification.uuid,
+    action: params.action,
+    message: params.message,
     unreadCount,
   });
 
@@ -227,11 +229,18 @@ export async function createBatch(
         },
       });
 
+      // Find the first notification for this recipient to include action/message in the event
+      const recipientNotification = notifications.find(
+        (n) => n.recipientType === recipientType && n.recipientUuid === recipientUuid
+      );
+
       eventBus.emit(`notification:${recipientType}:${recipientUuid}`, {
         type: "new_notification",
         notificationUuid: created.find(
           (n) => n.recipientType === recipientType && n.recipientUuid === recipientUuid
         )?.uuid,
+        action: recipientNotification?.action,
+        message: recipientNotification?.message,
         unreadCount,
       });
     })

@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { authFetch } from "@/lib/auth-client";
+import { useToast } from "@/contexts/toast-context";
 
 interface NotificationContextType {
   unreadCount: number;
@@ -23,9 +24,25 @@ interface NotificationProviderProps {
   children: ReactNode;
 }
 
+const TOAST_MAP: Record<string, { category: string; color: string }> = {
+  auto_search_started: { category: "Search", color: "#3b82f6" },
+  auto_search_completed: { category: "Search", color: "#3b82f6" },
+  auto_search_failed: { category: "Search", color: "#ef4444" },
+  deep_research_requested: { category: "Research", color: "#a855f7" },
+  deep_research_completed: { category: "Research", color: "#a855f7" },
+  deep_research_failed: { category: "Research", color: "#ef4444" },
+  experiment_status_changed: { category: "Experiment", color: "#818cf8" },
+  experiment_progress: { category: "Experiment", color: "#818cf8" },
+  experiment_completed: { category: "Experiment", color: "#818cf8" },
+  autonomous_loop_triggered: { category: "Loop", color: "#f59e0b" },
+  experiment_auto_proposed: { category: "Loop", color: "#22c55e" },
+  synthesis_updated: { category: "Loop", color: "#06b6d4" },
+};
+
 export function NotificationProvider({ children }: NotificationProviderProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   const subscribersRef = useRef<Set<() => void>>(new Set());
+  const { addToast } = useToast();
 
   const notify = useCallback(() => {
     subscribersRef.current.forEach((cb) => cb());
@@ -64,6 +81,17 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
           const data = JSON.parse(event.data);
           if (typeof data.unreadCount === "number") {
             setUnreadCount(data.unreadCount);
+          }
+          // Fire toast for mapped notification actions
+          if (data.action && data.message) {
+            const toastConfig = TOAST_MAP[data.action];
+            if (toastConfig) {
+              addToast({
+                category: toastConfig.category,
+                color: toastConfig.color,
+                message: data.message,
+              });
+            }
           }
         } catch {
           // Ignore parse errors
@@ -104,7 +132,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       clearTimeout(debounceTimer);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [fetchUnreadCount, notify]);
+  }, [fetchUnreadCount, notify, addToast]);
 
   const contextValue = useMemo(
     () => ({ unreadCount, refreshNotifications }),
