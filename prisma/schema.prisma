@@ -692,6 +692,13 @@ model NotificationPreference {
   hypothesisFormulationRequested Boolean  @default(true) @map("elaborationRequested")
   hypothesisFormulationAnswered  Boolean  @default(true) @map("elaborationAnswered")
   experimentCompleted            Boolean  @default(true)
+  experimentAutoProposed         Boolean  @default(true)
+  experimentStatusChanged        Boolean  @default(true)
+  experimentProgress             Boolean  @default(true)
+  synthesisUpdated               Boolean  @default(true)
+  autoSearchCompleted            Boolean  @default(true)
+  deepResearchCompleted          Boolean  @default(true)
+  autonomousLoopTriggered        Boolean  @default(true)
   mentioned                      Boolean  @default(true)
   createdAt                      DateTime @default(now())
   updatedAt                      DateTime @updatedAt

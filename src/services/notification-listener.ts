@@ -33,6 +33,16 @@ function resolveNotificationType(action: string, targetType: string): string | n
     "research_question:hypothesis_formulation_followup": "hypothesis_formulation_requested",
     "research_question:hypothesis_formulation_resolved": "hypothesis_formulation_answered",
     "research_question:hypothesis_formulation_skipped": "hypothesis_formulation_answered",
+    // Experiment lifecycle events
+    "experiment:status_changed": "experiment_status_changed",
+    "experiment:completed": "experiment_completed",
+    "experiment:progress": "experiment_progress",
+    // Project-level autonomous events
+    "research_project:autonomous_loop_triggered": "autonomous_loop_triggered",
+    "research_project:experiment_auto_proposed": "experiment_auto_proposed",
+    "research_project:synthesis_updated": "synthesis_updated",
+    "research_project:auto_search_completed": "auto_search_completed",
+    "research_project:deep_research_completed": "deep_research_completed",
   };
   return mapping[key] ?? null;
 }
@@ -51,6 +61,14 @@ const PREF_FIELD_MAP: Record<string, keyof notificationService.NotificationPrefe
   comment_added: "commentAdded",
   hypothesis_formulation_requested: "hypothesisFormulationRequested",
   hypothesis_formulation_answered: "hypothesisFormulationAnswered",
+  experiment_completed: "experimentCompleted",
+  experiment_status_changed: "experimentStatusChanged",
+  experiment_progress: "experimentProgress",
+  experiment_auto_proposed: "experimentAutoProposed",
+  synthesis_updated: "synthesisUpdated",
+  auto_search_completed: "autoSearchCompleted",
+  deep_research_completed: "deepResearchCompleted",
+  autonomous_loop_triggered: "autonomousLoopTriggered",
   mentioned: "mentioned",
 };
 

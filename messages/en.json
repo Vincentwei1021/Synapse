@@ -990,6 +990,14 @@
     "designApproved": "Experiment design approved",
     "designRejected": "Experiment design rejected",
     "commentAdded": "Comment added",
+    "experimentCompleted": "Experiment completed",
+    "prefExperimentStatusChanged": "Experiment status changed (live)",
+    "prefExperimentProgress": "Experiment progress updates",
+    "prefExperimentAutoProposed": "Experiment auto-proposed",
+    "prefAutonomousLoopTriggered": "Autonomous loop triggered",
+    "prefSynthesisUpdated": "Synthesis updated",
+    "autoSearchCompleted": "Auto-search completed",
+    "deepResearchCompleted": "Deep research completed",
     "mentioned": "Mentioned"
   }
   },

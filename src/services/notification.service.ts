@@ -65,6 +65,14 @@ export interface NotificationPreferenceFields {
   commentAdded?: boolean;
   hypothesisFormulationRequested?: boolean;
   hypothesisFormulationAnswered?: boolean;
+  experimentCompleted?: boolean;
+  experimentAutoProposed?: boolean;
+  experimentStatusChanged?: boolean;
+  experimentProgress?: boolean;
+  synthesisUpdated?: boolean;
+  autoSearchCompleted?: boolean;
+  deepResearchCompleted?: boolean;
+  autonomousLoopTriggered?: boolean;
   mentioned?: boolean;
 }
 
@@ -83,6 +91,14 @@ export interface NotificationPreferenceResponse {
   commentAdded: boolean;
   hypothesisFormulationRequested: boolean;
   hypothesisFormulationAnswered: boolean;
+  experimentCompleted: boolean;
+  experimentAutoProposed: boolean;
+  experimentStatusChanged: boolean;
+  experimentProgress: boolean;
+  synthesisUpdated: boolean;
+  autoSearchCompleted: boolean;
+  deepResearchCompleted: boolean;
+  autonomousLoopTriggered: boolean;
   mentioned: boolean;
 }
 

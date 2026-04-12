@@ -990,6 +990,14 @@
     "designApproved": "实验设计已批准",
     "designRejected": "实验设计被拒绝",
     "commentAdded": "新评论",
+    "experimentCompleted": "实验完成",
+    "prefExperimentStatusChanged": "实验状态变更（实时）",
+    "prefExperimentProgress": "实验进度更新",
+    "prefExperimentAutoProposed": "自动提出实验",
+    "prefAutonomousLoopTriggered": "自主闭环触发",
+    "prefSynthesisUpdated": "综述更新",
+    "autoSearchCompleted": "自动搜索完成",
+    "deepResearchCompleted": "深度研究完成",
     "mentioned": "被提及"
   }
   },
