@@ -225,14 +225,14 @@ function ToastCard({ toast, isExiting, onDismiss }: ToastCardProps) {
     <button
       type="button"
       onClick={() => onDismiss(toast.id)}
-      className="flex items-start gap-3 rounded-xl border border-border/40 bg-card/95 px-4 py-3 shadow-lg backdrop-blur-sm transition-transform min-w-[280px] max-w-xs cursor-pointer text-left"
+      className="flex items-start gap-3 rounded-xl border border-white/10 bg-zinc-900/95 px-4 py-3 shadow-2xl shadow-black/40 backdrop-blur-sm transition-transform min-w-[280px] max-w-xs cursor-pointer text-left"
       style={{ animation }}
     >
       {/* Left column: dot + category */}
       <div className="flex flex-col items-center gap-1 pt-0.5">
         <span
           className="block h-2 w-2 shrink-0 rounded-full"
-          style={{ backgroundColor: toast.color }}
+          style={{ backgroundColor: toast.color, boxShadow: `0 0 6px ${toast.color}` }}
         />
         <span
           className="text-[11px] font-semibold leading-tight"
@@ -243,7 +243,7 @@ function ToastCard({ toast, isExiting, onDismiss }: ToastCardProps) {
       </div>
 
       {/* Message */}
-      <span className="text-[13px] leading-snug text-foreground/80">
+      <span className="text-[13px] leading-snug text-white/90">
         {toast.message}
       </span>
     </button>

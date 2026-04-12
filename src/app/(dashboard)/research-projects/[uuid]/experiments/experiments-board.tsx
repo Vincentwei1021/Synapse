@@ -375,110 +375,129 @@ export function ExperimentsBoard({
 
   return (
     <>
-      {/* Autonomous Loop Control */}
-      <div className="mb-4 flex justify-end" ref={loopDropdownRef}>
-        <div className="relative">
-          {loopEnabled ? (
-            /* ACTIVE state: compact status bar */
-            <div className="flex items-center gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5">
-              <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse" />
-              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                {loopMode === "full_auto" ? t("experiments.fullAutoMode") : t("experiments.humanReviewMode")}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {t("experiments.via")} {realtimeAgents.find((a) => a.uuid === loopAgentUuid)?.name ?? "Agent"}
-              </span>
-              <button
-                onClick={async () => {
-                  await updateAutonomousLoop(false, "", loopMode);
-                  setLoopDropdownOpen(false);
-                  setLoopSelectedMode(null);
-                }}
-                className="ml-1 rounded-md border border-red-500/30 px-2 py-0.5 text-[11px] text-red-400 hover:bg-red-500/10 transition-colors"
-              >
-                {t("experiments.stop")}
-              </button>
-            </div>
-          ) : (
-            /* OFF state: dropdown button */
-            <>
-              <button
-                onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
-                className="flex items-center gap-2 rounded-lg border border-indigo-500/40 bg-gradient-to-r from-indigo-950 to-indigo-900 px-3 py-1.5 text-xs text-indigo-200 hover:border-indigo-500/60 transition-colors"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-indigo-400">
-                  <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
-                </svg>
-                {t("experiments.startAutonomousLoop")}
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-indigo-400 transition-transform ${loopDropdownOpen ? "rotate-180" : ""}`}>
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
-              </button>
+      {/* Header with inline loop control */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-semibold text-foreground">{t("experiments.title")}</h1>
+          {/* Autonomous Loop inline icon */}
+          <div className="relative" ref={loopDropdownRef}>
+            {loopEnabled ? (
+              /* ACTIVE: small green pulsing icon, expands on hover */
+              <div className="group flex items-center">
+                <button
+                  onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
+                  className="flex items-center gap-0 group-hover:gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 p-1.5 group-hover:px-3 group-hover:py-1.5 group-hover:rounded-lg transition-all duration-200 overflow-hidden"
+                >
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse shrink-0" />
+                  <span className="max-w-0 group-hover:max-w-[200px] overflow-hidden whitespace-nowrap text-xs font-medium text-emerald-600 dark:text-emerald-400 transition-all duration-200">
+                    {loopMode === "full_auto" ? t("experiments.fullAutoMode") : t("experiments.humanReviewMode")}
+                  </span>
+                  <span className="max-w-0 group-hover:max-w-[100px] overflow-hidden whitespace-nowrap text-xs text-muted-foreground transition-all duration-200">
+                    {t("experiments.via")} {realtimeAgents.find((a) => a.uuid === loopAgentUuid)?.name ?? "Agent"}
+                  </span>
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      await updateAutonomousLoop(false, "", loopMode);
+                      setLoopDropdownOpen(false);
+                      setLoopSelectedMode(null);
+                    }}
+                    className="max-w-0 group-hover:max-w-[50px] overflow-hidden whitespace-nowrap ml-0 group-hover:ml-1 rounded-md border border-red-500/30 px-0 group-hover:px-2 py-0.5 text-[11px] text-red-400 hover:bg-red-500/10 transition-all duration-200"
+                  >
+                    {t("experiments.stop")}
+                  </button>
+                </button>
+              </div>
+            ) : (
+              /* OFF: small icon, expands on hover, opens dropdown on click */
+              <div className="group flex items-center">
+                <button
+                  onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
+                  className="flex items-center gap-0 group-hover:gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 p-1.5 group-hover:px-3 group-hover:py-1.5 group-hover:rounded-lg transition-all duration-200 overflow-hidden"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-indigo-400 shrink-0">
+                    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                    <path d="M21 3v5h-5" />
+                  </svg>
+                  <span className="max-w-0 group-hover:max-w-[180px] overflow-hidden whitespace-nowrap text-xs text-indigo-300 dark:text-indigo-400 transition-all duration-200">
+                    {t("experiments.startAutonomousLoop")}
+                  </span>
+                </button>
+              </div>
+            )}
 
-              {loopDropdownOpen && (
-                <div className="absolute right-0 top-full mt-1 z-50 w-72 rounded-lg border border-border/40 bg-card shadow-xl shadow-black/30">
-                  {!loopSelectedMode ? (
-                    /* Step 1: Mode selection */
-                    <div className="p-1.5">
+            {/* Dropdown menu */}
+            {loopDropdownOpen && !loopEnabled && (
+              <div className="absolute left-0 top-full mt-1 z-50 w-72 rounded-lg border border-border/40 bg-card shadow-xl shadow-black/30">
+                {!loopSelectedMode ? (
+                  <div className="p-1.5">
+                    <button
+                      onClick={() => setLoopSelectedMode("human_review")}
+                      className="w-full rounded-md p-2.5 text-left hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="text-sm font-medium text-foreground">{t("experiments.humanReviewMode")}</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">{t("experiments.humanReviewModeDesc")}</div>
+                    </button>
+                    <button
+                      onClick={() => setLoopSelectedMode("full_auto")}
+                      className="w-full rounded-md p-2.5 text-left hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="text-sm font-medium text-foreground">{t("experiments.fullAutoMode")}</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">{t("experiments.fullAutoModeDesc")}</div>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-3 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-500"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" /></svg>
+                      <span className="text-sm font-medium text-foreground">
+                        {loopSelectedMode === "full_auto" ? t("experiments.fullAutoMode") : t("experiments.humanReviewMode")}
+                      </span>
                       <button
-                        onClick={() => setLoopSelectedMode("human_review")}
-                        className="w-full rounded-md p-2.5 text-left hover:bg-accent/50 transition-colors"
+                        onClick={() => setLoopSelectedMode(null)}
+                        className="ml-auto text-xs text-muted-foreground hover:text-foreground"
                       >
-                        <div className="text-sm font-medium text-foreground">{t("experiments.humanReviewMode")}</div>
-                        <div className="text-[11px] text-muted-foreground mt-0.5">{t("experiments.humanReviewModeDesc")}</div>
-                      </button>
-                      <button
-                        onClick={() => setLoopSelectedMode("full_auto")}
-                        className="w-full rounded-md p-2.5 text-left hover:bg-accent/50 transition-colors"
-                      >
-                        <div className="text-sm font-medium text-foreground">{t("experiments.fullAutoMode")}</div>
-                        <div className="text-[11px] text-muted-foreground mt-0.5">{t("experiments.fullAutoModeDesc")}</div>
-                      </button>
-                    </div>
-                  ) : (
-                    /* Step 2: Agent selection + activate */
-                    <div className="p-3 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-500"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" /></svg>
-                        <span className="text-sm font-medium text-foreground">
-                          {loopSelectedMode === "full_auto" ? t("experiments.fullAutoMode") : t("experiments.humanReviewMode")}
-                        </span>
-                        <button
-                          onClick={() => setLoopSelectedMode(null)}
-                          className="ml-auto text-xs text-muted-foreground hover:text-foreground"
-                        >
-                          &#8592;
-                        </button>
-                      </div>
-                      <select
-                        value={loopAgentUuid}
-                        onChange={(e) => setLoopAgentUuid(e.target.value)}
-                        className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-xs"
-                      >
-                        <option value="">{t("experiments.selectAgent")}</option>
-                        {realtimeAgents.map((agent) => (
-                          <option key={agent.uuid} value={agent.uuid}>
-                            {agent.name}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        disabled={!loopAgentUuid}
-                        onClick={async () => {
-                          await updateAutonomousLoop(true, loopAgentUuid, loopSelectedMode!);
-                          setLoopDropdownOpen(false);
-                          setLoopSelectedMode(null);
-                        }}
-                        className="w-full rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-40 transition-colors"
-                      >
-                        {t("experiments.activate")}
+                        &#8592;
                       </button>
                     </div>
-                  )}
-                </div>
-              )}
-            </>
-          )}
+                    <select
+                      value={loopAgentUuid}
+                      onChange={(e) => setLoopAgentUuid(e.target.value)}
+                      className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-xs"
+                    >
+                      <option value="">{t("experiments.selectAgent")}</option>
+                      {realtimeAgents.map((agent) => (
+                        <option key={agent.uuid} value={agent.uuid}>
+                          {agent.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      disabled={!loopAgentUuid}
+                      onClick={async () => {
+                        await updateAutonomousLoop(true, loopAgentUuid, loopSelectedMode!);
+                        setLoopDropdownOpen(false);
+                        setLoopSelectedMode(null);
+                      }}
+                      className="w-full rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-40 transition-colors"
+                    >
+                      {t("experiments.activate")}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-muted-foreground hidden lg:block">{t("experiments.subtitle")}</p>
+          <a
+            href={`/research-projects/${projectUuid}/experiments/new`}
+            className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2"><path d="M12 5v14m-7-7h14" /></svg>
+            {t("experiments.create")}
+          </a>
         </div>
       </div>
 
