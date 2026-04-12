@@ -1612,9 +1612,23 @@
       "keyUpload": "Upload .pem key file",
       "gpuCountLabel": "GPU Count",
       "gpuCountHint": "Optional — auto-detected after first telemetry",
-      "addMachine": "Add Machine",
+      "addMachine": "Test SSH and Sync Machine",
       "probing": "Testing SSH connection...",
-      "probingHint": "Connecting to the machine and detecting GPU inventory. This may take up to a minute."
+      "probingHint": "Connecting to the machine and detecting GPU inventory. This may take up to a minute.",
+      "keyOnlyHint": "Onboarding currently supports private-key SSH. Password auth is not available here yet.",
+      "probeSuccess": "SSH connected and hardware inventory was synced.",
+      "probeSuccessHint": "Review the detected machine details below, then finish onboarding.",
+      "detectedInventory": "Detected inventory",
+      "connectionDetails": "Connection details",
+      "instanceTypePending": "Unknown instance type",
+      "regionPending": "Unknown region",
+      "instanceIdPending": "Unknown instance ID",
+      "gpuDetected": "{count} GPUs detected",
+      "finishSetup": "Finish Setup",
+      "syncedAt": "Synced",
+      "hostSummary": "Host",
+      "userSummary": "User",
+      "portSummary": "Port"
     },
 
     "complete": {

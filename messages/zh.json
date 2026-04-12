@@ -1612,9 +1612,23 @@
       "keyUpload": "上传 .pem 密钥文件",
       "gpuCountLabel": "GPU 数量",
       "gpuCountHint": "可选 — 首次遥测后自动检测",
-      "addMachine": "添加机器",
+      "addMachine": "测试 SSH 并同步机器",
       "probing": "正在测试 SSH 连接...",
-      "probingHint": "正在连接机器并检测 GPU 硬件信息，最多需要一分钟。"
+      "probingHint": "正在连接机器并检测 GPU 硬件信息，最多需要一分钟。",
+      "keyOnlyHint": "当前 onboarding 仅支持使用私钥进行 SSH 连接，暂不支持密码登录。",
+      "probeSuccess": "SSH 已连接，硬件信息也已同步。",
+      "probeSuccessHint": "请确认下面检测到的机器信息，然后完成 onboarding。",
+      "detectedInventory": "检测到的硬件信息",
+      "connectionDetails": "连接信息",
+      "instanceTypePending": "实例类型未知",
+      "regionPending": "区域未知",
+      "instanceIdPending": "实例 ID 未知",
+      "gpuDetected": "检测到 {count} 张 GPU",
+      "finishSetup": "完成设置",
+      "syncedAt": "同步时间",
+      "hostSummary": "主机",
+      "userSummary": "用户",
+      "portSummary": "端口"
     },
 
     "complete": {

@@ -3,9 +3,13 @@ import { NextRequest } from "next/server";
 
 const mockGetAuthContext = vi.fn();
 const mockCreateComputeNode = vi.fn();
+const mockDeleteComputeNode = vi.fn();
 const mockExistsSync = vi.fn();
 const mockReadFileSync = vi.fn();
 const mockReadFile = vi.fn();
+const mockProbeNodeNow = vi.fn();
+const mockProbeNodeOnce = vi.fn();
+const mockStartNodeTelemetry = vi.fn();
 
 vi.mock("@/lib/auth", () => ({
   getAuthContext: (...args: unknown[]) => mockGetAuthContext(...args),
@@ -14,6 +18,13 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("@/services/compute.service", () => ({
   createComputeNode: (...args: unknown[]) => mockCreateComputeNode(...args),
+  deleteComputeNode: (...args: unknown[]) => mockDeleteComputeNode(...args),
+}));
+
+vi.mock("@/services/gpu-telemetry.service", () => ({
+  probeNodeNow: (...args: unknown[]) => mockProbeNodeNow(...args),
+  probeNodeOnce: (...args: unknown[]) => mockProbeNodeOnce(...args),
+  startNodeTelemetry: (...args: unknown[]) => mockStartNodeTelemetry(...args),
 }));
 
 vi.mock("node:fs", () => ({
@@ -50,8 +61,50 @@ describe("compute routes", () => {
       label: "GPU Box",
       lifecycle: "idle",
     });
+    mockDeleteComputeNode.mockResolvedValue(true);
     mockExistsSync.mockReturnValue(true);
     mockReadFile.mockResolvedValue(Buffer.from("pem-private-key"));
+    mockProbeNodeOnce.mockResolvedValue(undefined);
+    mockStartNodeTelemetry.mockReturnValue(undefined);
+    mockProbeNodeNow.mockResolvedValue({
+      uuid: "node-uuid-1",
+      label: "GPU Box",
+      lifecycle: "idle",
+      sshHost: "gpu.example.com",
+      sshUser: "ubuntu",
+      sshPort: 2200,
+      sshKeyName: "gpu.pem",
+      sshKeySource: "ssh_config",
+      managedKeyAvailable: true,
+      ssmTarget: null,
+      notes: null,
+      lastReportedAt: "2026-04-12T12:00:00.000Z",
+      ec2InstanceId: "i-123456",
+      instanceType: "g5.2xlarge",
+      region: "us-east-1",
+      telemetryEnabled: false,
+      telemetryError: null,
+      gpuCount: 1,
+      busyGpuCount: 0,
+      availableGpuCount: 1,
+      inventoryPending: false,
+      gpus: [
+        {
+          uuid: "gpu-uuid-1",
+          slotIndex: 0,
+          model: "NVIDIA A10G",
+          memoryGb: 24,
+          lifecycle: "available",
+          utilizationPercent: 0,
+          memoryUsedGb: 0,
+          temperatureC: 42,
+          notes: null,
+          lastReportedAt: "2026-04-12T12:00:00.000Z",
+          activeReservation: null,
+          computedStatus: "available",
+        },
+      ],
+    });
   });
 
   it("sanitizes SSH config responses so identityFile paths never reach the client", async () => {
@@ -123,5 +176,62 @@ Host gpu-box
       source: "ssh_config",
     });
     expect(body.data.key).not.toHaveProperty("path");
+    expect(mockProbeNodeOnce).toHaveBeenCalledWith("node-uuid-1");
+  });
+
+  it("waits for a synchronous probe when requested and returns the detected inventory", async () => {
+    const formData = new FormData();
+    formData.set("poolUuid", "pool-uuid-1");
+    formData.set("label", "GPU Box");
+    formData.set("sshHost", "gpu.example.com");
+    formData.set("sshUser", "ubuntu");
+    formData.set("sshPort", "22");
+    formData.set("waitForProbe", "true");
+    formData.set("enableTelemetryOnSuccess", "true");
+
+    const response = await createComputeNodeRoute(
+      new NextRequest(new URL("/api/compute-nodes", "http://localhost:3000"), {
+        method: "POST",
+        body: formData,
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(mockProbeNodeNow).toHaveBeenCalledWith("node-uuid-1");
+    expect(mockStartNodeTelemetry).toHaveBeenCalledWith("node-uuid-1");
+    expect(body.data.node).toMatchObject({
+      uuid: "node-uuid-1",
+      instanceType: "g5.2xlarge",
+      region: "us-east-1",
+      gpuCount: 1,
+    });
+    expect(mockProbeNodeOnce).not.toHaveBeenCalled();
+  });
+
+  it("rolls back the node when the synchronous probe fails", async () => {
+    mockProbeNodeNow.mockRejectedValueOnce(new Error("SSH authentication failed."));
+
+    const formData = new FormData();
+    formData.set("poolUuid", "pool-uuid-1");
+    formData.set("label", "GPU Box");
+    formData.set("sshHost", "gpu.example.com");
+    formData.set("sshUser", "ubuntu");
+    formData.set("sshPort", "22");
+    formData.set("waitForProbe", "true");
+    formData.set("rollbackOnProbeError", "true");
+
+    const response = await createComputeNodeRoute(
+      new NextRequest(new URL("/api/compute-nodes", "http://localhost:3000"), {
+        method: "POST",
+        body: formData,
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toMatchObject({ message: "SSH authentication failed." });
+    expect(mockDeleteComputeNode).toHaveBeenCalledWith(companyUuid, "node-uuid-1");
+    expect(mockProbeNodeOnce).not.toHaveBeenCalled();
   });
 });

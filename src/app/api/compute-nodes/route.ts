@@ -7,8 +7,8 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { errors, success } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
-import { createComputeNode } from "@/services/compute.service";
-import { probeNodeOnce } from "@/services/gpu-telemetry.service";
+import { createComputeNode, deleteComputeNode } from "@/services/compute.service";
+import { probeNodeNow, probeNodeOnce, startNodeTelemetry } from "@/services/gpu-telemetry.service";
 
 const optionalNumber = <T extends z.ZodTypeAny>(schema: T) =>
   z.preprocess((value) => {
@@ -17,6 +17,27 @@ const optionalNumber = <T extends z.ZodTypeAny>(schema: T) =>
     }
     return value;
   }, schema.optional());
+
+const optionalBoolean = z.preprocess((value) => {
+  if (value === "" || value === null || value === undefined) {
+    return undefined;
+  }
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+  return value;
+}, z.boolean().optional());
+
+const optionalEnum = <T extends readonly [string, ...string[]]>(values: T) =>
+  z.preprocess((value) => {
+    if (value === "" || value === null || value === undefined) {
+      return undefined;
+    }
+    return value;
+  }, z.enum(values).optional());
 
 const nodeSchema = z.object({
   poolUuid: z.string().min(1),
@@ -29,9 +50,12 @@ const nodeSchema = z.object({
   sshUser: z.string().optional(),
   sshPort: optionalNumber(z.coerce.number().int().min(1).max(65535)),
   sshConfigAlias: z.string().optional(), // SSH config alias — server resolves to host/user/port/keyPath
-  sshKeySource: z.enum(["ssh_config", "upload"]).optional(), // manual_path removed
+  sshKeySource: optionalEnum(["ssh_config", "upload"]), // manual_path removed
   ssmTarget: z.string().optional(),
   notes: z.string().optional(),
+  waitForProbe: optionalBoolean,
+  rollbackOnProbeError: optionalBoolean,
+  enableTelemetryOnSuccess: optionalBoolean,
 }).refine((value) => Boolean(value.sshHost || value.ssmTarget || value.sshConfigAlias), {
   message: "Either SSH host, SSH config alias, or SSM target is required.",
   path: ["sshHost"],
@@ -142,6 +166,9 @@ async function parsePayload(request: NextRequest, companyUuid: string) {
         pemMeta?.sshKeySource || (String(formData.get("sshKeySource") || "") as "ssh_config" | ""),
       ssmTarget: String(formData.get("ssmTarget") || ""),
       notes: String(formData.get("notes") || ""),
+      waitForProbe: String(formData.get("waitForProbe") || ""),
+      rollbackOnProbeError: String(formData.get("rollbackOnProbeError") || ""),
+      enableTelemetryOnSuccess: String(formData.get("enableTelemetryOnSuccess") || ""),
     };
   }
 
@@ -216,6 +243,38 @@ export async function POST(request: NextRequest) {
     ssmTarget: parsed.data.ssmTarget,
     notes: parsed.data.notes,
   });
+
+  const waitForProbe = parsed.data.waitForProbe === true;
+  const rollbackOnProbeError = parsed.data.rollbackOnProbeError === true;
+  const enableTelemetryOnSuccess = parsed.data.enableTelemetryOnSuccess === true;
+
+  if (waitForProbe) {
+    try {
+      const probedNode = await probeNodeNow(node.uuid);
+
+      if (enableTelemetryOnSuccess) {
+        await startNodeTelemetry(node.uuid);
+      }
+
+      return success({
+        node: probedNode,
+        key: resolvedSshKeyPath
+          ? { name: resolvedSshKeyName, source: parsed.data.sshKeySource }
+          : null,
+      });
+    } catch (error) {
+      if (rollbackOnProbeError) {
+        await deleteComputeNode(auth.companyUuid, node.uuid).catch(() => false);
+      }
+
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Unable to connect to the machine and fetch hardware inventory.";
+
+      return errors.badRequest(message);
+    }
+  }
 
   // Auto-probe GPU inventory on first add (fire and forget)
   probeNodeOnce(node.uuid).catch(() => {});

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Check, Server, HardDrive, Upload } from "lucide-react";
 import { authFetch } from "@/lib/auth-client";
+import type { ComputeNodeSnapshot } from "@/services/compute.service";
 
 interface Props {
   onComplete: (poolUuid: string) => void;
@@ -16,9 +17,19 @@ interface Props {
 
 type Phase = "pool" | "machine" | "done";
 
+type ProbeResponse = {
+  success: boolean;
+  data?: {
+    node?: ComputeNodeSnapshot;
+  };
+  error?: string | { message?: string };
+};
+
 export function OnboardingStep3({ onComplete, onSkip }: Props) {
   const t = useTranslations("onboarding.step3");
   const tCommon = useTranslations("onboarding");
+  const tComputeMachine = useTranslations("compute.machine");
+  const tComputeRegister = useTranslations("compute.register");
   const [phase, setPhase] = useState<Phase>("pool");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,10 +44,9 @@ export function OnboardingStep3({ onComplete, onSkip }: Props) {
   const [host, setHost] = useState("");
   const [sshUser, setSshUser] = useState("ubuntu");
   const [sshPort, setSshPort] = useState("22");
-  const [authMethod, setAuthMethod] = useState<"password" | "key">("key");
-  const [password, setPassword] = useState("");
   const [sshKey, setSshKey] = useState("");
   const [pemFile, setPemFile] = useState<File | null>(null);
+  const [probedNode, setProbedNode] = useState<ComputeNodeSnapshot | null>(null);
 
   const handleCreatePool = async () => {
     if (!poolName.trim()) return;
@@ -67,6 +77,7 @@ export function OnboardingStep3({ onComplete, onSkip }: Props) {
     if (!host.trim() || !poolUuid) return;
     setSubmitting(true);
     setError(null);
+    setProbedNode(null);
 
     try {
       const formData = new FormData();
@@ -75,32 +86,33 @@ export function OnboardingStep3({ onComplete, onSkip }: Props) {
       formData.append("sshUser", sshUser.trim() || "ubuntu");
       formData.append("sshPort", sshPort || "22");
       formData.append("label", machineLabel.trim() || host.trim());
+      formData.append("waitForProbe", "true");
+      formData.append("rollbackOnProbeError", "true");
+      formData.append("enableTelemetryOnSuccess", "true");
 
-      if (authMethod === "key") {
-        if (pemFile) {
-          formData.append("pemFile", pemFile);
-          formData.append("sshKeySource", "upload");
-        } else if (sshKey.trim()) {
-          const keyBlob = new Blob([sshKey], { type: "application/x-pem-file" });
-          const keyFile = new File([keyBlob], `${host.trim()}.pem`, { type: "application/x-pem-file" });
-          formData.append("pemFile", keyFile);
-          formData.append("sshKeySource", "upload");
-        }
+      if (pemFile) {
+        formData.append("pemFile", pemFile);
+        formData.append("sshKeySource", "upload");
+      } else if (sshKey.trim()) {
+        const keyBlob = new Blob([sshKey], { type: "application/x-pem-file" });
+        const keyFile = new File([keyBlob], `${host.trim()}.pem`, { type: "application/x-pem-file" });
+        formData.append("pemFile", keyFile);
+        formData.append("sshKeySource", "upload");
       }
 
       const res = await authFetch("/api/compute-nodes", {
         method: "POST",
         body: formData,
       });
-      const json = await res.json();
-      if (json.success) {
+      const json = (await res.json()) as ProbeResponse;
+      if (res.ok && json.success && json.data?.node) {
+        setProbedNode(json.data.node);
         setPhase("done");
-        onComplete(poolUuid);
       } else {
-        setError(typeof json.error === "string" ? json.error : json.error?.message || "Failed to add machine");
+        setError(typeof json.error === "string" ? json.error : json.error?.message || tCommon("genericError"));
       }
     } catch {
-      setError("Network error");
+      setError(tCommon("genericError"));
     } finally {
       setSubmitting(false);
     }
@@ -203,67 +215,46 @@ export function OnboardingStep3({ onComplete, onSkip }: Props) {
             />
           </div>
 
-          {/* Auth method */}
-          <div>
-            <Label>{t("authLabel")}</Label>
-            <div className="mt-1.5 flex gap-2">
-              {(["key", "password"] as const).map((method) => (
-                <Button
-                  key={method}
-                  type="button"
-                  variant={authMethod === method ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setAuthMethod(method)}
-                  className="text-xs"
-                >
-                  {method === "key" ? t("authKey") : t("authPassword")}
-                </Button>
-              ))}
-            </div>
+          <div className="space-y-2">
+            <Label>{t("authKey")}</Label>
+            <p className="text-xs text-muted-foreground">{t("keyOnlyHint")}</p>
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border p-3 transition-colors hover:bg-muted/50">
+              <Upload className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">
+                {pemFile ? pemFile.name : t("keyUpload")}
+              </span>
+              <input
+                type="file"
+                accept=".pem,.key,.pub,.id_rsa,.id_ed25519"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setPemFile(file);
+                    setSshKey("");
+                  }
+                }}
+              />
+            </label>
+            <Textarea
+              value={sshKey}
+              onChange={(e) => {
+                setSshKey(e.target.value);
+                setPemFile(null);
+              }}
+              placeholder={t("keyPlaceholder")}
+              rows={4}
+              className="font-mono text-xs"
+            />
           </div>
 
-          {authMethod === "password" ? (
-            <div>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={t("passwordPlaceholder")}
-              />
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {/* File upload */}
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border p-3 transition-colors hover:bg-muted/50">
-                <Upload className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">
-                  {pemFile ? pemFile.name : t("keyUpload")}
-                </span>
-                <input
-                  type="file"
-                  accept=".pem,.key,.pub,.id_rsa,.id_ed25519"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setPemFile(file);
-                      setSshKey("");
-                    }
-                  }}
-                />
-              </label>
-              {/* Or paste */}
-              <Textarea
-                value={sshKey}
-                onChange={(e) => { setSshKey(e.target.value); setPemFile(null); }}
-                placeholder={t("keyPlaceholder")}
-                rows={4}
-                className="font-mono text-xs"
-              />
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          {submitting && (
+            <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">{t("probing")}</p>
+              <p className="mt-1">{t("probingHint")}</p>
             </div>
           )}
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="flex items-center justify-between pt-2">
             <Button variant="ghost" size="sm" onClick={onSkip} className="text-muted-foreground">
@@ -278,11 +269,105 @@ export function OnboardingStep3({ onComplete, onSkip }: Props) {
       )}
 
       {phase === "done" && (
-        <div className="mt-8 flex flex-col items-center gap-3 py-8">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-            <Check className="h-6 w-6 text-green-600" />
+        <div className="mt-6 space-y-4">
+          <div className="rounded-xl border border-green-200 bg-green-50/80 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
+                <Check className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-green-800">{t("probeSuccess")}</p>
+                <p className="mt-1 text-sm text-green-700">{t("probeSuccessHint")}</p>
+              </div>
+            </div>
           </div>
-          <p className="text-sm font-semibold text-green-700">{t("machinePhase")} — Done!</p>
+
+          {probedNode ? (
+            <>
+              <div className="rounded-xl border border-border bg-muted/30 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {t("connectionDetails")}
+                </p>
+                <div className="mt-3 grid gap-3 text-sm text-foreground md:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">{t("hostSummary")}</p>
+                    <p className="font-medium">{probedNode.sshHost ?? host.trim()}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">{t("userSummary")}</p>
+                    <p className="font-medium">{probedNode.sshUser ?? (sshUser.trim() || "ubuntu")}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">{t("portSummary")}</p>
+                    <p className="font-medium">{probedNode.sshPort ?? Number(sshPort || "22")}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">{t("syncedAt")}</p>
+                    <p className="font-medium">
+                      {probedNode.lastReportedAt
+                        ? new Date(probedNode.lastReportedAt).toLocaleString()
+                        : "-"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {t("detectedInventory")}
+                </p>
+                <div className="mt-3 grid gap-3 text-sm text-foreground md:grid-cols-3">
+                  <div className="rounded-lg border border-border bg-muted/30 p-3">
+                    <p className="text-xs text-muted-foreground">{tComputeMachine("instanceType")}</p>
+                    <p className="mt-1 font-medium">{probedNode.instanceType || t("instanceTypePending")}</p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-muted/30 p-3">
+                    <p className="text-xs text-muted-foreground">{tComputeMachine("region")}</p>
+                    <p className="mt-1 font-medium">{probedNode.region || t("regionPending")}</p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-muted/30 p-3">
+                    <p className="text-xs text-muted-foreground">{tComputeRegister("ec2InstanceId")}</p>
+                    <p className="mt-1 font-medium">{probedNode.ec2InstanceId || t("instanceIdPending")}</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-lg border border-border bg-muted/20 p-4">
+                  <p className="text-sm font-medium text-foreground">
+                    {t("gpuDetected", { count: probedNode.gpuCount })}
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {probedNode.gpus.map((gpu) => (
+                      <div
+                        key={gpu.uuid}
+                        className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                      >
+                        <div>
+                          <p className="font-medium">GPU {gpu.slotIndex}</p>
+                          <p className="text-xs text-muted-foreground">{gpu.model}</p>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {gpu.memoryGb ? `${gpu.memoryGb} GB` : "-"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : null}
+
+          <div className="flex justify-end pt-2">
+            <Button
+              onClick={() => {
+                if (poolUuid) {
+                  onComplete(poolUuid);
+                }
+              }}
+              className="bg-primary text-primary-foreground"
+            >
+              {t("finishSetup")}
+            </Button>
+          </div>
         </div>
       )}
     </div>

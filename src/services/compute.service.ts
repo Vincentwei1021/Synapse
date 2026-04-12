@@ -73,6 +73,38 @@ export interface ComputeNodeAccessBundle {
   ssmTarget: string | null;
 }
 
+const computeNodeSnapshotInclude = {
+  gpus: {
+    orderBy: { slotIndex: "asc" as const },
+    include: {
+      reservations: {
+        where: { releasedAt: null },
+        include: {
+          run: {
+            select: {
+              uuid: true,
+              title: true,
+              status: true,
+            },
+          },
+        },
+      },
+      experimentReservations: {
+        where: { releasedAt: null },
+        include: {
+          experiment: {
+            select: {
+              uuid: true,
+              title: true,
+              status: true,
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
 function serializeNode(node: {
   uuid: string;
   label: string;
@@ -203,37 +235,7 @@ export async function listComputePools(companyUuid: string): Promise<ComputePool
     include: {
       nodes: {
         orderBy: { label: "asc" },
-        include: {
-          gpus: {
-            orderBy: { slotIndex: "asc" },
-            include: {
-              reservations: {
-                where: { releasedAt: null },
-                include: {
-                  run: {
-                    select: {
-                      uuid: true,
-                      title: true,
-                      status: true,
-                    },
-                  },
-                },
-              },
-              experimentReservations: {
-                where: { releasedAt: null },
-                include: {
-                  experiment: {
-                    select: {
-                      uuid: true,
-                      title: true,
-                      status: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
+        include: computeNodeSnapshotInclude,
       },
     },
   });
@@ -244,6 +246,21 @@ export async function listComputePools(companyUuid: string): Promise<ComputePool
     description: pool.description,
     nodes: pool.nodes.map((node) => serializeNode(node)),
   }));
+}
+
+export async function getComputeNodeSnapshot(
+  companyUuid: string,
+  nodeUuid: string,
+): Promise<ComputeNodeSnapshot | null> {
+  const node = await prisma.computeNode.findFirst({
+    where: {
+      companyUuid,
+      uuid: nodeUuid,
+    },
+    include: computeNodeSnapshotInclude,
+  });
+
+  return node ? serializeNode(node) : null;
 }
 
 export async function listAvailableComputeGpus(companyUuid: string) {
