@@ -683,6 +683,13 @@ export async function reviewExperiment(input: {
     actorUuid: input.actorUuid,
   });
 
+  // Check autonomous loop when experiment is rejected (queue may become empty)
+  if (!input.approved) {
+    await checkAutonomousLoopTrigger(updated.researchProjectUuid, input.companyUuid).catch(
+      (err) => console.error("Autonomous loop trigger check failed:", err)
+    );
+  }
+
   return formatExperiment(input.companyUuid, updated);
 }
 
@@ -824,6 +831,74 @@ export async function startExperiment(input: {
   return formatExperiment(input.companyUuid, updated);
 }
 
+/**
+ * Check if the autonomous loop should trigger and send notification to the loop agent.
+ * Mode 1 (human_review): trigger when draft=0, pending_review=0, pending_start=0
+ * Mode 2 (full_auto): trigger when in_progress=0
+ */
+export async function checkAutonomousLoopTrigger(
+  projectUuid: string,
+  companyUuid: string
+) {
+  const project = await prisma.researchProject.findFirst({
+    where: { uuid: projectUuid, companyUuid },
+    select: {
+      uuid: true,
+      name: true,
+      autonomousLoopEnabled: true,
+      autonomousLoopAgentUuid: true,
+      autonomousLoopMode: true,
+    },
+  });
+
+  if (!project?.autonomousLoopEnabled || !project.autonomousLoopAgentUuid) {
+    return;
+  }
+
+  const mode = project.autonomousLoopMode ?? "human_review";
+
+  const statusCounts = await prisma.experiment.groupBy({
+    by: ["status"],
+    where: { researchProjectUuid: projectUuid, companyUuid },
+    _count: true,
+  });
+
+  const countByStatus = (s: string) =>
+    statusCounts.find((sc) => sc.status === s)?._count ?? 0;
+
+  let shouldTrigger = false;
+
+  if (mode === "human_review") {
+    shouldTrigger =
+      countByStatus("draft") === 0 &&
+      countByStatus("pending_review") === 0 &&
+      countByStatus("pending_start") === 0;
+  } else if (mode === "full_auto") {
+    shouldTrigger = countByStatus("in_progress") === 0;
+  }
+
+  if (shouldTrigger) {
+    await notificationService.create({
+      companyUuid,
+      researchProjectUuid: project.uuid,
+      recipientType: "agent",
+      recipientUuid: project.autonomousLoopAgentUuid,
+      entityType: "research_project",
+      entityUuid: project.uuid,
+      entityTitle: project.name,
+      projectName: project.name,
+      action: "autonomous_loop_triggered",
+      message:
+        mode === "full_auto"
+          ? "No experiments running. Update the project synthesis with latest results, then propose next experiment for immediate execution."
+          : "Experiment queue is empty. Analyze the project and propose next experiments.",
+      actorType: "user",
+      actorUuid: "system",
+      actorName: "Synapse",
+    });
+  }
+}
+
 export async function completeExperiment(input: {
   companyUuid: string;
   experimentUuid: string;
@@ -919,40 +994,9 @@ export async function completeExperiment(input: {
   });
 
   // Check autonomous loop trigger
-  try {
-    const loopProject = await prisma.researchProject.findFirst({
-      where: { uuid: updated.researchProjectUuid, companyUuid: input.companyUuid },
-      select: { autonomousLoopEnabled: true, autonomousLoopAgentUuid: true, name: true },
-    });
-    if (loopProject?.autonomousLoopEnabled && loopProject.autonomousLoopAgentUuid) {
-      const queueCount = await prisma.experiment.count({
-        where: {
-          researchProjectUuid: updated.researchProjectUuid,
-          companyUuid: input.companyUuid,
-          status: { in: ["draft", "pending_review", "pending_start"] },
-        },
-      });
-      if (queueCount === 0) {
-        await notificationService.create({
-          companyUuid: input.companyUuid,
-          researchProjectUuid: updated.researchProjectUuid,
-          recipientType: "agent",
-          recipientUuid: loopProject.autonomousLoopAgentUuid,
-          entityType: "experiment",
-          entityUuid: updated.researchProjectUuid,
-          entityTitle: loopProject.name,
-          projectName: loopProject.name,
-          action: "autonomous_loop_triggered",
-          message: "Experiment queue is empty. Analyze the project and propose next experiments.",
-          actorType: "user",
-          actorUuid: "system",
-          actorName: "Synapse",
-        });
-      }
-    }
-  } catch (err) {
-    console.error("Autonomous loop trigger check failed:", err);
-  }
+  await checkAutonomousLoopTrigger(updated.researchProjectUuid, input.companyUuid).catch(
+    (err) => console.error("Autonomous loop trigger check failed:", err)
+  );
 
   return formatExperiment(input.companyUuid, updated);
 }

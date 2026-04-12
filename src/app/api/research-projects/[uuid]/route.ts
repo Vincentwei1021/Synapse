@@ -13,6 +13,7 @@ import {
   getResearchProjectDetailRef,
   updateResearchProject,
 } from "@/services/research-project.service";
+import { checkAutonomousLoopTrigger } from "@/services/experiment.service";
 import { getProjectMetricsSnapshot, toProjectCompatibilityCounts } from "@/services/project-metrics.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
@@ -160,6 +161,11 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
   }
 
   const researchProject = await updateResearchProject(existing.uuid, updateData);
+
+  // If autonomous loop was just enabled, check trigger immediately
+  if (body.autonomousLoopEnabled === true && body.autonomousLoopAgentUuid) {
+    checkAutonomousLoopTrigger(existing.uuid, auth.companyUuid).catch(() => {});
+  }
 
   return success({
     uuid: researchProject.uuid,
