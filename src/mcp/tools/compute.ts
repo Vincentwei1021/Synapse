@@ -610,7 +610,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
   server.registerTool(
     "synapse_propose_experiment",
     {
-      description: "Propose a new experiment for human review. Created in 'pending_review' status. Only usable when autonomous loop is active for this project and you are the assigned agent.",
+      description: "Propose a new experiment. In Human Review mode, created as 'pending_review' for human approval. In Full Auto mode, created as 'pending_start' and assigned to you for immediate execution. Only usable when autonomous loop is active and you are the assigned agent.",
       inputSchema: z.object({
         researchProjectUuid: z.string(),
         title: z.string(),
@@ -627,11 +627,13 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
           autonomousLoopEnabled: true,
           autonomousLoopAgentUuid: auth.actorUuid,
         },
-        select: { uuid: true },
+        select: { uuid: true, autonomousLoopMode: true },
       });
       if (!project) {
         return { content: [{ type: "text", text: "Autonomous loop is not enabled for this project or you are not the assigned agent" }], isError: true };
       }
+
+      const isFullAuto = project.autonomousLoopMode === "full_auto";
 
       const experiment = await experimentService.createExperiment({
         companyUuid: auth.companyUuid,
@@ -642,10 +644,16 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
         priority,
         createdByUuid: auth.actorUuid,
         createdByType: "agent",
+        // Mode 2: skip review, go straight to pending_start with agent assigned
+        ...(isFullAuto ? { status: "pending_start" as const, assigneeUuid: auth.actorUuid, assigneeType: "agent" as const } : {}),
       });
 
+      const note = isFullAuto
+        ? "Experiment created in pending_start (Full Auto mode). Ready for immediate execution."
+        : "Experiment created in pending_review. Human review required before execution.";
+
       return {
-        content: [{ type: "text", text: JSON.stringify({ experiment, note: "Experiment created in pending_review. Human review required before execution." }, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ experiment, note }, null, 2) }],
       };
     }
   );

@@ -90,6 +90,8 @@ export interface ExperimentCreateParams {
   baseBranch?: string | null;
   createdByUuid: string;
   createdByType?: "user" | "agent";
+  assigneeUuid?: string;
+  assigneeType?: "user" | "agent";
 }
 
 export type ExperimentPriority = "low" | "medium" | "high" | "immediate";
@@ -511,6 +513,7 @@ export async function createExperiment(params: ExperimentCreateParams) {
       baseBranch: params.baseBranch ?? null,
       createdByUuid: params.createdByUuid,
       createdByType: params.createdByType ?? "user",
+      ...(params.assigneeUuid ? { assigneeUuid: params.assigneeUuid, assigneeType: params.assigneeType ?? "agent" } : {}),
     },
     include: {
       researchQuestion: {
