@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import * as notificationService from "@/services/notification.service";
 
 function stringifyMetricBlock(results: unknown): string[] {
   if (!results || typeof results !== "object" || Array.isArray(results)) {
@@ -204,6 +205,37 @@ export async function refreshProjectSynthesis(
       latestSynthesisSummary: summary,
     },
   });
+
+  // Notify the autonomous loop agent's owner that synthesis was updated
+  try {
+    const projectForNotif = await prisma.researchProject.findFirst({
+      where: { uuid: researchProjectUuid, companyUuid },
+      select: { name: true, autonomousLoopAgentUuid: true },
+    });
+    if (projectForNotif?.autonomousLoopAgentUuid) {
+      const loopAgent = await prisma.agent.findUnique({
+        where: { uuid: projectForNotif.autonomousLoopAgentUuid },
+        select: { ownerUuid: true, name: true },
+      });
+      if (loopAgent?.ownerUuid) {
+        await notificationService.create({
+          companyUuid,
+          researchProjectUuid,
+          recipientType: "user",
+          recipientUuid: loopAgent.ownerUuid,
+          entityType: "research_project",
+          entityUuid: researchProjectUuid,
+          entityTitle: projectForNotif.name,
+          projectName: projectForNotif.name,
+          action: "synthesis_updated",
+          message: `Project synthesis updated: ${summary}`,
+          actorType: "agent",
+          actorUuid: actorUuid,
+          actorName: loopAgent.name ?? "Agent",
+        });
+      }
+    }
+  } catch { /* ignore notification errors */ }
 
   return {
     generatedAt: now.toISOString(),

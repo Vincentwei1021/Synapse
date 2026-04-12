@@ -35,6 +35,8 @@ function resolveNotificationType(action: string, targetType: string): string | n
     "research_question:hypothesis_formulation_skipped": "hypothesis_formulation_answered",
     // Experiment lifecycle events
     "experiment:status_changed": "experiment_status_changed",
+    "experiment:approved": "experiment_status_changed",
+    "experiment:rejected": "experiment_status_changed",
     "experiment:completed": "experiment_completed",
     "experiment:progress": "experiment_progress",
     // Project-level autonomous events
@@ -340,6 +342,48 @@ async function resolveRecipients(
       return ansRecipients;
     }
 
+    case "experiment_status_changed": {
+      // Notify both assignee and creator about status changes
+      if (!target) return [];
+      const statusRecipients: Recipient[] = [];
+      if (target.assigneeType && target.assigneeUuid) {
+        statusRecipients.push({ type: target.assigneeType, uuid: target.assigneeUuid });
+      }
+      if (target.createdByUuid) {
+        const creatorType = target.createdByType ?? await resolveActorTypeCached(target.createdByUuid);
+        if (creatorType) {
+          statusRecipients.push({ type: creatorType, uuid: target.createdByUuid });
+        }
+      }
+      return statusRecipients.filter((r) => r.uuid !== event.actorUuid);
+    }
+
+    case "experiment_completed": {
+      // Notify creator when experiment completes (typically agent completes, user gets notified)
+      if (!target) return [];
+      const completeRecipients: Recipient[] = [];
+      if (target.createdByUuid) {
+        const creatorType = target.createdByType ?? await resolveActorTypeCached(target.createdByUuid);
+        if (creatorType) {
+          completeRecipients.push({ type: creatorType, uuid: target.createdByUuid });
+        }
+      }
+      // Also notify the agent owner if the actor is an agent
+      const ownerRecipient = resolveActorOwnerRecipient(event.actorType, event.actorUuid, actor);
+      if (ownerRecipient) {
+        completeRecipients.push(ownerRecipient);
+      }
+      return completeRecipients.filter((r) => r.uuid !== event.actorUuid);
+    }
+
+    case "experiment_progress": {
+      // Notify creator about progress updates
+      if (!target?.createdByUuid) return [];
+      const creatorType = target.createdByType ?? await resolveActorTypeCached(target.createdByUuid);
+      if (!creatorType) return [];
+      return [{ type: creatorType, uuid: target.createdByUuid }];
+    }
+
     case "comment_added": {
       const recipients: Recipient[] = [];
 
@@ -420,6 +464,18 @@ function buildMessage(
       return `${actorName} requested hypothesis formulation on research question "${entityTitle}"`;
     case "hypothesis_formulation_answered":
       return `${actorName} answered hypothesis formulation questions for research question "${entityTitle}"`;
+    case "experiment_status_changed": {
+      const status = typeof v.status === "string" ? v.status : "changed";
+      return `Experiment "${entityTitle}" status changed to ${status}`;
+    }
+    case "experiment_completed": {
+      const completedOutcome = typeof v.outcome === "string" ? v.outcome : null;
+      return completedOutcome
+        ? `Experiment "${entityTitle}" completed: ${completedOutcome}`
+        : `Experiment "${entityTitle}" has been completed`;
+    }
+    case "experiment_progress":
+      return `${actorName} reported progress on experiment "${entityTitle}"`;
     default:
       return `${actorName} performed an action on "${entityTitle}"`;
   }
