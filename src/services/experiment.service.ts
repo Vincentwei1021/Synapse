@@ -996,6 +996,20 @@ export async function completeExperiment(input: {
     actorUuid: input.actorUuid,
   });
 
+  // In Mode 2, refresh project synthesis after every experiment completion
+  try {
+    const loopProject = await prisma.researchProject.findFirst({
+      where: { uuid: updated.researchProjectUuid, companyUuid: input.companyUuid },
+      select: { autonomousLoopEnabled: true, autonomousLoopMode: true },
+    });
+    if (loopProject?.autonomousLoopEnabled && loopProject.autonomousLoopMode === "full_auto") {
+      const { refreshProjectSynthesis } = await import("@/services/project-synthesis.service");
+      await refreshProjectSynthesis(updated.researchProjectUuid, input.companyUuid, input.actorUuid);
+    }
+  } catch (err) {
+    console.error("Failed to refresh synthesis after Mode 2 experiment:", err);
+  }
+
   // Check autonomous loop trigger
   await checkAutonomousLoopTrigger(updated.researchProjectUuid, input.companyUuid).catch(
     (err) => console.error("Autonomous loop trigger check failed:", err)
