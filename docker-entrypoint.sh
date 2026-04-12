@@ -10,7 +10,7 @@ echo "Pushing database schema (will retry for ~5 minutes while waiting for DB)..
 MAX_RETRIES=30
 RETRY_INTERVAL=10
 RETRY_COUNT=0
-until prisma db push --skip-generate --accept-data-loss; do
+until prisma db push --accept-data-loss; do
   RETRY_COUNT=$((RETRY_COUNT + 1))
   if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
     echo "Schema push failed after ${MAX_RETRIES} retries. Exiting."
