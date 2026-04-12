@@ -26,6 +26,7 @@ interface WizardState {
   agentType: string | null;
   apiKey: string | null;
   poolUuid: string | null;
+  agentConnected: boolean;
   nodeAdded: boolean;
 }
 
@@ -42,6 +43,7 @@ export default function OnboardingPage() {
     agentType: null,
     apiKey: null,
     poolUuid: null,
+    agentConnected: false,
     nodeAdded: false,
   });
 
@@ -76,6 +78,7 @@ export default function OnboardingPage() {
   };
 
   const handleStep2Complete = () => {
+    setWizardState((prev) => ({ ...prev, agentConnected: true }));
     setCurrentStep(3);
   };
 
@@ -100,7 +103,7 @@ export default function OnboardingPage() {
 
   const stepDone = (step: number) => {
     if (step === 1) return status.hasAgent || !!wizardState.agentUuid;
-    if (step === 2) return status.hasAgentConnected;
+    if (step === 2) return status.hasAgentConnected || wizardState.agentConnected;
     if (step === 3) return status.hasComputeNode || wizardState.nodeAdded;
     return false;
   };

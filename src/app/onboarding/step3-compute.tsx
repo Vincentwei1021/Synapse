@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Check, Server, HardDrive } from "lucide-react";
+import { Loader2, Check, Server, HardDrive, Upload } from "lucide-react";
 import { authFetch } from "@/lib/auth-client";
 
 interface Props {
@@ -35,6 +35,7 @@ export function OnboardingStep3({ onComplete, onSkip }: Props) {
   const [authMethod, setAuthMethod] = useState<"password" | "key">("key");
   const [password, setPassword] = useState("");
   const [sshKey, setSshKey] = useState("");
+  const [pemFile, setPemFile] = useState<File | null>(null);
 
   const handleCreatePool = async () => {
     if (!poolName.trim()) return;
@@ -74,11 +75,16 @@ export function OnboardingStep3({ onComplete, onSkip }: Props) {
       formData.append("sshPort", sshPort || "22");
       formData.append("label", host.trim());
 
-      if (authMethod === "key" && sshKey.trim()) {
-        const keyBlob = new Blob([sshKey], { type: "application/x-pem-file" });
-        const keyFile = new File([keyBlob], `${host.trim()}.pem`, { type: "application/x-pem-file" });
-        formData.append("pemFile", keyFile);
-        formData.append("sshKeySource", "upload");
+      if (authMethod === "key") {
+        if (pemFile) {
+          formData.append("pemFile", pemFile);
+          formData.append("sshKeySource", "upload");
+        } else if (sshKey.trim()) {
+          const keyBlob = new Blob([sshKey], { type: "application/x-pem-file" });
+          const keyFile = new File([keyBlob], `${host.trim()}.pem`, { type: "application/x-pem-file" });
+          formData.append("pemFile", keyFile);
+          formData.append("sshKeySource", "upload");
+        }
       }
 
       const res = await authFetch("/api/compute-nodes", {
@@ -213,10 +219,30 @@ export function OnboardingStep3({ onComplete, onSkip }: Props) {
               />
             </div>
           ) : (
-            <div>
+            <div className="space-y-2">
+              {/* File upload */}
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border p-3 transition-colors hover:bg-muted/50">
+                <Upload className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">
+                  {pemFile ? pemFile.name : t("keyUpload")}
+                </span>
+                <input
+                  type="file"
+                  accept=".pem,.key,.pub,.id_rsa,.id_ed25519"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setPemFile(file);
+                      setSshKey("");
+                    }
+                  }}
+                />
+              </label>
+              {/* Or paste */}
               <Textarea
                 value={sshKey}
-                onChange={(e) => setSshKey(e.target.value)}
+                onChange={(e) => { setSshKey(e.target.value); setPemFile(null); }}
                 placeholder={t("keyPlaceholder")}
                 rows={4}
                 className="font-mono text-xs"

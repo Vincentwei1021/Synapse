@@ -1605,7 +1605,8 @@
       "authPassword": "密码",
       "authKey": "SSH 密钥",
       "passwordPlaceholder": "SSH 密码",
-      "keyPlaceholder": "在此粘贴私钥内容",
+      "keyPlaceholder": "或在此粘贴私钥内容",
+      "keyUpload": "上传 .pem 密钥文件",
       "gpuCountLabel": "GPU 数量",
       "gpuCountHint": "可选 — 首次遥测后自动检测",
       "addMachine": "添加机器"

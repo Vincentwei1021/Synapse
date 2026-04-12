@@ -1605,7 +1605,8 @@
       "authPassword": "Password",
       "authKey": "SSH Key",
       "passwordPlaceholder": "SSH password",
-      "keyPlaceholder": "Paste private key content here",
+      "keyPlaceholder": "Or paste private key content here",
+      "keyUpload": "Upload .pem key file",
       "gpuCountLabel": "GPU Count",
       "gpuCountHint": "Optional — auto-detected after first telemetry",
       "addMachine": "Add Machine"
