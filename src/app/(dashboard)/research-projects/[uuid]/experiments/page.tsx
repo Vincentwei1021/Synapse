@@ -41,7 +41,7 @@ export default async function ExperimentsPage({ params, searchParams }: PageProp
     listRealtimeAgentSummaries(auth.companyUuid),
     prisma.researchProject.findFirst({
       where: { uuid: projectUuid, companyUuid: auth.companyUuid },
-      select: { autonomousLoopEnabled: true, autonomousLoopAgentUuid: true, repoUrl: true },
+      select: { autonomousLoopEnabled: true, autonomousLoopAgentUuid: true, autonomousLoopMode: true, repoUrl: true },
     }),
     listResearchQuestions({
       companyUuid: auth.companyUuid,
@@ -75,6 +75,7 @@ export default async function ExperimentsPage({ params, searchParams }: PageProp
         projectUuid={projectUuid}
         autonomousLoopEnabled={project?.autonomousLoopEnabled ?? false}
         autonomousLoopAgentUuid={project?.autonomousLoopAgentUuid ?? null}
+        autonomousLoopMode={project?.autonomousLoopMode ?? null}
         repoUrl={project?.repoUrl ?? null}
         researchQuestions={researchQuestions.map((question) => ({
           uuid: question.uuid,

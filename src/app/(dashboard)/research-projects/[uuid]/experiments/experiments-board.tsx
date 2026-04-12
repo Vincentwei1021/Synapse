@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { CheckCircle2, CornerUpLeft, FileText, GitBranch, Save, Send } from "lucide-react";
@@ -64,26 +64,6 @@ function prettyJson(value: unknown) {
   }
 }
 
-function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors ${
-        checked ? "bg-primary" : "bg-muted-foreground/30"
-      }`}
-    >
-      <span
-        className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
-          checked ? "translate-x-4" : "translate-x-0.5"
-        } mt-0.5`}
-      />
-    </button>
-  );
-}
-
 export function ExperimentsBoard({
   experiments,
   agents,
@@ -93,6 +73,7 @@ export function ExperimentsBoard({
   projectUuid,
   autonomousLoopEnabled,
   autonomousLoopAgentUuid,
+  autonomousLoopMode,
   repoUrl,
   researchQuestions,
 }: {
@@ -104,6 +85,7 @@ export function ExperimentsBoard({
   projectUuid: string;
   autonomousLoopEnabled: boolean;
   autonomousLoopAgentUuid: string | null;
+  autonomousLoopMode: string | null;
   repoUrl: string | null;
   researchQuestions: Array<{ uuid: string; title: string }>;
 }) {
@@ -116,6 +98,10 @@ export function ExperimentsBoard({
   const [progressLogs, setProgressLogs] = useState<Array<{uuid: string; message: string; phase: string | null; createdAt: string}>>([]);
   const [loopEnabled, setLoopEnabled] = useState(autonomousLoopEnabled);
   const [loopAgentUuid, setLoopAgentUuid] = useState(autonomousLoopAgentUuid ?? "");
+  const [loopMode, setLoopMode] = useState(autonomousLoopMode ?? "human_review");
+  const [loopDropdownOpen, setLoopDropdownOpen] = useState(false);
+  const [loopSelectedMode, setLoopSelectedMode] = useState<string | null>(null);
+  const loopDropdownRef = useRef<HTMLDivElement>(null);
   const [draftTitle, setDraftTitle] = useState("");
   const [draftDescription, setDraftDescription] = useState("");
   const [draftResearchQuestionUuid, setDraftResearchQuestionUuid] = useState("");
@@ -125,16 +111,34 @@ export function ExperimentsBoard({
   const [draftSaveError, setDraftSaveError] = useState<string | null>(null);
   useRealtimeRefresh();
 
-  async function updateAutonomousLoop(enabled: boolean, agentUuid: string) {
-    await fetch(`/api/research-projects/${projectUuid}`, {
+  async function updateAutonomousLoop(enabled: boolean, agentUuid: string, mode: string) {
+    const res = await fetch(`/api/research-projects/${projectUuid}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         autonomousLoopEnabled: enabled && agentUuid !== "",
         autonomousLoopAgentUuid: agentUuid || null,
+        autonomousLoopMode: mode,
       }),
     });
+    if (res.ok) {
+      setLoopEnabled(enabled && agentUuid !== "");
+      setLoopAgentUuid(agentUuid);
+      setLoopMode(mode);
+    }
   }
+
+  useEffect(() => {
+    if (!loopDropdownOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (loopDropdownRef.current && !loopDropdownRef.current.contains(e.target as Node)) {
+        setLoopDropdownOpen(false);
+        setLoopSelectedMode(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [loopDropdownOpen]);
 
   useEffect(() => {
     if (dismissed) return;
@@ -369,72 +373,112 @@ export function ExperimentsBoard({
     return null;
   };
 
-  const activeAgentName = loopEnabled && loopAgentUuid
-    ? realtimeAgents.find((a) => a.uuid === loopAgentUuid)?.name ?? ""
-    : "";
-
   return (
     <>
-      {/* Autonomous Loop toggle */}
-      <div
-        className={`mb-4 rounded-2xl border p-3 ${
-          loopEnabled && loopAgentUuid
-            ? "border-primary/30 bg-primary/5"
-            : "border-border bg-card"
-        }`}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <ToggleSwitch
-              checked={loopEnabled}
-              onChange={(v) => {
-                setLoopEnabled(v);
-                if (!v) {
-                  setLoopAgentUuid("");
-                  void updateAutonomousLoop(false, "");
-                }
-              }}
-            />
-            <div>
-              <p
-                className={`text-sm font-medium ${
-                  loopEnabled ? "text-foreground" : "text-muted-foreground"
-                }`}
-              >
-                {t("experiments.autonomousLoop")}
-              </p>
-              {!loopEnabled ? (
-                <p className="text-xs text-muted-foreground">
-                  {t("experiments.autonomousLoopDesc")}
-                </p>
-              ) : loopAgentUuid ? (
-                <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                  {t("experiments.autonomousActive", { agent: activeAgentName })}
-                </p>
-              ) : (
-                <p className="text-xs text-primary">
-                  {t("experiments.selectAgentToActivate")}
-                </p>
-              )}
-            </div>
-          </div>
+      {/* Autonomous Loop Control */}
+      <div className="mb-4 flex justify-end" ref={loopDropdownRef}>
+        <div className="relative">
           {loopEnabled ? (
-            <select
-              value={loopAgentUuid}
-              onChange={(e) => {
-                setLoopAgentUuid(e.target.value);
-                void updateAutonomousLoop(true, e.target.value);
-              }}
-              className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm"
-            >
-              <option value="">{t("experiments.selectAgent")}</option>
-              {realtimeAgents.map((a) => (
-                <option key={a.uuid} value={a.uuid}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-          ) : null}
+            /* ACTIVE state: compact status bar */
+            <div className="flex items-center gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5">
+              <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse" />
+              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                {loopMode === "full_auto" ? t("experiments.fullAutoMode") : t("experiments.humanReviewMode")}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {t("experiments.via")} {realtimeAgents.find((a) => a.uuid === loopAgentUuid)?.name ?? "Agent"}
+              </span>
+              <button
+                onClick={async () => {
+                  await updateAutonomousLoop(false, "", loopMode);
+                  setLoopDropdownOpen(false);
+                  setLoopSelectedMode(null);
+                }}
+                className="ml-1 rounded-md border border-red-500/30 px-2 py-0.5 text-[11px] text-red-400 hover:bg-red-500/10 transition-colors"
+              >
+                {t("experiments.stop")}
+              </button>
+            </div>
+          ) : (
+            /* OFF state: dropdown button */
+            <>
+              <button
+                onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
+                className="flex items-center gap-2 rounded-lg border border-indigo-500/40 bg-gradient-to-r from-indigo-950 to-indigo-900 px-3 py-1.5 text-xs text-indigo-200 hover:border-indigo-500/60 transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-indigo-400">
+                  <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
+                </svg>
+                {t("experiments.startAutonomousLoop")}
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-indigo-400 transition-transform ${loopDropdownOpen ? "rotate-180" : ""}`}>
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+
+              {loopDropdownOpen && (
+                <div className="absolute right-0 top-full mt-1 z-50 w-72 rounded-lg border border-border/40 bg-card shadow-xl shadow-black/30">
+                  {!loopSelectedMode ? (
+                    /* Step 1: Mode selection */
+                    <div className="p-1.5">
+                      <button
+                        onClick={() => setLoopSelectedMode("human_review")}
+                        className="w-full rounded-md p-2.5 text-left hover:bg-accent/50 transition-colors"
+                      >
+                        <div className="text-sm font-medium text-foreground">{t("experiments.humanReviewMode")}</div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5">{t("experiments.humanReviewModeDesc")}</div>
+                      </button>
+                      <button
+                        onClick={() => setLoopSelectedMode("full_auto")}
+                        className="w-full rounded-md p-2.5 text-left hover:bg-accent/50 transition-colors"
+                      >
+                        <div className="text-sm font-medium text-foreground">{t("experiments.fullAutoMode")}</div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5">{t("experiments.fullAutoModeDesc")}</div>
+                      </button>
+                    </div>
+                  ) : (
+                    /* Step 2: Agent selection + activate */
+                    <div className="p-3 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-500"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" /></svg>
+                        <span className="text-sm font-medium text-foreground">
+                          {loopSelectedMode === "full_auto" ? t("experiments.fullAutoMode") : t("experiments.humanReviewMode")}
+                        </span>
+                        <button
+                          onClick={() => setLoopSelectedMode(null)}
+                          className="ml-auto text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          &#8592;
+                        </button>
+                      </div>
+                      <select
+                        value={loopAgentUuid}
+                        onChange={(e) => setLoopAgentUuid(e.target.value)}
+                        className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-xs"
+                      >
+                        <option value="">{t("experiments.selectAgent")}</option>
+                        {realtimeAgents.map((agent) => (
+                          <option key={agent.uuid} value={agent.uuid}>
+                            {agent.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        disabled={!loopAgentUuid}
+                        onClick={async () => {
+                          await updateAutonomousLoop(true, loopAgentUuid, loopSelectedMode!);
+                          setLoopDropdownOpen(false);
+                          setLoopSelectedMode(null);
+                        }}
+                        className="w-full rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-40 transition-colors"
+                      >
+                        {t("experiments.activate")}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 
