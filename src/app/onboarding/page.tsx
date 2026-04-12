@@ -16,6 +16,7 @@ interface OnboardingStatus {
   hasAgent: boolean;
   hasAgentSession: boolean;
   hasComputePool: boolean;
+  hasComputeNode: boolean;
   hasProject: boolean;
 }
 
@@ -53,7 +54,7 @@ export default function OnboardingPage() {
           const s: OnboardingStatus = json.data;
           setStatus(s);
           // Auto-advance to first incomplete step
-          if (s.hasAgent && s.hasAgentSession && s.hasComputePool) {
+          if (s.hasAgent && s.hasAgentSession && s.hasComputeNode) {
             router.replace("/research-projects");
           } else if (s.hasAgent && s.hasAgentSession) {
             setCurrentStep(3);
@@ -100,7 +101,7 @@ export default function OnboardingPage() {
   const stepDone = (step: number) => {
     if (step === 1) return status.hasAgent || !!wizardState.agentUuid;
     if (step === 2) return status.hasAgentSession;
-    if (step === 3) return status.hasComputePool || wizardState.nodeAdded;
+    if (step === 3) return status.hasComputeNode || wizardState.nodeAdded;
     return false;
   };
 

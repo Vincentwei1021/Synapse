@@ -228,7 +228,7 @@ export default function DashboardLayout({
       .then((json) => {
         if (json.success) {
           const s = json.data;
-          if (!s.hasAgent && !s.hasComputePool && !s.hasProject) {
+          if (!s.hasAgent && !s.hasComputeNode && !s.hasProject) {
             router.replace("/onboarding");
           }
         }

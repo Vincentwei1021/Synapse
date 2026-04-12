@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { Check, X, ArrowRight } from "lucide-react";
@@ -8,32 +8,35 @@ import { authFetch } from "@/lib/auth-client";
 
 interface OnboardingStatus {
   hasAgent: boolean;
-  hasComputePool: boolean;
+  hasComputeNode: boolean;
 }
 
 export function OnboardingProgress() {
   const t = useTranslations("onboarding.sidebar");
   const [status, setStatus] = useState<OnboardingStatus | null>(null);
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
     authFetch("/api/onboarding/status")
       .then((res) => res.json())
       .then((json) => {
         if (json.success) {
-          setStatus({ hasAgent: json.data.hasAgent, hasComputePool: json.data.hasComputePool });
+          setStatus({ hasAgent: json.data.hasAgent, hasComputeNode: json.data.hasComputeNode });
         }
       })
       .catch(() => {});
   }, []);
 
   // Don't render if status unknown or everything is set up
-  if (!status || (status.hasAgent && status.hasComputePool)) {
+  if (!status || (status.hasAgent && status.hasComputeNode)) {
     return null;
   }
 
   const items = [
     { label: t("agentConfigured"), done: status.hasAgent },
-    { label: t("computeConfigured"), done: status.hasComputePool },
+    { label: t("computeConfigured"), done: status.hasComputeNode },
   ];
 
   return (

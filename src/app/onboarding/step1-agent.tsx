@@ -54,7 +54,8 @@ export function OnboardingStep1({ onComplete, onSkip }: Props) {
       if (json.success) {
         onComplete(json.data.uuid, json.data.name, json.data.type);
       } else {
-        setError(json.error || "Failed to create agent");
+        const msg = typeof json.error === "string" ? json.error : json.error?.message || "Failed to create agent";
+        setError(msg);
       }
     } catch {
       setError("Network error");
