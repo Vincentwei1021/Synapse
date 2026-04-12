@@ -82,6 +82,7 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
     computePoolUuid?: string | null;
     autonomousLoopEnabled?: boolean;
     autonomousLoopAgentUuid?: string | null;
+    autonomousLoopMode?: string;
     autoSearchEnabled?: boolean;
     autoSearchAgentUuid?: string | null;
     repoUrl?: string | null;
@@ -98,6 +99,7 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
     computePoolUuid?: string | null;
     autonomousLoopEnabled?: boolean;
     autonomousLoopAgentUuid?: string | null;
+    autonomousLoopMode?: string;
     autoSearchEnabled?: boolean;
     autoSearchAgentUuid?: string | null;
     repoUrl?: string | null;
@@ -138,6 +140,13 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
 
   if (body.autonomousLoopAgentUuid !== undefined) {
     updateData.autonomousLoopAgentUuid = body.autonomousLoopAgentUuid || null;
+  }
+
+  if (body.autonomousLoopMode !== undefined) {
+    if (!["human_review", "full_auto"].includes(body.autonomousLoopMode)) {
+      return errors.validationError({ autonomousLoopMode: "Must be 'human_review' or 'full_auto'" });
+    }
+    updateData.autonomousLoopMode = body.autonomousLoopMode;
   }
 
   if (body.autoSearchEnabled !== undefined) {
