@@ -125,10 +125,20 @@ export function OnboardingStep2({ agentUuid, agentName, agentType, onComplete, o
   --header "Authorization: Bearer ${apiKey}"`
     : "";
 
+  const synapseOrigin = typeof window !== "undefined" ? window.location.origin : "";
+
+  const openClawInstall = "openclaw plugins install @vincentwei1021/synapse-openclaw-plugin";
+
   const openClawConfig = apiKey
-    ? `# In your OpenClaw plugin config:
-SYNAPSE_URL=${typeof window !== "undefined" ? window.location.origin : ""}
-SYNAPSE_API_KEY=${apiKey}`
+    ? `{
+  "synapse-openclaw-plugin": {
+    "enabled": true,
+    "config": {
+      "synapseUrl": "${synapseOrigin}",
+      "apiKey": "${apiKey}"
+    }
+  }
+}`
     : "";
 
   return (
@@ -186,12 +196,29 @@ SYNAPSE_API_KEY=${apiKey}`
             <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {t("configTitle")}
             </label>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {agentType === "openclaw" ? t("configOpenClaw") : t("configClaudeCode")}
-            </p>
-            <pre className="mt-2 rounded-lg border border-border bg-muted/50 p-3 text-xs font-mono text-foreground whitespace-pre-wrap break-all">
-              {agentType === "openclaw" ? openClawConfig : claudeCodeConfig}
-            </pre>
+            {agentType === "openclaw" ? (
+              <div className="mt-2 space-y-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">{t("configOpenClawInstall")}</p>
+                  <pre className="mt-1.5 rounded-lg border border-border bg-muted/50 p-3 text-xs font-mono text-foreground whitespace-pre-wrap break-all">
+                    {openClawInstall}
+                  </pre>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">{t("configOpenClawJson")}</p>
+                  <pre className="mt-1.5 rounded-lg border border-border bg-muted/50 p-3 text-xs font-mono text-foreground whitespace-pre-wrap break-all">
+                    {openClawConfig}
+                  </pre>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-2">
+                <p className="text-xs text-muted-foreground">{t("configClaudeCode")}</p>
+                <pre className="mt-1.5 rounded-lg border border-border bg-muted/50 p-3 text-xs font-mono text-foreground whitespace-pre-wrap break-all">
+                  {claudeCodeConfig}
+                </pre>
+              </div>
+            )}
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
