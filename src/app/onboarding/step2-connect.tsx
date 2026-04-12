@@ -85,7 +85,7 @@ export function OnboardingStep2({ agentUuid, agentName, agentType, onComplete, o
         const event = JSON.parse(msg.data);
         if (
           event.entityType === "agent_session" &&
-          event.action === "created" &&
+          (event.action === "created" || event.action === "updated") &&
           event.actorUuid === agentUuid
         ) {
           handleConnected();
@@ -100,7 +100,7 @@ export function OnboardingStep2({ agentUuid, agentName, agentType, onComplete, o
       try {
         const res = await authFetch("/api/onboarding/status");
         const json = await res.json();
-        if (json.success && json.data.hasAgentSession) {
+        if (json.success && json.data.hasAgentConnected) {
           handleConnected();
         }
       } catch {

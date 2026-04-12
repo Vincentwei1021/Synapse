@@ -15,6 +15,7 @@ import * as notificationService from "@/services/notification.service";
 import * as projectGroupService from "@/services/project-group.service";
 import * as mentionService from "@/services/mention.service";
 import { prisma } from "@/lib/prisma";
+import { eventBus } from "@/lib/event-bus";
 
 export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
   // synapse_get_research_project - Get research project details and context
@@ -250,6 +251,16 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
           ownerUuid: true,
           owner: { select: { uuid: true, name: true, email: true } },
         },
+      });
+
+      // Emit agent checkin event (used by onboarding connection detection)
+      eventBus.emitChange({
+        companyUuid: auth.companyUuid,
+        researchProjectUuid: "",
+        entityType: "agent_session",
+        entityUuid: agent.uuid,
+        action: "updated",
+        actorUuid: auth.actorUuid,
       });
 
       // Get pending Research Questions and Experiment Runs
