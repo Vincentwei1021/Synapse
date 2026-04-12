@@ -466,20 +466,23 @@ In practice:
 
 ### Keep all environments in sync
 
-This project has three environments that must stay in sync:
+This project has four environments that must stay in sync:
 
 1. **Local**: `/Users/weiyihao/personal/Synapse`
-2. **Synapse remote**: `synapse:/home/ubuntu/Synapse`
-3. **OpenClaw machine**: `openclaw` — runs the OpenClaw gateway with the Synapse plugin
+2. **Synapse remote**: `synapse:/home/ubuntu/Synapse` — production/development server (DB, git push)
+3. **Synapse test**: `synapse-test:/home/ubuntu/Synapse` — dedicated test machine for UI/integration testing
+4. **OpenClaw machine**: `openclaw` — runs the OpenClaw gateway with the Synapse plugin
 
-SSH details for `synapse` and `openclaw` are in the local `~/.ssh/config`. Use `ssh synapse` and `ssh openclaw` directly.
+SSH details for `synapse`, `synapse-test`, and `openclaw` are in the local `~/.ssh/config`. Use `ssh synapse`, `ssh synapse-test`, and `ssh openclaw` directly.
 
 Rules for code changes:
 
-- any code change must be synced to both local and synapse remote working copies
+- any code change must be synced to local, synapse remote, and synapse-test working copies
 - **git commit and push must be done on the synapse remote**, not locally
 - do not leave local and remote code in diverged states after finishing work
-- when syncing to remote, exclude `.env` to preserve remote-specific config (e.g. DB port): `rsync --exclude .env`
+- when syncing to synapse remote, exclude `.env` to preserve remote-specific config (e.g. DB port): `rsync --exclude .env`
+- synapse-test syncs via `git pull` from origin (not rsync) — it is a full git clone
+- use `synapse-test` for browser testing and integration verification
 
 ### Git branching workflow
 
@@ -507,14 +510,35 @@ The `openclaw` command requires nvm initialization (`. "$NVM_DIR/nvm.sh"`) befor
 
 If only Synapse MCP server code changes (e.g. `src/mcp/tools/*.ts`, `src/services/*.ts`), the OpenClaw plugin does NOT need updating — only sync to synapse remote and restart the dev server.
 
-### Three-environment sync verification
+### Environment sync verification
 
-After finishing work, verify all three environments:
+After finishing work, verify all environments:
 
 ```bash
 git log --oneline -1                    # local
 ssh synapse 'cd /home/ubuntu/Synapse && git log --oneline -1'  # synapse
+ssh synapse-test 'cd /home/ubuntu/Synapse && ls src/app/api/ | wc -l'  # synapse-test (no git, just verify files)
 ssh openclaw 'cat /home/ubuntu/.openclaw/extensions/synapse-openclaw-plugin/package.json | grep version'  # openclaw plugin
+```
+
+### Syncing to synapse-test
+
+`synapse-test` is a full git clone. After pushing from synapse remote, pull on synapse-test:
+
+```bash
+ssh synapse-test 'cd /home/ubuntu/Synapse && git pull'
+```
+
+If switching branches:
+
+```bash
+ssh synapse-test 'cd /home/ubuntu/Synapse && git fetch && git checkout <branch> && git pull'
+```
+
+After pulling, install dependencies if changed and start the dev server:
+
+```bash
+ssh synapse-test 'cd /home/ubuntu/Synapse && pnpm install && pnpm dev -H 0.0.0.0 -p 3000'
 ```
 
 ### Keep `docs/design.pen` updated
