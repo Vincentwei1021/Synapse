@@ -11,33 +11,33 @@ interface OnboardingStatus {
   hasComputeNode: boolean;
 }
 
-// Module-level cache to prevent re-fetching across remounts
+// Module-level cache — cleared by invalidateOnboardingCache()
 let cachedStatus: OnboardingStatus | null = null;
-let fetchPromise: Promise<void> | null = null;
+
+/** Call after completing onboarding to force a re-fetch on next render */
+export function invalidateOnboardingCache() {
+  cachedStatus = null;
+}
 
 export function OnboardingProgress() {
   const t = useTranslations("onboarding.sidebar");
   const [status, setStatus] = useState<OnboardingStatus | null>(cachedStatus);
 
   useEffect(() => {
+    // Use cache if available
     if (cachedStatus) {
       setStatus(cachedStatus);
       return;
     }
-    if (!fetchPromise) {
-      fetchPromise = authFetch("/api/onboarding/status")
-        .then((res) => res.json())
-        .then((json) => {
-          if (json.success) {
-            cachedStatus = { hasAgent: json.data.hasAgent, hasComputeNode: json.data.hasComputeNode };
-          }
-        })
-        .catch(() => {})
-        .finally(() => { fetchPromise = null; });
-    }
-    fetchPromise.then(() => {
-      if (cachedStatus) setStatus(cachedStatus);
-    });
+    authFetch("/api/onboarding/status")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) {
+          cachedStatus = { hasAgent: json.data.hasAgent, hasComputeNode: json.data.hasComputeNode };
+          setStatus(cachedStatus);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Don't render if status unknown or everything is set up

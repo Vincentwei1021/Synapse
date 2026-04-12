@@ -14,7 +14,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     prisma.agent.count({ where: { companyUuid: auth.companyUuid, ownerUuid: auth.actorUuid } }),
     prisma.agent.count({ where: { companyUuid: auth.companyUuid, ownerUuid: auth.actorUuid, lastActiveAt: { not: null } } }),
     prisma.computePool.count({ where: { companyUuid: auth.companyUuid } }),
-    prisma.computeNode.count({ where: { companyUuid: auth.companyUuid, lastReportedAt: { not: null } } }),
+    prisma.computeNode.count({ where: { companyUuid: auth.companyUuid } }),
     prisma.researchProject.count({ where: { companyUuid: auth.companyUuid } }),
   ]);
 

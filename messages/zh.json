@@ -1598,6 +1598,8 @@
       "poolDescPlaceholder": "可选描述",
       "createPool": "创建算力池",
       "machinePhase": "添加机器",
+      "machineLabelField": "机器名称",
+      "machineLabelPlaceholder": "可选 — 默认使用主机名",
       "hostLabel": "主机名 / IP",
       "hostPlaceholder": "例如：10.0.1.5",
       "userLabel": "SSH 用户名",

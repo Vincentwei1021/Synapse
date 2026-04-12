@@ -8,6 +8,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { authFetch } from "@/lib/auth-client";
+import { invalidateOnboardingCache } from "@/components/onboarding-progress";
 import { OnboardingStep1 } from "./step1-agent";
 import { OnboardingStep2 } from "./step2-connect";
 import { OnboardingStep3 } from "./step3-compute";
@@ -69,6 +70,7 @@ export default function OnboardingPage() {
   }, [router]);
 
   const handleSkipAll = () => {
+    invalidateOnboardingCache();
     router.push("/research-projects");
   };
 
@@ -84,6 +86,7 @@ export default function OnboardingPage() {
 
   const handleStep3Complete = useCallback((poolUuid: string) => {
     setWizardState((prev) => ({ ...prev, poolUuid, nodeAdded: true }));
+    invalidateOnboardingCache();
     setTimeout(() => {
       router.push("/research-projects");
     }, 3000);

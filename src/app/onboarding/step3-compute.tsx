@@ -14,7 +14,7 @@ interface Props {
   onSkip: () => void;
 }
 
-type Phase = "pool" | "machine" | "probing" | "done";
+type Phase = "pool" | "machine" | "done";
 
 export function OnboardingStep3({ onComplete, onSkip }: Props) {
   const t = useTranslations("onboarding.step3");
@@ -29,6 +29,7 @@ export function OnboardingStep3({ onComplete, onSkip }: Props) {
   const [poolUuid, setPoolUuid] = useState<string | null>(null);
 
   // Machine form
+  const [machineLabel, setMachineLabel] = useState("");
   const [host, setHost] = useState("");
   const [sshUser, setSshUser] = useState("ubuntu");
   const [sshPort, setSshPort] = useState("22");
@@ -73,7 +74,7 @@ export function OnboardingStep3({ onComplete, onSkip }: Props) {
       formData.append("sshHost", host.trim());
       formData.append("sshUser", sshUser.trim() || "ubuntu");
       formData.append("sshPort", sshPort || "22");
-      formData.append("label", host.trim());
+      formData.append("label", machineLabel.trim() || host.trim());
 
       if (authMethod === "key") {
         if (pemFile) {
@@ -93,30 +94,8 @@ export function OnboardingStep3({ onComplete, onSkip }: Props) {
       });
       const json = await res.json();
       if (json.success) {
-        // Machine created — server fires probeNodeOnce in the background.
-        // Poll onboarding status to wait for SSH probe to succeed (lastReportedAt set).
-        setPhase("probing");
-        const maxAttempts = 12; // 12 * 5s = 60s
-        let attempt = 0;
-        const poll = setInterval(async () => {
-          attempt++;
-          try {
-            const statusRes = await authFetch("/api/onboarding/status");
-            const statusJson = await statusRes.json();
-            if (statusJson.success && statusJson.data.hasComputeNode) {
-              clearInterval(poll);
-              setPhase("done");
-              onComplete(poolUuid);
-            } else if (attempt >= maxAttempts) {
-              clearInterval(poll);
-              // Probe didn't succeed in time — still mark as done but note the issue
-              setPhase("done");
-              onComplete(poolUuid);
-            }
-          } catch {
-            // ignore
-          }
-        }, 5000);
+        setPhase("done");
+        onComplete(poolUuid);
       } else {
         setError(typeof json.error === "string" ? json.error : json.error?.message || "Failed to add machine");
       }
@@ -178,6 +157,18 @@ export function OnboardingStep3({ onComplete, onSkip }: Props) {
           <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-primary">
             <HardDrive className="h-3.5 w-3.5" />
             {t("machinePhase")}
+          </div>
+
+          {/* Machine label (optional) */}
+          <div>
+            <Label htmlFor="machine-label">{t("machineLabelField")}</Label>
+            <Input
+              id="machine-label"
+              value={machineLabel}
+              onChange={(e) => setMachineLabel(e.target.value)}
+              placeholder={t("machineLabelPlaceholder")}
+              className="mt-1.5"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -283,14 +274,6 @@ export function OnboardingStep3({ onComplete, onSkip }: Props) {
               {t("addMachine")}
             </Button>
           </div>
-        </div>
-      )}
-
-      {phase === "probing" && (
-        <div className="mt-8 flex flex-col items-center gap-3 py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm font-medium text-foreground">{t("probing")}</p>
-          <p className="text-xs text-muted-foreground text-center max-w-sm">{t("probingHint")}</p>
         </div>
       )}
 

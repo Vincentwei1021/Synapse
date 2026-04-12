@@ -1598,6 +1598,8 @@
       "poolDescPlaceholder": "Optional description",
       "createPool": "Create Pool",
       "machinePhase": "Add Machine",
+      "machineLabelField": "Machine Name",
+      "machineLabelPlaceholder": "Optional — defaults to hostname",
       "hostLabel": "Hostname / IP",
       "hostPlaceholder": "e.g. 10.0.1.5",
       "userLabel": "SSH User",
