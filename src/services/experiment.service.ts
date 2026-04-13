@@ -991,7 +991,6 @@ async function appendExperimentResultsLog(
         type: DOCUMENT_TYPE,
         content: CSV_HEADER + "\n" + newRow,
         createdByUuid: "system",
-        createdByType: "user",
       },
     });
   }
