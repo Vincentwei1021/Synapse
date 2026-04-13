@@ -651,6 +651,14 @@ export async function reviewExperiment(input: {
 
   assertTransition(existing.status as ExperimentStatus, input.approved ? "pending_start" : "draft");
 
+  // When approving an agent-created experiment, auto-assign it back to the
+  // creating agent so it receives a task_assigned notification and can execute.
+  const shouldAutoAssign =
+    input.approved &&
+    existing.createdByType === "agent" &&
+    existing.createdByUuid &&
+    !existing.assigneeUuid;
+
   const updated = await prisma.experiment.update({
     where: { uuid: input.experimentUuid },
     data: {
@@ -658,6 +666,14 @@ export async function reviewExperiment(input: {
       reviewedByUuid: input.actorUuid,
       reviewNote: input.reviewNote ?? null,
       reviewedAt: new Date(),
+      ...(shouldAutoAssign
+        ? {
+            assigneeType: "agent",
+            assigneeUuid: existing.createdByUuid,
+            assignedAt: new Date(),
+            assignedByUuid: input.actorUuid,
+          }
+        : {}),
     },
     include: {
       researchQuestion: {
@@ -685,6 +701,31 @@ export async function reviewExperiment(input: {
     action: "updated",
     actorUuid: input.actorUuid,
   });
+
+  // Send task_assigned notification when auto-assigning back to the creating agent
+  if (shouldAutoAssign) {
+    try {
+      const actorName = await getActorName("user", input.actorUuid);
+      await notificationService.create({
+        companyUuid: input.companyUuid,
+        researchProjectUuid: updated.researchProjectUuid,
+        recipientType: "agent",
+        recipientUuid: existing.createdByUuid,
+        entityType: "experiment",
+        entityUuid: updated.uuid,
+        entityTitle: updated.title,
+        projectName: existing.researchProject.name,
+        action: "task_assigned",
+        message: `${updated.title} has been approved and assigned to you.`,
+        actorType: "user",
+        actorUuid: input.actorUuid,
+        actorName: actorName || "Unknown",
+      });
+      await updateExperimentLiveStatus(input.experimentUuid, "sent");
+    } catch (err) {
+      console.error("Failed to send task_assigned notification after review approval:", err);
+    }
+  }
 
   // Check autonomous loop when experiment is rejected (queue may become empty)
   if (!input.approved) {
