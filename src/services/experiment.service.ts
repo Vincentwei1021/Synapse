@@ -956,7 +956,7 @@ async function appendExperimentResultsLog(
   const DOCUMENT_TYPE = "experiment_results_log";
 
   // Find or create the log document
-  let doc = await prisma.document.findFirst({
+  const doc = await prisma.document.findFirst({
     where: { researchProjectUuid: experiment.researchProjectUuid, companyUuid, type: DOCUMENT_TYPE },
   });
 
