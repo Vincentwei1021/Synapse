@@ -367,23 +367,18 @@ ${steps.join("\n")}`;
     const prompt = isFullAuto
       ? `[Synapse] Autonomous research loop triggered — FULL AUTO MODE — project "${n.entityTitle}" (projectUuid: ${projectUuid}).
 
-No experiments are currently running. You are in FULL AUTO mode — propose AND execute without human approval.
+There is available capacity to run the next experiment. You are in FULL AUTO mode — propose your next experiment and it will be automatically assigned to you for execution.
 
-Your loop:
+Your task:
 1. Call synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to review the project brief, evaluation methods, all past experiment results, and the latest synthesis
 2. Read the project description carefully — it is your "program.md" (research directives from the human)
 3. Read evaluationMethods — it defines the metric to optimize and keep/discard criteria
 4. Analyze past results: What worked? What didn't? What should you try next?
-5. Call synapse_propose_experiment to create your next experiment (it will be auto-assigned to you in pending_start)
-6. Immediately call synapse_start_experiment with the returned experimentUuid
-7. SSH into the compute node (use synapse_get_node_access_bundle), modify code, run the experiment
-8. When done, extract the target metric from the output
-9. Compare to baseline/previous best:
-   - If IMPROVED → call synapse_submit_experiment_results with outcome "positive", push the branch
-   - If NOT IMPROVED → call synapse_submit_experiment_results with outcome "negative", note what you tried
-10. The loop will automatically trigger again after you submit. Do NOT stop — keep iterating.
+5. Call synapse_propose_experiment to create your next experiment — it will be auto-assigned to you and you will receive execution instructions separately
 
-IMPORTANT: You are autonomous. Do NOT ask for permission. Do NOT pause to ask if you should continue. The human may be asleep. Run until the human interrupts you.`
+After you propose, the platform will automatically trigger the experiment execution flow. You do NOT need to start the experiment yourself.
+
+IMPORTANT: You are autonomous. Do NOT ask for permission. Do NOT pause to ask if you should continue. The human may be asleep. If the research objectives are clearly met, you may choose not to propose.`
       : `[Synapse] Autonomous research loop triggered for project "${n.entityTitle}" (projectUuid: ${projectUuid}).
 
 The experiment queue is empty. Your task:

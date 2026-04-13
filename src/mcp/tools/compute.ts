@@ -699,6 +699,26 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
             actorName: agent.name ?? "Agent",
           });
         }
+
+        // Full Auto: also send task_assigned notification to the agent itself
+        // This triggers handleExperimentAssigned in the plugin → detailed execution prompt
+        if (isFullAuto && projectForNotif) {
+          await notificationService.create({
+            companyUuid: auth.companyUuid,
+            researchProjectUuid,
+            recipientType: "agent",
+            recipientUuid: auth.actorUuid,
+            entityType: "experiment",
+            entityUuid: experiment.uuid,
+            entityTitle: experiment.title,
+            projectName: projectForNotif.name,
+            action: "task_assigned",
+            message: `Experiment "${title}" auto-assigned for immediate execution.`,
+            actorType: "agent",
+            actorUuid: auth.actorUuid,
+            actorName: agent?.name ?? "Agent",
+          });
+        }
       } catch { /* ignore notification errors */ }
 
       const note = isFullAuto
