@@ -640,9 +640,16 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
         resultSummary: exp.results ? (String(exp.results).length > 150 ? String(exp.results).slice(0, 150) + "..." : String(exp.results)) : null,
       }));
 
+      // Fetch the auto-maintained experiment results log if it exists
+      const resultsLog = await prisma.document.findFirst({
+        where: { researchProjectUuid, companyUuid: auth.companyUuid, type: "experiment_results_log" },
+        select: { uuid: true, title: true, content: true, updatedAt: true },
+      });
+
       return {
         content: [{ type: "text", text: JSON.stringify({
           project: { ...project, experiments: trimmedExperiments },
+          resultsLog: resultsLog ? { uuid: resultsLog.uuid, content: resultsLog.content, updatedAt: resultsLog.updatedAt } : null,
           _hint: "Use synapse_get_experiment for full details of a specific experiment.",
         }, null, 2) }],
       };
