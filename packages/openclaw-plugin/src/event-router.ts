@@ -302,24 +302,26 @@ Base branch: ${repoAccess.baseBranch ?? "main"}`;
    b. Test the script to make sure it works correctly.
    c. Create a cron job that runs every 30 minutes: the script calls synapse_report_experiment_progress with experimentUuid "${experimentUuid}" to report the latest metrics summary, and delivers updates to the latest channel.
    d. The monitoring script should also detect when the experiment finishes (e.g. training completes, final evaluation done). When completion is detected, the script should send a message notifying you (the agent) that the experiment has finished.
-   e. Once you receive the completion notification, you are responsible for the remaining steps: ${hasRepo ? "push code to a branch, " : ""}submit results, and clean up. Remove the cron job after you have completed everything.
+   e. Once you receive the completion notification, you are responsible for the remaining steps: ${hasRepo ? "handle code changes per project description, " : ""}submit results, and clean up. Remove the cron job after you have completed everything.
    For short experiments that you can monitor directly, skip the cron setup and proceed to the next steps manually.`);
 
     steps.push(`${stepNum++}. If you are monitoring the experiment directly (no cron), call synapse_report_experiment_progress with experimentUuid "${experimentUuid}" at each major step (data download, training start, each evaluation checkpoint, etc.).`);
 
     if (hasRepo) {
-      steps.push(`${stepNum++}. After the experiment completes, create a new branch: experiment/${experimentUuid}-{experimentTitle} (sanitize: lowercase, hyphens for spaces, remove special chars; if Chinese title, translate to English — do not use pinyin). Commit all code changes and push.`);
+      steps.push(`${stepNum++}. After the experiment completes, handle code changes according to the project description. If the project description specifies a git workflow (e.g. single branch with keep/discard, or per-experiment branches), follow that. Otherwise, default to: create a new branch experiment/${experimentUuid}-{shortTitle}, commit all changes, and push.`);
     }
 
-    steps.push(`${stepNum++}. Call synapse_submit_experiment_results with experimentUuid "${experimentUuid}"${hasRepo ? ", experimentBranch (the branch name you pushed), and commitSha" : ""} to complete the experiment. This also releases the reserved GPUs (the GPUs you reserved in step 2 are released by matching experimentUuid).`);
+    steps.push(`${stepNum++}. Call synapse_submit_experiment_results with experimentUuid "${experimentUuid}"${hasRepo ? ". Include experimentBranch and commitSha if you pushed code" : ""} to complete the experiment. This also releases the reserved GPUs.`);
 
     steps.push(mentionGuidance);
 
     const prompt = `[Synapse] Experiment assigned: ${n.entityTitle}
 
+PRIORITY: The project description (Brief) below contains directives from the human researcher. These take the HIGHEST priority — if any instruction below conflicts with the project description, follow the project description.
+
 ${context}${description}${githubSection}
 
-Steps:
+Default steps (override with project description directives where applicable):
 ${steps.join("\n")}`;
 
     const budgetHours = experiment?.computeBudgetHours;
