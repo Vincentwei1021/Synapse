@@ -308,7 +308,7 @@ Base branch: ${repoAccess.baseBranch ?? "main"}`;
     steps.push(`${stepNum++}. If you are monitoring the experiment directly (no cron), call synapse_report_experiment_progress with experimentUuid "${experimentUuid}" at each major step (data download, training start, each evaluation checkpoint, etc.).`);
 
     if (hasRepo) {
-      steps.push(`${stepNum++}. After the experiment completes, handle code changes based on the project description and the experiment outcome. The project description may specify a git workflow (e.g. single branch with keep/discard, per-experiment branches, etc.) — follow it. If not specified, use your judgment: commit and push if the results are worth preserving, or discard if not.`);
+      steps.push(`${stepNum++}. After the experiment completes, commit your changes and push. The project description may specify a branch strategy (e.g. single persistent branch, per-experiment branches, keep/discard workflow). Follow it. If not specified, decide: create a new branch for this experiment, or commit on the current branch — based on how the project organizes its code.`);
     }
 
     steps.push(`${stepNum++}. Call synapse_submit_experiment_results with experimentUuid "${experimentUuid}"${hasRepo ? ". Include experimentBranch and commitSha if you pushed code" : ""} to complete the experiment. This also releases the reserved GPUs.`);
