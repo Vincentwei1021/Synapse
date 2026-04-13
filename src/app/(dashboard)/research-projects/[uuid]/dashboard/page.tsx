@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { getResearchProjectDashboardData } from "@/services/research-project.service";
 import { EditProjectDialog } from "./edit-project-dialog";
+import { CollapsibleDescription } from "./collapsible-description";
 
 interface PageProps {
   params: Promise<{ uuid: string }>;
@@ -75,9 +76,10 @@ export default async function DashboardPage({ params }: PageProps) {
               {t("dashboard.brief")}
             </p>
             <h1 className="mt-3 text-[28px] font-semibold tracking-tight text-foreground">{project.name}</h1>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              {project.description || t("dashboard.noDescription")}
-            </p>
+            <CollapsibleDescription
+              text={project.description || t("dashboard.noDescription")}
+              maxLines={3}
+            />
           </div>
 
           <div className="flex flex-wrap gap-3">
