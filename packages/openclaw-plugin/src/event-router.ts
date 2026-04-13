@@ -361,17 +361,40 @@ ${steps.join("\n")}`;
 
   private handleAutonomousLoopTriggered(n: NotificationDetail): void {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
+    // Detect Full Auto mode from the notification message (set in checkAutonomousLoopTrigger)
+    const isFullAuto = n.message.startsWith("No experiments running");
 
-    this.triggerAgent(
-      `[Synapse] Autonomous research loop triggered for project "${n.entityTitle}" (projectUuid: ${projectUuid}).
+    const prompt = isFullAuto
+      ? `[Synapse] Autonomous research loop triggered — FULL AUTO MODE — project "${n.entityTitle}" (projectUuid: ${projectUuid}).
+
+No experiments are currently running. You are in FULL AUTO mode — propose AND execute without human approval.
+
+Your loop:
+1. Call synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to review the project brief, evaluation methods, all past experiment results, and the latest synthesis
+2. Read the project description carefully — it is your "program.md" (research directives from the human)
+3. Read evaluationMethods — it defines the metric to optimize and keep/discard criteria
+4. Analyze past results: What worked? What didn't? What should you try next?
+5. Call synapse_propose_experiment to create your next experiment (it will be auto-assigned to you in pending_start)
+6. Immediately call synapse_start_experiment with the returned experimentUuid
+7. SSH into the compute node (use synapse_get_node_access_bundle), modify code, run the experiment
+8. When done, extract the target metric from the output
+9. Compare to baseline/previous best:
+   - If IMPROVED → call synapse_submit_experiment_results with outcome "positive", push the branch
+   - If NOT IMPROVED → call synapse_submit_experiment_results with outcome "negative", note what you tried
+10. The loop will automatically trigger again after you submit. Do NOT stop — keep iterating.
+
+IMPORTANT: You are autonomous. Do NOT ask for permission. Do NOT pause to ask if you should continue. The human may be asleep. Run until the human interrupts you.`
+      : `[Synapse] Autonomous research loop triggered for project "${n.entityTitle}" (projectUuid: ${projectUuid}).
 
 The experiment queue is empty. Your task:
 1. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to review all project details, research questions, and experiment results
 2. Analyze: What questions remain unanswered? What experiments could yield new insights? Are there gaps in the research?
-3. If you identify valuable next steps, use synapse_propose_experiment to create experiments in pending_review for human review
+3. If you identify valuable next steps, use synapse_propose_experiment to create experiments for human review
 4. If the research objectives appear to be met, you may choose not to propose any new experiments
 
-Proposed experiments will enter "pending_review" status and require human approval before execution.`,
+Proposed experiments will enter "pending_review" status and require human approval before execution.`;
+
+    this.triggerAgent(prompt,
       { notificationUuid: n.uuid, action: "autonomous_loop_triggered", entityUuid: n.entityUuid, projectUuid }
     );
   }
