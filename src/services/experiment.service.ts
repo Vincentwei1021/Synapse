@@ -902,6 +902,60 @@ export async function checkAutonomousLoopTrigger(
   }
 }
 
+/**
+ * Auto-maintain a "Experiment Results Log" document for the project.
+ * Appends one CSV row per completed experiment: title, uuid, outcome, result summary.
+ * Creates the document on first use.
+ */
+async function appendExperimentResultsLog(
+  experiment: { uuid: string; title: string; outcome: string | null; results: unknown; researchProjectUuid: string; description: string | null; experimentBranch: string | null },
+  companyUuid: string
+) {
+  const CSV_HEADER = "title\tuuid\toutcome\tbranch\tdescription\tresult_summary";
+  const DOCUMENT_TYPE = "experiment_results_log";
+
+  // Find or create the log document
+  let doc = await prisma.document.findFirst({
+    where: { researchProjectUuid: experiment.researchProjectUuid, companyUuid, type: DOCUMENT_TYPE },
+  });
+
+  const resultStr = experiment.results ? String(experiment.results) : "";
+  // Extract first meaningful line of results (skip empty lines)
+  const resultSummary = resultStr.split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 1).join("").slice(0, 200);
+  const descShort = (experiment.description ?? "").replace(/[\t\n\r]/g, " ").slice(0, 100);
+
+  const newRow = `${experiment.title}\t${experiment.uuid}\t${experiment.outcome ?? "unknown"}\t${experiment.experimentBranch ?? "-"}\t${descShort}\t${resultSummary}`;
+
+  if (doc) {
+    // Append row
+    const existingContent = doc.content ?? "";
+    const updatedContent = existingContent.endsWith("\n")
+      ? existingContent + newRow
+      : existingContent + "\n" + newRow;
+    await prisma.document.update({
+      where: { uuid: doc.uuid },
+      data: { content: updatedContent, updatedAt: new Date() },
+    });
+  } else {
+    // Create the document with header + first row
+    const project = await prisma.researchProject.findFirst({
+      where: { uuid: experiment.researchProjectUuid, companyUuid },
+      select: { name: true },
+    });
+    await prisma.document.create({
+      data: {
+        companyUuid,
+        researchProjectUuid: experiment.researchProjectUuid,
+        title: `${project?.name ?? "Project"} — Experiment Results Log`,
+        type: DOCUMENT_TYPE,
+        content: CSV_HEADER + "\n" + newRow,
+        createdByUuid: "system",
+        createdByType: "system",
+      },
+    });
+  }
+}
+
 export async function completeExperiment(input: {
   companyUuid: string;
   experimentUuid: string;
@@ -995,6 +1049,13 @@ export async function completeExperiment(input: {
     action: "updated",
     actorUuid: input.actorUuid,
   });
+
+  // Append to results log document (auto-maintained experiment history)
+  try {
+    await appendExperimentResultsLog(updated, input.companyUuid);
+  } catch (err) {
+    console.error("Failed to append experiment results log:", err);
+  }
 
   // In Mode 2, refresh project synthesis after every experiment completion
   try {

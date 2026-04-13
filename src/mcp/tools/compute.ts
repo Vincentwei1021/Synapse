@@ -614,7 +614,11 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
             orderBy: { createdAt: "asc" },
           },
           experiments: {
-            select: { uuid: true, title: true, description: true, status: true, priority: true, outcome: true, results: true, completedAt: true },
+            select: {
+              uuid: true, title: true, status: true, priority: true, outcome: true, completedAt: true,
+              // Lightweight: only first 120 chars of description/results for context summary
+              description: true, results: true,
+            },
             orderBy: { createdAt: "asc" },
           },
           _count: { select: { relatedWorks: true } },
@@ -623,8 +627,24 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
       if (!project) {
         return { content: [{ type: "text", text: "Project not found" }], isError: true };
       }
+
+      // Slim experiment data — truncate description/results for overview
+      const trimmedExperiments = project.experiments.map((exp) => ({
+        uuid: exp.uuid,
+        title: exp.title,
+        status: exp.status,
+        priority: exp.priority,
+        outcome: exp.outcome,
+        completedAt: exp.completedAt,
+        description: exp.description ? (exp.description.length > 120 ? exp.description.slice(0, 120) + "..." : exp.description) : null,
+        resultSummary: exp.results ? (String(exp.results).length > 150 ? String(exp.results).slice(0, 150) + "..." : String(exp.results)) : null,
+      }));
+
       return {
-        content: [{ type: "text", text: JSON.stringify({ project }, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({
+          project: { ...project, experiments: trimmedExperiments },
+          _hint: "Use synapse_get_experiment for full details of a specific experiment.",
+        }, null, 2) }],
       };
     }
   );
