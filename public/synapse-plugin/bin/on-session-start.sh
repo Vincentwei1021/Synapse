@@ -46,15 +46,15 @@ if command -v jq >/dev/null 2>&1; then
     "$API" state-set "owner_uuid" "$_OWNER_UUID"
   fi
 
-  # Cache agent roles for TaskCompleted and Stop hooks (e.g. "researcher_agent,research_lead_agent,pi_agent")
+  # Cache agent roles for other hooks.
   _ROLES=$(echo "$CHECKIN_RESULT" | jq -r '.agent.roles | join(",") // empty' 2>/dev/null) || true
   if [ -n "$_ROLES" ]; then
     "$API" state-set "agent_roles" "$_ROLES"
   fi
 
-  # Cache first assignment's projectUuid for Stop hook (to scope to_verify experiment run lookup)
+  # Cache the first visible project UUID for convenience in follow-up hooks.
   _PROJECT_UUID=$(echo "$CHECKIN_RESULT" | jq -r '
-    (.assignments.tasks[0].project.uuid // .assignments.ideas[0].project.uuid) // empty
+    (.assignments.experiments[0].projectUuid // .assignments.researchQuestions[0].project.uuid) // empty
   ' 2>/dev/null) || true
   if [ -n "$_PROJECT_UUID" ]; then
     "$API" state-set "project_uuid" "$_PROJECT_UUID"
@@ -64,20 +64,16 @@ fi
 # Parse pending assignments for Claude context
 ASSIGNMENTS_BLOCK=""
 if command -v jq >/dev/null 2>&1; then
-  # Count experiments
   EXP_COUNT=$(echo "$CHECKIN_RESULT" | jq -r '.assignments.experiments | length // 0' 2>/dev/null) || EXP_COUNT=0
-  # Count experiment runs (legacy)
-  RUN_COUNT=$(echo "$CHECKIN_RESULT" | jq -r '.assignments.experimentRuns | length // 0' 2>/dev/null) || RUN_COUNT=0
-
-  TOTAL_ASSIGNMENTS=$((EXP_COUNT + RUN_COUNT))
+  QUESTION_COUNT=$(echo "$CHECKIN_RESULT" | jq -r '.assignments.researchQuestions | length // 0' 2>/dev/null) || QUESTION_COUNT=0
+  TOTAL_ASSIGNMENTS=$((EXP_COUNT + QUESTION_COUNT))
 
   if [ "$TOTAL_ASSIGNMENTS" -gt 0 ]; then
     ASSIGNMENTS_BLOCK="
 ## Pending Assignments
 
-You have ${TOTAL_ASSIGNMENTS} pending task(s) from Synapse. **Ask the user before starting any of them.**
+You have ${TOTAL_ASSIGNMENTS} pending assignment(s) from Synapse. **Ask the user before starting any of them.**
 "
-    # List experiments
     if [ "$EXP_COUNT" -gt 0 ]; then
       EXP_LIST=$(echo "$CHECKIN_RESULT" | jq -r '.assignments.experiments[] | "- [Experiment] \"\(.title)\" (uuid: `\(.uuid)`) — status: \(.status), project: \"\(.projectName)\""' 2>/dev/null) || true
       if [ -n "$EXP_LIST" ]; then
@@ -86,12 +82,11 @@ ${EXP_LIST}"
       fi
     fi
 
-    # List experiment runs (legacy)
-    if [ "$RUN_COUNT" -gt 0 ]; then
-      RUN_LIST=$(echo "$CHECKIN_RESULT" | jq -r '.assignments.experimentRuns[] | "- [ExperimentRun] \"\(.title)\" (uuid: `\(.uuid)`) — status: \(.status), project: \"\(.project.name // "unknown")\""' 2>/dev/null) || true
-      if [ -n "$RUN_LIST" ]; then
+    if [ "$QUESTION_COUNT" -gt 0 ]; then
+      QUESTION_LIST=$(echo "$CHECKIN_RESULT" | jq -r '.assignments.researchQuestions[] | "- [Research Question] \"\(.title)\" (uuid: `\(.uuid)`) — status: \(.status), project: \"\(.project.name // "unknown")\""' 2>/dev/null) || true
+      if [ -n "$QUESTION_LIST" ]; then
         ASSIGNMENTS_BLOCK="${ASSIGNMENTS_BLOCK}
-${RUN_LIST}"
+${QUESTION_LIST}"
       fi
     fi
   fi
@@ -201,15 +196,15 @@ ${WORKFLOW_GUIDE}
 The Synapse Plugin **fully automates** Synapse session lifecycle:
 - Sub-agent spawn → Synapse session auto-created (or reused) + session UUID and workflow auto-injected into sub-agent context
 - Teammate idle → Synapse session heartbeat (automatic)
-- Sub-agent stop → auto checkout all experiment runs + Synapse session closed
+- Sub-agent stop → Synapse session closed
 
 **Do NOT call synapse_create_session or synapse_close_session for sub-agents.** The plugin handles this.
-When spawning sub-agents, just pass Synapse EXPERIMENT RUN UUIDs in the prompt. Session UUID + workflow are auto-injected by SubagentStart hook.
+When spawning sub-agents, pass Synapse EXPERIMENT UUIDs in the prompt. Session UUID + Experiment workflow are auto-injected by SubagentStart hook.
 
-For your own session (if you are a Researcher agent working directly, not via sub-agents):
+For your own session (if you are working directly, not via sub-agents):
 call synapse_list_sessions() first, then reopen or create as needed.
 
-To link a Claude Code work item to a Synapse experiment run, include \`synapse:experiment_run:<uuid>\` in the description. Legacy \`synapse:task:<uuid>\` is also accepted.
+To link a Claude Code work item to a Synapse experiment, include \`synapse:experiment:<uuid>\` in the description.
 
 ## Notifications
 
@@ -259,7 +254,7 @@ If you are a sub-agent, find your session by matching your agent name:
     done
     SESSION_LIST="${SESSION_LIST}
 
-Use your session UUID with \`synapse_session_checkin_experiment_run\`, \`synapse_report_work\`, etc."
+Use your session UUID for session observability only. Execute assigned work with \`synapse_get_experiment\`, \`synapse_start_experiment\`, \`synapse_report_experiment_progress\`, and \`synapse_submit_experiment_results\`."
     CONTEXT="${CONTEXT}${SESSION_LIST}"
   fi
 fi

@@ -13,10 +13,12 @@ interface CheckinResponse {
   };
   assignments: {
     researchQuestions?: AssignedQuestion[];
-    experimentRuns?: AssignedRun[];
+    experiments?: AssignedExperiment[];
+    experimentRuns?: AssignedExperiment[];
   };
   pending: {
     researchQuestionsCount?: number;
+    experimentsCount?: number;
     experimentRunsCount?: number;
   };
   notifications: {
@@ -31,36 +33,46 @@ interface AssignedQuestion {
   project: { uuid: string; name: string };
 }
 
-interface AssignedRun {
+interface AssignedExperiment {
   uuid: string;
   title: string;
   status: string;
-  priority: string;
-  project: { uuid: string; name: string };
+  priority?: string;
+  project?: { uuid: string; name: string };
+  projectUuid?: string;
+  projectName?: string;
 }
 
 // ===== Formatting helpers =====
 
 function formatStatus(checkin: CheckinResponse, connectionStatus: string): string {
   const questionCount = checkin?.pending?.researchQuestionsCount ?? 0;
-  const runCount = checkin?.pending?.experimentRunsCount ?? 0;
+  const experimentCount =
+    checkin?.pending?.experimentsCount ??
+    checkin?.assignments?.experiments?.length ??
+    checkin?.pending?.experimentRunsCount ??
+    checkin?.assignments?.experimentRuns?.length ??
+    0;
   const lines: string[] = [
     `Connection: ${connectionStatus}`,
-    `Assignments: ${questionCount} questions, ${runCount} experiments`,
+    `Assignments: ${questionCount} questions, ${experimentCount} experiments`,
     `Notifications: ${checkin?.notifications?.unreadCount ?? 0} unread`,
   ];
   return lines.join("\n");
 }
 
-function formatExperimentList(runs: AssignedRun[] | undefined): string {
-  if (!runs?.length) {
+function formatExperimentList(experiments: AssignedExperiment[] | undefined): string {
+  if (!experiments?.length) {
     return "No assigned experiments.";
   }
 
-  const lines = runs.map(
-    (r) => `[${r.status}] [${r.priority}] ${r.title}  (${r.project.name})`
+  const lines = experiments.map((experiment) => {
+    const projectName = experiment.projectName ?? experiment.project?.name ?? "Unknown project";
+    const priority = experiment.priority ? `[${experiment.priority}] ` : "";
+    return `[${experiment.status}] ${priority}${experiment.title}  (${projectName})`;
+  }
   );
-  return `Assigned experiments (${runs.length}):\n${lines.join("\n")}`;
+  return `Assigned experiments (${experiments.length}):\n${lines.join("\n")}`;
 }
 
 function formatQuestionList(questions: AssignedQuestion[] | undefined): string {
@@ -120,7 +132,7 @@ export function registerSynapseCommands(
             "synapse_checkin",
             {}
           )) as CheckinResponse;
-          return { text: formatExperimentList(data?.assignments?.experimentRuns) };
+          return { text: formatExperimentList(data?.assignments?.experiments ?? data?.assignments?.experimentRuns) };
         } catch (err) {
           return { text: `Failed to fetch experiments: ${err instanceof Error ? err.message : String(err)}` };
         }

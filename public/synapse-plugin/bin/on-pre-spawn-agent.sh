@@ -2,7 +2,7 @@
 # on-pre-spawn-agent.sh — PreToolUse hook for Task (spawning sub-agents)
 # 1. Captures agent name + type from tool_input and writes a per-agent pending file
 #    (SubagentStart will claim this file atomically via mv)
-# 2. Reminds Team Lead to pass Synapse experiment-run info to sub-agents.
+# 2. Reminds Team Lead to pass Synapse experiment UUIDs to sub-agents.
 #
 # Concurrency safety: Each PreToolUse writes a separate file under .synapse/pending/
 # so parallel spawns never contend on a shared file. SubagentStart claims files
@@ -59,6 +59,6 @@ printf '{"name":"%s","type":"%s","ts":"%s"}\n' \
 
 CONTEXT="[Synapse Plugin — Sub-agent Spawn]
 Session auto-managed by plugin. Do NOT call synapse_create_session.
-Synapse workflow instructions will be auto-injected into the sub-agent by the SubagentStart hook."
+Pass the Synapse experiment UUID in the sub-agent prompt. Current Experiment workflow instructions will be auto-injected by the SubagentStart hook."
 
 "$API" hook-output "" "$CONTEXT" "PreToolUse"

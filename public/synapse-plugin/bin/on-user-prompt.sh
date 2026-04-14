@@ -37,8 +37,8 @@ fi
 CONTEXT="[Synapse Plugin Active]
 - Sub-agent sessions are auto-managed by hooks (create/reuse/heartbeat/close).
 - Do NOT call synapse_create_session or synapse_close_session for sub-agents — the plugin handles this.
-- When spawning sub-agents: just pass Synapse experiment-run UUIDs. Session UUID + workflow are auto-injected by SubagentStart hook.
-- Link Claude Code work items to Synapse experiment runs with \`synapse:experiment_run:<uuid>\` in the description. Legacy \`synapse:task:<uuid>\` is still supported."
+- When spawning sub-agents: pass Synapse experiment UUIDs. Session UUID + Experiment workflow are auto-injected by SubagentStart hook.
+- Link Claude Code work items to Synapse experiments with \`synapse:experiment:<uuid>\` in the description."
 
 if [ "$SESSION_COUNT" -gt 0 ]; then
   CONTEXT="${CONTEXT}

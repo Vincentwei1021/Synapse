@@ -127,16 +127,6 @@ All agents have access to all tools. Permissions (`pre_research`, `research`, `e
 
 ---
 
-## Legacy Tools
+## Compatibility Note
 
-These support the older ExperimentDesign/ExperimentRun workflow. Use Experiment tools above for new work.
-
-| Tool | Description |
-|------|-------------|
-| `synapse_get_experiment_designs` | List experiment designs for a project. |
-| `synapse_get_experiment_design` | Get experiment design with drafts. |
-| `synapse_get_experiment_run` | Get experiment run details. |
-| `synapse_list_experiment_runs` | List experiment runs for a project. |
-| `synapse_get_unblocked_experiment_runs` | Get runs ready to start. |
-| `synapse_claim_experiment_run` | Claim an experiment run. |
-| `synapse_start_experiment_run_with_gpus` | Claim run, reserve GPUs, start. |
+The older `ExperimentDesign` / `ExperimentRun` tools still exist in the repo for backward compatibility, but they are intentionally omitted from this plugin guide. For current work, stay on the `ResearchQuestion -> Experiment` flow above.
