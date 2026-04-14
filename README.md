@@ -18,7 +18,13 @@ Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.co
 
 ## What's New
 
-**v0.5.1** — [DeepXiv](https://github.com/DeepXiv/deepxiv_sdk) Integration (2026-04-10) &nbsp; 🔴 `New`
+**v0.6.0** — Agent Types & Research Copilot (2026-04-12) &nbsp; 🔴 `New`
+- Agents now have a `type` field (`OpenClaw` or `Claude Code`) with internal transport mapping — Web UI dispatch features only show realtime-capable agents
+- Claude Code Research Copilot: SessionStart presents projects with progress summaries and guides users through the research lifecycle (paper search → deep research → questions → experiments → analysis)
+- `synapse_checkin` returns assigned experiments and project progress for intelligent workflow suggestions
+- Agent management UI gains a type selector and badge display
+
+**v0.5.1** — [DeepXiv](https://github.com/DeepXiv/deepxiv_sdk) Integration (2026-04-10)
 - Paper search now uses [DeepXiv](https://github.com/DeepXiv/deepxiv_sdk) hybrid search (BM25 + vector) over arXiv, with arXiv API as fallback. Removed Semantic Scholar and OpenAlex.
 - Agents can read full paper content via progressive reading tools: `synapse_read_paper_brief`, `synapse_read_paper_head`, `synapse_read_paper_section`, `synapse_read_paper_full`
 - Deep research literature reviews are now based on actual paper content, not just abstracts
