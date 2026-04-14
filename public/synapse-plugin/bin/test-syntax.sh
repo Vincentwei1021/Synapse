@@ -67,7 +67,7 @@ run_test "on-subagent-start.sh"  '{"agent_id":"agent-001","agent_type":"Explore"
 run_test "on-subagent-start.sh"  '{"agent_id":"agent-002","agent_type":"general-purpose"}'
 run_test "on-subagent-stop.sh"   '{"agent_id":"agent-001","agent_type":"general-purpose"}'
 run_test "on-teammate-idle.sh"   '{"agent_id":"agent-001","agent_type":"general-purpose"}'
-run_test "on-task-completed.sh"  '{"task_id":"work-item-001","task_description":"Complete the analysis and sync notes to synapse:experiment_run:00000000-0000-0000-0000-000000000000"}'
+run_test "on-task-completed.sh"  '{"task_id":"work-item-001","task_description":"Complete the analysis and sync notes to synapse:experiment:00000000-0000-0000-0000-000000000000"}'
 
 # --- Session hooks ---
 run_test "on-session-start.sh"   '{}'

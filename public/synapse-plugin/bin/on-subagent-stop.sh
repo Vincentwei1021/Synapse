@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # on-subagent-stop.sh — SubagentStop hook
 # Triggered when a sub-agent (teammate) exits.
-# Plan D: Auto-checkout from all checked-in experiment runs, then close the Synapse session.
-# Cleans up state and session files.
+# Closes the Synapse session and cleans up local plugin state.
 #
 # Output: JSON with systemMessage (user) + additionalContext (Claude)
 
@@ -43,31 +42,6 @@ if [ -z "$SESSION_UUID" ]; then
   exit 0
 fi
 
-# === Plan D: Auto-checkout from all checked-in experiment runs ===
-CHECKOUT_COUNT=0
-SESSION_DETAIL=$("$API" mcp-tool "synapse_get_session" "$(printf '{"sessionUuid":"%s"}' "$SESSION_UUID")" 2>/dev/null) || true
-
-if [ -n "$SESSION_DETAIL" ]; then
-  TASK_UUIDS=$(echo "$SESSION_DETAIL" | jq -r '
-    .checkins[]? | select(.checkoutAt == null) | .taskUuid // empty
-  ' 2>/dev/null) || true
-
-  if [ -z "$TASK_UUIDS" ]; then
-    TASK_UUIDS=$(echo "$SESSION_DETAIL" | jq -r '
-      .sessionTaskCheckins[]? | select(.checkoutAt == null) | .taskUuid // empty
-    ' 2>/dev/null) || true
-  fi
-
-  for TASK_UUID in $TASK_UUIDS; do
-    if [ -n "$TASK_UUID" ]; then
-      "$API" mcp-tool "synapse_session_checkout_experiment_run" \
-        "$(printf '{"sessionUuid":"%s","runUuid":"%s"}' "$SESSION_UUID" "$TASK_UUID")" \
-        >/dev/null 2>&1 || true
-      CHECKOUT_COUNT=$((CHECKOUT_COUNT + 1))
-    fi
-  done
-fi
-
 # Close the Synapse session via MCP
 CLOSE_OK=true
 "$API" mcp-tool "synapse_close_session" "$(printf '{"sessionUuid":"%s"}' "$SESSION_UUID")" >/dev/null 2>&1 || CLOSE_OK=false
@@ -92,119 +66,11 @@ if [ -n "$AGENT_ID" ] && [ -f "${CLAIMED_DIR}/${AGENT_ID}" ]; then
   rm -f "${CLAIMED_DIR}/${AGENT_ID}"
 fi
 
-# === Auto-dispatch: discover unblocked experiment runs ===
-UNBLOCKED_INFO=""
-if [ "$CLOSE_OK" = true ] && [ -n "$SESSION_DETAIL" ]; then
-  # Extract projectUuid from the session's checked-out experiment runs or session detail
-  PROJECT_UUID=""
-
-  # Try to get projectUuid from the experiment runs we just checked out
-  FIRST_TASK_UUID=$(echo "$SESSION_DETAIL" | jq -r '
-    (.checkins // .sessionTaskCheckins // [])[] | .taskUuid // empty
-  ' 2>/dev/null | head -1) || true
-
-  if [ -n "$FIRST_TASK_UUID" ]; then
-    TASK_DETAIL=$("$API" mcp-tool "synapse_get_experiment_run" "$(printf '{"runUuid":"%s"}' "$FIRST_TASK_UUID")" 2>/dev/null) || true
-    if [ -n "$TASK_DETAIL" ]; then
-      PROJECT_UUID=$(echo "$TASK_DETAIL" | jq -r '.project.uuid // empty' 2>/dev/null) || true
-    fi
-  fi
-
-  if [ -n "$PROJECT_UUID" ]; then
-    UNBLOCKED_RESULT=$("$API" mcp-tool "synapse_get_unblocked_experiment_runs" "$(printf '{"researchProjectUuid":"%s"}' "$PROJECT_UUID")" 2>/dev/null) || true
-    if [ -n "$UNBLOCKED_RESULT" ]; then
-      UNBLOCKED_COUNT=$(echo "$UNBLOCKED_RESULT" | jq -r '.total // 0' 2>/dev/null) || true
-      if [ "${UNBLOCKED_COUNT:-0}" -gt 0 ]; then
-        UNBLOCKED_SUMMARY=$(echo "$UNBLOCKED_RESULT" | jq -r '
-          .experimentRuns[] | "- [\(.status)] \(.title) (uuid: \(.uuid), priority: \(.priority))"
-        ' 2>/dev/null) || true
-        UNBLOCKED_INFO="
-=== UNBLOCKED EXPERIMENT RUNS (ready for assignment) ===
-${UNBLOCKED_COUNT} experiment run(s) are now unblocked and ready to be claimed or assigned:
-${UNBLOCKED_SUMMARY}
-
-Use synapse_get_unblocked_experiment_runs for full details. Consider assigning these to available agents."
-      fi
-    fi
-  fi
-fi
-
-# === Verify reminder: check if sub-agent experiment run(s) need admin verification ===
-VERIFY_INFO=""
-if [ -n "${TASK_DETAIL:-}" ]; then
-  TASK_STATUS=$(echo "$TASK_DETAIL" | jq -r '.status // empty' 2>/dev/null) || true
-  TASK_TITLE=$(echo "$TASK_DETAIL" | jq -r '.title // empty' 2>/dev/null) || true
-
-  if [ "$TASK_STATUS" = "to_verify" ]; then
-    AGENT_ROLES=$("$API" state-get "agent_roles" 2>/dev/null) || true
-    IS_ADMIN="false"
-    case ",$AGENT_ROLES," in
-      *,admin_agent,*) IS_ADMIN="true" ;;
-    esac
-
-    if [ "$IS_ADMIN" = "true" ]; then
-      AC_TOTAL=$(echo "$TASK_DETAIL" | jq -r '.acceptanceSummary.required // 0' 2>/dev/null) || true
-      ADMIN_PASSED=$(echo "$TASK_DETAIL" | jq -r '.acceptanceSummary.requiredPassed // 0' 2>/dev/null) || true
-      DEV_PASSED=$(echo "$TASK_DETAIL" | jq -r '
-        [.acceptanceCriteriaItems[]? | select(.required == true and .devStatus == "passed")] | length
-      ' 2>/dev/null) || true
-
-      # Downstream dependencies
-      DEPENDED_BY_COUNT=$(echo "$TASK_DETAIL" | jq -r '.dependedBy | length // 0' 2>/dev/null) || true
-      DOWNSTREAM_NOTE=""
-      if [ "${DEPENDED_BY_COUNT:-0}" -gt 0 ]; then
-        DEPENDED_BY_LIST=$(echo "$TASK_DETAIL" | jq -r '.dependedBy[] | "  - \(.title) (\(.status))"' 2>/dev/null) || true
-        DOWNSTREAM_NOTE=" Verifying will unblock ${DEPENDED_BY_COUNT} downstream experiment run(s):
-${DEPENDED_BY_LIST}"
-      fi
-
-      # Case 1: Admin already marked all AC → auto-verify
-      if [ "${AC_TOTAL:-0}" -gt 0 ] && [ "$AC_TOTAL" = "$ADMIN_PASSED" ]; then
-        VERIFY_RESULT=$("$API" mcp-tool "synapse_verify_experiment_run" \
-          "$(printf '{"runUuid":"%s"}' "$FIRST_TASK_UUID")" 2>/dev/null) || true
-        VERIFY_OK=$(echo "$VERIFY_RESULT" | jq -r '.status // empty' 2>/dev/null) || true
-        if [ "$VERIFY_OK" = "done" ]; then
-          VERIFY_INFO="
-=== AUTO-VERIFIED ===
-Experiment run '${TASK_TITLE}' (${FIRST_TASK_UUID}) — admin AC all passed, auto-verified to done.${DOWNSTREAM_NOTE}"
-        fi
-
-      # Case 2: Dev self-check all passed, admin not reviewed → remind
-      elif [ "${AC_TOTAL:-0}" -gt 0 ] && [ "${DEV_PASSED:-0}" = "$AC_TOTAL" ]; then
-        VERIFY_INFO="
-=== VERIFY NEEDED ===
-Experiment run '${TASK_TITLE}' (${FIRST_TASK_UUID}) — dev self-check passed all ${AC_TOTAL} required criteria (admin: ${ADMIN_PASSED}/${AC_TOTAL}). Please review with synapse_get_experiment_run, mark AC with synapse_mark_acceptance_criteria, then synapse_verify_experiment_run.${DOWNSTREAM_NOTE}"
-
-      # Case 3: Dev self-check incomplete → warn
-      elif [ "${AC_TOTAL:-0}" -gt 0 ]; then
-        VERIFY_INFO="
-=== VERIFY WARNING ===
-Experiment run '${TASK_TITLE}' (${FIRST_TASK_UUID}) — dev self-check INCOMPLETE (${DEV_PASSED}/${AC_TOTAL}). Work may be unfinished. Review with synapse_get_experiment_run, consider synapse_reopen_experiment_run.${DOWNSTREAM_NOTE}"
-
-      # Case 4: No structured AC → generic reminder
-      else
-        VERIFY_INFO="
-=== VERIFY NEEDED ===
-Experiment run '${TASK_TITLE}' (${FIRST_TASK_UUID}) is in to_verify status. Please review and call synapse_verify_experiment_run or synapse_reopen_experiment_run.${DOWNSTREAM_NOTE}"
-      fi
-    fi
-
-    # Cache project_uuid for Stop hook
-    if [ -n "$PROJECT_UUID" ]; then
-      "$API" state-set "project_uuid" "$PROJECT_UUID" 2>/dev/null || true
-    fi
-  fi
-fi
-
 # === Output ===
 DISPLAY_NAME="${AGENT_NAME:-${AGENT_ID:0:8}}"
 if [ "$CLOSE_OK" = true ]; then
   USER_MSG="Synapse session closed: '${DISPLAY_NAME}'"
-  if [ "$CHECKOUT_COUNT" -gt 0 ]; then
-    USER_MSG="${USER_MSG} (auto-checkout ${CHECKOUT_COUNT} experiment run(s))"
-  fi
-  # VERIFY_INFO is only in CONTEXT_MSG (for Claude), not USER_MSG (for human)
-  CONTEXT_MSG="Synapse session ${SESSION_UUID} for sub-agent '${DISPLAY_NAME}' closed. ${CHECKOUT_COUNT} experiment run(s) auto-checked-out. State and session file cleaned up.${VERIFY_INFO}${UNBLOCKED_INFO}"
+  CONTEXT_MSG="Synapse session ${SESSION_UUID} for sub-agent '${DISPLAY_NAME}' closed. Local state and session file cleaned up."
   "$API" hook-output "$USER_MSG" "$CONTEXT_MSG" "SubagentStop"
 else
   "$API" hook-output \

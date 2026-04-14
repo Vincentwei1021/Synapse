@@ -403,11 +403,11 @@ export const commonToolDefinitions = defineOpenClawTools([
   // =========================================================================
   createPassthroughTool<{ targetType: string; targetUuid: string; content: string }>({
     name: "synapse_add_comment",
-    description: "Add a comment to a research question, experiment, experiment design, experiment run, or document.",
+    description: "Add a comment to a research question, experiment, or document. Legacy experiment_design and experiment_run targets remain accepted for compatibility.",
     parameters: {
       type: "object",
       properties: {
-        targetType: { type: "string", description: "Target type: research_question | experiment | experiment_design | experiment_run | document" },
+        targetType: { type: "string", description: "Target type. Prefer research_question | experiment | document. Legacy experiment_design and experiment_run remain accepted." },
         targetUuid: { type: "string", description: "Target UUID" },
         content: { type: "string", description: "Comment content" },
       },
@@ -422,7 +422,7 @@ export const commonToolDefinitions = defineOpenClawTools([
     parameters: {
       type: "object",
       properties: {
-        targetType: { type: "string", description: "Target type: research_question | experiment | experiment_design | experiment_run | document" },
+        targetType: { type: "string", description: "Target type. Prefer research_question | experiment | document. Legacy experiment_design and experiment_run remain accepted." },
         targetUuid: { type: "string", description: "Target UUID" },
         page: { type: "number", description: "Page number (default: 1)" },
         pageSize: { type: "number", description: "Items per page (default: 20)" },

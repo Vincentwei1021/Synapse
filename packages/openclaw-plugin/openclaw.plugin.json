@@ -21,7 +21,7 @@
       "autoStart": {
         "type": "boolean",
         "default": true,
-        "description": "Auto-claim experiment runs on assignment"
+        "description": "Automatically wake the agent when new experiments are assigned"
       }
     }
   }

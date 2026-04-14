@@ -41,7 +41,7 @@ Add to `~/.openclaw/openclaw.json`:
 | `synapseUrl` | `string` | Yes | -- | Synapse server URL |
 | `apiKey` | `string` | Yes | -- | Synapse API key (`syn_` prefix) |
 | `projectUuids` | `string[]` | No | `[]` | Project UUIDs to monitor (empty = all) |
-| `autoStart` | `boolean` | No | `true` | Auto-claim experiment runs on assignment |
+| `autoStart` | `boolean` | No | `true` | Automatically wake the agent when experiments are assigned |
 
 ## How It Works
 
