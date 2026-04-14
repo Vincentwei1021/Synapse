@@ -17,6 +17,14 @@ interface NotificationPreferences {
   commentAdded: boolean;
   elaborationRequested: boolean;
   elaborationAnswered: boolean;
+  experimentCompleted: boolean;
+  experimentAutoProposed: boolean;
+  experimentStatusChanged: boolean;
+  experimentProgress: boolean;
+  synthesisUpdated: boolean;
+  autoSearchCompleted: boolean;
+  deepResearchCompleted: boolean;
+  autonomousLoopTriggered: boolean;
   mentioned: boolean;
 }
 
@@ -32,6 +40,14 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   commentAdded: true,
   elaborationRequested: true,
   elaborationAnswered: true,
+  experimentCompleted: true,
+  experimentAutoProposed: true,
+  experimentStatusChanged: true,
+  experimentProgress: true,
+  synthesisUpdated: true,
+  autoSearchCompleted: true,
+  deepResearchCompleted: true,
+  autonomousLoopTriggered: true,
   mentioned: true,
 };
 
@@ -46,8 +62,10 @@ interface PreferenceGroup {
 const PREFERENCE_GROUPS: PreferenceGroup[] = [
   {
     labelKey: "preResearch",
-    placeholder: true,
-    items: [],
+    items: [
+      { key: "autoSearchCompleted", labelKey: "autoSearchCompleted" },
+      { key: "deepResearchCompleted", labelKey: "deepResearchCompleted" },
+    ],
   },
   {
     labelKey: "research",
@@ -70,12 +88,18 @@ const PREFERENCE_GROUPS: PreferenceGroup[] = [
       { key: "proposalSubmitted", labelKey: "designSubmitted" },
       { key: "proposalApproved", labelKey: "designApproved" },
       { key: "proposalRejected", labelKey: "designRejected" },
+      { key: "experimentCompleted", labelKey: "experimentCompleted" },
+      { key: "experimentStatusChanged", labelKey: "prefExperimentStatusChanged" },
+      { key: "experimentProgress", labelKey: "prefExperimentProgress" },
+      { key: "experimentAutoProposed", labelKey: "prefExperimentAutoProposed" },
+      { key: "autonomousLoopTriggered", labelKey: "prefAutonomousLoopTriggered" },
     ],
   },
   {
     labelKey: "report",
-    placeholder: true,
-    items: [],
+    items: [
+      { key: "synthesisUpdated", labelKey: "prefSynthesisUpdated" },
+    ],
   },
   {
     labelKey: "general",
@@ -100,33 +124,28 @@ export function NotificationPreferencesForm() {
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.data) {
-            const {
-              taskAssigned,
-              taskStatusChanged,
-              taskVerified,
-              taskReopened,
-              proposalSubmitted,
-              proposalApproved,
-              proposalRejected,
-              ideaClaimed,
-              commentAdded,
-              elaborationRequested,
-              elaborationAnswered,
-              mentioned,
-            } = json.data;
+            const d = json.data;
             setPreferences({
-              taskAssigned,
-              taskStatusChanged,
-              taskVerified,
-              taskReopened,
-              proposalSubmitted,
-              proposalApproved,
-              proposalRejected,
-              ideaClaimed,
-              commentAdded,
-              elaborationRequested: elaborationRequested ?? true,
-              elaborationAnswered: elaborationAnswered ?? true,
-              mentioned: mentioned ?? true,
+              taskAssigned: d.taskAssigned ?? true,
+              taskStatusChanged: d.taskStatusChanged ?? true,
+              taskVerified: d.taskVerified ?? true,
+              taskReopened: d.taskReopened ?? true,
+              proposalSubmitted: d.proposalSubmitted ?? true,
+              proposalApproved: d.proposalApproved ?? true,
+              proposalRejected: d.proposalRejected ?? true,
+              ideaClaimed: d.ideaClaimed ?? true,
+              commentAdded: d.commentAdded ?? true,
+              elaborationRequested: d.elaborationRequested ?? true,
+              elaborationAnswered: d.elaborationAnswered ?? true,
+              experimentCompleted: d.experimentCompleted ?? true,
+              experimentAutoProposed: d.experimentAutoProposed ?? true,
+              experimentStatusChanged: d.experimentStatusChanged ?? true,
+              experimentProgress: d.experimentProgress ?? true,
+              synthesisUpdated: d.synthesisUpdated ?? true,
+              autoSearchCompleted: d.autoSearchCompleted ?? true,
+              deepResearchCompleted: d.deepResearchCompleted ?? true,
+              autonomousLoopTriggered: d.autonomousLoopTriggered ?? true,
+              mentioned: d.mentioned ?? true,
             });
           }
         }

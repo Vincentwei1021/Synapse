@@ -586,7 +586,7 @@ export function RelatedWorksClient({
             <Textarea
               value={promptDraft}
               onChange={(e) => setPromptDraft(e.target.value)}
-              placeholder={t("promptPlaceholder")}
+              placeholder={promptDialogOpen === "deepResearch" ? t("deepResearchPromptPlaceholder") : t("searchPromptPlaceholder")}
               rows={6}
               className="font-mono text-xs"
             />

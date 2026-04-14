@@ -4,6 +4,7 @@ import type { AgentAuthContext } from "@/types/auth";
 import { createRelatedWork, listRelatedWorks } from "@/services/related-work.service";
 import { prisma } from "@/lib/prisma";
 import * as documentService from "@/services/document.service";
+import * as notificationService from "@/services/notification.service";
 import { updateResearchProject } from "@/services/research-project.service";
 
 export function registerLiteratureTools(server: McpServer, auth: AgentAuthContext) {
@@ -235,6 +236,35 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
         // Link to project
         await updateResearchProject(project.uuid, { deepResearchDocUuid: doc.uuid });
       }
+
+      // Notify the agent's owner that deep research is complete
+      try {
+        const projectForNotif = await prisma.researchProject.findFirst({
+          where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid },
+          select: { name: true },
+        });
+        const agent = await prisma.agent.findUnique({
+          where: { uuid: auth.actorUuid },
+          select: { ownerUuid: true, name: true },
+        });
+        if (agent?.ownerUuid && projectForNotif) {
+          await notificationService.create({
+            companyUuid: auth.companyUuid,
+            researchProjectUuid,
+            recipientType: "user",
+            recipientUuid: agent.ownerUuid,
+            entityType: "research_project",
+            entityUuid: researchProjectUuid,
+            entityTitle: projectForNotif.name,
+            projectName: projectForNotif.name,
+            action: "deep_research_completed",
+            message: `Deep research literature review "${title}" (v${doc.version}) is ready.`,
+            actorType: "agent",
+            actorUuid: auth.actorUuid,
+            actorName: agent.name ?? "Agent",
+          });
+        }
+      } catch { /* ignore notification errors */ }
 
       return {
         content: [{ type: "text" as const, text: JSON.stringify({ document: { uuid: doc.uuid, title: doc.title, version: doc.version } }, null, 2) }],

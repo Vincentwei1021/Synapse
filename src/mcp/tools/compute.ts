@@ -473,17 +473,8 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
           });
         }
 
-        await activityService.createActivity({
-          companyUuid: auth.companyUuid,
-          researchProjectUuid: experiment.researchProjectUuid,
-          targetType: "experiment",
-          targetUuid: experimentUuid,
-          actorType: "agent",
-          actorUuid: auth.actorUuid,
-          action: "completed",
-          value: { outcome: outcome ?? null },
-          sessionUuid,
-        });
+        // Note: completeExperiment() already creates the "completed" activity,
+        // so we do not duplicate it here.
 
         return {
           content: [{ type: "text", text: JSON.stringify({ experiment: updated, released: true }, null, 2) }],
@@ -565,6 +556,37 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
         actorUuid: auth.actorUuid,
       });
 
+      // Notify the experiment creator about progress
+      try {
+        const experiment = await prisma.experiment.findFirst({
+          where: { uuid: experimentUuid, companyUuid: auth.companyUuid },
+          select: {
+            uuid: true,
+            title: true,
+            createdByUuid: true,
+            researchProjectUuid: true,
+            researchProject: { select: { name: true } },
+          },
+        });
+        if (experiment) {
+          await notificationService.create({
+            companyUuid: auth.companyUuid,
+            researchProjectUuid: experiment.researchProjectUuid,
+            recipientType: "user",
+            recipientUuid: experiment.createdByUuid,
+            entityType: "experiment",
+            entityUuid: experiment.uuid,
+            entityTitle: experiment.title,
+            projectName: experiment.researchProject.name,
+            action: "experiment_progress",
+            message,
+            actorType: auth.type,
+            actorUuid: auth.actorUuid,
+            actorName: "Agent",
+          });
+        }
+      } catch { /* ignore notification errors */ }
+
       return {
         content: [
           { type: "text", text: JSON.stringify({ success: true, logUuid: log.uuid }) },
@@ -592,7 +614,11 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
             orderBy: { createdAt: "asc" },
           },
           experiments: {
-            select: { uuid: true, title: true, description: true, status: true, priority: true, outcome: true, results: true, completedAt: true },
+            select: {
+              uuid: true, title: true, status: true, priority: true, outcome: true, completedAt: true,
+              // Lightweight: only first 120 chars of description/results for context summary
+              description: true, results: true,
+            },
             orderBy: { createdAt: "asc" },
           },
           _count: { select: { relatedWorks: true } },
@@ -601,8 +627,31 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
       if (!project) {
         return { content: [{ type: "text", text: "Project not found" }], isError: true };
       }
+
+      // Slim experiment data — truncate description/results for overview
+      const trimmedExperiments = project.experiments.map((exp) => ({
+        uuid: exp.uuid,
+        title: exp.title,
+        status: exp.status,
+        priority: exp.priority,
+        outcome: exp.outcome,
+        completedAt: exp.completedAt,
+        description: exp.description ? (exp.description.length > 120 ? exp.description.slice(0, 120) + "..." : exp.description) : null,
+        resultSummary: exp.results ? (String(exp.results).length > 150 ? String(exp.results).slice(0, 150) + "..." : String(exp.results)) : null,
+      }));
+
+      // Fetch the auto-maintained experiment results log if it exists
+      const resultsLog = await prisma.document.findFirst({
+        where: { researchProjectUuid, companyUuid: auth.companyUuid, type: "experiment_results_log" },
+        select: { uuid: true, title: true, content: true, updatedAt: true },
+      });
+
       return {
-        content: [{ type: "text", text: JSON.stringify({ project }, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({
+          project: { ...project, experiments: trimmedExperiments },
+          resultsLog: resultsLog ? { uuid: resultsLog.uuid, content: resultsLog.content, updatedAt: resultsLog.updatedAt } : null,
+          _hint: "Use synapse_get_experiment for full details of a specific experiment.",
+        }, null, 2) }],
       };
     }
   );
@@ -610,7 +659,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
   server.registerTool(
     "synapse_propose_experiment",
     {
-      description: "Propose a new experiment for human review. Created in 'pending_review' status. Only usable when autonomous loop is active for this project and you are the assigned agent.",
+      description: "Propose a new experiment. In Human Review mode, created as 'pending_review' for human approval. In Full Auto mode, created as 'pending_start' and assigned to you for immediate execution. Only usable when autonomous loop is active and you are the assigned agent.",
       inputSchema: z.object({
         researchProjectUuid: z.string(),
         title: z.string(),
@@ -627,11 +676,13 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
           autonomousLoopEnabled: true,
           autonomousLoopAgentUuid: auth.actorUuid,
         },
-        select: { uuid: true },
+        select: { uuid: true, autonomousLoopMode: true },
       });
       if (!project) {
         return { content: [{ type: "text", text: "Autonomous loop is not enabled for this project or you are not the assigned agent" }], isError: true };
       }
+
+      const isFullAuto = project.autonomousLoopMode === "full_auto";
 
       const experiment = await experimentService.createExperiment({
         companyUuid: auth.companyUuid,
@@ -642,10 +693,67 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
         priority,
         createdByUuid: auth.actorUuid,
         createdByType: "agent",
+        // Mode 2: skip review, go straight to pending_start with agent assigned
+        ...(isFullAuto ? { status: "pending_start" as const, assigneeUuid: auth.actorUuid, assigneeType: "agent" as const } : {}),
       });
 
+      // Notify the agent's owner that a new experiment was auto-proposed
+      try {
+        const projectForNotif = await prisma.researchProject.findFirst({
+          where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid },
+          select: { name: true },
+        });
+        const agent = await prisma.agent.findUnique({
+          where: { uuid: auth.actorUuid },
+          select: { ownerUuid: true, name: true },
+        });
+        if (agent?.ownerUuid && projectForNotif) {
+          await notificationService.create({
+            companyUuid: auth.companyUuid,
+            researchProjectUuid,
+            recipientType: "user",
+            recipientUuid: agent.ownerUuid,
+            entityType: "experiment",
+            entityUuid: experiment.uuid,
+            entityTitle: experiment.title,
+            projectName: projectForNotif.name,
+            action: "experiment_auto_proposed",
+            message: isFullAuto
+              ? `Agent auto-proposed experiment "${title}" for immediate execution.`
+              : `Agent proposed experiment "${title}" for review.`,
+            actorType: "agent",
+            actorUuid: auth.actorUuid,
+            actorName: agent.name ?? "Agent",
+          });
+        }
+
+        // Full Auto: also send task_assigned notification to the agent itself
+        // This triggers handleExperimentAssigned in the plugin → detailed execution prompt
+        if (isFullAuto && projectForNotif) {
+          await notificationService.create({
+            companyUuid: auth.companyUuid,
+            researchProjectUuid,
+            recipientType: "agent",
+            recipientUuid: auth.actorUuid,
+            entityType: "experiment",
+            entityUuid: experiment.uuid,
+            entityTitle: experiment.title,
+            projectName: projectForNotif.name,
+            action: "task_assigned",
+            message: `Experiment "${title}" auto-assigned for immediate execution.`,
+            actorType: "agent",
+            actorUuid: auth.actorUuid,
+            actorName: agent?.name ?? "Agent",
+          });
+        }
+      } catch { /* ignore notification errors */ }
+
+      const note = isFullAuto
+        ? "Experiment created in pending_start (Full Auto mode). Ready for immediate execution."
+        : "Experiment created in pending_review. Human review required before execution.";
+
       return {
-        content: [{ type: "text", text: JSON.stringify({ experiment, note: "Experiment created in pending_review. Human review required before execution." }, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ experiment, note }, null, 2) }],
       };
     }
   );

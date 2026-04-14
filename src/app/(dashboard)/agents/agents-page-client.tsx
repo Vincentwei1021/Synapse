@@ -8,8 +8,11 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  Copy,
   Key,
+  Loader2,
   Plus,
+  RefreshCw,
   X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -163,6 +166,11 @@ export function AgentsPageClient({
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [sessionsExpanded, setSessionsExpanded] = useState(false);
 
+  // Generate new key in detail panel
+  const [generatedKey, setGeneratedKey] = useState<string | null>(null);
+  const [generatingKey, setGeneratingKey] = useState(false);
+  const [generatedKeyCopied, setGeneratedKeyCopied] = useState(false);
+
   // Delete confirmation
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [keyToDelete, setKeyToDelete] = useState<string | null>(null);
@@ -174,6 +182,7 @@ export function AgentsPageClient({
       setAgentApiKeys([]);
       setAgentSessions([]);
       setSessionsExpanded(false);
+      setGeneratedKey(null);
       return;
     }
 
@@ -202,6 +211,37 @@ export function AgentsPageClient({
       setAgentSessions(result.data);
     }
     setLoadingSessions(false);
+  };
+
+  const handleGenerateKey = async () => {
+    if (!selectedAgent) return;
+    setGeneratingKey(true);
+    setGeneratedKey(null);
+    try {
+      // Delete all existing keys for this agent first
+      for (const existingKey of agentApiKeys) {
+        await fetch(`/api/api-keys/${existingKey.uuid}`, { method: "DELETE" });
+      }
+      // Create new key
+      const res = await fetch("/api/api-keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentUuid: selectedAgent.uuid, name: selectedAgent.name }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setGeneratedKey(json.data.key);
+        // Refresh keys list
+        const keysResult = await getApiKeysAction();
+        if (keysResult.success && keysResult.data) {
+          setAgentApiKeys(keysResult.data.filter((k) => k.agentUuid === selectedAgent.uuid));
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      setGeneratingKey(false);
+    }
   };
 
   // ── Create ─────────────────────────────────────────────────────────────
@@ -714,14 +754,51 @@ export function AgentsPageClient({
                   <h3 className="text-[13px] font-semibold text-foreground">
                     {t("agents.detail.apiKeys")}
                   </h3>
+                  {/* Generated key one-time display */}
+                  {generatedKey && (
+                    <div className="rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950/30">
+                      <div className="flex items-center justify-between">
+                        <code className="flex-1 break-all text-xs font-mono text-foreground">{generatedKey}</code>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          onClick={() => {
+                            navigator.clipboard.writeText(generatedKey);
+                            setGeneratedKeyCopied(true);
+                            setTimeout(() => setGeneratedKeyCopied(false), 2000);
+                          }}
+                        >
+                          {generatedKeyCopied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                        </Button>
+                      </div>
+                      <p className="mt-1 text-[11px] text-amber-600">{t("onboarding.step2.apiKeyWarning")}</p>
+                    </div>
+                  )}
                   {loadingKeys ? (
                     <p className="text-xs text-muted-foreground">
                       {t("common.loading")}
                     </p>
                   ) : agentApiKeys.length === 0 ? (
-                    <p className="text-xs italic text-muted-foreground">
-                      {t("settings.noApiKeys")}
-                    </p>
+                    <div className="space-y-2">
+                      <p className="text-xs italic text-muted-foreground">
+                        {t("settings.noApiKeys")}
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs"
+                        onClick={handleGenerateKey}
+                        disabled={generatingKey}
+                      >
+                        {generatingKey ? (
+                          <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                        ) : (
+                          <Plus className="mr-2 h-3 w-3" />
+                        )}
+                        {t("settings.createApiKey")}
+                      </Button>
+                    </div>
                   ) : (
                     <div className="space-y-2">
                       {agentApiKeys.map((key) => (
@@ -744,13 +821,19 @@ export function AgentsPageClient({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                            className="h-7 px-2 text-xs"
                             onClick={() => {
                               setKeyToDelete(key.uuid);
-                              setDeleteConfirmOpen(true);
+                              handleGenerateKey();
                             }}
+                            disabled={generatingKey}
                           >
-                            {t("common.delete")}
+                            {generatingKey ? (
+                              <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                            ) : (
+                              <RefreshCw className="mr-1.5 h-3 w-3" />
+                            )}
+                            {t("agents.detail.regenerate")}
                           </Button>
                         </div>
                       ))}

@@ -8,14 +8,16 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { authFetch } from "@/lib/auth-client";
+import { invalidateOnboardingCache } from "@/components/onboarding-progress";
 import { OnboardingStep1 } from "./step1-agent";
 import { OnboardingStep2 } from "./step2-connect";
 import { OnboardingStep3 } from "./step3-compute";
 
 interface OnboardingStatus {
   hasAgent: boolean;
-  hasAgentSession: boolean;
+  hasAgentConnected: boolean;
   hasComputePool: boolean;
+  hasComputeNode: boolean;
   hasProject: boolean;
 }
 
@@ -25,6 +27,7 @@ interface WizardState {
   agentType: string | null;
   apiKey: string | null;
   poolUuid: string | null;
+  agentConnected: boolean;
   nodeAdded: boolean;
 }
 
@@ -41,6 +44,7 @@ export default function OnboardingPage() {
     agentType: null,
     apiKey: null,
     poolUuid: null,
+    agentConnected: false,
     nodeAdded: false,
   });
 
@@ -53,9 +57,9 @@ export default function OnboardingPage() {
           const s: OnboardingStatus = json.data;
           setStatus(s);
           // Auto-advance to first incomplete step
-          if (s.hasAgent && s.hasAgentSession && s.hasComputePool) {
+          if (s.hasAgent && s.hasAgentConnected && s.hasComputeNode) {
             router.replace("/research-projects");
-          } else if (s.hasAgent && s.hasAgentSession) {
+          } else if (s.hasAgent && s.hasAgentConnected) {
             setCurrentStep(3);
           } else if (s.hasAgent) {
             setCurrentStep(2);
@@ -66,6 +70,7 @@ export default function OnboardingPage() {
   }, [router]);
 
   const handleSkipAll = () => {
+    invalidateOnboardingCache();
     router.push("/research-projects");
   };
 
@@ -75,15 +80,18 @@ export default function OnboardingPage() {
   };
 
   const handleStep2Complete = () => {
+    setWizardState((prev) => ({ ...prev, agentConnected: true }));
     setCurrentStep(3);
   };
 
   const handleStep3Complete = useCallback((poolUuid: string) => {
     setWizardState((prev) => ({ ...prev, poolUuid, nodeAdded: true }));
+    invalidateOnboardingCache();
     setTimeout(() => {
-      router.push("/research-projects");
+      // Full page navigation to ensure server components re-fetch fresh data
+      window.location.href = "/research-projects";
     }, 3000);
-  }, [router]);
+  }, []);
 
   const handleSkipStep = () => {
     if (currentStep < TOTAL_STEPS) {
@@ -99,8 +107,8 @@ export default function OnboardingPage() {
 
   const stepDone = (step: number) => {
     if (step === 1) return status.hasAgent || !!wizardState.agentUuid;
-    if (step === 2) return status.hasAgentSession;
-    if (step === 3) return status.hasComputePool || wizardState.nodeAdded;
+    if (step === 2) return status.hasAgentConnected || wizardState.agentConnected;
+    if (step === 3) return status.hasComputeNode || wizardState.nodeAdded;
     return false;
   };
 

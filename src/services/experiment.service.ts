@@ -90,6 +90,8 @@ export interface ExperimentCreateParams {
   baseBranch?: string | null;
   createdByUuid: string;
   createdByType?: "user" | "agent";
+  assigneeUuid?: string;
+  assigneeType?: "user" | "agent";
 }
 
 export type ExperimentPriority = "low" | "medium" | "high" | "immediate";
@@ -511,6 +513,7 @@ export async function createExperiment(params: ExperimentCreateParams) {
       baseBranch: params.baseBranch ?? null,
       createdByUuid: params.createdByUuid,
       createdByType: params.createdByType ?? "user",
+      ...(params.assigneeUuid ? { assigneeUuid: params.assigneeUuid, assigneeType: params.assigneeType ?? "agent" } : {}),
     },
     include: {
       researchQuestion: {
@@ -648,6 +651,14 @@ export async function reviewExperiment(input: {
 
   assertTransition(existing.status as ExperimentStatus, input.approved ? "pending_start" : "draft");
 
+  // When approving an agent-created experiment, auto-assign it back to the
+  // creating agent so it receives a task_assigned notification and can execute.
+  const shouldAutoAssign =
+    input.approved &&
+    existing.createdByType === "agent" &&
+    existing.createdByUuid &&
+    !existing.assigneeUuid;
+
   const updated = await prisma.experiment.update({
     where: { uuid: input.experimentUuid },
     data: {
@@ -655,6 +666,14 @@ export async function reviewExperiment(input: {
       reviewedByUuid: input.actorUuid,
       reviewNote: input.reviewNote ?? null,
       reviewedAt: new Date(),
+      ...(shouldAutoAssign
+        ? {
+            assigneeType: "agent",
+            assigneeUuid: existing.createdByUuid,
+            assignedAt: new Date(),
+            assignedByUuid: input.actorUuid,
+          }
+        : {}),
     },
     include: {
       researchQuestion: {
@@ -682,6 +701,38 @@ export async function reviewExperiment(input: {
     action: "updated",
     actorUuid: input.actorUuid,
   });
+
+  // Send task_assigned notification when auto-assigning back to the creating agent
+  if (shouldAutoAssign) {
+    try {
+      const actorName = await getActorName("user", input.actorUuid);
+      await notificationService.create({
+        companyUuid: input.companyUuid,
+        researchProjectUuid: updated.researchProjectUuid,
+        recipientType: "agent",
+        recipientUuid: existing.createdByUuid,
+        entityType: "experiment",
+        entityUuid: updated.uuid,
+        entityTitle: updated.title,
+        projectName: existing.researchProject.name,
+        action: "task_assigned",
+        message: `${updated.title} has been approved and assigned to you.`,
+        actorType: "user",
+        actorUuid: input.actorUuid,
+        actorName: actorName || "Unknown",
+      });
+      await updateExperimentLiveStatus(input.experimentUuid, "sent");
+    } catch (err) {
+      console.error("Failed to send task_assigned notification after review approval:", err);
+    }
+  }
+
+  // Check autonomous loop when experiment is rejected (queue may become empty)
+  if (!input.approved) {
+    await checkAutonomousLoopTrigger(updated.researchProjectUuid, input.companyUuid).catch(
+      (err) => console.error("Autonomous loop trigger check failed:", err)
+    );
+  }
 
   return formatExperiment(input.companyUuid, updated);
 }
@@ -824,6 +875,127 @@ export async function startExperiment(input: {
   return formatExperiment(input.companyUuid, updated);
 }
 
+/**
+ * Check if the autonomous loop should trigger and send notification to the loop agent.
+ * Mode 1 (human_review): trigger when draft=0, pending_review=0, pending_start=0
+ * Mode 2 (full_auto): trigger when in_progress=0
+ */
+export async function checkAutonomousLoopTrigger(
+  projectUuid: string,
+  companyUuid: string
+) {
+  const project = await prisma.researchProject.findFirst({
+    where: { uuid: projectUuid, companyUuid },
+    select: {
+      uuid: true,
+      name: true,
+      autonomousLoopEnabled: true,
+      autonomousLoopAgentUuid: true,
+      autonomousLoopMode: true,
+    },
+  });
+
+  if (!project?.autonomousLoopEnabled || !project.autonomousLoopAgentUuid) {
+    return;
+  }
+
+  const mode = project.autonomousLoopMode ?? "human_review";
+
+  const statusCounts = await prisma.experiment.groupBy({
+    by: ["status"],
+    where: { researchProjectUuid: projectUuid, companyUuid },
+    _count: true,
+  });
+
+  const countByStatus = (s: string) =>
+    statusCounts.find((sc) => sc.status === s)?._count ?? 0;
+
+  let shouldTrigger = false;
+
+  if (mode === "human_review") {
+    shouldTrigger =
+      countByStatus("draft") === 0 &&
+      countByStatus("pending_review") === 0 &&
+      countByStatus("pending_start") === 0;
+  } else if (mode === "full_auto") {
+    shouldTrigger = countByStatus("in_progress") === 0;
+  }
+
+  if (shouldTrigger) {
+    await notificationService.create({
+      companyUuid,
+      researchProjectUuid: project.uuid,
+      recipientType: "agent",
+      recipientUuid: project.autonomousLoopAgentUuid,
+      entityType: "research_project",
+      entityUuid: project.uuid,
+      entityTitle: project.name,
+      projectName: project.name,
+      action: "autonomous_loop_triggered",
+      message:
+        mode === "full_auto"
+          ? "No experiments running. Update the project synthesis with latest results, then propose next experiment for immediate execution."
+          : "Experiment queue is empty. Analyze the project and propose next experiments.",
+      actorType: "user",
+      actorUuid: "system",
+      actorName: "Synapse",
+    });
+  }
+}
+
+/**
+ * Auto-maintain a "Experiment Results Log" document for the project.
+ * Appends one CSV row per completed experiment: title, uuid, outcome, result summary.
+ * Creates the document on first use.
+ */
+async function appendExperimentResultsLog(
+  experiment: { uuid: string; title: string; outcome: string | null; results: unknown; researchProjectUuid: string; description: string | null; experimentBranch: string | null },
+  companyUuid: string
+) {
+  const CSV_HEADER = "title\tuuid\toutcome\tbranch\tdescription\tresult_summary";
+  const DOCUMENT_TYPE = "experiment_results_log";
+
+  // Find or create the log document
+  const doc = await prisma.document.findFirst({
+    where: { researchProjectUuid: experiment.researchProjectUuid, companyUuid, type: DOCUMENT_TYPE },
+  });
+
+  const resultStr = experiment.results ? String(experiment.results) : "";
+  // Extract first meaningful line of results (skip empty lines)
+  const resultSummary = resultStr.split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 1).join("").slice(0, 200);
+  const descShort = (experiment.description ?? "").replace(/[\t\n\r]/g, " ").slice(0, 100);
+
+  const newRow = `${experiment.title}\t${experiment.uuid}\t${experiment.outcome ?? "unknown"}\t${experiment.experimentBranch ?? "-"}\t${descShort}\t${resultSummary}`;
+
+  if (doc) {
+    // Append row
+    const existingContent = doc.content ?? "";
+    const updatedContent = existingContent.endsWith("\n")
+      ? existingContent + newRow
+      : existingContent + "\n" + newRow;
+    await prisma.document.update({
+      where: { uuid: doc.uuid },
+      data: { content: updatedContent, updatedAt: new Date() },
+    });
+  } else {
+    // Create the document with header + first row
+    const project = await prisma.researchProject.findFirst({
+      where: { uuid: experiment.researchProjectUuid, companyUuid },
+      select: { name: true },
+    });
+    await prisma.document.create({
+      data: {
+        companyUuid,
+        researchProjectUuid: experiment.researchProjectUuid,
+        title: `${project?.name ?? "Project"} — Experiment Results Log`,
+        type: DOCUMENT_TYPE,
+        content: CSV_HEADER + "\n" + newRow,
+        createdByUuid: "system",
+      },
+    });
+  }
+}
+
 export async function completeExperiment(input: {
   companyUuid: string;
   experimentUuid: string;
@@ -918,41 +1090,31 @@ export async function completeExperiment(input: {
     actorUuid: input.actorUuid,
   });
 
-  // Check autonomous loop trigger
+  // Append to results log document (auto-maintained experiment history)
+  try {
+    await appendExperimentResultsLog(updated, input.companyUuid);
+  } catch (err) {
+    console.error("Failed to append experiment results log:", err);
+  }
+
+  // In Mode 2, refresh project synthesis after every experiment completion
   try {
     const loopProject = await prisma.researchProject.findFirst({
       where: { uuid: updated.researchProjectUuid, companyUuid: input.companyUuid },
-      select: { autonomousLoopEnabled: true, autonomousLoopAgentUuid: true, name: true },
+      select: { autonomousLoopEnabled: true, autonomousLoopMode: true },
     });
-    if (loopProject?.autonomousLoopEnabled && loopProject.autonomousLoopAgentUuid) {
-      const queueCount = await prisma.experiment.count({
-        where: {
-          researchProjectUuid: updated.researchProjectUuid,
-          companyUuid: input.companyUuid,
-          status: { in: ["draft", "pending_review", "pending_start"] },
-        },
-      });
-      if (queueCount === 0) {
-        await notificationService.create({
-          companyUuid: input.companyUuid,
-          researchProjectUuid: updated.researchProjectUuid,
-          recipientType: "agent",
-          recipientUuid: loopProject.autonomousLoopAgentUuid,
-          entityType: "experiment",
-          entityUuid: updated.researchProjectUuid,
-          entityTitle: loopProject.name,
-          projectName: loopProject.name,
-          action: "autonomous_loop_triggered",
-          message: "Experiment queue is empty. Analyze the project and propose next experiments.",
-          actorType: "user",
-          actorUuid: "system",
-          actorName: "Synapse",
-        });
-      }
+    if (loopProject?.autonomousLoopEnabled && loopProject.autonomousLoopMode === "full_auto") {
+      const { refreshProjectSynthesis } = await import("@/services/project-synthesis.service");
+      await refreshProjectSynthesis(updated.researchProjectUuid, input.companyUuid, input.actorUuid);
     }
   } catch (err) {
-    console.error("Autonomous loop trigger check failed:", err);
+    console.error("Failed to refresh synthesis after Mode 2 experiment:", err);
   }
+
+  // Check autonomous loop trigger
+  await checkAutonomousLoopTrigger(updated.researchProjectUuid, input.companyUuid).catch(
+    (err) => console.error("Autonomous loop trigger check failed:", err)
+  );
 
   return formatExperiment(input.companyUuid, updated);
 }

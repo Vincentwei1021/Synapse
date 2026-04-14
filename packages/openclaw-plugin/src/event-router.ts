@@ -302,24 +302,26 @@ Base branch: ${repoAccess.baseBranch ?? "main"}`;
    b. Test the script to make sure it works correctly.
    c. Create a cron job that runs every 30 minutes: the script calls synapse_report_experiment_progress with experimentUuid "${experimentUuid}" to report the latest metrics summary, and delivers updates to the latest channel.
    d. The monitoring script should also detect when the experiment finishes (e.g. training completes, final evaluation done). When completion is detected, the script should send a message notifying you (the agent) that the experiment has finished.
-   e. Once you receive the completion notification, you are responsible for the remaining steps: ${hasRepo ? "push code to a branch, " : ""}submit results, and clean up. Remove the cron job after you have completed everything.
+   e. Once you receive the completion notification, you are responsible for the remaining steps: ${hasRepo ? "handle code changes per project description, " : ""}submit results, and clean up. Remove the cron job after you have completed everything.
    For short experiments that you can monitor directly, skip the cron setup and proceed to the next steps manually.`);
 
     steps.push(`${stepNum++}. If you are monitoring the experiment directly (no cron), call synapse_report_experiment_progress with experimentUuid "${experimentUuid}" at each major step (data download, training start, each evaluation checkpoint, etc.).`);
 
     if (hasRepo) {
-      steps.push(`${stepNum++}. After the experiment completes, create a new branch: experiment/${experimentUuid}-{experimentTitle} (sanitize: lowercase, hyphens for spaces, remove special chars; if Chinese title, translate to English — do not use pinyin). Commit all code changes and push.`);
+      steps.push(`${stepNum++}. After the experiment completes, commit your changes and push. The project description may specify a branch strategy (e.g. single persistent branch, per-experiment branches, keep/discard workflow). Follow it. If not specified, decide: create a new branch for this experiment, or commit on the current branch — based on how the project organizes its code.`);
     }
 
-    steps.push(`${stepNum++}. Call synapse_submit_experiment_results with experimentUuid "${experimentUuid}"${hasRepo ? ", experimentBranch (the branch name you pushed), and commitSha" : ""} to complete the experiment. This also releases the reserved GPUs (the GPUs you reserved in step 2 are released by matching experimentUuid).`);
+    steps.push(`${stepNum++}. Call synapse_submit_experiment_results with experimentUuid "${experimentUuid}"${hasRepo ? ". Include experimentBranch and commitSha if you pushed code" : ""} to complete the experiment. This also releases the reserved GPUs.`);
 
     steps.push(mentionGuidance);
 
     const prompt = `[Synapse] Experiment assigned: ${n.entityTitle}
 
+PRIORITY: The project description (Brief) below contains directives from the human researcher. These take the HIGHEST priority — if any instruction below conflicts with the project description, follow the project description.
+
 ${context}${description}${githubSection}
 
-Steps:
+Default steps (override with project description directives where applicable):
 ${steps.join("\n")}`;
 
     const budgetHours = experiment?.computeBudgetHours;
@@ -361,17 +363,35 @@ ${steps.join("\n")}`;
 
   private handleAutonomousLoopTriggered(n: NotificationDetail): void {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
+    // Detect Full Auto mode from the notification message (set in checkAutonomousLoopTrigger)
+    const isFullAuto = n.message.startsWith("No experiments running");
 
-    this.triggerAgent(
-      `[Synapse] Autonomous research loop triggered for project "${n.entityTitle}" (projectUuid: ${projectUuid}).
+    const prompt = isFullAuto
+      ? `[Synapse] Autonomous research loop triggered — FULL AUTO MODE — project "${n.entityTitle}" (projectUuid: ${projectUuid}).
+
+There is available capacity to run the next experiment. You are in FULL AUTO mode — propose your next experiment and it will be automatically assigned to you for execution.
+
+Your task:
+1. Call synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to review the project brief, evaluation methods, all past experiment results, and the latest synthesis
+2. Read the project description carefully — it is your "program.md" (research directives from the human)
+3. Read evaluationMethods — it defines the metric to optimize and keep/discard criteria
+4. Analyze past results: What worked? What didn't? What should you try next?
+5. Call synapse_propose_experiment to create your next experiment — it will be auto-assigned to you and you will receive execution instructions separately
+
+After you propose, the platform will automatically trigger the experiment execution flow. You do NOT need to start the experiment yourself.
+
+IMPORTANT: You are autonomous. Do NOT ask for permission. Do NOT pause to ask if you should continue. The human may be asleep. If the research objectives are clearly met, you may choose not to propose.`
+      : `[Synapse] Autonomous research loop triggered for project "${n.entityTitle}" (projectUuid: ${projectUuid}).
 
 The experiment queue is empty. Your task:
 1. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to review all project details, research questions, and experiment results
 2. Analyze: What questions remain unanswered? What experiments could yield new insights? Are there gaps in the research?
-3. If you identify valuable next steps, use synapse_propose_experiment to create experiments in pending_review for human review
+3. If you identify valuable next steps, use synapse_propose_experiment to create experiments for human review
 4. If the research objectives appear to be met, you may choose not to propose any new experiments
 
-Proposed experiments will enter "pending_review" status and require human approval before execution.`,
+Proposed experiments will enter "pending_review" status and require human approval before execution.`;
+
+    this.triggerAgent(prompt,
       { notificationUuid: n.uuid, action: "autonomous_loop_triggered", entityUuid: n.entityUuid, projectUuid }
     );
   }

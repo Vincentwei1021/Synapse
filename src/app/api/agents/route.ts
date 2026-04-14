@@ -82,7 +82,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   for (const role of roles) {
     if (!validRoles.includes(role)) {
       return errors.validationError({
-        roles: "Roles must be pre_research, research, experiment, or report",
+        roles: "Roles must be pre_research, research, experiment, report, or admin",
       });
     }
   }

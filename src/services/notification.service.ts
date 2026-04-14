@@ -65,6 +65,14 @@ export interface NotificationPreferenceFields {
   commentAdded?: boolean;
   hypothesisFormulationRequested?: boolean;
   hypothesisFormulationAnswered?: boolean;
+  experimentCompleted?: boolean;
+  experimentAutoProposed?: boolean;
+  experimentStatusChanged?: boolean;
+  experimentProgress?: boolean;
+  synthesisUpdated?: boolean;
+  autoSearchCompleted?: boolean;
+  deepResearchCompleted?: boolean;
+  autonomousLoopTriggered?: boolean;
   mentioned?: boolean;
 }
 
@@ -83,6 +91,14 @@ export interface NotificationPreferenceResponse {
   commentAdded: boolean;
   hypothesisFormulationRequested: boolean;
   hypothesisFormulationAnswered: boolean;
+  experimentCompleted: boolean;
+  experimentAutoProposed: boolean;
+  experimentStatusChanged: boolean;
+  experimentProgress: boolean;
+  synthesisUpdated: boolean;
+  autoSearchCompleted: boolean;
+  deepResearchCompleted: boolean;
+  autonomousLoopTriggered: boolean;
   mentioned: boolean;
 }
 
@@ -131,6 +147,58 @@ function formatNotification(n: {
   };
 }
 
+function formatPreference(pref: {
+  uuid: string;
+  ownerType: string;
+  ownerUuid: string;
+  runAssigned: boolean;
+  runStatusChanged: boolean;
+  runVerified: boolean;
+  runReopened: boolean;
+  designSubmitted: boolean;
+  designApproved: boolean;
+  designRejected: boolean;
+  researchQuestionClaimed: boolean;
+  commentAdded: boolean;
+  hypothesisFormulationRequested: boolean;
+  hypothesisFormulationAnswered: boolean;
+  experimentCompleted: boolean;
+  experimentAutoProposed: boolean;
+  experimentStatusChanged: boolean;
+  experimentProgress: boolean;
+  synthesisUpdated: boolean;
+  autoSearchCompleted: boolean;
+  deepResearchCompleted: boolean;
+  autonomousLoopTriggered: boolean;
+  mentioned: boolean;
+}): NotificationPreferenceResponse {
+  return {
+    uuid: pref.uuid,
+    ownerType: pref.ownerType,
+    ownerUuid: pref.ownerUuid,
+    runAssigned: pref.runAssigned,
+    runStatusChanged: pref.runStatusChanged,
+    runVerified: pref.runVerified,
+    runReopened: pref.runReopened,
+    designSubmitted: pref.designSubmitted,
+    designApproved: pref.designApproved,
+    designRejected: pref.designRejected,
+    researchQuestionClaimed: pref.researchQuestionClaimed,
+    commentAdded: pref.commentAdded,
+    hypothesisFormulationRequested: pref.hypothesisFormulationRequested,
+    hypothesisFormulationAnswered: pref.hypothesisFormulationAnswered,
+    experimentCompleted: pref.experimentCompleted,
+    experimentAutoProposed: pref.experimentAutoProposed,
+    experimentStatusChanged: pref.experimentStatusChanged,
+    experimentProgress: pref.experimentProgress,
+    synthesisUpdated: pref.synthesisUpdated,
+    autoSearchCompleted: pref.autoSearchCompleted,
+    deepResearchCompleted: pref.deepResearchCompleted,
+    autonomousLoopTriggered: pref.autonomousLoopTriggered,
+    mentioned: pref.mentioned,
+  };
+}
+
 // ===== Service Methods =====
 
 /**
@@ -172,6 +240,8 @@ export async function create(
   eventBus.emit(`notification:${params.recipientType}:${params.recipientUuid}`, {
     type: "new_notification",
     notificationUuid: notification.uuid,
+    action: params.action,
+    message: params.message,
     unreadCount,
   });
 
@@ -227,11 +297,18 @@ export async function createBatch(
         },
       });
 
+      // Find the first notification for this recipient to include action/message in the event
+      const recipientNotification = notifications.find(
+        (n) => n.recipientType === recipientType && n.recipientUuid === recipientUuid
+      );
+
       eventBus.emit(`notification:${recipientType}:${recipientUuid}`, {
         type: "new_notification",
         notificationUuid: created.find(
           (n) => n.recipientType === recipientType && n.recipientUuid === recipientUuid
         )?.uuid,
+        action: recipientNotification?.action,
+        message: recipientNotification?.message,
         unreadCount,
       });
     })
@@ -432,23 +509,7 @@ export async function getPreferences(
     });
   }
 
-  return {
-    uuid: pref.uuid,
-    ownerType: pref.ownerType,
-    ownerUuid: pref.ownerUuid,
-    runAssigned: pref.runAssigned,
-    runStatusChanged: pref.runStatusChanged,
-    runVerified: pref.runVerified,
-    runReopened: pref.runReopened,
-    designSubmitted: pref.designSubmitted,
-    designApproved: pref.designApproved,
-    designRejected: pref.designRejected,
-    researchQuestionClaimed: pref.researchQuestionClaimed,
-    commentAdded: pref.commentAdded,
-    hypothesisFormulationRequested: pref.hypothesisFormulationRequested,
-    hypothesisFormulationAnswered: pref.hypothesisFormulationAnswered,
-    mentioned: pref.mentioned,
-  };
+  return formatPreference(pref);
 }
 
 export async function getPreferencesBatch(
@@ -506,23 +567,7 @@ export async function getPreferencesBatch(
   return new Map(
     allPreferences.map((pref) => [
       `${pref.ownerType}:${pref.ownerUuid}`,
-      {
-        uuid: pref.uuid,
-        ownerType: pref.ownerType,
-        ownerUuid: pref.ownerUuid,
-        runAssigned: pref.runAssigned,
-        runStatusChanged: pref.runStatusChanged,
-        runVerified: pref.runVerified,
-        runReopened: pref.runReopened,
-        designSubmitted: pref.designSubmitted,
-        designApproved: pref.designApproved,
-        designRejected: pref.designRejected,
-        researchQuestionClaimed: pref.researchQuestionClaimed,
-        commentAdded: pref.commentAdded,
-        hypothesisFormulationRequested: pref.hypothesisFormulationRequested,
-        hypothesisFormulationAnswered: pref.hypothesisFormulationAnswered,
-        mentioned: pref.mentioned,
-      },
+      formatPreference(pref),
     ])
   );
 }
@@ -547,21 +592,5 @@ export async function updatePreferences(
     update: prefs,
   });
 
-  return {
-    uuid: pref.uuid,
-    ownerType: pref.ownerType,
-    ownerUuid: pref.ownerUuid,
-    runAssigned: pref.runAssigned,
-    runStatusChanged: pref.runStatusChanged,
-    runVerified: pref.runVerified,
-    runReopened: pref.runReopened,
-    designSubmitted: pref.designSubmitted,
-    designApproved: pref.designApproved,
-    designRejected: pref.designRejected,
-    researchQuestionClaimed: pref.researchQuestionClaimed,
-    commentAdded: pref.commentAdded,
-    hypothesisFormulationRequested: pref.hypothesisFormulationRequested,
-    hypothesisFormulationAnswered: pref.hypothesisFormulationAnswered,
-    mentioned: pref.mentioned,
-  };
+  return formatPreference(pref);
 }

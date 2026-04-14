@@ -13,6 +13,7 @@ import {
   getResearchProjectDetailRef,
   updateResearchProject,
 } from "@/services/research-project.service";
+import { checkAutonomousLoopTrigger } from "@/services/experiment.service";
 import { getProjectMetricsSnapshot, toProjectCompatibilityCounts } from "@/services/project-metrics.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
@@ -81,6 +82,7 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
     computePoolUuid?: string | null;
     autonomousLoopEnabled?: boolean;
     autonomousLoopAgentUuid?: string | null;
+    autonomousLoopMode?: string;
     autoSearchEnabled?: boolean;
     autoSearchAgentUuid?: string | null;
     repoUrl?: string | null;
@@ -97,6 +99,7 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
     computePoolUuid?: string | null;
     autonomousLoopEnabled?: boolean;
     autonomousLoopAgentUuid?: string | null;
+    autonomousLoopMode?: string;
     autoSearchEnabled?: boolean;
     autoSearchAgentUuid?: string | null;
     repoUrl?: string | null;
@@ -139,6 +142,13 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
     updateData.autonomousLoopAgentUuid = body.autonomousLoopAgentUuid || null;
   }
 
+  if (body.autonomousLoopMode !== undefined) {
+    if (!["human_review", "full_auto"].includes(body.autonomousLoopMode)) {
+      return errors.validationError({ autonomousLoopMode: "Must be 'human_review' or 'full_auto'" });
+    }
+    updateData.autonomousLoopMode = body.autonomousLoopMode;
+  }
+
   if (body.autoSearchEnabled !== undefined) {
     updateData.autoSearchEnabled = body.autoSearchEnabled;
   }
@@ -160,6 +170,11 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
   }
 
   const researchProject = await updateResearchProject(existing.uuid, updateData);
+
+  // If autonomous loop was just enabled, check trigger immediately
+  if (body.autonomousLoopEnabled === true && body.autonomousLoopAgentUuid) {
+    checkAutonomousLoopTrigger(existing.uuid, auth.companyUuid).catch(() => {});
+  }
 
   return success({
     uuid: researchProject.uuid,

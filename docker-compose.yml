@@ -14,6 +14,8 @@ services:
       - COOKIE_SECURE=${COOKIE_SECURE:-false}
       - DEFAULT_USER=${DEFAULT_USER:-}
       - DEFAULT_PASSWORD=${DEFAULT_PASSWORD:-}
+    volumes:
+      - ${SYNAPSE_DATA_DIR:-./data/synapse}:/root/.synapse
     depends_on:
       db:
         condition: service_healthy
