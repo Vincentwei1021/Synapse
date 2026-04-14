@@ -300,6 +300,8 @@
     "datasets": "Datasets",
     "evaluation": "Evaluation",
     "noDescription": "No project description yet.",
+    "showMore": "Show more",
+    "showLess": "Show less",
     "noGoal": "No explicit goal recorded yet.",
     "noDatasets": "No datasets listed yet.",
     "noEvaluation": "No evaluation methods listed yet.",

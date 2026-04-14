@@ -300,6 +300,8 @@
     "datasets": "数据集",
     "evaluation": "评估方式",
     "noDescription": "还没有项目描述。",
+    "showMore": "展开",
+    "showLess": "收起",
     "noGoal": "还没有记录明确目标。",
     "noDatasets": "还没有填写数据集。",
     "noEvaluation": "还没有填写评估方式。",

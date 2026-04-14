@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { MarkdownContent } from "@/components/markdown-content";
 
 export function CollapsibleDescription({
   text,
@@ -26,7 +27,7 @@ export function CollapsibleDescription({
     <div className="mt-2">
       <div
         ref={ref}
-        className="text-sm leading-6 text-muted-foreground whitespace-pre-wrap"
+        className="text-sm leading-6 text-muted-foreground prose prose-sm dark:prose-invert max-w-none prose-headings:text-muted-foreground prose-headings:text-sm prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1 prose-p:my-1 prose-ul:my-1 prose-li:my-0"
         style={
           !expanded && needsCollapse
             ? {
@@ -38,7 +39,7 @@ export function CollapsibleDescription({
             : undefined
         }
       >
-        {text}
+        <MarkdownContent>{text}</MarkdownContent>
       </div>
       {needsCollapse && (
         <button
