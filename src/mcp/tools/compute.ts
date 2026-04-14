@@ -646,11 +646,39 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
         select: { uuid: true, title: true, content: true, updatedAt: true },
       });
 
+      // Fetch compute availability for the project's bound pool
+      let computeAvailability: { totalGpus: number; availableGpus: number; occupiedGpus: number; gpuModels: string[] } | null = null;
+      try {
+        const projectForCompute = await prisma.researchProject.findFirst({
+          where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid },
+          select: { computePoolUuid: true },
+        });
+        let pools = await computeService.listComputePools(auth.companyUuid);
+        if (projectForCompute?.computePoolUuid) {
+          pools = pools.filter((p) => p.uuid === projectForCompute.computePoolUuid);
+        }
+        const allGpus = pools.flatMap((p) => p.nodes.flatMap((n) => n.gpus));
+        const available = allGpus.filter((g) => g.computedStatus === "available" && !g.activeReservation);
+        const models = [...new Set(allGpus.map((g) => g.model).filter(Boolean))];
+        computeAvailability = {
+          totalGpus: allGpus.length,
+          availableGpus: available.length,
+          occupiedGpus: allGpus.length - available.length,
+          gpuModels: models as string[],
+        };
+      } catch { /* ignore compute errors */ }
+
+      // Count in-progress experiments that occupy compute
+      const inProgressCount = trimmedExperiments.filter((e) => e.status === "in_progress").length;
+      const pendingStartCount = trimmedExperiments.filter((e) => e.status === "pending_start").length;
+
       return {
         content: [{ type: "text", text: JSON.stringify({
           project: { ...project, experiments: trimmedExperiments },
           resultsLog: resultsLog ? { uuid: resultsLog.uuid, content: resultsLog.content, updatedAt: resultsLog.updatedAt } : null,
-          _hint: "Use synapse_get_experiment for full details of a specific experiment.",
+          computeAvailability,
+          experimentQueue: { inProgress: inProgressCount, pendingStart: pendingStartCount },
+          _hint: "Use synapse_get_experiment for full details of a specific experiment. When proposing experiments, consider available compute resources — propose at most as many experiments as there are available GPUs, minus already queued/running experiments.",
         }, null, 2) }],
       };
     }

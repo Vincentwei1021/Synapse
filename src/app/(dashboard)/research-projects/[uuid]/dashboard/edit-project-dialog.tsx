@@ -105,7 +105,7 @@ export function EditProjectDialog({
         {t("common.edit")}
       </Button>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t("researchProjects.editProject")}</DialogTitle>
           </DialogHeader>

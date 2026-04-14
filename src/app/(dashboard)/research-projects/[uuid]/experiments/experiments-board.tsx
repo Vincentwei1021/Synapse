@@ -56,6 +56,33 @@ function liveStatusBadge(t: ReturnType<typeof useTranslations>, status: string |
   );
 }
 
+const PRIORITY_ORDER: Record<string, number> = { immediate: 0, high: 1, medium: 2, low: 3 };
+
+function sortColumnExperiments(columnId: string, items: ExperimentResponse[]): ExperimentResponse[] {
+  return [...items].sort((a, b) => {
+    if (columnId === "pending_start" || columnId === "draft" || columnId === "pending_review") {
+      // Sort by priority (high first), then by creation time (oldest first)
+      const pa = PRIORITY_ORDER[a.priority] ?? 2;
+      const pb = PRIORITY_ORDER[b.priority] ?? 2;
+      if (pa !== pb) return pa - pb;
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    }
+    if (columnId === "in_progress") {
+      // Sort by start time (newest first)
+      const ta = a.startedAt ? new Date(a.startedAt).getTime() : new Date(a.createdAt).getTime();
+      const tb = b.startedAt ? new Date(b.startedAt).getTime() : new Date(b.createdAt).getTime();
+      return tb - ta;
+    }
+    if (columnId === "completed") {
+      // Sort by completion time (newest first)
+      const ta = a.completedAt ? new Date(a.completedAt).getTime() : new Date(a.createdAt).getTime();
+      const tb = b.completedAt ? new Date(b.completedAt).getTime() : new Date(b.createdAt).getTime();
+      return tb - ta;
+    }
+    return 0;
+  });
+}
+
 function prettyJson(value: unknown) {
   try {
     return JSON.stringify(value, null, 2);
@@ -160,9 +187,34 @@ export function ExperimentsBoard({
       .catch(() => setProgressLogs([]));
   }, [selectedExperimentUuid]);
 
+  // Derive autonomous loop phase from experiment board state
+  const autonomousPhase = useMemo(() => {
+    if (!loopEnabled) return null;
+    const inProgress = experiments.filter((e) => e.status === "in_progress");
+    const pendingStart = experiments.filter((e) => e.status === "pending_start");
+    const pendingReview = experiments.filter((e) => e.status === "pending_review");
+    const drafts = experiments.filter((e) => e.status === "draft");
+
+    if (inProgress.length > 0) {
+      // Check liveStatus of in-progress experiments for more detail
+      const running = inProgress.find((e) => e.liveStatus === "running");
+      if (running) return "running" as const;
+      const checking = inProgress.find((e) => e.liveStatus === "checking_resources" || e.liveStatus === "queuing");
+      if (checking) return "preparing" as const;
+      return "running" as const;
+    }
+    if (pendingStart.length > 0) return "starting" as const;
+    if (pendingReview.length > 0 || drafts.length > 0) return "reviewing" as const;
+    // All queues empty — agent should be analysing / proposing
+    return "analysing" as const;
+  }, [loopEnabled, experiments]);
+
   const grouped = useMemo(() => {
     return Object.fromEntries(
-      columns.map((column) => [column.id, experiments.filter((experiment) => experiment.status === column.id)]),
+      columns.map((column) => [
+        column.id,
+        sortColumnExperiments(column.id, experiments.filter((experiment) => experiment.status === column.id)),
+      ]),
     ) as Record<(typeof columns)[number]["id"], ExperimentResponse[]>;
   }, [experiments]);
 
@@ -378,23 +430,31 @@ export function ExperimentsBoard({
       {/* Header with inline loop control */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold text-foreground">{t("experiments.title")}</h1>
-          {/* Autonomous Loop inline icon */}
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">{t("experiments.title")}</h1>
+            <p className="text-sm text-muted-foreground mt-0.5 hidden lg:block">{t("experiments.subtitle")}</p>
+          </div>
+          {/* Autonomous Loop inline control */}
           <div className="relative" ref={loopDropdownRef}>
             {loopEnabled ? (
-              /* ACTIVE: small green pulsing icon, expands on hover */
-              <div className="group flex items-center">
+              /* ACTIVE: always expanded, showing mode + agent + phase + stop */
+              <div className="flex items-center">
                 <button
                   onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
-                  className="flex items-center gap-0 group-hover:gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 p-1.5 group-hover:px-3 group-hover:py-1.5 group-hover:rounded-lg transition-all duration-200 overflow-hidden"
+                  className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 transition-all duration-200"
                 >
                   <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse shrink-0" />
-                  <span className="max-w-0 group-hover:max-w-[200px] overflow-hidden whitespace-nowrap text-xs font-medium text-emerald-600 dark:text-emerald-400 transition-all duration-200">
+                  <span className="whitespace-nowrap text-xs font-medium text-emerald-600 dark:text-emerald-400">
                     {loopMode === "full_auto" ? t("experiments.fullAutoMode") : t("experiments.humanReviewMode")}
                   </span>
-                  <span className="max-w-0 group-hover:max-w-[100px] overflow-hidden whitespace-nowrap text-xs text-muted-foreground transition-all duration-200">
+                  <span className="whitespace-nowrap text-xs text-muted-foreground">
                     {t("experiments.via")} {realtimeAgents.find((a) => a.uuid === loopAgentUuid)?.name ?? "Agent"}
                   </span>
+                  {autonomousPhase && (
+                    <span className="whitespace-nowrap text-[11px] text-emerald-500/70 dark:text-emerald-400/70">
+                      · {t(`experiments.autoPhase.${autonomousPhase}`)}
+                    </span>
+                  )}
                   <button
                     onClick={async (e) => {
                       e.stopPropagation();
@@ -402,28 +462,24 @@ export function ExperimentsBoard({
                       setLoopDropdownOpen(false);
                       setLoopSelectedMode(null);
                     }}
-                    className="max-w-0 group-hover:max-w-[50px] overflow-hidden whitespace-nowrap ml-0 group-hover:ml-1 rounded-md border border-red-500/30 px-0 group-hover:px-2 py-0.5 text-[11px] text-red-400 hover:bg-red-500/10 transition-all duration-200"
+                    className="ml-1 rounded-md border border-red-500/30 px-2 py-0.5 text-[11px] text-red-400 hover:bg-red-500/10 transition-colors"
                   >
                     {t("experiments.stop")}
                   </button>
                 </button>
               </div>
             ) : (
-              /* OFF: small icon, expands on hover, opens dropdown on click */
-              <div className="group flex items-center">
-                <button
-                  onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
-                  className="flex items-center gap-0 group-hover:gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 p-1.5 group-hover:px-3 group-hover:py-1.5 group-hover:rounded-lg transition-all duration-200 overflow-hidden"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-indigo-400 shrink-0">
-                    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                    <path d="M21 3v5h-5" />
-                  </svg>
-                  <span className="max-w-0 group-hover:max-w-[180px] overflow-hidden whitespace-nowrap text-xs text-indigo-300 dark:text-indigo-400 transition-all duration-200">
-                    {t("experiments.startAutonomousLoop")}
-                  </span>
-                </button>
-              </div>
+              /* OFF: loop icon + text, always visible */
+              <button
+                onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
+                className="flex items-center gap-2 rounded-lg border border-border/50 bg-secondary/50 px-3 py-1.5 text-xs text-muted-foreground hover:border-indigo-500/30 hover:bg-indigo-500/5 hover:text-indigo-400 transition-all duration-200"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0">
+                  <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                  <path d="M21 3v5h-5" />
+                </svg>
+                <span className="whitespace-nowrap">{t("experiments.startAutoResearch")}</span>
+              </button>
             )}
 
             {/* Dropdown menu */}
@@ -490,7 +546,6 @@ export function ExperimentsBoard({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <p className="text-sm text-muted-foreground hidden lg:block">{t("experiments.subtitle")}</p>
           <a
             href={`/research-projects/${projectUuid}/experiments/new`}
             className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"

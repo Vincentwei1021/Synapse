@@ -12,6 +12,7 @@
     "copy": "Copy",
     "copied": "Copied!",
     "back": "Back",
+    "download": "Download",
     "viewAll": "View all",
     "expand": "Expand",
     "collapse": "Collapse",
@@ -1287,8 +1288,8 @@
     "fields": {
       "title": "Experiment title",
       "titlePlaceholder": "For example: Sweep learning rates on the instruction dataset",
-      "description": "Description",
-      "descriptionPlaceholder": "Outline the setup, the expected signal, and any implementation notes.",
+      "description": "Experiment Plan",
+      "descriptionPlaceholder": "Outline the experimental setup, expected signal, and implementation steps.",
       "question": "Linked research question",
       "noQuestion": "No linked research question",
       "status": "Create in column",
@@ -1306,7 +1307,7 @@
       "attachmentsHelp": "Upload notes or specs to keep this experiment self-contained."
     },
     "detail": {
-      "noDescription": "No description provided yet.",
+      "noDescription": "No experiment plan provided yet.",
       "draftEditable": "This draft can be edited directly here and saved back to the board.",
       "computeBudget": "Time Limit",
       "notSet": "Not set",
@@ -1339,6 +1340,14 @@
     "activate": "Activate",
     "stop": "Stop",
     "via": "via",
+    "startAutoResearch": "Start Auto Research",
+    "autoPhase": {
+      "running": "Running experiment",
+      "preparing": "Preparing resources",
+      "starting": "Waiting to start",
+      "reviewing": "Awaiting review",
+      "analysing": "Analysing & proposing"
+    },
     "liveStatus": {
       "sent": "Sent",
       "ack": "Received",

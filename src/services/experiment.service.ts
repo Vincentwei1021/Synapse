@@ -934,8 +934,8 @@ export async function checkAutonomousLoopTrigger(
       action: "autonomous_loop_triggered",
       message:
         mode === "full_auto"
-          ? "No experiments running. Update the project synthesis with latest results, then propose next experiment for immediate execution."
-          : "Experiment queue is empty. Analyze the project and propose next experiments.",
+          ? "No experiments running. Call synapse_get_project_full_context to review results and available compute, then propose experiments (one per available GPU). Update the project synthesis before proposing."
+          : "Experiment queue is empty. Call synapse_get_project_full_context to review results and available compute, then propose experiments (one per available GPU).",
       actorType: "user",
       actorUuid: "system",
       actorName: "Synapse",

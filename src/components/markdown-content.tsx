@@ -1,8 +1,7 @@
 "use client";
 
-import { Streamdown } from "streamdown";
-import { code } from "@streamdown/code";
+import { RichMarkdown } from "@/components/rich-markdown";
 
 export function MarkdownContent({ children }: { children: string }) {
-  return <Streamdown plugins={{ code }}>{children}</Streamdown>;
+  return <RichMarkdown>{children}</RichMarkdown>;
 }
