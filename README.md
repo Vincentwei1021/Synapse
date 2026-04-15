@@ -14,6 +14,12 @@ Synapse is a research orchestration platform that brings human researchers and A
 
 Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle/) methodology and built upon [Chorus](https://github.com/Chorus-AIDLC/Chorus).
 
+> **Milestone:** We reproduced Karpathy's auto-research task and outcome pattern on Synapse. Unlike designing the behavior of a single agent through a `program.md`, Synapse treats autonomous experimentation as a native platform capability. Research projects, experiment lifecycles, compute allocation, and context accumulation are all managed through structured MCP tools, creating **dynamic contexting**. Research memory is persisted in the platform and exposed as tool-based state that agents can call, fetch, and expand on demand according to the current situation, rather than forcing everything to be loaded into an agent's context window up front.
+
+<p align="center">
+  <img src="autoresearch-progress.png" alt="Synapse autoresearch progress" width="100%" />
+</p>
+
 ---
 
 ## What's New
@@ -24,23 +30,35 @@ Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.co
 - The autonomous experiment entry button is more prominent, with refreshed blue styling and a yellow lightning icon for faster scanning
 - The experiment detail sheet is wider on large screens, giving experiment plans, results, and progress logs more room
 
-**v0.6.0** — Agent Types & Research Copilot (2026-04-12) &nbsp; 🔴 `New`
+<details>
+<summary><strong>v0.6.0</strong> — Agent Types &amp; Research Copilot (2026-04-12)</summary>
+
 - Agents now have a `type` field (`OpenClaw` or `Claude Code`) with internal transport mapping — Web UI dispatch features only show realtime-capable agents
 - Claude Code Research Copilot: SessionStart presents projects with progress summaries and guides users through the research lifecycle (paper search → deep research → questions → experiments → analysis)
 - `synapse_checkin` returns assigned experiments and project progress for intelligent workflow suggestions
 - Agent management UI gains a type selector and badge display
 
-**v0.5.1** — [DeepXiv](https://github.com/DeepXiv/deepxiv_sdk) Integration (2026-04-10)
+</details>
+
+<details>
+<summary><strong>v0.5.1</strong> — <a href="https://github.com/DeepXiv/deepxiv_sdk">DeepXiv</a> Integration (2026-04-10)</summary>
+
 - Paper search now uses [DeepXiv](https://github.com/DeepXiv/deepxiv_sdk) hybrid search (BM25 + vector) over arXiv, with arXiv API as fallback. Removed Semantic Scholar and OpenAlex.
 - Agents can read full paper content via progressive reading tools: `synapse_read_paper_brief`, `synapse_read_paper_head`, `synapse_read_paper_section`, `synapse_read_paper_full`
 - Deep research literature reviews are now based on actual paper content, not just abstracts
 - DeepXiv token configurable from Settings > Integrations
 
-**v0.5.0** — Autonomous Loop & Related Works (2026-03-29)
+</details>
+
+<details>
+<summary><strong>v0.5.0</strong> — Autonomous Loop &amp; Related Works (2026-03-29)</summary>
+
 - Autonomous experiment loop: agents propose → humans review → agents execute
 - Related Works page with auto-search, manual arXiv URL addition, and deep research reports
 - Experiment live status tracking (sent/ack/checking/queuing/running)
 - Compute pool binding per project
+
+</details>
 
 ---
 
