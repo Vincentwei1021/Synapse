@@ -1024,6 +1024,22 @@ export async function completeExperiment(input: {
   assertAssignedActorAccess(existing, input.actorType, input.actorUuid, "complete", input.ownerUuid);
   assertTransition(existing.status as ExperimentStatus, "completed");
 
+  // Append to results log BEFORE marking the experiment as completed in DB,
+  // so the log is written even if the subsequent update fails.
+  try {
+    await appendExperimentResultsLog({
+      uuid: existing.uuid,
+      title: existing.title,
+      outcome: input.outcome ?? null,
+      results: input.results ?? null,
+      researchProjectUuid: existing.researchProjectUuid,
+      description: existing.description,
+      experimentBranch: input.experimentBranch ?? existing.experimentBranch,
+    }, input.companyUuid);
+  } catch (err) {
+    console.error("Failed to append experiment results log:", err);
+  }
+
   const updated = await prisma.experiment.update({
     where: { uuid: input.experimentUuid },
     data: {
@@ -1089,13 +1105,6 @@ export async function completeExperiment(input: {
     action: "updated",
     actorUuid: input.actorUuid,
   });
-
-  // Append to results log document (auto-maintained experiment history)
-  try {
-    await appendExperimentResultsLog(updated, input.companyUuid);
-  } catch (err) {
-    console.error("Failed to append experiment results log:", err);
-  }
 
   // In Mode 2, refresh project synthesis after every experiment completion
   try {

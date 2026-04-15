@@ -971,7 +971,13 @@
       "researchQuestion_claimed": "Research question claimed",
       "hypothesisFormulation_requested": "Hypothesis formulation requested",
       "hypothesisFormulation_answered": "Hypothesis formulation answered",
-      "mentioned": "You were mentioned"
+      "mentioned": "You were mentioned",
+      "experiment_plan_requested": "Experiment plan requested",
+      "experiment_report_requested": "Report requested",
+      "experiment_auto_proposed": "Experiment auto-proposed",
+      "task_assigned": "Assigned",
+      "autonomous_loop_triggered": "Autonomous loop triggered",
+      "synthesis_updated": "Synthesis updated"
     },
     "preferences": {
     "title": "Notification Preferences",
@@ -1354,6 +1360,16 @@
       "checking_resources": "Checking Resources",
       "queuing": "Queuing",
       "running": "Running"
+    },
+    "quickCreate": {
+      "title": "New Experiment",
+      "description": "Describe your idea in one line, and an agent will draft a detailed experiment plan.",
+      "ideaLabel": "What do you want to try?",
+      "ideaPlaceholder": "e.g. Sweep learning rates 1e-3 to 1e-5 on the instruction dataset",
+      "agentLabel": "Agent to draft plan",
+      "submit": "Draft with Agent",
+      "sending": "Sending...",
+      "manual": "Create Manually"
     }
   },
   "insights": {

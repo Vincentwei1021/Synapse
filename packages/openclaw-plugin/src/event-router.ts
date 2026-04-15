@@ -156,6 +156,9 @@ export class SynapseEventRouter {
         case "experiment_report_requested":
           this.handleExperimentReportRequested(notification);
           break;
+        case "experiment_plan_requested":
+          this.handleExperimentPlanRequested(notification);
+          break;
         default:
           this.logger.info(`Unhandled notification action: "${notification.action}"`);
           break;
@@ -468,6 +471,34 @@ Steps:
       : basePrompt;
 
     this.triggerAgent(prompt, { notificationUuid: n.uuid, action: "auto_search_triggered", entityUuid: n.entityUuid, projectUuid, timeoutSeconds: 600 });
+  }
+
+  private handleExperimentPlanRequested(n: NotificationDetail): void {
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
+
+    this.triggerAgent(
+      `[Synapse] A user created a quick experiment with the idea: "${n.entityTitle}" (experimentUuid: ${n.entityUuid}, projectUuid: ${projectUuid}).
+
+Your task is to flesh out this experiment into a detailed plan. Follow these steps:
+
+1. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to understand the research context, existing experiments, and research questions
+2. Based on the one-line idea and the project context, draft a detailed experiment plan that includes:
+   - Clear objective
+   - Methodology and approach
+   - Expected outcomes and evaluation criteria
+   - Implementation steps
+   - Any relevant compute or resource requirements
+3. If the idea clearly relates to an existing research question, link it
+4. Use synapse_update_experiment_plan with experimentUuid "${n.entityUuid}" to update the experiment with:
+   - A refined title (concise but descriptive)
+   - A detailed description (the full experiment plan)
+   - researchQuestionUuid (if applicable)
+   - priority (based on the project context)
+5. Write the plan in the same language as the project description.
+
+Keep the plan actionable and specific enough that another agent could execute it.`,
+      { notificationUuid: n.uuid, action: "experiment_plan_requested", entityUuid: n.entityUuid, projectUuid }
+    );
   }
 
   private handleExperimentReportRequested(n: NotificationDetail): void {

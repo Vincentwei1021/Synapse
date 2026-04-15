@@ -971,7 +971,13 @@
       "researchQuestion_claimed": "研究问题已认领",
       "hypothesisFormulation_requested": "假说构建已请求",
       "hypothesisFormulation_answered": "假说构建已回答",
-      "mentioned": "你被提及了"
+      "mentioned": "你被提及了",
+      "experiment_plan_requested": "请求起草实验计划",
+      "experiment_report_requested": "请求撰写报告",
+      "experiment_auto_proposed": "自动提议实验",
+      "task_assigned": "已分配",
+      "autonomous_loop_triggered": "自主循环已触发",
+      "synthesis_updated": "综合文档已更新"
     },
     "preferences": {
     "title": "通知偏好",
@@ -1354,6 +1360,16 @@
       "checking_resources": "检查资源中",
       "queuing": "排队中",
       "running": "运行中"
+    },
+    "quickCreate": {
+      "title": "新建实验",
+      "description": "用一句话描述你的想法，Agent 将自动起草详细的实验计划。",
+      "ideaLabel": "你想尝试什么？",
+      "ideaPlaceholder": "例如：在指令数据集上扫描学习率 1e-3 至 1e-5",
+      "agentLabel": "起草计划的 Agent",
+      "submit": "Agent 起草",
+      "sending": "发送中...",
+      "manual": "手动创建"
     }
   },
   "insights": {

@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { CheckCircle2, CornerUpLeft, FileText, GitBranch, Save, Send } from "lucide-react";
+import { CheckCircle2, CornerUpLeft, FileText, GitBranch, Loader2, PenLine, Save, Send, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -136,6 +137,10 @@ export function ExperimentsBoard({
   const [draftStatus, setDraftStatus] = useState<"draft" | "pending_review" | "pending_start">("draft");
   const [draftComputeBudgetHours, setDraftComputeBudgetHours] = useState("");
   const [draftSaveError, setDraftSaveError] = useState<string | null>(null);
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
+  const [quickDescription, setQuickDescription] = useState("");
+  const [quickAgentUuid, setQuickAgentUuid] = useState(realtimeAgents[0]?.uuid ?? "");
+  const [quickCreating, setQuickCreating] = useState(false);
   useRealtimeRefresh();
 
   async function updateAutonomousLoop(enabled: boolean, agentUuid: string, mode: string) {
@@ -152,6 +157,44 @@ export function ExperimentsBoard({
       setLoopEnabled(enabled && agentUuid !== "");
       setLoopAgentUuid(agentUuid);
       setLoopMode(mode);
+    }
+  }
+
+  async function handleQuickCreate() {
+    if (!quickDescription.trim()) return;
+    setQuickCreating(true);
+    try {
+      // 1. Create a draft experiment with just the description as title
+      const payload = new FormData();
+      payload.set("title", quickDescription.trim());
+      payload.set("description", "");
+      payload.set("status", "draft");
+      payload.set("priority", "medium");
+      const createRes = await fetch(`/api/research-projects/${projectUuid}/experiments`, {
+        method: "POST",
+        body: payload,
+      });
+      if (!createRes.ok) return;
+      const createData = await createRes.json();
+      const newExperiment = createData.data?.experiment;
+      if (!newExperiment?.uuid) return;
+
+      // 2. Send plan request to agent
+      if (quickAgentUuid) {
+        await fetch(`/api/experiments/${newExperiment.uuid}/request-plan`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agentUuid: quickAgentUuid }),
+        });
+      }
+
+      // 3. Close dialog and navigate to board with new experiment selected
+      setQuickCreateOpen(false);
+      setQuickDescription("");
+      router.refresh();
+      setSelectedExperimentUuid(newExperiment.uuid);
+    } finally {
+      setQuickCreating(false);
     }
   }
 
@@ -546,13 +589,13 @@ export function ExperimentsBoard({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <a
-            href={`/research-projects/${projectUuid}/experiments/new`}
+          <button
+            onClick={() => setQuickCreateOpen(true)}
             className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2"><path d="M12 5v14m-7-7h14" /></svg>
             {t("experiments.create")}
-          </a>
+          </button>
         </div>
       </div>
 
@@ -900,6 +943,72 @@ export function ExperimentsBoard({
           ) : null}
         </SheetContent>
       </Sheet>
+
+      {/* Quick-create experiment dialog */}
+      <Dialog open={quickCreateOpen} onOpenChange={(open) => { if (!open) { setQuickCreateOpen(false); setQuickDescription(""); } }}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>{t("experiments.quickCreate.title")}</DialogTitle>
+            <DialogDescription>{t("experiments.quickCreate.description")}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label htmlFor="quick-description">{t("experiments.quickCreate.ideaLabel")}</Label>
+              <Textarea
+                id="quick-description"
+                value={quickDescription}
+                onChange={(e) => setQuickDescription(e.target.value)}
+                placeholder={t("experiments.quickCreate.ideaPlaceholder")}
+                rows={2}
+                className="resize-none"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey && quickDescription.trim() && quickAgentUuid) {
+                    e.preventDefault();
+                    void handleQuickCreate();
+                  }
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("experiments.quickCreate.agentLabel")}</Label>
+              <select
+                value={quickAgentUuid}
+                onChange={(e) => setQuickAgentUuid(e.target.value)}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+              >
+                {realtimeAgents.map((agent) => (
+                  <option key={agent.uuid} value={agent.uuid}>{agent.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-between pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setQuickCreateOpen(false);
+                  router.push(`/research-projects/${projectUuid}/experiments/new`);
+                }}
+              >
+                <PenLine className="mr-1.5 h-3.5 w-3.5" />
+                {t("experiments.quickCreate.manual")}
+              </Button>
+              <Button
+                size="sm"
+                disabled={!quickDescription.trim() || !quickAgentUuid || quickCreating}
+                onClick={() => void handleQuickCreate()}
+              >
+                {quickCreating ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                )}
+                {quickCreating ? t("experiments.quickCreate.sending") : t("experiments.quickCreate.submit")}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
