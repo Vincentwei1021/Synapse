@@ -3,15 +3,17 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { CheckCircle2, CornerUpLeft, FileText, GitBranch, Save, Send } from "lucide-react";
+import { CheckCircle2, ChevronRight, CornerUpLeft, FileText, GitBranch, Loader2, PenLine, Save, Send, Sparkles, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
+import { MarkdownContent } from "@/components/markdown-content";
 import type { ExperimentResponse } from "@/services/experiment.service";
 
 const columns = [
@@ -54,6 +56,33 @@ function liveStatusBadge(t: ReturnType<typeof useTranslations>, status: string |
       {t(`experiments.liveStatus.${status}` as Parameters<typeof t>[0])}
     </span>
   );
+}
+
+const PRIORITY_ORDER: Record<string, number> = { immediate: 0, high: 1, medium: 2, low: 3 };
+
+function sortColumnExperiments(columnId: string, items: ExperimentResponse[]): ExperimentResponse[] {
+  return [...items].sort((a, b) => {
+    if (columnId === "pending_start" || columnId === "draft" || columnId === "pending_review") {
+      // Sort by priority (high first), then by creation time (oldest first)
+      const pa = PRIORITY_ORDER[a.priority] ?? 2;
+      const pb = PRIORITY_ORDER[b.priority] ?? 2;
+      if (pa !== pb) return pa - pb;
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    }
+    if (columnId === "in_progress") {
+      // Sort by start time (newest first)
+      const ta = a.startedAt ? new Date(a.startedAt).getTime() : new Date(a.createdAt).getTime();
+      const tb = b.startedAt ? new Date(b.startedAt).getTime() : new Date(b.createdAt).getTime();
+      return tb - ta;
+    }
+    if (columnId === "completed") {
+      // Sort by completion time (newest first)
+      const ta = a.completedAt ? new Date(a.completedAt).getTime() : new Date(a.createdAt).getTime();
+      const tb = b.completedAt ? new Date(b.completedAt).getTime() : new Date(b.createdAt).getTime();
+      return tb - ta;
+    }
+    return 0;
+  });
 }
 
 function prettyJson(value: unknown) {
@@ -109,6 +138,11 @@ export function ExperimentsBoard({
   const [draftStatus, setDraftStatus] = useState<"draft" | "pending_review" | "pending_start">("draft");
   const [draftComputeBudgetHours, setDraftComputeBudgetHours] = useState("");
   const [draftSaveError, setDraftSaveError] = useState<string | null>(null);
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
+  const [quickDescription, setQuickDescription] = useState("");
+  const [quickAgentUuid, setQuickAgentUuid] = useState(realtimeAgents[0]?.uuid ?? "");
+  const [quickCreating, setQuickCreating] = useState(false);
+  const [planPanelOpen, setPlanPanelOpen] = useState(false);
   useRealtimeRefresh();
 
   async function updateAutonomousLoop(enabled: boolean, agentUuid: string, mode: string) {
@@ -125,6 +159,44 @@ export function ExperimentsBoard({
       setLoopEnabled(enabled && agentUuid !== "");
       setLoopAgentUuid(agentUuid);
       setLoopMode(mode);
+    }
+  }
+
+  async function handleQuickCreate() {
+    if (!quickDescription.trim()) return;
+    setQuickCreating(true);
+    try {
+      // 1. Create a draft experiment with just the description as title
+      const payload = new FormData();
+      payload.set("title", quickDescription.trim());
+      payload.set("description", "");
+      payload.set("status", "draft");
+      payload.set("priority", "medium");
+      const createRes = await fetch(`/api/research-projects/${projectUuid}/experiments`, {
+        method: "POST",
+        body: payload,
+      });
+      if (!createRes.ok) return;
+      const createData = await createRes.json();
+      const newExperiment = createData.data?.experiment;
+      if (!newExperiment?.uuid) return;
+
+      // 2. Send plan request to agent
+      if (quickAgentUuid) {
+        await fetch(`/api/experiments/${newExperiment.uuid}/request-plan`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agentUuid: quickAgentUuid }),
+        });
+      }
+
+      // 3. Close dialog and navigate to board with new experiment selected
+      setQuickCreateOpen(false);
+      setQuickDescription("");
+      router.refresh();
+      setSelectedExperimentUuid(newExperiment.uuid);
+    } finally {
+      setQuickCreating(false);
     }
   }
 
@@ -160,9 +232,34 @@ export function ExperimentsBoard({
       .catch(() => setProgressLogs([]));
   }, [selectedExperimentUuid]);
 
+  // Derive autonomous loop phase from experiment board state
+  const autonomousPhase = useMemo(() => {
+    if (!loopEnabled) return null;
+    const inProgress = experiments.filter((e) => e.status === "in_progress");
+    const pendingStart = experiments.filter((e) => e.status === "pending_start");
+    const pendingReview = experiments.filter((e) => e.status === "pending_review");
+    const drafts = experiments.filter((e) => e.status === "draft");
+
+    if (inProgress.length > 0) {
+      // Check liveStatus of in-progress experiments for more detail
+      const running = inProgress.find((e) => e.liveStatus === "running");
+      if (running) return "running" as const;
+      const checking = inProgress.find((e) => e.liveStatus === "checking_resources" || e.liveStatus === "queuing");
+      if (checking) return "preparing" as const;
+      return "running" as const;
+    }
+    if (pendingStart.length > 0) return "starting" as const;
+    if (pendingReview.length > 0 || drafts.length > 0) return "reviewing" as const;
+    // All queues empty — agent should be analysing / proposing
+    return "analysing" as const;
+  }, [loopEnabled, experiments]);
+
   const grouped = useMemo(() => {
     return Object.fromEntries(
-      columns.map((column) => [column.id, experiments.filter((experiment) => experiment.status === column.id)]),
+      columns.map((column) => [
+        column.id,
+        sortColumnExperiments(column.id, experiments.filter((experiment) => experiment.status === column.id)),
+      ]),
     ) as Record<(typeof columns)[number]["id"], ExperimentResponse[]>;
   }, [experiments]);
 
@@ -180,6 +277,7 @@ export function ExperimentsBoard({
       setDraftStatus("draft");
       setDraftComputeBudgetHours("");
       setDraftSaveError(null);
+      setPlanPanelOpen(false);
       return;
     }
 
@@ -375,26 +473,32 @@ export function ExperimentsBoard({
 
   return (
     <>
-      {/* Header with inline loop control */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
+      {/* Header — title row + subtitle */}
+      <div className="mb-6">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-semibold text-foreground">{t("experiments.title")}</h1>
-          {/* Autonomous Loop inline icon */}
+
+          {/* Autonomous Loop inline control */}
           <div className="relative" ref={loopDropdownRef}>
             {loopEnabled ? (
-              /* ACTIVE: small green pulsing icon, expands on hover */
-              <div className="group flex items-center">
+              /* ACTIVE: showing mode + agent + phase + stop */
+              <div className="flex items-center">
                 <button
                   onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
-                  className="flex items-center gap-0 group-hover:gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 p-1.5 group-hover:px-3 group-hover:py-1.5 group-hover:rounded-lg transition-all duration-200 overflow-hidden"
+                  className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 cursor-pointer transition-all duration-200"
                 >
                   <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse shrink-0" />
-                  <span className="max-w-0 group-hover:max-w-[200px] overflow-hidden whitespace-nowrap text-xs font-medium text-emerald-600 dark:text-emerald-400 transition-all duration-200">
+                  <span className="whitespace-nowrap text-xs font-medium text-emerald-600 dark:text-emerald-400">
                     {loopMode === "full_auto" ? t("experiments.fullAutoMode") : t("experiments.humanReviewMode")}
                   </span>
-                  <span className="max-w-0 group-hover:max-w-[100px] overflow-hidden whitespace-nowrap text-xs text-muted-foreground transition-all duration-200">
+                  <span className="whitespace-nowrap text-xs text-muted-foreground">
                     {t("experiments.via")} {realtimeAgents.find((a) => a.uuid === loopAgentUuid)?.name ?? "Agent"}
                   </span>
+                  {autonomousPhase && (
+                    <span className="whitespace-nowrap text-[11px] text-emerald-500/70 dark:text-emerald-400/70">
+                      · {t(`experiments.autoPhase.${autonomousPhase}`)}
+                    </span>
+                  )}
                   <button
                     onClick={async (e) => {
                       e.stopPropagation();
@@ -402,28 +506,21 @@ export function ExperimentsBoard({
                       setLoopDropdownOpen(false);
                       setLoopSelectedMode(null);
                     }}
-                    className="max-w-0 group-hover:max-w-[50px] overflow-hidden whitespace-nowrap ml-0 group-hover:ml-1 rounded-md border border-red-500/30 px-0 group-hover:px-2 py-0.5 text-[11px] text-red-400 hover:bg-red-500/10 transition-all duration-200"
+                    className="ml-1 rounded-md border border-red-500/30 px-2 py-0.5 text-[11px] text-red-400 hover:bg-red-500/10 cursor-pointer transition-colors"
                   >
                     {t("experiments.stop")}
                   </button>
                 </button>
               </div>
             ) : (
-              /* OFF: small icon, expands on hover, opens dropdown on click */
-              <div className="group flex items-center">
-                <button
-                  onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
-                  className="flex items-center gap-0 group-hover:gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 p-1.5 group-hover:px-3 group-hover:py-1.5 group-hover:rounded-lg transition-all duration-200 overflow-hidden"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-indigo-400 shrink-0">
-                    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                    <path d="M21 3v5h-5" />
-                  </svg>
-                  <span className="max-w-0 group-hover:max-w-[180px] overflow-hidden whitespace-nowrap text-xs text-indigo-300 dark:text-indigo-400 transition-all duration-200">
-                    {t("experiments.startAutonomousLoop")}
-                  </span>
-                </button>
-              </div>
+              /* OFF: zap icon + text */
+              <button
+                onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-blue-500/65 bg-blue-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm shadow-blue-900/15 transition-all duration-200 hover:border-blue-600 hover:bg-blue-600"
+              >
+                <Zap className="h-3.5 w-3.5 shrink-0 fill-amber-300 text-amber-300" />
+                <span className="whitespace-nowrap">{t("experiments.startAutoResearch")}</span>
+              </button>
             )}
 
             {/* Dropdown menu */}
@@ -433,14 +530,14 @@ export function ExperimentsBoard({
                   <div className="p-1.5">
                     <button
                       onClick={() => setLoopSelectedMode("human_review")}
-                      className="w-full rounded-md p-2.5 text-left hover:bg-accent/50 transition-colors"
+                      className="w-full rounded-md p-2.5 text-left hover:bg-accent/50 cursor-pointer transition-colors"
                     >
                       <div className="text-sm font-medium text-foreground">{t("experiments.humanReviewMode")}</div>
                       <div className="text-[11px] text-muted-foreground mt-0.5">{t("experiments.humanReviewModeDesc")}</div>
                     </button>
                     <button
                       onClick={() => setLoopSelectedMode("full_auto")}
-                      className="w-full rounded-md p-2.5 text-left hover:bg-accent/50 transition-colors"
+                      className="w-full rounded-md p-2.5 text-left hover:bg-accent/50 cursor-pointer transition-colors"
                     >
                       <div className="text-sm font-medium text-foreground">{t("experiments.fullAutoMode")}</div>
                       <div className="text-[11px] text-muted-foreground mt-0.5">{t("experiments.fullAutoModeDesc")}</div>
@@ -455,7 +552,7 @@ export function ExperimentsBoard({
                       </span>
                       <button
                         onClick={() => setLoopSelectedMode(null)}
-                        className="ml-auto text-xs text-muted-foreground hover:text-foreground"
+                        className="ml-auto text-xs text-muted-foreground hover:text-foreground cursor-pointer"
                       >
                         &#8592;
                       </button>
@@ -479,7 +576,7 @@ export function ExperimentsBoard({
                         setLoopDropdownOpen(false);
                         setLoopSelectedMode(null);
                       }}
-                      className="w-full rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-40 transition-colors"
+                      className="w-full rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-40 cursor-pointer transition-colors"
                     >
                       {t("experiments.activate")}
                     </button>
@@ -488,17 +585,18 @@ export function ExperimentsBoard({
               </div>
             )}
           </div>
+
+          <div className="ml-auto">
+            <button
+              onClick={() => setQuickCreateOpen(true)}
+              className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 cursor-pointer"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2"><path d="M12 5v14m-7-7h14" /></svg>
+              {t("experiments.create")}
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <p className="text-sm text-muted-foreground hidden lg:block">{t("experiments.subtitle")}</p>
-          <a
-            href={`/research-projects/${projectUuid}/experiments/new`}
-            className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2"><path d="M12 5v14m-7-7h14" /></svg>
-            {t("experiments.create")}
-          </a>
-        </div>
+        <p className="text-sm text-muted-foreground mt-1 hidden lg:block">{t("experiments.subtitle")}</p>
       </div>
 
       <div className="pb-4">
@@ -578,7 +676,24 @@ export function ExperimentsBoard({
       </div>
 
       <Sheet open={Boolean(selectedExperiment)} onOpenChange={(open) => { if (!open) { setSelectedExperimentUuid(null); setDismissed(true); } }}>
-        <SheetContent side="right" className="w-full sm:max-w-[560px]">
+        <SheetContent side="right" className="w-full sm:max-w-[640px] lg:w-1/3 lg:max-w-none">
+          {planPanelOpen && selectedExperiment?.description ? (
+            <div className="absolute inset-y-0 right-full hidden w-[480px] overflow-y-auto border-r border-border bg-background shadow-xl sm:block">
+              <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                <h3 className="text-sm font-semibold text-foreground">{t("experiments.fields.description")}</h3>
+                <button
+                  onClick={() => setPlanPanelOpen(false)}
+                  className="cursor-pointer text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  &times;
+                </button>
+              </div>
+              <div className="min-h-full select-text bg-background px-5 py-4 prose prose-sm max-w-none text-sm leading-relaxed dark:prose-invert prose-hr:border-border">
+                <MarkdownContent>{selectedExperiment.description}</MarkdownContent>
+              </div>
+            </div>
+          ) : null}
+
           {selectedExperiment ? (
             <div className="h-full overflow-y-auto">
               <SheetHeader className="border-b border-border px-6 py-5">
@@ -588,11 +703,23 @@ export function ExperimentsBoard({
                   </div>
                   <div className="min-w-0 flex-1">
                     <SheetTitle className="line-clamp-2">{selectedExperiment.title}</SheetTitle>
-                    <SheetDescription className="mt-2 leading-6">
-                      {selectedExperiment.status === "draft"
-                        ? t("experiments.detail.draftEditable")
-                        : (selectedExperiment.description || t("experiments.detail.noDescription"))}
-                    </SheetDescription>
+                    {selectedExperiment.status === "draft" ? (
+                      <SheetDescription className="mt-2 leading-6">
+                        {t("experiments.detail.draftEditable")}
+                      </SheetDescription>
+                    ) : selectedExperiment.description ? (
+                      <button
+                        onClick={() => setPlanPanelOpen(!planPanelOpen)}
+                        className="mt-2 flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 cursor-pointer transition-colors"
+                      >
+                        <ChevronRight className={`h-3.5 w-3.5 transition-transform ${planPanelOpen ? "rotate-90" : ""}`} />
+                        {t("experiments.fields.description")}
+                      </button>
+                    ) : (
+                      <SheetDescription className="mt-2 leading-6">
+                        {t("experiments.detail.noDescription")}
+                      </SheetDescription>
+                    )}
                   </div>
                 </div>
               </SheetHeader>
@@ -845,6 +972,72 @@ export function ExperimentsBoard({
           ) : null}
         </SheetContent>
       </Sheet>
+
+      {/* Quick-create experiment dialog */}
+      <Dialog open={quickCreateOpen} onOpenChange={(open) => { if (!open) { setQuickCreateOpen(false); setQuickDescription(""); } }}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>{t("experiments.quickCreate.title")}</DialogTitle>
+            <DialogDescription>{t("experiments.quickCreate.description")}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label htmlFor="quick-description">{t("experiments.quickCreate.ideaLabel")}</Label>
+              <Textarea
+                id="quick-description"
+                value={quickDescription}
+                onChange={(e) => setQuickDescription(e.target.value)}
+                placeholder={t("experiments.quickCreate.ideaPlaceholder")}
+                rows={2}
+                className="resize-none"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey && quickDescription.trim() && quickAgentUuid) {
+                    e.preventDefault();
+                    void handleQuickCreate();
+                  }
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("experiments.quickCreate.agentLabel")}</Label>
+              <select
+                value={quickAgentUuid}
+                onChange={(e) => setQuickAgentUuid(e.target.value)}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+              >
+                {realtimeAgents.map((agent) => (
+                  <option key={agent.uuid} value={agent.uuid}>{agent.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-between pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setQuickCreateOpen(false);
+                  router.push(`/research-projects/${projectUuid}/experiments/new`);
+                }}
+              >
+                <PenLine className="mr-1.5 h-3.5 w-3.5" />
+                {t("experiments.quickCreate.manual")}
+              </Button>
+              <Button
+                size="sm"
+                disabled={!quickDescription.trim() || !quickAgentUuid || quickCreating}
+                onClick={() => void handleQuickCreate()}
+              >
+                {quickCreating ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                )}
+                {quickCreating ? t("experiments.quickCreate.sending") : t("experiments.quickCreate.submit")}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

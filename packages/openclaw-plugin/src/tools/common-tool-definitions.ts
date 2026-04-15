@@ -271,6 +271,30 @@ export const commonToolDefinitions = defineOpenClawTools([
     targetToolName: "synapse_propose_experiment",
   }),
 
+  createPassthroughTool<{
+    experimentUuid: string;
+    title?: string;
+    description?: string;
+    researchQuestionUuid?: string;
+    priority?: string;
+  }>({
+    name: "synapse_update_experiment_plan",
+    description: "Update an experiment's plan/details. Use when asked to flesh out an experiment plan from a brief description.",
+    parameters: {
+      type: "object",
+      properties: {
+        experimentUuid: { type: "string", description: "Experiment UUID to update" },
+        title: { type: "string", description: "Updated experiment title" },
+        description: { type: "string", description: "Detailed experiment plan/methodology" },
+        researchQuestionUuid: { type: "string", description: "Link to a research question UUID" },
+        priority: { type: "string", description: "Priority: low | medium | high | immediate" },
+      },
+      required: ["experimentUuid"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_update_experiment_plan",
+  }),
+
   // =========================================================================
   // Compute
   // =========================================================================

@@ -90,6 +90,9 @@ export default async function DocumentDetailPage({ params }: PageProps) {
         <DocumentActions
           documentUuid={documentUuid}
           projectUuid={projectUuid}
+          documentTitle={document.title}
+          documentContent={document.content || ""}
+          documentType={document.type}
         />
       </div>
 
@@ -100,6 +103,7 @@ export default async function DocumentDetailPage({ params }: PageProps) {
           documentUuid={documentUuid}
           projectUuid={projectUuid}
           initialContent={document.content || ""}
+          documentType={document.type}
         />
 
         {/* Sidebar */}

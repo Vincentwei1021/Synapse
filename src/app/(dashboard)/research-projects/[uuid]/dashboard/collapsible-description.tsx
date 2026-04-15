@@ -4,6 +4,21 @@ import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { MarkdownContent } from "@/components/markdown-content";
 
+/**
+ * Ensure consecutive newlines in the source text produce visible spacing
+ * in the rendered Markdown. ReactMarkdown collapses bare blank lines;
+ * inserting a `&nbsp;` paragraph forces a visible gap.
+ */
+function preserveBlankLines(text: string): string {
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/(?:\n[ \t]*){2,}/g, (match) => {
+      const lineBreakCount = (match.match(/\n/g) ?? []).length;
+      const blankLineCount = Math.max(1, lineBreakCount - 1);
+      return `\n\n${"&nbsp;\n\n".repeat(blankLineCount)}`;
+    });
+}
+
 export function CollapsibleDescription({
   text,
   maxLines = 3,
@@ -23,11 +38,13 @@ export function CollapsibleDescription({
     }
   }, [text, maxLines]);
 
+  const processed = preserveBlankLines(text);
+
   return (
     <div className="mt-2">
       <div
         ref={ref}
-        className="text-sm leading-6 text-muted-foreground prose prose-sm dark:prose-invert max-w-none prose-headings:text-muted-foreground prose-headings:text-sm prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1 prose-p:my-1 prose-ul:my-1 prose-li:my-0"
+        className="text-sm leading-6 text-muted-foreground prose prose-sm dark:prose-invert max-w-none prose-headings:text-muted-foreground prose-headings:text-sm prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-1.5 prose-p:my-2 prose-ul:my-2 prose-li:my-0.5"
         style={
           !expanded && needsCollapse
             ? {
@@ -39,7 +56,7 @@ export function CollapsibleDescription({
             : undefined
         }
       >
-        <MarkdownContent>{text}</MarkdownContent>
+        <MarkdownContent>{processed}</MarkdownContent>
       </div>
       {needsCollapse && (
         <button

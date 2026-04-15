@@ -934,8 +934,8 @@ export async function checkAutonomousLoopTrigger(
       action: "autonomous_loop_triggered",
       message:
         mode === "full_auto"
-          ? "No experiments running. Update the project synthesis with latest results, then propose next experiment for immediate execution."
-          : "Experiment queue is empty. Analyze the project and propose next experiments.",
+          ? "No experiments running. Call synapse_get_project_full_context to review results and available compute, then propose experiments (one per available GPU). Update the project synthesis before proposing."
+          : "Experiment queue is empty. Call synapse_get_project_full_context to review results and available compute, then propose experiments (one per available GPU).",
       actorType: "user",
       actorUuid: "system",
       actorName: "Synapse",
@@ -960,7 +960,9 @@ async function appendExperimentResultsLog(
     where: { researchProjectUuid: experiment.researchProjectUuid, companyUuid, type: DOCUMENT_TYPE },
   });
 
-  const resultStr = experiment.results ? String(experiment.results) : "";
+  const resultStr = experiment.results
+    ? (typeof experiment.results === "string" ? experiment.results : JSON.stringify(experiment.results))
+    : "";
   // Extract first meaningful line of results (skip empty lines)
   const resultSummary = resultStr.split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 1).join("").slice(0, 200);
   const descShort = (experiment.description ?? "").replace(/[\t\n\r]/g, " ").slice(0, 100);
@@ -1023,6 +1025,22 @@ export async function completeExperiment(input: {
 
   assertAssignedActorAccess(existing, input.actorType, input.actorUuid, "complete", input.ownerUuid);
   assertTransition(existing.status as ExperimentStatus, "completed");
+
+  // Append to results log BEFORE marking the experiment as completed in DB,
+  // so the log is written even if the subsequent update fails.
+  try {
+    await appendExperimentResultsLog({
+      uuid: existing.uuid,
+      title: existing.title,
+      outcome: input.outcome ?? null,
+      results: input.results ?? null,
+      researchProjectUuid: existing.researchProjectUuid,
+      description: existing.description,
+      experimentBranch: input.experimentBranch ?? existing.experimentBranch,
+    }, input.companyUuid);
+  } catch (err) {
+    console.error("Failed to append experiment results log:", err);
+  }
 
   const updated = await prisma.experiment.update({
     where: { uuid: input.experimentUuid },
@@ -1089,13 +1107,6 @@ export async function completeExperiment(input: {
     action: "updated",
     actorUuid: input.actorUuid,
   });
-
-  // Append to results log document (auto-maintained experiment history)
-  try {
-    await appendExperimentResultsLog(updated, input.companyUuid);
-  } catch (err) {
-    console.error("Failed to append experiment results log:", err);
-  }
 
   // In Mode 2, refresh project synthesis after every experiment completion
   try {

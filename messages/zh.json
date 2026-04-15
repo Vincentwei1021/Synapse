@@ -12,6 +12,7 @@
     "copy": "复制",
     "copied": "已复制!",
     "back": "返回",
+    "download": "下载",
     "viewAll": "查看全部",
     "expand": "展开",
     "collapse": "收起",
@@ -970,7 +971,13 @@
       "researchQuestion_claimed": "研究问题已认领",
       "hypothesisFormulation_requested": "假说构建已请求",
       "hypothesisFormulation_answered": "假说构建已回答",
-      "mentioned": "你被提及了"
+      "mentioned": "你被提及了",
+      "experiment_plan_requested": "请求起草实验计划",
+      "experiment_report_requested": "请求撰写报告",
+      "experiment_auto_proposed": "自动提议实验",
+      "task_assigned": "已分配",
+      "autonomous_loop_triggered": "自主循环已触发",
+      "synthesis_updated": "综合文档已更新"
     },
     "preferences": {
     "title": "通知偏好",
@@ -1287,8 +1294,8 @@
     "fields": {
       "title": "实验标题",
       "titlePlaceholder": "例如：在指令数据集上扫描不同学习率",
-      "description": "实验描述",
-      "descriptionPlaceholder": "说明实验设置、预期信号和实现注意事项。",
+      "description": "实验计划",
+      "descriptionPlaceholder": "描述实验方案、预期信号和执行步骤。",
       "question": "关联研究问题",
       "noQuestion": "不关联研究问题",
       "status": "创建到列",
@@ -1297,7 +1304,7 @@
       "computeBudgetHours": "时间限制",
       "computeBudgetHoursPlaceholder": "默认无限制",
       "computeBudgetHoursHelp": "实验的最大运行时间（小时）",
-      "copyFromExperiment": "从已有实验复制描述",
+      "copyFromExperiment": "从已有实验复制计划",
       "writeYourOwn": "自行填写",
       "baseBranch": "基础分支",
       "baseBranchPlaceholder": "选择分支...",
@@ -1306,7 +1313,7 @@
       "attachmentsHelp": "上传说明文档或实验规范，方便后续追溯。"
     },
     "detail": {
-      "noDescription": "暂未填写实验描述。",
+      "noDescription": "暂未填写实验计划。",
       "draftEditable": "这个草稿实验可以直接在右侧栏编辑，并保存回看板。",
       "computeBudget": "时间限制",
       "notSet": "未设置",
@@ -1339,12 +1346,30 @@
     "activate": "激活",
     "stop": "停止",
     "via": "通过",
+    "startAutoResearch": "开启自动实验",
+    "autoPhase": {
+      "running": "正在执行实验",
+      "preparing": "准备资源中",
+      "starting": "等待启动",
+      "reviewing": "等待审核",
+      "analysing": "分析与提案中"
+    },
     "liveStatus": {
       "sent": "已发送",
       "ack": "已接收",
       "checking_resources": "检查资源中",
       "queuing": "排队中",
       "running": "运行中"
+    },
+    "quickCreate": {
+      "title": "新建实验",
+      "description": "用一句话描述你的想法，Agent 将自动起草详细的实验计划。",
+      "ideaLabel": "你想尝试什么？",
+      "ideaPlaceholder": "例如：在指令数据集上扫描学习率 1e-3 至 1e-5",
+      "agentLabel": "起草计划的 Agent",
+      "submit": "Agent 起草",
+      "sending": "发送中...",
+      "manual": "手动创建"
     }
   },
   "insights": {

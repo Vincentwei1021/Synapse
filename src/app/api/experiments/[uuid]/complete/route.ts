@@ -39,6 +39,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return errors.invalidStatusTransition(existing.status, "completed");
   }
 
+  // Release GPU reservations FIRST so they are available before autonomous loop triggers
+  await releaseGpuReservationsForExperiment(auth.companyUuid, uuid);
+
   const experiment = await completeExperiment({
     companyUuid: auth.companyUuid,
     experimentUuid: uuid,
@@ -49,8 +52,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
     results: parsed.data.results,
     computeUsedHours: parsed.data.computeUsedHours ?? null,
   });
-
-  await releaseGpuReservationsForExperiment(auth.companyUuid, uuid);
 
   return success({ experiment });
 }

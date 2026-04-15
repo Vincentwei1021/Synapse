@@ -410,6 +410,9 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
           return { content: [{ type: "text", text: "Only the assigned agent can submit results" }], isError: true };
         }
 
+        // Release GPU reservations FIRST so they are available before autonomous loop triggers
+        await computeService.releaseGpuReservationsForExperiment(auth.companyUuid, experimentUuid);
+
         const updated = await experimentService.completeExperiment({
           companyUuid: auth.companyUuid,
           experimentUuid,
@@ -421,8 +424,6 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
           experimentBranch,
           commitSha,
         });
-
-        await computeService.releaseGpuReservationsForExperiment(auth.companyUuid, experimentUuid);
 
         await experimentService.updateExperimentLiveStatus(experimentUuid, null, null);
 
@@ -646,11 +647,39 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
         select: { uuid: true, title: true, content: true, updatedAt: true },
       });
 
+      // Fetch compute availability for the project's bound pool
+      let computeAvailability: { totalGpus: number; availableGpus: number; occupiedGpus: number; gpuModels: string[] } | null = null;
+      try {
+        const projectForCompute = await prisma.researchProject.findFirst({
+          where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid },
+          select: { computePoolUuid: true },
+        });
+        let pools = await computeService.listComputePools(auth.companyUuid);
+        if (projectForCompute?.computePoolUuid) {
+          pools = pools.filter((p) => p.uuid === projectForCompute.computePoolUuid);
+        }
+        const allGpus = pools.flatMap((p) => p.nodes.flatMap((n) => n.gpus));
+        const available = allGpus.filter((g) => g.computedStatus === "available" && !g.activeReservation);
+        const models = [...new Set(allGpus.map((g) => g.model).filter(Boolean))];
+        computeAvailability = {
+          totalGpus: allGpus.length,
+          availableGpus: available.length,
+          occupiedGpus: allGpus.length - available.length,
+          gpuModels: models as string[],
+        };
+      } catch { /* ignore compute errors */ }
+
+      // Count in-progress experiments that occupy compute
+      const inProgressCount = trimmedExperiments.filter((e) => e.status === "in_progress").length;
+      const pendingStartCount = trimmedExperiments.filter((e) => e.status === "pending_start").length;
+
       return {
         content: [{ type: "text", text: JSON.stringify({
           project: { ...project, experiments: trimmedExperiments },
           resultsLog: resultsLog ? { uuid: resultsLog.uuid, content: resultsLog.content, updatedAt: resultsLog.updatedAt } : null,
-          _hint: "Use synapse_get_experiment for full details of a specific experiment.",
+          computeAvailability,
+          experimentQueue: { inProgress: inProgressCount, pendingStart: pendingStartCount },
+          _hint: "Use synapse_get_experiment for full details of a specific experiment. When proposing experiments, consider available compute resources — propose at most as many experiments as there are available GPUs, minus already queued/running experiments.",
         }, null, 2) }],
       };
     }
@@ -754,6 +783,47 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
 
       return {
         content: [{ type: "text", text: JSON.stringify({ experiment, note }, null, 2) }],
+      };
+    }
+  );
+
+  server.registerTool(
+    "synapse_update_experiment_plan",
+    {
+      description: "Update an experiment's plan/details. Use this when asked to flesh out an experiment plan from a brief description. You can update title, description, research question link, and priority.",
+      inputSchema: z.object({
+        experimentUuid: z.string(),
+        title: z.string().optional(),
+        description: z.string().optional().describe("Detailed experiment plan/methodology"),
+        researchQuestionUuid: z.string().optional().describe("Link to a research question"),
+        priority: z.enum(["low", "medium", "high", "immediate"]).optional(),
+      }),
+    },
+    async ({ experimentUuid, title, description, researchQuestionUuid, priority }) => {
+      const experiment = await experimentService.getExperiment(auth.companyUuid, experimentUuid);
+      if (!experiment) {
+        return { content: [{ type: "text", text: "Experiment not found" }], isError: true };
+      }
+
+      const updateData: Record<string, unknown> = {};
+      if (title !== undefined) updateData.title = title;
+      if (description !== undefined) updateData.description = description;
+      if (researchQuestionUuid !== undefined) updateData.researchQuestionUuid = researchQuestionUuid || null;
+      if (priority !== undefined) updateData.priority = priority;
+
+      if (Object.keys(updateData).length === 0) {
+        return { content: [{ type: "text", text: "No fields to update" }], isError: true };
+      }
+
+      const updated = await experimentService.updateExperiment(
+        auth.companyUuid,
+        experimentUuid,
+        updateData as Parameters<typeof experimentService.updateExperiment>[2],
+        { actorType: "agent", actorUuid: auth.actorUuid },
+      );
+
+      return {
+        content: [{ type: "text", text: JSON.stringify({ experiment: updated }, null, 2) }],
       };
     }
   );

@@ -71,7 +71,7 @@ export default async function DashboardPage({ params }: PageProps) {
     <div className="space-y-6 p-4 md:p-8">
       <div className="rounded-[32px] border border-border bg-card p-7 shadow-sm">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-          <div className="max-w-3xl">
+          <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               {t("dashboard.brief")}
             </p>
