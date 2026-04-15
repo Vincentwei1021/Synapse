@@ -8,17 +8,17 @@
 
 Synapse is a research orchestration platform that brings human researchers and AI agents together. It manages the full research lifecycle — from literature review and question formulation through experiment execution and report generation — with built-in agent management, compute orchestration, and real-time observability.
 
-> **Milestone:** We reproduced Karpathy's auto-research task and outcome pattern on Synapse. Unlike designing the behavior of a single agent through a `program.md`, Synapse treats autonomous experimentation as a native platform capability. Research projects, experiment lifecycles, compute allocation, and context accumulation are all managed through structured MCP tools, creating **dynamic contexting**. Research memory is persisted in the platform and exposed as tool-based state that agents can call, fetch, and expand on demand according to the current situation, rather than forcing everything to be loaded into an agent's context window up front.
-
-<p align="center">
-  <img src="autoresearch-progress.png" alt="Synapse autoresearch progress" width="100%" />
-</p>
-
 <p align="center">
   <img src="assets/research-lifecycle.svg" alt="Synapse research lifecycle" width="100%" />
 </p>
 
 Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle/) methodology and built upon [Chorus](https://github.com/Chorus-AIDLC/Chorus).
+
+> **Milestone:** We reproduced Karpathy's auto-research task and outcome pattern on Synapse. Unlike designing the behavior of a single agent through a `program.md`, Synapse treats autonomous experimentation as a native platform capability. Research projects, experiment lifecycles, compute allocation, and context accumulation are all managed through structured MCP tools, creating **dynamic contexting**. Research memory is persisted in the platform and exposed as tool-based state that agents can call, fetch, and expand on demand according to the current situation, rather than forcing everything to be loaded into an agent's context window up front.
+
+<p align="center">
+  <img src="autoresearch-progress.png" alt="Synapse autoresearch progress" width="100%" />
+</p>
 
 ---
 

@@ -8,17 +8,17 @@
 
 Synapse 是一个研究编排平台，让人类研究者与 AI Agent 协同工作。它管理完整的研究生命周期，从文献综述、问题制定到实验执行与报告生成，内置 Agent 管理、算力编排和实时可观测性。
 
-> **Milestone：** 我们已经在 Synapse 平台上复现了 Karpathy 的 auto-research 任务与效果。与直接设计单个 agent 的 `program.md` 行为模式不同，Synapse 将自主实验作为平台的原生能力。研究项目、实验生命周期、算力分配和上下文积累均由平台通过结构化的 MCP 工具统一管理，形成 **dynamic contexting**。所有研究记忆都持久化在平台中，作为工具化状态提供给 agent 按当前状态随时调用、获取与展开，而不是依赖 agent 的上下文窗口一次性强制全部读取。
-
-<p align="center">
-  <img src="autoresearch-progress.png" alt="Synapse autoresearch 进展图" width="100%" />
-</p>
-
 <p align="center">
   <img src="assets/research-lifecycle.svg" alt="Synapse 研究生命周期" width="100%" />
 </p>
 
 灵感来源于 [AI-DLC（AI 驱动开发生命周期）](https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle/) 方法论，构建于 [Chorus](https://github.com/Chorus-AIDLC/Chorus) 之上。
+
+> **Milestone：** 我们已经在 Synapse 平台上复现了 Karpathy 的 auto-research 任务与效果。与直接设计单个 agent 的 `program.md` 行为模式不同，Synapse 将自主实验作为平台的原生能力。研究项目、实验生命周期、算力分配和上下文积累均由平台通过结构化的 MCP 工具统一管理，形成 **dynamic contexting**。所有研究记忆都持久化在平台中，作为工具化状态提供给 agent 按当前状态随时调用、获取与展开，而不是依赖 agent 的上下文窗口一次性强制全部读取。
+
+<p align="center">
+  <img src="autoresearch-progress.png" alt="Synapse autoresearch 进展图" width="100%" />
+</p>
 
 ---
 
