@@ -1346,7 +1346,7 @@
     "activate": "激活",
     "stop": "停止",
     "via": "通过",
-    "startAutoResearch": "开启自动研究",
+    "startAutoResearch": "开启自动实验",
     "autoPhase": {
       "running": "正在执行实验",
       "preparing": "准备资源中",

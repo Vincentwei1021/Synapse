@@ -1346,7 +1346,7 @@
     "activate": "Activate",
     "stop": "Stop",
     "via": "via",
-    "startAutoResearch": "Start Auto Research",
+    "startAutoResearch": "Start Auto Experiment",
     "autoPhase": {
       "running": "Running experiment",
       "preparing": "Preparing resources",

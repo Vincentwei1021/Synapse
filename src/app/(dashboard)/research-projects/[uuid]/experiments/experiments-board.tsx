@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { CheckCircle2, CornerUpLeft, FileText, GitBranch, Loader2, PenLine, Save, Send, Sparkles } from "lucide-react";
+import { CheckCircle2, CornerUpLeft, FileText, GitBranch, Loader2, PenLine, Save, Send, Sparkles, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -470,21 +470,19 @@ export function ExperimentsBoard({
 
   return (
     <>
-      {/* Header with inline loop control */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
+      {/* Header — title row + subtitle */}
+      <div className="mb-6">
         <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">{t("experiments.title")}</h1>
-            <p className="text-sm text-muted-foreground mt-0.5 hidden lg:block">{t("experiments.subtitle")}</p>
-          </div>
+          <h1 className="text-2xl font-semibold text-foreground">{t("experiments.title")}</h1>
+
           {/* Autonomous Loop inline control */}
           <div className="relative" ref={loopDropdownRef}>
             {loopEnabled ? (
-              /* ACTIVE: always expanded, showing mode + agent + phase + stop */
+              /* ACTIVE: showing mode + agent + phase + stop */
               <div className="flex items-center">
                 <button
                   onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
-                  className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 transition-all duration-200"
+                  className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 cursor-pointer transition-all duration-200"
                 >
                   <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse shrink-0" />
                   <span className="whitespace-nowrap text-xs font-medium text-emerald-600 dark:text-emerald-400">
@@ -505,22 +503,19 @@ export function ExperimentsBoard({
                       setLoopDropdownOpen(false);
                       setLoopSelectedMode(null);
                     }}
-                    className="ml-1 rounded-md border border-red-500/30 px-2 py-0.5 text-[11px] text-red-400 hover:bg-red-500/10 transition-colors"
+                    className="ml-1 rounded-md border border-red-500/30 px-2 py-0.5 text-[11px] text-red-400 hover:bg-red-500/10 cursor-pointer transition-colors"
                   >
                     {t("experiments.stop")}
                   </button>
                 </button>
               </div>
             ) : (
-              /* OFF: loop icon + text, always visible */
+              /* OFF: zap icon + text */
               <button
                 onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
-                className="flex items-center gap-2 rounded-lg border border-border/50 bg-secondary/50 px-3 py-1.5 text-xs text-muted-foreground hover:border-indigo-500/30 hover:bg-indigo-500/5 hover:text-indigo-400 transition-all duration-200"
+                className="flex items-center gap-2 rounded-lg border border-border/50 bg-secondary/50 px-3 py-1.5 text-xs text-muted-foreground hover:border-indigo-500/30 hover:bg-indigo-500/5 hover:text-indigo-400 cursor-pointer transition-all duration-200"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0">
-                  <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                  <path d="M21 3v5h-5" />
-                </svg>
+                <Zap className="h-3.5 w-3.5 shrink-0" />
                 <span className="whitespace-nowrap">{t("experiments.startAutoResearch")}</span>
               </button>
             )}
@@ -532,14 +527,14 @@ export function ExperimentsBoard({
                   <div className="p-1.5">
                     <button
                       onClick={() => setLoopSelectedMode("human_review")}
-                      className="w-full rounded-md p-2.5 text-left hover:bg-accent/50 transition-colors"
+                      className="w-full rounded-md p-2.5 text-left hover:bg-accent/50 cursor-pointer transition-colors"
                     >
                       <div className="text-sm font-medium text-foreground">{t("experiments.humanReviewMode")}</div>
                       <div className="text-[11px] text-muted-foreground mt-0.5">{t("experiments.humanReviewModeDesc")}</div>
                     </button>
                     <button
                       onClick={() => setLoopSelectedMode("full_auto")}
-                      className="w-full rounded-md p-2.5 text-left hover:bg-accent/50 transition-colors"
+                      className="w-full rounded-md p-2.5 text-left hover:bg-accent/50 cursor-pointer transition-colors"
                     >
                       <div className="text-sm font-medium text-foreground">{t("experiments.fullAutoMode")}</div>
                       <div className="text-[11px] text-muted-foreground mt-0.5">{t("experiments.fullAutoModeDesc")}</div>
@@ -554,7 +549,7 @@ export function ExperimentsBoard({
                       </span>
                       <button
                         onClick={() => setLoopSelectedMode(null)}
-                        className="ml-auto text-xs text-muted-foreground hover:text-foreground"
+                        className="ml-auto text-xs text-muted-foreground hover:text-foreground cursor-pointer"
                       >
                         &#8592;
                       </button>
@@ -578,7 +573,7 @@ export function ExperimentsBoard({
                         setLoopDropdownOpen(false);
                         setLoopSelectedMode(null);
                       }}
-                      className="w-full rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-40 transition-colors"
+                      className="w-full rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-40 cursor-pointer transition-colors"
                     >
                       {t("experiments.activate")}
                     </button>
@@ -587,16 +582,18 @@ export function ExperimentsBoard({
               </div>
             )}
           </div>
+
+          <div className="ml-auto">
+            <button
+              onClick={() => setQuickCreateOpen(true)}
+              className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 cursor-pointer"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2"><path d="M12 5v14m-7-7h14" /></svg>
+              {t("experiments.create")}
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setQuickCreateOpen(true)}
-            className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2"><path d="M12 5v14m-7-7h14" /></svg>
-            {t("experiments.create")}
-          </button>
-        </div>
+        <p className="text-sm text-muted-foreground mt-1 hidden lg:block">{t("experiments.subtitle")}</p>
       </div>
 
       <div className="pb-4">
