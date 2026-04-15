@@ -960,7 +960,9 @@ async function appendExperimentResultsLog(
     where: { researchProjectUuid: experiment.researchProjectUuid, companyUuid, type: DOCUMENT_TYPE },
   });
 
-  const resultStr = experiment.results ? String(experiment.results) : "";
+  const resultStr = experiment.results
+    ? (typeof experiment.results === "string" ? experiment.results : JSON.stringify(experiment.results))
+    : "";
   // Extract first meaningful line of results (skip empty lines)
   const resultSummary = resultStr.split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 1).join("").slice(0, 200);
   const descShort = (experiment.description ?? "").replace(/[\t\n\r]/g, " ").slice(0, 100);

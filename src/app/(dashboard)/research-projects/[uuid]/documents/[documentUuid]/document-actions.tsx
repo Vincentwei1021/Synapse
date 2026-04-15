@@ -11,25 +11,29 @@ interface DocumentActionsProps {
   projectUuid: string;
   documentTitle: string;
   documentContent: string;
+  documentType?: string;
 }
 
-export function DocumentActions({ documentTitle, documentContent }: DocumentActionsProps) {
+export function DocumentActions({ documentTitle, documentContent, documentType }: DocumentActionsProps) {
   const t = useTranslations();
   const router = useRouter();
 
   const handleDownload = useCallback(() => {
-    const blob = new Blob([documentContent], { type: "text/markdown;charset=utf-8" });
+    const isTsv = documentType === "experiment_results_log";
+    const mimeType = isTsv ? "text/tab-separated-values;charset=utf-8" : "text/markdown;charset=utf-8";
+    const ext = isTsv ? ".tsv" : ".md";
+    const blob = new Blob([documentContent], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     // Sanitize filename
     const safeName = documentTitle.replace(/[/\\?%*:|"<>]/g, "-").slice(0, 80);
-    a.download = `${safeName}.md`;
+    a.download = `${safeName}${ext}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [documentTitle, documentContent]);
+  }, [documentTitle, documentContent, documentType]);
 
   return (
     <div className="flex gap-2">

@@ -92,6 +92,7 @@ export default async function DocumentDetailPage({ params }: PageProps) {
           projectUuid={projectUuid}
           documentTitle={document.title}
           documentContent={document.content || ""}
+          documentType={document.type}
         />
       </div>
 
