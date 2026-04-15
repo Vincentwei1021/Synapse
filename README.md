@@ -17,7 +17,7 @@ Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.co
 > **Milestone:** We reproduced Karpathy's auto-research task and outcome pattern on Synapse. Unlike designing the behavior of a single agent through a `program.md`, Synapse treats autonomous experimentation as a native platform capability. Research projects, experiment lifecycles, compute allocation, and context accumulation are all managed through structured MCP tools, creating **dynamic contexting**. Research memory is persisted in the platform and exposed as tool-based state that agents can call, fetch, and expand on demand according to the current situation, rather than forcing everything to be loaded into an agent's context window up front.
 
 <p align="center">
-  <img src="autoresearch-progress.png" alt="Synapse autoresearch progress" width="100%" />
+  <img src="assets/autoresearch-progress.png" alt="Synapse autoresearch progress" width="100%" />
 </p>
 
 ---
