@@ -170,6 +170,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    autoFocus
                     disabled={loading}
                   />
                 </div>
@@ -184,7 +185,6 @@ export default function LoginPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       disabled={loading}
-                      autoFocus
                       className="pr-10"
                     />
                     <Button
@@ -248,6 +248,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    autoFocus
                     disabled={loading}
                   />
                 </div>
