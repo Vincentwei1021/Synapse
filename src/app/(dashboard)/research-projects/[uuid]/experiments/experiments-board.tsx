@@ -676,7 +676,7 @@ export function ExperimentsBoard({
       </div>
 
       <Sheet open={Boolean(selectedExperiment)} onOpenChange={(open) => { if (!open) { setSelectedExperimentUuid(null); setDismissed(true); } }}>
-        <SheetContent side="right" className="w-full sm:max-w-[640px]">
+        <SheetContent side="right" className="w-full sm:max-w-[640px] lg:w-1/3 lg:max-w-none">
           {planPanelOpen && selectedExperiment?.description ? (
             <div className="absolute inset-y-0 right-full hidden w-[480px] overflow-y-auto border-r border-border bg-background shadow-xl sm:block">
               <div className="flex items-center justify-between border-b border-border px-5 py-4">
