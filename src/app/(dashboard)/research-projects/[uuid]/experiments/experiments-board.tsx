@@ -516,7 +516,7 @@ export function ExperimentsBoard({
               /* OFF: zap icon + text */
               <button
                 onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
-                className="flex cursor-pointer items-center gap-2 rounded-lg border border-blue-600/70 bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm shadow-blue-950/20 transition-all duration-200 hover:border-blue-700 hover:bg-blue-700"
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-blue-500/65 bg-blue-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm shadow-blue-900/15 transition-all duration-200 hover:border-blue-600 hover:bg-blue-600"
               >
                 <Zap className="h-3.5 w-3.5 shrink-0 fill-amber-300 text-amber-300" />
                 <span className="whitespace-nowrap">{t("experiments.startAutoResearch")}</span>
