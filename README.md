@@ -18,6 +18,12 @@ Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.co
 
 ## What's New
 
+**v0.6.1** — Experiment Board UI Polish (2026-04-15) &nbsp; 🔴 `New`
+- Project descriptions on the dashboard now preserve intentional blank lines when expanded, improving readability for structured briefs
+- The experiment plan side panel now renders above the detail sheet overlay, uses the shared panel background, and allows normal text selection
+- The autonomous experiment entry button is more prominent, with refreshed blue styling and a yellow lightning icon for faster scanning
+- The experiment detail sheet is wider on large screens, giving experiment plans, results, and progress logs more room
+
 **v0.6.0** — Agent Types & Research Copilot (2026-04-12) &nbsp; 🔴 `New`
 - Agents now have a `type` field (`OpenClaw` or `Claude Code`) with internal transport mapping — Web UI dispatch features only show realtime-capable agents
 - Claude Code Research Copilot: SessionStart presents projects with progress summaries and guides users through the research lifecycle (paper search → deep research → questions → experiments → analysis)
