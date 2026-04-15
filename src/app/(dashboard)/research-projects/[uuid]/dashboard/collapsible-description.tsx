@@ -4,6 +4,18 @@ import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { MarkdownContent } from "@/components/markdown-content";
 
+/**
+ * Ensure consecutive newlines in the source text produce visible spacing
+ * in the rendered Markdown. ReactMarkdown collapses bare blank lines;
+ * inserting a `&nbsp;` paragraph forces a visible gap.
+ */
+function preserveBlankLines(text: string): string {
+  return text.replace(/\n{3,}/g, (m) => {
+    const gaps = Math.floor(m.length / 2);
+    return "\n" + "&nbsp;\n\n".repeat(gaps);
+  }).replace(/\n\n/g, "\n\n");
+}
+
 export function CollapsibleDescription({
   text,
   maxLines = 3,
@@ -23,6 +35,8 @@ export function CollapsibleDescription({
     }
   }, [text, maxLines]);
 
+  const processed = preserveBlankLines(text);
+
   return (
     <div className="mt-2">
       <div
@@ -39,7 +53,7 @@ export function CollapsibleDescription({
             : undefined
         }
       >
-        <MarkdownContent>{text}</MarkdownContent>
+        <MarkdownContent>{processed}</MarkdownContent>
       </div>
       {needsCollapse && (
         <button

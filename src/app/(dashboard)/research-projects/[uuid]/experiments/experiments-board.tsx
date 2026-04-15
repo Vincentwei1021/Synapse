@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { CheckCircle2, CornerUpLeft, FileText, GitBranch, Loader2, PenLine, Save, Send, Sparkles, Zap } from "lucide-react";
+import { CheckCircle2, ChevronRight, CornerUpLeft, FileText, GitBranch, Loader2, PenLine, Save, Send, Sparkles, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
+import { MarkdownContent } from "@/components/markdown-content";
 import type { ExperimentResponse } from "@/services/experiment.service";
 
 const columns = [
@@ -141,6 +142,7 @@ export function ExperimentsBoard({
   const [quickDescription, setQuickDescription] = useState("");
   const [quickAgentUuid, setQuickAgentUuid] = useState(realtimeAgents[0]?.uuid ?? "");
   const [quickCreating, setQuickCreating] = useState(false);
+  const [planPanelOpen, setPlanPanelOpen] = useState(false);
   useRealtimeRefresh();
 
   async function updateAutonomousLoop(enabled: boolean, agentUuid: string, mode: string) {
@@ -275,6 +277,7 @@ export function ExperimentsBoard({
       setDraftStatus("draft");
       setDraftComputeBudgetHours("");
       setDraftSaveError(null);
+      setPlanPanelOpen(false);
       return;
     }
 
@@ -673,7 +676,7 @@ export function ExperimentsBoard({
       </div>
 
       <Sheet open={Boolean(selectedExperiment)} onOpenChange={(open) => { if (!open) { setSelectedExperimentUuid(null); setDismissed(true); } }}>
-        <SheetContent side="right" className="w-full sm:max-w-[560px]">
+        <SheetContent side="right" className="w-full sm:max-w-[640px]">
           {selectedExperiment ? (
             <div className="h-full overflow-y-auto">
               <SheetHeader className="border-b border-border px-6 py-5">
@@ -683,11 +686,23 @@ export function ExperimentsBoard({
                   </div>
                   <div className="min-w-0 flex-1">
                     <SheetTitle className="line-clamp-2">{selectedExperiment.title}</SheetTitle>
-                    <SheetDescription className="mt-2 leading-6">
-                      {selectedExperiment.status === "draft"
-                        ? t("experiments.detail.draftEditable")
-                        : (selectedExperiment.description || t("experiments.detail.noDescription"))}
-                    </SheetDescription>
+                    {selectedExperiment.status === "draft" ? (
+                      <SheetDescription className="mt-2 leading-6">
+                        {t("experiments.detail.draftEditable")}
+                      </SheetDescription>
+                    ) : selectedExperiment.description ? (
+                      <button
+                        onClick={() => setPlanPanelOpen(!planPanelOpen)}
+                        className="mt-2 flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 cursor-pointer transition-colors"
+                      >
+                        <ChevronRight className={`h-3.5 w-3.5 transition-transform ${planPanelOpen ? "rotate-90" : ""}`} />
+                        {t("experiments.fields.description")}
+                      </button>
+                    ) : (
+                      <SheetDescription className="mt-2 leading-6">
+                        {t("experiments.detail.noDescription")}
+                      </SheetDescription>
+                    )}
                   </div>
                 </div>
               </SheetHeader>
@@ -940,6 +955,24 @@ export function ExperimentsBoard({
           ) : null}
         </SheetContent>
       </Sheet>
+
+      {/* Experiment plan side panel — slides out to the left of the sheet */}
+      {planPanelOpen && selectedExperiment?.description && (
+        <div className="fixed inset-y-0 right-[640px] z-40 w-[480px] border-l border-border bg-background shadow-xl overflow-y-auto hidden sm:block">
+          <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <h3 className="text-sm font-semibold text-foreground">{t("experiments.fields.description")}</h3>
+            <button
+              onClick={() => setPlanPanelOpen(false)}
+              className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              &times;
+            </button>
+          </div>
+          <div className="px-5 py-4 prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
+            <MarkdownContent>{selectedExperiment.description}</MarkdownContent>
+          </div>
+        </div>
+      )}
 
       {/* Quick-create experiment dialog */}
       <Dialog open={quickCreateOpen} onOpenChange={(open) => { if (!open) { setQuickCreateOpen(false); setQuickDescription(""); } }}>
