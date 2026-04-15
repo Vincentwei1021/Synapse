@@ -516,9 +516,9 @@ export function ExperimentsBoard({
               /* OFF: zap icon + text */
               <button
                 onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
-                className="flex items-center gap-2 rounded-lg border border-border/50 bg-secondary/50 px-3 py-1.5 text-xs text-muted-foreground hover:border-indigo-500/30 hover:bg-indigo-500/5 hover:text-indigo-400 cursor-pointer transition-all duration-200"
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-blue-600/70 bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm shadow-blue-950/20 transition-all duration-200 hover:border-blue-700 hover:bg-blue-700"
               >
-                <Zap className="h-3.5 w-3.5 shrink-0" />
+                <Zap className="h-3.5 w-3.5 shrink-0 fill-amber-300 text-amber-300" />
                 <span className="whitespace-nowrap">{t("experiments.startAutoResearch")}</span>
               </button>
             )}
@@ -678,7 +678,7 @@ export function ExperimentsBoard({
       <Sheet open={Boolean(selectedExperiment)} onOpenChange={(open) => { if (!open) { setSelectedExperimentUuid(null); setDismissed(true); } }}>
         <SheetContent side="right" className="w-full sm:max-w-[640px]">
           {planPanelOpen && selectedExperiment?.description ? (
-            <div className="absolute inset-y-0 right-full hidden w-[480px] overflow-y-auto border-r border-border bg-card shadow-xl sm:block">
+            <div className="absolute inset-y-0 right-full hidden w-[480px] overflow-y-auto border-r border-border bg-background shadow-xl sm:block">
               <div className="flex items-center justify-between border-b border-border px-5 py-4">
                 <h3 className="text-sm font-semibold text-foreground">{t("experiments.fields.description")}</h3>
                 <button
@@ -688,7 +688,7 @@ export function ExperimentsBoard({
                   &times;
                 </button>
               </div>
-              <div className="select-text px-5 py-4 prose prose-sm max-w-none text-sm leading-relaxed dark:prose-invert">
+              <div className="min-h-full select-text bg-background px-5 py-4 prose prose-sm max-w-none text-sm leading-relaxed dark:prose-invert prose-hr:border-border">
                 <MarkdownContent>{selectedExperiment.description}</MarkdownContent>
               </div>
             </div>
