@@ -677,6 +677,23 @@ export function ExperimentsBoard({
 
       <Sheet open={Boolean(selectedExperiment)} onOpenChange={(open) => { if (!open) { setSelectedExperimentUuid(null); setDismissed(true); } }}>
         <SheetContent side="right" className="w-full sm:max-w-[640px]">
+          {planPanelOpen && selectedExperiment?.description ? (
+            <div className="absolute inset-y-0 right-full hidden w-[480px] overflow-y-auto border-r border-border bg-card shadow-xl sm:block">
+              <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                <h3 className="text-sm font-semibold text-foreground">{t("experiments.fields.description")}</h3>
+                <button
+                  onClick={() => setPlanPanelOpen(false)}
+                  className="cursor-pointer text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  &times;
+                </button>
+              </div>
+              <div className="select-text px-5 py-4 prose prose-sm max-w-none text-sm leading-relaxed dark:prose-invert">
+                <MarkdownContent>{selectedExperiment.description}</MarkdownContent>
+              </div>
+            </div>
+          ) : null}
+
           {selectedExperiment ? (
             <div className="h-full overflow-y-auto">
               <SheetHeader className="border-b border-border px-6 py-5">
@@ -955,24 +972,6 @@ export function ExperimentsBoard({
           ) : null}
         </SheetContent>
       </Sheet>
-
-      {/* Experiment plan side panel — slides out to the left of the sheet */}
-      {planPanelOpen && selectedExperiment?.description && (
-        <div className="fixed inset-y-0 right-[640px] z-40 w-[480px] border-l border-border bg-background shadow-xl overflow-y-auto hidden sm:block">
-          <div className="flex items-center justify-between border-b border-border px-5 py-4">
-            <h3 className="text-sm font-semibold text-foreground">{t("experiments.fields.description")}</h3>
-            <button
-              onClick={() => setPlanPanelOpen(false)}
-              className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-            >
-              &times;
-            </button>
-          </div>
-          <div className="px-5 py-4 prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
-            <MarkdownContent>{selectedExperiment.description}</MarkdownContent>
-          </div>
-        </div>
-      )}
 
       {/* Quick-create experiment dialog */}
       <Dialog open={quickCreateOpen} onOpenChange={(open) => { if (!open) { setQuickCreateOpen(false); setQuickDescription(""); } }}>

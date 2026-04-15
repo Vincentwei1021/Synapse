@@ -10,10 +10,13 @@ import { MarkdownContent } from "@/components/markdown-content";
  * inserting a `&nbsp;` paragraph forces a visible gap.
  */
 function preserveBlankLines(text: string): string {
-  return text.replace(/\n{3,}/g, (m) => {
-    const gaps = Math.floor(m.length / 2);
-    return "\n" + "&nbsp;\n\n".repeat(gaps);
-  }).replace(/\n\n/g, "\n\n");
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/(?:\n[ \t]*){2,}/g, (match) => {
+      const lineBreakCount = (match.match(/\n/g) ?? []).length;
+      const blankLineCount = Math.max(1, lineBreakCount - 1);
+      return `\n\n${"&nbsp;\n\n".repeat(blankLineCount)}`;
+    });
 }
 
 export function CollapsibleDescription({
