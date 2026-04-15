@@ -27,7 +27,7 @@ export function CollapsibleDescription({
     <div className="mt-2">
       <div
         ref={ref}
-        className="text-sm leading-6 text-muted-foreground prose prose-sm dark:prose-invert max-w-none prose-headings:text-muted-foreground prose-headings:text-sm prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1 prose-p:my-1 prose-ul:my-1 prose-li:my-0"
+        className="text-sm leading-6 text-muted-foreground prose prose-sm dark:prose-invert max-w-none prose-headings:text-muted-foreground prose-headings:text-sm prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-1.5 prose-p:my-2 prose-ul:my-2 prose-li:my-0.5"
         style={
           !expanded && needsCollapse
             ? {
