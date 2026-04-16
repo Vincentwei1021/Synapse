@@ -41,13 +41,12 @@ export const POST = withErrorHandler<{ uuid: string }>(
       });
     }
 
-    // Mark deep research as active
-    const _rowsUpdated = await prisma.$executeRawUnsafe(
-      'UPDATE "Project" SET "deepResearchActiveAgentUuid" = $1 WHERE uuid = $2',
+    // Mark deep research as active (use $queryRawUnsafe — $executeRawUnsafe is broken in Next.js standalone)
+    await prisma.$queryRawUnsafe(
+      'UPDATE "Project" SET "deepResearchActiveAgentUuid" = $1 WHERE uuid = $2 RETURNING uuid',
       parsed.data.agentUuid,
       projectUuid,
     );
-    void _rowsUpdated;
     eventBus.emitChange({
       companyUuid: auth.companyUuid,
       researchProjectUuid: projectUuid,

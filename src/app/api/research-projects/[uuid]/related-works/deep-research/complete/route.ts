@@ -26,9 +26,9 @@ export const POST = withErrorHandler<{ uuid: string }>(
     );
     if (!rows[0]?.deepResearchActiveAgentUuid) return success({ cleared: false });
 
-    // Clear the active field (notification already sent by synapse_save_deep_research_report)
-    await prisma.$executeRawUnsafe(
-      'UPDATE "Project" SET "deepResearchActiveAgentUuid" = NULL WHERE uuid = $1',
+    // Clear the active field (use $queryRawUnsafe — $executeRawUnsafe is broken in Next.js standalone)
+    await prisma.$queryRawUnsafe(
+      'UPDATE "Project" SET "deepResearchActiveAgentUuid" = NULL WHERE uuid = $1 RETURNING uuid',
       projectUuid,
     );
 

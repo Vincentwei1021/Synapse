@@ -28,9 +28,9 @@ export const POST = withErrorHandler<{ uuid: string }>(
     const agentUuid = rows[0]?.autoSearchActiveAgentUuid;
     if (!agentUuid) return success({ cleared: false });
 
-    // Clear the active field
-    await prisma.$executeRawUnsafe(
-      'UPDATE "Project" SET "autoSearchActiveAgentUuid" = NULL WHERE uuid = $1',
+    // Clear the active field (use $queryRawUnsafe — $executeRawUnsafe is broken in Next.js standalone)
+    await prisma.$queryRawUnsafe(
+      'UPDATE "Project" SET "autoSearchActiveAgentUuid" = NULL WHERE uuid = $1 RETURNING uuid',
       projectUuid,
     );
 
