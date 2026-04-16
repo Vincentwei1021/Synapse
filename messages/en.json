@@ -981,7 +981,15 @@
       "experiment_auto_proposed": "Experiment auto-proposed",
       "task_assigned": "Assigned",
       "autonomous_loop_triggered": "Autonomous loop triggered",
-      "synthesis_updated": "Synthesis updated"
+      "synthesis_updated": "Synthesis updated",
+      "auto_search_triggered": "Paper search started",
+      "auto_search_completed": "Paper search completed",
+      "deep_research_requested": "Deep research started",
+      "deep_research_completed": "Deep research completed",
+      "related_work_added": "New paper collected",
+      "experiment_completed": "Experiment completed",
+      "experiment_status_changed": "Experiment status changed",
+      "experiment_progress": "Experiment progress update"
     },
     "preferences": {
     "title": "Notification Preferences",

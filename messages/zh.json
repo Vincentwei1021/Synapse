@@ -981,7 +981,15 @@
       "experiment_auto_proposed": "自动提议实验",
       "task_assigned": "已分配",
       "autonomous_loop_triggered": "自主循环已触发",
-      "synthesis_updated": "综合文档已更新"
+      "synthesis_updated": "综合文档已更新",
+      "auto_search_triggered": "论文搜索已启动",
+      "auto_search_completed": "论文搜索已完成",
+      "deep_research_requested": "深度研究已启动",
+      "deep_research_completed": "深度研究已完成",
+      "related_work_added": "收集到新论文",
+      "experiment_completed": "实验已完成",
+      "experiment_status_changed": "实验状态变更",
+      "experiment_progress": "实验进度更新"
     },
     "preferences": {
     "title": "通知偏好",
