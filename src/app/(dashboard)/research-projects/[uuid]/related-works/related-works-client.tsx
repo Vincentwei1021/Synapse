@@ -19,6 +19,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
+import { GlowBorder } from "@/components/glow-border";
+import { getAgentColor } from "@/lib/agent-colors";
 import type { RelatedWorkResponse } from "@/services/related-work.service";
 
 interface AgentOption {
@@ -282,6 +284,11 @@ export function RelatedWorksClient({
       {/* Control cards */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Auto-search control */}
+        <GlowBorder
+          active={searchingPapers}
+          primaryColor={getAgentColor(autoSearchAgentUuid).primary}
+          lightColor={getAgentColor(autoSearchAgentUuid).light}
+        >
         <Card className="rounded-2xl border-border bg-card p-5">
           <div className="flex items-start gap-3">
             <div className="flex-1">
@@ -337,8 +344,14 @@ export function RelatedWorksClient({
             </Button>
           </div>
         </Card>
+        </GlowBorder>
 
         {/* Deep Research control */}
+        <GlowBorder
+          active={generatingDeepResearch}
+          primaryColor={getAgentColor(deepResearchAgentUuid).primary}
+          lightColor={getAgentColor(deepResearchAgentUuid).light}
+        >
         <Card className="rounded-2xl border-border bg-card p-5">
           <div className="flex items-start gap-3">
             <div className="flex-1">
@@ -403,6 +416,7 @@ export function RelatedWorksClient({
             </Button>
           </div>
         </Card>
+        </GlowBorder>
       </div>
 
       {/* Paper list */}
