@@ -915,19 +915,21 @@ export function ExperimentsBoard({
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.outcome")}</h3>
-                  <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
-                    <p className="text-sm leading-7 text-muted-foreground">
-                      {selectedExperiment.outcome || t("experiments.detail.noOutcome")}
-                    </p>
-                  </Card>
-                </div>
+                {selectedExperiment.outcome ? (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.outcome")}</h3>
+                    <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
+                      <p className="text-sm leading-7 text-muted-foreground">
+                        {selectedExperiment.outcome}
+                      </p>
+                    </Card>
+                  </div>
+                ) : null}
 
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.parentContext")}</h3>
-                  <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
-                    {selectedExperiment.parentQuestionExperiments.length ? (
+                {selectedExperiment.parentQuestionExperiments.length ? (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.parentContext")}</h3>
+                    <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
                       <div className="space-y-3">
                         {selectedExperiment.parentQuestionExperiments.map((experiment) => (
                           <div key={experiment.uuid} className="rounded-2xl bg-secondary/60 px-3 py-3">
@@ -941,16 +943,14 @@ export function ExperimentsBoard({
                           </div>
                         ))}
                       </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{t("experiments.detail.noParentContext")}</p>
-                    )}
-                  </Card>
-                </div>
+                    </Card>
+                  </div>
+                ) : null}
 
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.progressLog")}</h3>
-                  <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
-                    {progressLogs.length ? (
+                {progressLogs.length ? (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.progressLog")}</h3>
+                    <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
                       <div className="space-y-3">
                         {progressLogs.map((log) => (
                           <div key={log.uuid} className="flex gap-3 text-xs">
@@ -964,29 +964,25 @@ export function ExperimentsBoard({
                           </div>
                         ))}
                       </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{t("experiments.detail.noProgress")}</p>
-                    )}
-                  </Card>
-                </div>
+                    </Card>
+                  </div>
+                ) : null}
 
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.results")}</h3>
-                  <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
-                    {selectedExperiment.results ? (
+                {selectedExperiment.results ? (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.results")}</h3>
+                    <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
                       <pre className="overflow-x-auto whitespace-pre-wrap text-xs leading-6 text-muted-foreground">
                         {prettyJson(selectedExperiment.results)}
                       </pre>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{t("experiments.detail.noResults")}</p>
-                    )}
-                  </Card>
-                </div>
+                    </Card>
+                  </div>
+                ) : null}
 
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.attachments")}</h3>
-                  <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
-                    {selectedExperiment.attachments?.length ? (
+                {selectedExperiment.attachments?.length ? (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.attachments")}</h3>
+                    <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
                       <ul className="space-y-2 text-sm text-foreground">
                         {selectedExperiment.attachments.map((attachment) => (
                           <li key={attachment.storedPath} className="flex items-center justify-between gap-3">
@@ -995,11 +991,9 @@ export function ExperimentsBoard({
                           </li>
                         ))}
                       </ul>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{t("experiments.detail.noAttachments")}</p>
-                    )}
-                  </Card>
-                </div>
+                    </Card>
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : null}
