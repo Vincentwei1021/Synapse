@@ -1,5 +1,5 @@
 export const AGENT_COLOR_PALETTE = [
-  { primary: "#3b82f6", light: "#93bbfd" },  // Blue (theme-aligned default)
+  { primary: "#C67A52", light: "#e0a882" },  // Terracotta (theme-aligned default)
   { primary: "#8b5cf6", light: "#c4b5fd" },  // Violet
   { primary: "#ec4899", light: "#f9a8d4" },  // Pink
   { primary: "#f97316", light: "#fdba74" },  // Orange
