@@ -24,9 +24,24 @@ interface RealtimeEvent {
 
 type EntitySubscriber = (event: RealtimeEvent) => void;
 
+export interface PresenceEvent {
+  type: "presence";
+  companyUuid: string;
+  researchProjectUuid: string;
+  entityType: string;
+  entityUuid: string;
+  agentUuid: string;
+  agentName: string;
+  action: "view" | "mutate";
+  timestamp: number;
+}
+
+type PresenceSubscriber = (event: PresenceEvent) => void;
+
 interface RealtimeContextType {
   subscribe: (callback: Subscriber) => () => void;
   subscribeEntity: (callback: EntitySubscriber) => () => void;
+  subscribePresence: (callback: PresenceSubscriber) => () => void;
 }
 
 const RealtimeContext = createContext<RealtimeContextType | null>(null);
@@ -39,6 +54,7 @@ interface RealtimeProviderProps {
 export function RealtimeProvider({ projectUuid, children }: RealtimeProviderProps) {
   const subscribersRef = useRef<Set<Subscriber>>(new Set());
   const entitySubscribersRef = useRef<Set<EntitySubscriber>>(new Set());
+  const presenceSubscribersRef = useRef<Set<PresenceSubscriber>>(new Set());
 
   const notify = useCallback(() => {
     subscribersRef.current.forEach((cb) => cb());
@@ -46,6 +62,10 @@ export function RealtimeProvider({ projectUuid, children }: RealtimeProviderProp
 
   const notifyEntity = useCallback((event: RealtimeEvent) => {
     entitySubscribersRef.current.forEach((cb) => cb(event));
+  }, []);
+
+  const notifyPresence = useCallback((event: PresenceEvent) => {
+    presenceSubscribersRef.current.forEach((cb) => cb(event));
   }, []);
 
   useEffect(() => {
@@ -90,6 +110,14 @@ export function RealtimeProvider({ projectUuid, children }: RealtimeProviderProp
           notifyEntity(parsedEvent);
         }
       };
+      es.addEventListener("presence", (msg) => {
+        try {
+          const event: PresenceEvent = JSON.parse(msg.data);
+          notifyPresence(event);
+        } catch {
+          // ignore
+        }
+      });
       es.onerror = () => {
         // Browser EventSource auto-reconnects on error
       };
@@ -119,7 +147,7 @@ export function RealtimeProvider({ projectUuid, children }: RealtimeProviderProp
       clearTimeout(debounceTimer);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [projectUuid, notify, notifyEntity]);
+  }, [projectUuid, notify, notifyEntity, notifyPresence]);
 
   const subscribe = useCallback((callback: Subscriber) => {
     subscribersRef.current.add(callback);
@@ -135,8 +163,18 @@ export function RealtimeProvider({ projectUuid, children }: RealtimeProviderProp
     };
   }, []);
 
+  const subscribePresence = useCallback((callback: PresenceSubscriber) => {
+    presenceSubscribersRef.current.add(callback);
+    return () => {
+      presenceSubscribersRef.current.delete(callback);
+    };
+  }, []);
+
   // Memoize context value to avoid unnecessary re-renders of consumers
-  const contextValue = useMemo(() => ({ subscribe, subscribeEntity }), [subscribe, subscribeEntity]);
+  const contextValue = useMemo(
+    () => ({ subscribe, subscribeEntity, subscribePresence }),
+    [subscribe, subscribeEntity, subscribePresence]
+  );
 
   return (
     <RealtimeContext.Provider value={contextValue}>
@@ -198,4 +236,20 @@ export function useRealtimeEntityEvent(
     };
     return context.subscribeEntity(handler);
   }, [context, entityType, entityUuid]);
+}
+
+/**
+ * Subscribe to presence events from the SSE stream.
+ * Fires immediately when a presence event arrives (no throttle/debounce).
+ */
+export function usePresenceSubscription(callback: (event: PresenceEvent) => void) {
+  const context = useContext(RealtimeContext);
+  const callbackRef = useRef(callback);
+  callbackRef.current = callback;
+
+  useEffect(() => {
+    if (!context) return;
+    const handler = (event: PresenceEvent) => callbackRef.current(event);
+    return context.subscribePresence(handler);
+  }, [context]);
 }

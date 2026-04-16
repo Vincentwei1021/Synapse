@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { LayoutGroup, motion } from "framer-motion";
 import { CheckCircle2, ChevronRight, CornerUpLeft, FileText, GitBranch, Loader2, PenLine, Save, Send, Sparkles, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,10 +13,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
 import { MarkdownContent } from "@/components/markdown-content";
 import { GlowBorder } from "@/components/glow-border";
 import { getAgentColor } from "@/lib/agent-colors";
+import { ANIM } from "@/lib/animation";
 import type { ExperimentResponse } from "@/services/experiment.service";
 
 const columns = [
@@ -608,6 +611,7 @@ export function ExperimentsBoard({
       </div>
 
       <div className="pb-4">
+        <LayoutGroup>
         <div className="grid gap-3 xl:grid-cols-5">
           {columns.map((column) => (
             <section
@@ -630,8 +634,13 @@ export function ExperimentsBoard({
                   </div>
                 ) : (
                   grouped[column.id].map((experiment) => (
-                    <GlowBorder
+                    <motion.div
                       key={experiment.uuid}
+                      layoutId={`experiment-card-${experiment.uuid}`}
+                      transition={ANIM.spring}
+                    >
+                    <PresenceIndicator entityType="experiment" entityUuid={experiment.uuid}>
+                    <GlowBorder
                       active={!!experiment.liveStatus}
                       primaryColor={getAgentColor(experiment.assignee?.uuid ?? "").primary}
                       lightColor={getAgentColor(experiment.assignee?.uuid ?? "").light}
@@ -646,8 +655,15 @@ export function ExperimentsBoard({
                           { setSelectedExperimentUuid(experiment.uuid); setDismissed(false); };
                         }
                       }}
-                      className="space-y-3 rounded-2xl border-border bg-card p-3.5 text-left shadow-none transition-colors hover:border-primary/30"
+                      className="relative space-y-3 rounded-2xl border-border bg-card p-3.5 text-left shadow-none transition-colors hover:border-primary/30"
                     >
+                      {/* Typing animation GIF — shown when agent is actively working */}
+                      {experiment.liveStatus && (
+                        <div className="absolute -top-3 -right-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border-2 border-green-400 bg-white shadow-sm dark:bg-gray-900">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src="/typing-animation.gif" alt="" className="h-8 w-8" />
+                        </div>
+                      )}
                       <div className="space-y-2">
                         <div className="flex items-start justify-between gap-2">
                           <h3 className="line-clamp-2 text-sm font-semibold text-foreground">{experiment.title}</h3>
@@ -681,12 +697,15 @@ export function ExperimentsBoard({
                       {renderActionBlock(experiment)}
                     </Card>
                     </GlowBorder>
+                    </PresenceIndicator>
+                    </motion.div>
                   ))
                 )}
               </div>
             </section>
           ))}
         </div>
+        </LayoutGroup>
       </div>
 
       <Sheet open={Boolean(selectedExperiment)} onOpenChange={(open) => { if (!open) { setSelectedExperimentUuid(null); setDismissed(true); } }}>
