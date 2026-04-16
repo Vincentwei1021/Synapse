@@ -58,17 +58,39 @@ export function GlowBorder({ active, primaryColor, lightColor, variant = "spin",
     );
   }
 
-  const animationDuration = phase === "accelerate" ? "0.5s" : "3s";
-  const ringOpacity = phase === "fadeout" ? 0 : phase === "flash" ? 1 : 0.85;
+  const animationDuration = phase === "accelerate" ? "0.5s" : "2.5s";
+  const isActive = phase === "running" || phase === "accelerate";
+  const ringOpacity = phase === "fadeout" ? 0 : phase === "flash" ? 1 : 1;
 
   return (
-    <div className={`relative ${className ?? ""}`}>
+    <div
+      className={`relative ${className ?? ""}`}
+      style={{
+        boxShadow: isActive
+          ? `0 0 8px 1px ${primaryColor}40`
+          : phase === "flash"
+            ? `0 0 16px 4px ${lightColor}`
+            : "none",
+        borderRadius: "18px",
+        transition: "box-shadow 0.3s ease",
+      }}
+    >
+      {/* Static base ring — always visible when active */}
+      <div
+        className="absolute -inset-[2px] rounded-[18px] transition-opacity"
+        style={{
+          border: `2px solid ${primaryColor}50`,
+          opacity: phase === "fadeout" ? 0 : isActive ? 1 : 0,
+          transitionDuration: phase === "fadeout" ? "700ms" : "200ms",
+        }}
+      />
+      {/* Spinning highlight ring */}
       <div
         className="absolute -inset-[2px] rounded-[18px] transition-opacity"
         style={{
           background: phase === "flash"
             ? `conic-gradient(from 0deg, ${primaryColor}, ${lightColor}, ${primaryColor})`
-            : `conic-gradient(from var(--glow-angle), transparent 60%, ${primaryColor} 80%, ${lightColor} 90%, transparent 100%)`,
+            : `conic-gradient(from var(--glow-angle), transparent 30%, ${primaryColor} 60%, ${lightColor} 80%, ${primaryColor} 90%, transparent 100%)`,
           opacity: ringOpacity,
           animation: phase === "flash" || phase === "fadeout"
             ? "none"
