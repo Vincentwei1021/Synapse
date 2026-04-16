@@ -221,9 +221,13 @@ export default function DashboardLayout({
     return () => clearInterval(interval);
   }, [user]);
 
-  // Auto-redirect to onboarding for brand-new users
+  // Auto-redirect to onboarding for brand-new users (skip if user previously dismissed)
   useEffect(() => {
     if (!user || onboardingChecked) return;
+    if (localStorage.getItem("onboarding_skipped")) {
+      setOnboardingChecked(true);
+      return;
+    }
     authFetch("/api/onboarding/status")
       .then((res) => res.json())
       .then((json) => {
