@@ -20,13 +20,17 @@ export const POST = withErrorHandler<{ uuid: string }>(
     if (!project) return errors.notFound("Research Project");
 
     // Read active agent UUID via raw SQL
-    const rows = await prisma.$queryRaw<Array<{ deepResearchActiveAgentUuid: string | null }>>`
-      SELECT "deepResearchActiveAgentUuid" FROM "Project" WHERE uuid = ${projectUuid}
-    `;
+    const rows = await prisma.$queryRawUnsafe<Array<{ deepResearchActiveAgentUuid: string | null }>>(
+      'SELECT "deepResearchActiveAgentUuid" FROM "Project" WHERE uuid = $1',
+      projectUuid,
+    );
     if (!rows[0]?.deepResearchActiveAgentUuid) return success({ cleared: false });
 
     // Clear the active field (notification already sent by synapse_save_deep_research_report)
-    await prisma.$executeRaw`UPDATE "Project" SET "deepResearchActiveAgentUuid" = NULL WHERE uuid = ${projectUuid}`;
+    await prisma.$executeRawUnsafe(
+      'UPDATE "Project" SET "deepResearchActiveAgentUuid" = NULL WHERE uuid = $1',
+      projectUuid,
+    );
 
     eventBus.emitChange({
       companyUuid: auth.companyUuid,

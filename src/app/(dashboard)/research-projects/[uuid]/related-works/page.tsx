@@ -24,9 +24,10 @@ export default async function RelatedWorksPage({ params }: PageProps) {
   if (!project) redirect("/research-projects");
 
   // Fetch active agent UUIDs via raw SQL (fields may not be in generated Prisma client yet)
-  const activeRows = await prisma.$queryRaw<Array<{ autoSearchActiveAgentUuid: string | null; deepResearchActiveAgentUuid: string | null }>>`
-    SELECT "autoSearchActiveAgentUuid", "deepResearchActiveAgentUuid" FROM "Project" WHERE uuid = ${projectUuid}
-  `;
+  const activeRows = await prisma.$queryRawUnsafe<Array<{ autoSearchActiveAgentUuid: string | null; deepResearchActiveAgentUuid: string | null }>>(
+    'SELECT "autoSearchActiveAgentUuid", "deepResearchActiveAgentUuid" FROM "Project" WHERE uuid = $1',
+    projectUuid,
+  );
   const activeAgents = activeRows[0] ?? { autoSearchActiveAgentUuid: null, deepResearchActiveAgentUuid: null };
 
   // Fetch deep research doc metadata if it exists
