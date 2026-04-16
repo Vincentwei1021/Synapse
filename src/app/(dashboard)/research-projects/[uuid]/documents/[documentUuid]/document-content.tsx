@@ -146,7 +146,7 @@ export function DocumentContent({ documentUuid, projectUuid, initialContent, doc
       ) : tsvData ? (
         <TsvTable headers={tsvData.headers} rows={tsvData.rows} />
       ) : (
-        <div className="prose prose-sm dark:prose-invert max-w-none text-foreground">
+        <div className="max-w-none text-sm text-foreground">
           {initialContent ? (
             <RichMarkdown>{initialContent}</RichMarkdown>
           ) : (

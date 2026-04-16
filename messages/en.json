@@ -291,6 +291,8 @@
     "title": "Dashboard",
     "subtitle": "Overview of your research project activity",
     "brief": "Research brief",
+    "relatedWorks": "Related works",
+    "relatedWorksHelper": "Collected papers and literature for this project",
     "questions": "Research questions",
     "questionsHelper": "{count} currently active or waiting on elaboration",
     "experiments": "Experiments",

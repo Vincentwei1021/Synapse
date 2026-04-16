@@ -291,6 +291,8 @@
     "title": "仪表盘",
     "subtitle": "研究项目活动概览",
     "brief": "研究简报",
+    "relatedWorks": "相关文献",
+    "relatedWorksHelper": "项目收集的论文与参考文献",
     "questions": "研究问题",
     "questionsHelper": "当前有 {count} 个问题处于活跃或分析阶段",
     "experiments": "实验",

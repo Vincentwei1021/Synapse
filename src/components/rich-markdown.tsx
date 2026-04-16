@@ -136,6 +136,42 @@ export function RichMarkdown({ children }: { children: string }) {
       remarkPlugins={[remarkGfm]}
       rehypePlugins={[rehypeRaw]}
       components={{
+        h1({ children: h1Children }) {
+          return <h1 className="mt-6 mb-4 text-2xl font-bold text-foreground">{h1Children}</h1>;
+        },
+        h2({ children: h2Children }) {
+          return <h2 className="mt-5 mb-3 text-xl font-semibold text-foreground">{h2Children}</h2>;
+        },
+        h3({ children: h3Children }) {
+          return <h3 className="mt-4 mb-2 text-lg font-semibold text-foreground">{h3Children}</h3>;
+        },
+        h4({ children: h4Children }) {
+          return <h4 className="mt-3 mb-2 text-base font-semibold text-foreground">{h4Children}</h4>;
+        },
+        p({ children: pChildren }) {
+          return <p className="my-2 leading-7">{pChildren}</p>;
+        },
+        ul({ children: ulChildren }) {
+          return <ul className="my-2 ml-6 list-disc space-y-1">{ulChildren}</ul>;
+        },
+        ol({ children: olChildren }) {
+          return <ol className="my-2 ml-6 list-decimal space-y-1">{olChildren}</ol>;
+        },
+        li({ children: liChildren }) {
+          return <li className="leading-7">{liChildren}</li>;
+        },
+        blockquote({ children: bqChildren }) {
+          return <blockquote className="my-3 border-l-4 border-primary/30 pl-4 italic text-muted-foreground">{bqChildren}</blockquote>;
+        },
+        hr() {
+          return <hr className="my-6 border-border" />;
+        },
+        a({ href, children: aChildren }) {
+          return <a href={href} className="text-primary underline underline-offset-2 hover:text-primary/80" target="_blank" rel="noopener noreferrer">{aChildren}</a>;
+        },
+        strong({ children: strongChildren }) {
+          return <strong className="font-semibold text-foreground">{strongChildren}</strong>;
+        },
         // Override code blocks to detect chart blocks
         code({ className, children: codeChildren, ...props }) {
           const match = /language-chart(?::(\w+))?/.exec(className || "");

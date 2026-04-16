@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { ArrowRight, FileText, FlaskConical, Lightbulb, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen, FileText, FlaskConical, Lightbulb } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getServerAuthContext } from "@/lib/auth-server";
@@ -26,9 +26,18 @@ export default async function DashboardPage({ params }: PageProps) {
   if (!dashboardData) {
     redirect("/research-projects");
   }
-  const { project, stats, recentExperiments, recentQuestions } = dashboardData;
+  const { project, stats, recentExperiments, recentQuestions, relatedWorksCount } = dashboardData;
 
   const statCards = [
+    {
+      title: t("dashboard.relatedWorks"),
+      value: relatedWorksCount,
+      helper: t("dashboard.relatedWorksHelper"),
+      href: `/research-projects/${projectUuid}/related-works`,
+      icon: BookOpen,
+      iconBg: "bg-amber-100 dark:bg-amber-500/15",
+      iconColor: "text-amber-700 dark:text-amber-300",
+    },
     {
       title: t("dashboard.questions"),
       value: stats.researchQuestions.total,
@@ -46,15 +55,6 @@ export default async function DashboardPage({ params }: PageProps) {
       icon: FlaskConical,
       iconBg: "bg-emerald-100 dark:bg-emerald-500/15",
       iconColor: "text-emerald-700 dark:text-emerald-300",
-    },
-    {
-      title: t("dashboard.insights"),
-      value: project.latestSynthesisIdeaCount ?? 0,
-      helper: project.latestSynthesisSummary || t("dashboard.insightsHelper"),
-      href: `/research-projects/${projectUuid}/insights`,
-      icon: Sparkles,
-      iconBg: "bg-violet-100 dark:bg-violet-500/15",
-      iconColor: "text-violet-700 dark:text-violet-300",
     },
     {
       title: t("dashboard.documents"),
