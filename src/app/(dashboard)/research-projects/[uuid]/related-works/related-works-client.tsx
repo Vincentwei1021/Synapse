@@ -308,7 +308,7 @@ export function RelatedWorksClient({
           active={!!autoSearchActiveAgentUuid}
           primaryColor="hsl(var(--primary))"
           lightColor="hsl(var(--primary) / 0.4)"
-          variant="pulse"
+          variant="spin"
         >
         <Card className="rounded-2xl border-border bg-card p-5">
           <div className="flex items-start gap-3">
@@ -374,7 +374,7 @@ export function RelatedWorksClient({
           active={!!deepResearchActiveAgentUuid}
           primaryColor="hsl(var(--primary))"
           lightColor="hsl(var(--primary) / 0.4)"
-          variant="pulse"
+          variant="spin"
         >
         <Card className="rounded-2xl border-border bg-card p-5">
           <div className="flex items-start gap-3">

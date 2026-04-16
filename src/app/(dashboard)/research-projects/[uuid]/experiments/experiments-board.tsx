@@ -491,6 +491,7 @@ export function ExperimentsBoard({
                 active={loopEnabled}
                 primaryColor={getAgentColor(loopAgentUuid).primary}
                 lightColor={getAgentColor(loopAgentUuid).light}
+                variant="pulse"
               >
               <div className="flex items-center">
                 <button
@@ -644,6 +645,7 @@ export function ExperimentsBoard({
                       active={!!experiment.liveStatus}
                       primaryColor={getAgentColor(experiment.assignee?.uuid ?? "").primary}
                       lightColor={getAgentColor(experiment.assignee?.uuid ?? "").light}
+                      variant="pulse"
                     >
                     <Card
                       role="button"
