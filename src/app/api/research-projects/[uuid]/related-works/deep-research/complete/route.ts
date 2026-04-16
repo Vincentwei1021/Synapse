@@ -19,18 +19,18 @@ export const POST = withErrorHandler<{ uuid: string }>(
     });
     if (!project) return errors.notFound("Research Project");
 
-    // Read active agent UUID via raw SQL
-    const rows = await prisma.$queryRawUnsafe<Array<{ deepResearchActiveAgentUuid: string | null }>>(
-      'SELECT "deepResearchActiveAgentUuid" FROM "Project" WHERE uuid = $1',
-      projectUuid,
-    );
-    if (!rows[0]?.deepResearchActiveAgentUuid) return success({ cleared: false });
+    // Read active agent UUID
+    const proj = await prisma.researchProject.findFirst({
+      where: { uuid: projectUuid },
+      select: { deepResearchActiveAgentUuid: true },
+    });
+    if (!proj?.deepResearchActiveAgentUuid) return success({ cleared: false });
 
-    // Clear the active field (use $queryRawUnsafe — $executeRawUnsafe is broken in Next.js standalone)
-    await prisma.$queryRawUnsafe(
-      'UPDATE "Project" SET "deepResearchActiveAgentUuid" = NULL WHERE uuid = $1 RETURNING uuid',
-      projectUuid,
-    );
+    // Clear the active field
+    await prisma.researchProject.update({
+      where: { uuid: projectUuid },
+      data: { deepResearchActiveAgentUuid: null },
+    });
 
     eventBus.emitChange({
       companyUuid: auth.companyUuid,

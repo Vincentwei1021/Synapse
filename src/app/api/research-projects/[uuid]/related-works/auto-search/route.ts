@@ -41,12 +41,11 @@ export const POST = withErrorHandler<{ uuid: string }>(
       });
     }
 
-    // Mark auto-search as active (use $queryRawUnsafe — $executeRawUnsafe is broken in Next.js standalone)
-    await prisma.$queryRawUnsafe(
-      'UPDATE "Project" SET "autoSearchActiveAgentUuid" = $1 WHERE uuid = $2 RETURNING uuid',
-      parsed.data.agentUuid,
-      projectUuid,
-    );
+    // Mark auto-search as active
+    await prisma.researchProject.update({
+      where: { uuid: projectUuid },
+      data: { autoSearchActiveAgentUuid: parsed.data.agentUuid },
+    });
     eventBus.emitChange({
       companyUuid: auth.companyUuid,
       researchProjectUuid: projectUuid,
