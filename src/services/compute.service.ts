@@ -615,7 +615,7 @@ export async function reserveGpusForExperiment(input: {
         },
         experimentReservations: {
           where: { releasedAt: null },
-          select: { uuid: true },
+          select: { uuid: true, experimentUuid: true },
         },
       },
     });
