@@ -14,6 +14,8 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Textarea } from "@/components/ui/textarea";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
 import { MarkdownContent } from "@/components/markdown-content";
+import { GlowBorder } from "@/components/glow-border";
+import { getAgentColor } from "@/lib/agent-colors";
 import type { ExperimentResponse } from "@/services/experiment.service";
 
 const columns = [
@@ -482,6 +484,11 @@ export function ExperimentsBoard({
           <div className="relative" ref={loopDropdownRef}>
             {loopEnabled ? (
               /* ACTIVE: showing mode + agent + phase + stop */
+              <GlowBorder
+                active={loopEnabled}
+                primaryColor={getAgentColor(loopAgentUuid).primary}
+                lightColor={getAgentColor(loopAgentUuid).light}
+              >
               <div className="flex items-center">
                 <button
                   onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
@@ -512,6 +519,7 @@ export function ExperimentsBoard({
                   </button>
                 </button>
               </div>
+              </GlowBorder>
             ) : (
               /* OFF: zap icon + text */
               <button
@@ -622,8 +630,13 @@ export function ExperimentsBoard({
                   </div>
                 ) : (
                   grouped[column.id].map((experiment) => (
-                    <Card
+                    <GlowBorder
                       key={experiment.uuid}
+                      active={!!experiment.liveStatus}
+                      primaryColor={getAgentColor(experiment.assignee?.uuid ?? "").primary}
+                      lightColor={getAgentColor(experiment.assignee?.uuid ?? "").light}
+                    >
+                    <Card
                       role="button"
                       tabIndex={0}
                       onClick={() => { setSelectedExperimentUuid(experiment.uuid); setDismissed(false); }}
@@ -667,6 +680,7 @@ export function ExperimentsBoard({
 
                       {renderActionBlock(experiment)}
                     </Card>
+                    </GlowBorder>
                   ))
                 )}
               </div>
