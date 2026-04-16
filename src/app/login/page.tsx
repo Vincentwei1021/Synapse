@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { createUserManager, storeOidcConfig, type OidcConfig } from "@/lib/oidc";
+import { createUserManager, storeOidcConfig, clearOidcConfig, type OidcConfig } from "@/lib/oidc";
+import { clearUserManager } from "@/lib/auth-client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +64,10 @@ export default function LoginPage() {
         setError(data.error?.message || t("login.defaultAuth.error"));
         return;
       }
+
+      // Default-auth login should not inherit stale OIDC client state.
+      clearUserManager();
+      clearOidcConfig();
 
       // Check if user needs onboarding before redirecting
       try {

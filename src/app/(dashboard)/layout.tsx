@@ -23,7 +23,7 @@ import {
   LogOut,
   Menu,
 } from "lucide-react";
-import { authFetch, logout as authLogout, clearUserManager } from "@/lib/auth-client";
+import { authFetch, logout as authLogout, clearUserManager, refreshAuthCookies } from "@/lib/auth-client";
 import { RealtimeProvider } from "@/contexts/realtime-context";
 import { NotificationProvider } from "@/contexts/notification-context";
 import { ToastProvider } from "@/contexts/toast-context";
@@ -213,7 +213,7 @@ export default function DashboardLayout({
     if (!user) return;
     const interval = setInterval(async () => {
       try {
-        await fetch("/api/auth/refresh", { method: "POST" });
+        await refreshAuthCookies();
       } catch {
         // Refresh failed silently — next API call will handle redirect
       }

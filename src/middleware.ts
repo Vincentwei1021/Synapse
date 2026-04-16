@@ -174,6 +174,9 @@ export async function middleware(request: NextRequest) {
   // Check this first because it's a quick local operation (no external fetch).
   const userResult = await handleUserSessionRefresh(request);
   if (userResult) return userResult;
+  if (request.cookies.get("user_session")?.value) {
+    return NextResponse.next();
+  }
 
   // --- 2. OIDC token refresh ---
   const accessToken = request.cookies.get("oidc_access_token")?.value;

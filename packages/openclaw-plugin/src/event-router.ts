@@ -306,7 +306,7 @@ Base branch: ${repoAccess.baseBranch ?? "main"}`;
 
     steps.push(`${stepNum++}. If enough GPUs are available, call synapse_reserve_gpus with experimentUuid "${experimentUuid}" and the gpuUuids to reserve them. If the reservation fails (another experiment reserved them first), go back to step 1 and re-check available GPUs. If not enough GPUs are available (or reservation keeps failing), report via synapse_report_experiment_progress with liveStatus "queuing" and a message like "Waiting for N GPUs to become available", then wait and retry periodically until you can successfully reserve.`);
 
-    steps.push(`${stepNum++}. Call synapse_start_experiment with experimentUuid "${experimentUuid}" to mark the experiment as in-progress.`);
+    steps.push(`${stepNum++}. After a successful synapse_reserve_gpus call, call synapse_start_experiment with experimentUuid "${experimentUuid}" to mark the experiment as in-progress. Do not repeat gpuUuids here unless you intentionally skipped the standalone reservation step.`);
 
     steps.push(`${stepNum++}. If the compute node has managedKeyAvailable=true, call synapse_get_node_access_bundle with experimentUuid "${experimentUuid}" and the nodeUuid. Write the returned privateKeyPemBase64 to a local PEM file (chmod 600) and SSH using the returned host/user/port.`);
 

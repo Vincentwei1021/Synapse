@@ -538,7 +538,7 @@ export async function reserveGpusForRun(input: {
         },
         experimentReservations: {
           where: { releasedAt: null },
-          select: { uuid: true },
+          select: { uuid: true, experimentUuid: true },
         },
       },
     });
@@ -628,14 +628,28 @@ export async function reserveGpusForExperiment(input: {
       (gpu) =>
         gpu.lifecycle !== GPU_AVAILABLE ||
         gpu.reservations.length > 0 ||
-        gpu.experimentReservations.length > 0,
+        gpu.experimentReservations.some((reservation) => reservation.experimentUuid !== input.experimentUuid),
     );
     if (unavailable) {
       throw new Error(`GPU ${unavailable.slotIndex} on node ${unavailable.nodeUuid} is not available`);
     }
 
+    const alreadyReservedGpuUuids = new Set(
+      gpus
+        .filter((gpu) =>
+          gpu.experimentReservations.some((reservation) => reservation.experimentUuid === input.experimentUuid),
+        )
+        .map((gpu) => gpu.uuid),
+    );
+
+    const gpuUuidsToCreate = input.gpuUuids.filter((gpuUuid) => !alreadyReservedGpuUuids.has(gpuUuid));
+
+    if (gpuUuidsToCreate.length === 0) {
+      return [];
+    }
+
     return Promise.all(
-      input.gpuUuids.map((gpuUuid) =>
+      gpuUuidsToCreate.map((gpuUuid) =>
         tx.experimentGpuReservation.create({
           data: {
             companyUuid: input.companyUuid,

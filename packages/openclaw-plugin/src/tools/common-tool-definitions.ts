@@ -197,7 +197,7 @@ export const commonToolDefinitions = defineOpenClawTools([
   }),
   createPassthroughTool<{ experimentUuid: string; gpuUuids?: string[]; workingNotes?: string }>({
     name: "synapse_start_experiment",
-    description: "Start an assigned experiment and optionally reserve GPUs.",
+    description: "Start an assigned experiment and optionally reserve GPUs. If you already used synapse_reserve_gpus, call this without gpuUuids.",
     parameters: {
       type: "object",
       properties: {
