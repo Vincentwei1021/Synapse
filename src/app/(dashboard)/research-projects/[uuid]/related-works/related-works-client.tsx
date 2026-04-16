@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -55,8 +55,25 @@ export function RelatedWorksClient({
   const t = useTranslations("relatedWorks");
   const [works, setWorks] = useState(initialWorks);
 
+  // Track newly arrived paper UUIDs for flash animation
+  const [newPaperUuids, setNewPaperUuids] = useState<Set<string>>(new Set());
+  const prevWorkUuids = useRef<Set<string>>(new Set(initialWorks.map((w) => w.uuid)));
+
   // Sync state when server component re-renders with new data (e.g. after SSE refresh)
-  useEffect(() => { setWorks(initialWorks); }, [initialWorks]);
+  useEffect(() => {
+    const incoming = new Set(initialWorks.map((w) => w.uuid));
+    const fresh = initialWorks.filter((w) => !prevWorkUuids.current.has(w.uuid)).map((w) => w.uuid);
+    if (fresh.length > 0) {
+      setNewPaperUuids(new Set(fresh));
+      // Clear the flash after the animation completes (~1.5s)
+      const t = setTimeout(() => setNewPaperUuids(new Set()), 1500);
+      prevWorkUuids.current = incoming;
+      setWorks(initialWorks);
+      return () => clearTimeout(t);
+    }
+    prevWorkUuids.current = incoming;
+    setWorks(initialWorks);
+  }, [initialWorks]);
   useEffect(() => { setDeepResearchDoc(initialDeepResearchDoc); }, [initialDeepResearchDoc]);
 
   // Auto-search state (one-shot trigger)
@@ -319,9 +336,9 @@ export function RelatedWorksClient({
 
           <div className="mt-4 flex items-center gap-2">
             <select
-              value={autoSearchAgentUuid}
+              value={autoSearchActiveAgentUuid || autoSearchAgentUuid}
               onChange={(e) => { setAutoSearchAgentUuid(e.target.value); setSearchTriggeredAgent(null); }}
-              disabled={searchingPapers}
+              disabled={searchingPapers || !!autoSearchActiveAgentUuid}
               className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
             >
               <option value="">{t("selectAgent")}</option>
@@ -333,18 +350,20 @@ export function RelatedWorksClient({
             </select>
             <Button
               size="sm"
-              disabled={!autoSearchAgentUuid || searchingPapers || !!searchTriggeredAgent}
+              disabled={!autoSearchAgentUuid || searchingPapers || !!searchTriggeredAgent || !!autoSearchActiveAgentUuid}
               onClick={handleAutoSearch}
               className={searchTriggeredAgent
                 ? "bg-emerald-600 text-white hover:bg-emerald-600"
-                : "bg-primary text-primary-foreground hover:bg-primary/90"}
+                : autoSearchActiveAgentUuid
+                  ? "bg-primary/70 text-primary-foreground"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90"}
             >
-              {searchingPapers ? (
+              {(searchingPapers || !!autoSearchActiveAgentUuid) ? (
                 <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
               ) : searchTriggeredAgent ? (
                 <Check className="mr-1.5 h-3.5 w-3.5" />
               ) : null}
-              {searchTriggeredAgent ? t("sent") : t("search")}
+              {autoSearchActiveAgentUuid ? t("searching") : searchTriggeredAgent ? t("sent") : t("search")}
             </Button>
           </div>
         </Card>
@@ -391,9 +410,9 @@ export function RelatedWorksClient({
 
           <div className="mt-4 flex items-center gap-2">
             <select
-              value={deepResearchAgentUuid}
+              value={deepResearchActiveAgentUuid || deepResearchAgentUuid}
               onChange={(e) => { setDeepResearchAgentUuid(e.target.value); setDeepResearchTriggeredAgent(null); }}
-              disabled={generatingDeepResearch}
+              disabled={generatingDeepResearch || !!deepResearchActiveAgentUuid}
               className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
             >
               <option value="">{t("selectAgent")}</option>
@@ -405,18 +424,20 @@ export function RelatedWorksClient({
             </select>
             <Button
               size="sm"
-              disabled={!deepResearchAgentUuid || generatingDeepResearch || !!deepResearchTriggeredAgent}
+              disabled={!deepResearchAgentUuid || generatingDeepResearch || !!deepResearchTriggeredAgent || !!deepResearchActiveAgentUuid}
               onClick={handleGenerateDeepResearch}
               className={deepResearchTriggeredAgent
                 ? "bg-emerald-600 text-white hover:bg-emerald-600"
-                : "bg-primary text-primary-foreground hover:bg-primary/90"}
+                : deepResearchActiveAgentUuid
+                  ? "bg-primary/70 text-primary-foreground"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90"}
             >
-              {generatingDeepResearch ? (
+              {(generatingDeepResearch || !!deepResearchActiveAgentUuid) ? (
                 <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
               ) : deepResearchTriggeredAgent ? (
                 <Check className="mr-1.5 h-3.5 w-3.5" />
               ) : null}
-              {deepResearchTriggeredAgent ? t("sent") : t("generate")}
+              {deepResearchActiveAgentUuid ? t("generating") : deepResearchTriggeredAgent ? t("sent") : t("generate")}
             </Button>
           </div>
         </Card>
@@ -473,7 +494,7 @@ export function RelatedWorksClient({
                 rel="noopener noreferrer"
                 className="group"
               >
-                <Card className="rounded-2xl border-border bg-card p-5 transition-colors hover:border-primary/30">
+                <Card className={`rounded-2xl border-border bg-card p-5 transition-colors hover:border-primary/30${newPaperUuids.has(paper.uuid) ? " animate-[paper-flash_0.75s_ease-in-out_2]" : ""}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       {/* Title */}
