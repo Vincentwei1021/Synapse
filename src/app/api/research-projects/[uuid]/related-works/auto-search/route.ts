@@ -42,11 +42,12 @@ export const POST = withErrorHandler<{ uuid: string }>(
     }
 
     // Mark auto-search as active
-    await prisma.$executeRawUnsafe(
+    const _rowsUpdated = await prisma.$executeRawUnsafe(
       'UPDATE "Project" SET "autoSearchActiveAgentUuid" = $1 WHERE uuid = $2',
       parsed.data.agentUuid,
       projectUuid,
     );
+    void _rowsUpdated;
     eventBus.emitChange({
       companyUuid: auth.companyUuid,
       researchProjectUuid: projectUuid,
