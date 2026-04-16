@@ -309,6 +309,7 @@ export function RelatedWorksClient({
           active={!!autoSearchActiveAgentUuid}
           primaryColor={getAgentColor(autoSearchActiveAgentUuid ?? "").primary}
           lightColor={getAgentColor(autoSearchActiveAgentUuid ?? "").light}
+          variant="pulse"
         >
         <Card className="rounded-2xl border-border bg-card p-5">
           <div className="flex items-start gap-3">
@@ -374,6 +375,7 @@ export function RelatedWorksClient({
           active={!!deepResearchActiveAgentUuid}
           primaryColor={getAgentColor(deepResearchActiveAgentUuid ?? "").primary}
           lightColor={getAgentColor(deepResearchActiveAgentUuid ?? "").light}
+          variant="pulse"
         >
         <Card className="rounded-2xl border-border bg-card p-5">
           <div className="flex items-start gap-3">

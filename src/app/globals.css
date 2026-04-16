@@ -190,6 +190,18 @@ span[style*="--sdm-tbg"] {
   50% { border-color: hsl(var(--primary)); box-shadow: 0 0 12px hsl(var(--primary) / 0.3); }
 }
 
+/* Agent activity glow — spinning ring */
+@property --glow-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes glow-spin {
+  from { --glow-angle: 0deg; }
+  to { --glow-angle: 360deg; }
+}
+
 /* Agent activity glow — breathing pulse */
 @keyframes glow-breathe {
   0%, 100% { box-shadow: 0 0 6px 1px var(--glow-color, transparent), 0 0 2px 0 var(--glow-light, transparent); }

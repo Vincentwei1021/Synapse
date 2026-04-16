@@ -6,25 +6,27 @@ interface GlowBorderProps {
   active: boolean;
   primaryColor: string;
   lightColor: string;
+  variant?: "spin" | "pulse";
   className?: string;
   children: React.ReactNode;
 }
 
-export function GlowBorder({ active, primaryColor, lightColor, className, children }: GlowBorderProps) {
-  const [phase, setPhase] = useState<"idle" | "breathing" | "flash" | "fadeout">("idle");
+export function GlowBorder({ active, primaryColor, lightColor, variant = "spin", className, children }: GlowBorderProps) {
+  const [phase, setPhase] = useState<"idle" | "running" | "accelerate" | "flash" | "fadeout">("idle");
   const prevActive = useRef(active);
 
   useEffect(() => {
     if (active && !prevActive.current) {
-      setPhase("breathing");
+      setPhase("running");
     } else if (!active && prevActive.current) {
-      setPhase("flash");
-      const t1 = setTimeout(() => setPhase("fadeout"), 600);
-      const t2 = setTimeout(() => setPhase("idle"), 1300);
+      setPhase("accelerate");
+      const t1 = setTimeout(() => setPhase("flash"), 500);
+      const t2 = setTimeout(() => setPhase("fadeout"), 800);
+      const t3 = setTimeout(() => setPhase("idle"), 1500);
       prevActive.current = active;
-      return () => { clearTimeout(t1); clearTimeout(t2); };
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
     } else if (active) {
-      setPhase("breathing");
+      setPhase("running");
     }
     prevActive.current = active;
   }, [active]);
@@ -33,25 +35,48 @@ export function GlowBorder({ active, primaryColor, lightColor, className, childr
     return <div className={className}>{children}</div>;
   }
 
+  if (variant === "pulse") {
+    return (
+      <div
+        className={`relative rounded-2xl transition-shadow ${className ?? ""}`}
+        style={{
+          boxShadow: phase === "flash"
+            ? `0 0 16px 4px ${lightColor}, 0 0 4px 1px ${primaryColor}`
+            : phase === "fadeout"
+              ? "none"
+              : undefined,
+          animation: phase === "running" || phase === "accelerate"
+            ? `glow-breathe 3s ease-in-out infinite`
+            : "none",
+          "--glow-color": primaryColor,
+          "--glow-light": lightColor,
+          transitionDuration: phase === "fadeout" ? "700ms" : "200ms",
+        } as React.CSSProperties}
+      >
+        {children}
+      </div>
+    );
+  }
+
+  const animationDuration = phase === "accelerate" ? "0.5s" : "3s";
+  const ringOpacity = phase === "fadeout" ? 0 : phase === "flash" ? 1 : 0.85;
+
   return (
-    <div
-      className={`relative rounded-2xl transition-shadow ${className ?? ""}`}
-      style={{
-        boxShadow: phase === "flash"
-          ? `0 0 16px 4px ${lightColor}, 0 0 4px 1px ${primaryColor}`
-          : phase === "fadeout"
+    <div className={`relative ${className ?? ""}`}>
+      <div
+        className="absolute -inset-[2px] rounded-[18px] transition-opacity"
+        style={{
+          background: phase === "flash"
+            ? `conic-gradient(from 0deg, ${primaryColor}, ${lightColor}, ${primaryColor})`
+            : `conic-gradient(from var(--glow-angle), transparent 60%, ${primaryColor} 80%, ${lightColor} 90%, transparent 100%)`,
+          opacity: ringOpacity,
+          animation: phase === "flash" || phase === "fadeout"
             ? "none"
-            : undefined,
-        animation: phase === "breathing"
-          ? `glow-breathe 3s ease-in-out infinite`
-          : "none",
-        // CSS custom properties for the keyframe to reference
-        "--glow-color": primaryColor,
-        "--glow-light": lightColor,
-        transitionDuration: phase === "fadeout" ? "700ms" : "200ms",
-      } as React.CSSProperties}
-    >
-      {children}
+            : `glow-spin ${animationDuration} linear infinite`,
+          transitionDuration: phase === "fadeout" ? "700ms" : "200ms",
+        }}
+      />
+      <div className="relative">{children}</div>
     </div>
   );
 }
