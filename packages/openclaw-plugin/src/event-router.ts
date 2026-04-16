@@ -475,7 +475,7 @@ Steps:
 6. For each relevant paper, use synapse_add_related_work with researchProjectUuid "${projectUuid}" to add it (duplicates are automatically skipped — if isNew=false, the paper already existed)
 7. Search with multiple query variations to maximize coverage, but call synapse_search_papers sequentially (one at a time) to avoid rate limits
 8. Focus on papers that fill gaps not covered by existing related works — do NOT search for topics already well-represented
-9. REQUIRED: After finishing all searches, call synapse_complete_task with researchProjectUuid "${projectUuid}", taskType "auto_search", and papersAdded set to the number of newly added papers (count only papers where isNew=true).`;
+9. REQUIRED: After finishing all searches, call synapse_complete_task with researchProjectUuid "${projectUuid}" and taskType "auto_search" to signal completion.`;
 
     const prompt = hasCustomPrompt
       ? `${basePrompt}\n\nAdditional instructions from the user:\n${n.message}`

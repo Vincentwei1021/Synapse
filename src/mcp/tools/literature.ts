@@ -13,14 +13,10 @@ const TASK_TYPE_FIELDS = {
   deep_research: { activeField: "deepResearchActiveAgentUuid", notificationAction: "deep_research_completed" },
 } as const;
 
-function buildCompletionMessage(taskType: "auto_search" | "deep_research", papersAdded?: number): string {
-  if (taskType === "auto_search") {
-    if (papersAdded != null && papersAdded > 0) return `Auto-search completed — ${papersAdded} new paper${papersAdded > 1 ? "s" : ""} added.`;
-    if (papersAdded === 0) return "Auto-search completed — no new papers found.";
-    return "Auto-search for related papers has completed.";
-  }
-  return "Deep research literature review has completed.";
-}
+const TASK_COMPLETION_MESSAGES = {
+  auto_search: "Auto-search for related papers has completed.",
+  deep_research: "Deep research literature review has completed.",
+} as const;
 
 export function registerLiteratureTools(server: McpServer, auth: AgentAuthContext) {
   server.registerTool(
@@ -166,6 +162,34 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
         addedByAgentUuid: auth.actorUuid,
         publishedYear: year,
       });
+
+      if (rw.isNew) {
+        try {
+          const [totalCount, project, agent] = await Promise.all([
+            prisma.relatedWork.count({ where: { companyUuid: auth.companyUuid, researchProjectUuid } }),
+            prisma.researchProject.findFirst({ where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid }, select: { name: true } }),
+            prisma.agent.findUnique({ where: { uuid: auth.actorUuid }, select: { ownerUuid: true, name: true } }),
+          ]);
+          if (agent?.ownerUuid && project) {
+            await notificationService.create({
+              companyUuid: auth.companyUuid,
+              researchProjectUuid,
+              recipientType: "user",
+              recipientUuid: agent.ownerUuid,
+              entityType: "related_work",
+              entityUuid: rw.uuid,
+              entityTitle: rw.title,
+              projectName: project.name,
+              action: "related_work_added",
+              message: `New paper collected: "${rw.title}" (${totalCount} total)`,
+              actorType: "agent",
+              actorUuid: auth.actorUuid,
+              actorName: agent.name ?? "Agent",
+            });
+          }
+        } catch { /* ignore notification errors */ }
+      }
+
       return {
         content: [{ type: "text" as const, text: JSON.stringify({ relatedWork: rw }) }],
       };
@@ -294,10 +318,9 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
       inputSchema: z.object({
         researchProjectUuid: z.string(),
         taskType: z.enum(["auto_search", "deep_research"]),
-        papersAdded: z.number().int().min(0).optional().describe("Number of new papers added (auto_search only)"),
       }),
     },
-    async ({ researchProjectUuid, taskType, papersAdded }) => {
+    async ({ researchProjectUuid, taskType }) => {
       const config = TASK_TYPE_FIELDS[taskType];
       const project = await prisma.researchProject.findFirst({
         where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid },
@@ -340,7 +363,7 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
             entityTitle: project.name,
             projectName: project.name,
             action: config.notificationAction,
-            message: buildCompletionMessage(taskType, papersAdded),
+            message: TASK_COMPLETION_MESSAGES[taskType],
             actorType: "agent",
             actorUuid: activeAgentUuid,
             actorName: agent.name ?? "Agent",
