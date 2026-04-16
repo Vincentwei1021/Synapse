@@ -194,22 +194,6 @@ export class SynapseEventRouter {
       .join("; ");
   }
 
-  private async callCompletionApi(projectUuid: string, taskType: "auto-search" | "deep-research"): Promise<void> {
-    const url = `${this.config.synapseUrl}/api/research-projects/${projectUuid}/related-works/${taskType}/complete`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.config.apiKey}`,
-      },
-    });
-    if (!res.ok) {
-      this.logger.warn(`Completion API failed for ${taskType}: HTTP ${res.status}`);
-    } else {
-      this.logger.info(`Completion API called for ${taskType} on project ${projectUuid}`);
-    }
-  }
-
   private async handleExperimentAssigned(n: NotificationDetail): Promise<void> {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
     const mentionGuidance = this.buildMentionGuidance(n, "experiment");
@@ -435,6 +419,7 @@ You may ONLY use these Synapse tools for this task:
 - synapse_read_paper_section
 - synapse_read_paper_full
 - synapse_save_deep_research_report
+- synapse_complete_task
 
 Steps:
 1. Use synapse_get_deep_research_report with researchProjectUuid "${projectUuid}" to check if a previous report exists — if so, read it to understand what was covered before
@@ -446,6 +431,7 @@ Steps:
    c. synapse_read_paper_full — only if needed for papers central to the research
 5. Analyze how each paper relates to the project's goals — identify key methods, findings, and gaps in the literature
 6. REQUIRED: Use synapse_save_deep_research_report with researchProjectUuid "${projectUuid}", title, and content (Markdown) to save the report. This creates v1 or updates to v2/v3 automatically.
+7. REQUIRED: After saving the report, call synapse_complete_task with researchProjectUuid "${projectUuid}" and taskType "deep_research" to signal completion.
 
 Writing guidelines:
 - Base your review on actual paper content, not just abstracts
@@ -463,7 +449,6 @@ Writing guidelines:
       entityUuid: n.entityUuid,
       projectUuid,
       timeoutSeconds: 1800,
-      completionCallback: () => this.callCompletionApi(projectUuid, "deep-research"),
     });
   }
 
@@ -479,6 +464,7 @@ You may ONLY use these Synapse tools for this task:
 - synapse_search_papers
 - synapse_read_paper_brief
 - synapse_add_related_work
+- synapse_complete_task
 
 Steps:
 1. Use synapse_get_related_works with researchProjectUuid "${projectUuid}" to get all collected papers — note their titles, topics, and coverage areas
@@ -488,7 +474,8 @@ Steps:
 5. For each candidate paper with an arxivId, use synapse_read_paper_brief to check its TLDR and keywords — only add papers that are genuinely relevant and fill gaps
 6. For each relevant paper, use synapse_add_related_work with researchProjectUuid "${projectUuid}" to add it (duplicates are automatically skipped — if isNew=false, the paper already existed)
 7. Search with multiple query variations to maximize coverage, but call synapse_search_papers sequentially (one at a time) to avoid rate limits
-8. Focus on papers that fill gaps not covered by existing related works — do NOT search for topics already well-represented`;
+8. Focus on papers that fill gaps not covered by existing related works — do NOT search for topics already well-represented
+9. REQUIRED: After finishing all searches, call synapse_complete_task with researchProjectUuid "${projectUuid}" and taskType "auto_search" to signal completion.`;
 
     const prompt = hasCustomPrompt
       ? `${basePrompt}\n\nAdditional instructions from the user:\n${n.message}`
@@ -500,7 +487,6 @@ Steps:
       entityUuid: n.entityUuid,
       projectUuid,
       timeoutSeconds: 600,
-      completionCallback: () => this.callCompletionApi(projectUuid, "auto-search"),
     });
   }
 

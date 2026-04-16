@@ -6,6 +6,12 @@ import { prisma } from "@/lib/prisma";
 import * as documentService from "@/services/document.service";
 import * as notificationService from "@/services/notification.service";
 import { updateResearchProject } from "@/services/research-project.service";
+import { eventBus } from "@/lib/event-bus";
+
+const TASK_TYPE_FIELDS = {
+  auto_search: { activeField: "autoSearchActiveAgentUuid", notificationAction: "auto_search_completed", notificationMsg: "Auto-search for related papers has completed." },
+  deep_research: { activeField: "deepResearchActiveAgentUuid", notificationAction: "deep_research_completed", notificationMsg: "Deep research literature review has completed." },
+} as const;
 
 export function registerLiteratureTools(server: McpServer, auth: AgentAuthContext) {
   server.registerTool(
@@ -269,6 +275,70 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
       return {
         content: [{ type: "text" as const, text: JSON.stringify({ document: { uuid: doc.uuid, title: doc.title, version: doc.version } }, null, 2) }],
       };
+    }
+  );
+
+  server.registerTool(
+    "synapse_complete_task",
+    {
+      description: "Signal that an agent task (auto_search or deep_research) has finished. Clears the active indicator on the project and notifies the owner.",
+      inputSchema: z.object({
+        researchProjectUuid: z.string(),
+        taskType: z.enum(["auto_search", "deep_research"]),
+      }),
+    },
+    async ({ researchProjectUuid, taskType }) => {
+      const config = TASK_TYPE_FIELDS[taskType];
+      const project = await prisma.researchProject.findFirst({
+        where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid },
+        select: { uuid: true, name: true, [config.activeField]: true },
+      });
+      if (!project) {
+        return { content: [{ type: "text" as const, text: "Research Project not found" }], isError: true };
+      }
+      const activeAgentUuid = (project as Record<string, unknown>)[config.activeField] as string | null;
+      if (!activeAgentUuid) {
+        return { content: [{ type: "text" as const, text: JSON.stringify({ cleared: false, reason: "no active task" }) }] };
+      }
+
+      await prisma.researchProject.update({
+        where: { uuid: researchProjectUuid },
+        data: { [config.activeField]: null },
+      });
+
+      eventBus.emitChange({
+        companyUuid: auth.companyUuid,
+        researchProjectUuid,
+        entityType: "research_project",
+        entityUuid: researchProjectUuid,
+        action: "updated",
+      });
+
+      try {
+        const agent = await prisma.agent.findUnique({
+          where: { uuid: activeAgentUuid },
+          select: { ownerUuid: true, name: true },
+        });
+        if (agent?.ownerUuid) {
+          await notificationService.create({
+            companyUuid: auth.companyUuid,
+            researchProjectUuid,
+            recipientType: "user",
+            recipientUuid: agent.ownerUuid,
+            entityType: "research_project",
+            entityUuid: researchProjectUuid,
+            entityTitle: project.name,
+            projectName: project.name,
+            action: config.notificationAction,
+            message: config.notificationMsg,
+            actorType: "agent",
+            actorUuid: activeAgentUuid,
+            actorName: agent.name ?? "Agent",
+          });
+        }
+      } catch { /* ignore notification errors */ }
+
+      return { content: [{ type: "text" as const, text: JSON.stringify({ cleared: true }) }] };
     }
   );
 }
