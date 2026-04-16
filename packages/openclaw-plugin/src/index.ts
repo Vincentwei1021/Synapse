@@ -43,11 +43,25 @@ async function wakeAgent(
     } else {
       logger.info(`Agent woken: ${text.slice(0, 80)}...`);
     }
+    // When a completionCallback is provided, drain the response stream so we
+    // wait for the agent turn to actually finish before firing the callback.
+    // With deliver:true, /hooks/agent streams the agent's output — the stream
+    // closes only after the turn completes.
+    if (completionCallback && res.body) {
+      try {
+        const reader = res.body.getReader();
+        while (true) {
+          const { done } = await reader.read();
+          if (done) break;
+        }
+      } catch {
+        // Stream may error on timeout or abort — still proceed to callback
+      }
+    }
   } catch (err) {
     logger.warn(`Wake agent error: ${err}`);
   }
 
-  // Call completion callback after agent turn finishes (regardless of success/failure)
   if (completionCallback) {
     try {
       await completionCallback();
