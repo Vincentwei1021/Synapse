@@ -27,6 +27,7 @@ interface NotificationProviderProps {
 const TOAST_MAP: Record<string, { category: string; color: string }> = {
   auto_search_started: { category: "Search", color: "#3b82f6" },
   auto_search_completed: { category: "Search", color: "#3b82f6" },
+  related_work_added: { category: "Papers", color: "#22c55e" },
   auto_search_failed: { category: "Search", color: "#ef4444" },
   deep_research_requested: { category: "Research", color: "#a855f7" },
   deep_research_completed: { category: "Research", color: "#a855f7" },
