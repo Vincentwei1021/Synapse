@@ -9,9 +9,18 @@ import { updateResearchProject } from "@/services/research-project.service";
 import { eventBus } from "@/lib/event-bus";
 
 const TASK_TYPE_FIELDS = {
-  auto_search: { activeField: "autoSearchActiveAgentUuid", notificationAction: "auto_search_completed", notificationMsg: "Auto-search for related papers has completed." },
-  deep_research: { activeField: "deepResearchActiveAgentUuid", notificationAction: "deep_research_completed", notificationMsg: "Deep research literature review has completed." },
+  auto_search: { activeField: "autoSearchActiveAgentUuid", notificationAction: "auto_search_completed" },
+  deep_research: { activeField: "deepResearchActiveAgentUuid", notificationAction: "deep_research_completed" },
 } as const;
+
+function buildCompletionMessage(taskType: "auto_search" | "deep_research", papersAdded?: number): string {
+  if (taskType === "auto_search") {
+    if (papersAdded != null && papersAdded > 0) return `Auto-search completed — ${papersAdded} new paper${papersAdded > 1 ? "s" : ""} added.`;
+    if (papersAdded === 0) return "Auto-search completed — no new papers found.";
+    return "Auto-search for related papers has completed.";
+  }
+  return "Deep research literature review has completed.";
+}
 
 export function registerLiteratureTools(server: McpServer, auth: AgentAuthContext) {
   server.registerTool(
@@ -285,9 +294,10 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
       inputSchema: z.object({
         researchProjectUuid: z.string(),
         taskType: z.enum(["auto_search", "deep_research"]),
+        papersAdded: z.number().int().min(0).optional().describe("Number of new papers added (auto_search only)"),
       }),
     },
-    async ({ researchProjectUuid, taskType }) => {
+    async ({ researchProjectUuid, taskType, papersAdded }) => {
       const config = TASK_TYPE_FIELDS[taskType];
       const project = await prisma.researchProject.findFirst({
         where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid },
@@ -330,7 +340,7 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
             entityTitle: project.name,
             projectName: project.name,
             action: config.notificationAction,
-            message: config.notificationMsg,
+            message: buildCompletionMessage(taskType, papersAdded),
             actorType: "agent",
             actorUuid: activeAgentUuid,
             actorName: agent.name ?? "Agent",

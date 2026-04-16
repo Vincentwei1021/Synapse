@@ -661,7 +661,7 @@ export const commonToolDefinitions = defineOpenClawTools([
   // =========================================================================
   // Task Completion
   // =========================================================================
-  createPassthroughTool<{ researchProjectUuid: string; taskType: string }>({
+  createPassthroughTool<{ researchProjectUuid: string; taskType: string; papersAdded?: number }>({
     name: "synapse_complete_task",
     description: "Signal that an agent task (auto_search or deep_research) has finished. Clears the active indicator and notifies the owner.",
     parameters: {
@@ -669,6 +669,7 @@ export const commonToolDefinitions = defineOpenClawTools([
       properties: {
         researchProjectUuid: { type: "string", description: "Research Project UUID" },
         taskType: { type: "string", description: "Task type: auto_search | deep_research" },
+        papersAdded: { type: "number", description: "Number of new papers added (auto_search only)" },
       },
       required: ["researchProjectUuid", "taskType"],
       additionalProperties: false,
