@@ -21,6 +21,7 @@ async function wakeAgent(
   text: string,
   logger: { info: (msg: string) => void; warn: (msg: string) => void },
   timeoutSeconds?: number,
+  completionCallback?: () => Promise<void>,
 ) {
   try {
     const res = await fetch(`${gatewayUrl}/hooks/agent`, {
@@ -44,6 +45,15 @@ async function wakeAgent(
     }
   } catch (err) {
     logger.warn(`Wake agent error: ${err}`);
+  }
+
+  // Call completion callback after agent turn finishes (regardless of success/failure)
+  if (completionCallback) {
+    try {
+      await completionCallback();
+    } catch (err) {
+      logger.warn(`Completion callback error: ${err}`);
+    }
   }
 }
 
@@ -95,9 +105,10 @@ const plugin = {
       logger,
       triggerAgent: (message: string, metadata?: Record<string, unknown>) => {
         const timeoutSeconds = metadata?.timeoutSeconds as number | undefined;
+        const completionCallback = metadata?.completionCallback as (() => Promise<void>) | undefined;
         // Use /hooks/agent to create an isolated agent turn for Synapse work.
         if (hooksToken) {
-          wakeAgent(gatewayUrl, hooksToken, message, logger, timeoutSeconds);
+          wakeAgent(gatewayUrl, hooksToken, message, logger, timeoutSeconds, completionCallback);
         } else {
           logger.warn(
             `[Synapse] Cannot wake agent — hooks.token not configured. Event: ${message.slice(0, 100)}`

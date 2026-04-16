@@ -19,6 +19,8 @@ export default async function RelatedWorksPage({ params }: PageProps) {
     select: {
       uuid: true,
       deepResearchDocUuid: true,
+      autoSearchActiveAgentUuid: true,
+      deepResearchActiveAgentUuid: true,
     },
   });
   if (!project) redirect("/research-projects");
@@ -47,6 +49,8 @@ export default async function RelatedWorksPage({ params }: PageProps) {
         initialWorks={works}
         agents={agents.map((a) => ({ uuid: a.uuid, name: a.name }))}
         deepResearchDoc={deepResearchDoc}
+        autoSearchActiveAgentUuid={project.autoSearchActiveAgentUuid}
+        deepResearchActiveAgentUuid={project.deepResearchActiveAgentUuid}
       />
     </div>
   );

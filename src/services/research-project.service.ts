@@ -34,7 +34,9 @@ export interface ResearchProjectUpdateParams {
   autonomousLoopAgentUuid?: string | null;
   autoSearchEnabled?: boolean;
   autoSearchAgentUuid?: string | null;
+  autoSearchActiveAgentUuid?: string | null;
   deepResearchDocUuid?: string | null;
+  deepResearchActiveAgentUuid?: string | null;
   repoUrl?: string | null;
   githubUsername?: string | null;
   githubToken?: string | null;

@@ -194,6 +194,22 @@ export class SynapseEventRouter {
       .join("; ");
   }
 
+  private async callCompletionApi(projectUuid: string, taskType: "auto-search" | "deep-research"): Promise<void> {
+    const url = `${this.config.synapseUrl}/api/research-projects/${projectUuid}/related-works/${taskType}/complete`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.config.apiKey}`,
+      },
+    });
+    if (!res.ok) {
+      this.logger.warn(`Completion API failed for ${taskType}: HTTP ${res.status}`);
+    } else {
+      this.logger.info(`Completion API called for ${taskType} on project ${projectUuid}`);
+    }
+  }
+
   private async handleExperimentAssigned(n: NotificationDetail): Promise<void> {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
     const mentionGuidance = this.buildMentionGuidance(n, "experiment");
@@ -441,7 +457,14 @@ Writing guidelines:
       ? `${basePrompt}\n\nAdditional instructions from the user:\n${n.message}`
       : basePrompt;
 
-    this.triggerAgent(prompt, { notificationUuid: n.uuid, action: "deep_research_requested", entityUuid: n.entityUuid, projectUuid, timeoutSeconds: 1800 });
+    this.triggerAgent(prompt, {
+      notificationUuid: n.uuid,
+      action: "deep_research_requested",
+      entityUuid: n.entityUuid,
+      projectUuid,
+      timeoutSeconds: 1800,
+      completionCallback: () => this.callCompletionApi(projectUuid, "deep-research"),
+    });
   }
 
   private handleAutoSearchTriggered(n: NotificationDetail): void {
@@ -470,7 +493,14 @@ Steps:
       ? `${basePrompt}\n\nAdditional instructions from the user:\n${n.message}`
       : basePrompt;
 
-    this.triggerAgent(prompt, { notificationUuid: n.uuid, action: "auto_search_triggered", entityUuid: n.entityUuid, projectUuid, timeoutSeconds: 600 });
+    this.triggerAgent(prompt, {
+      notificationUuid: n.uuid,
+      action: "auto_search_triggered",
+      entityUuid: n.entityUuid,
+      projectUuid,
+      timeoutSeconds: 600,
+      completionCallback: () => this.callCompletionApi(projectUuid, "auto-search"),
+    });
   }
 
   private handleExperimentPlanRequested(n: NotificationDetail): void {

@@ -39,6 +39,8 @@ interface RelatedWorksClientProps {
   initialWorks: RelatedWorkResponse[];
   agents: AgentOption[];
   deepResearchDoc: DeepResearchDocInfo | null;
+  autoSearchActiveAgentUuid: string | null;
+  deepResearchActiveAgentUuid: string | null;
 }
 
 export function RelatedWorksClient({
@@ -46,6 +48,8 @@ export function RelatedWorksClient({
   initialWorks,
   agents,
   deepResearchDoc: initialDeepResearchDoc,
+  autoSearchActiveAgentUuid,
+  deepResearchActiveAgentUuid,
 }: RelatedWorksClientProps) {
   const router = useRouter();
   const t = useTranslations("relatedWorks");
@@ -285,9 +289,9 @@ export function RelatedWorksClient({
       <div className="grid gap-4 md:grid-cols-2">
         {/* Auto-search control */}
         <GlowBorder
-          active={searchingPapers}
-          primaryColor={getAgentColor(autoSearchAgentUuid).primary}
-          lightColor={getAgentColor(autoSearchAgentUuid).light}
+          active={!!autoSearchActiveAgentUuid}
+          primaryColor={getAgentColor(autoSearchActiveAgentUuid ?? "").primary}
+          lightColor={getAgentColor(autoSearchActiveAgentUuid ?? "").light}
         >
         <Card className="rounded-2xl border-border bg-card p-5">
           <div className="flex items-start gap-3">
@@ -348,9 +352,9 @@ export function RelatedWorksClient({
 
         {/* Deep Research control */}
         <GlowBorder
-          active={generatingDeepResearch}
-          primaryColor={getAgentColor(deepResearchAgentUuid).primary}
-          lightColor={getAgentColor(deepResearchAgentUuid).light}
+          active={!!deepResearchActiveAgentUuid}
+          primaryColor={getAgentColor(deepResearchActiveAgentUuid ?? "").primary}
+          lightColor={getAgentColor(deepResearchActiveAgentUuid ?? "").light}
         >
         <Card className="rounded-2xl border-border bg-card p-5">
           <div className="flex items-start gap-3">

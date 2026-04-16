@@ -140,7 +140,9 @@ model ResearchProject {
   autonomousLoopMode       String?  @default("human_review")
   autoSearchEnabled        Boolean  @default(false)
   autoSearchAgentUuid      String?
+  autoSearchActiveAgentUuid   String?
   deepResearchDocUuid      String?
+  deepResearchActiveAgentUuid String?
   repoUrl              String?
   githubUsername        String?
   githubToken          String?
