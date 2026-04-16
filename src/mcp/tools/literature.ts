@@ -291,12 +291,12 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
       const config = TASK_TYPE_FIELDS[taskType];
       const project = await prisma.researchProject.findFirst({
         where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid },
-        select: { uuid: true, name: true, [config.activeField]: true },
+        select: { uuid: true, name: true, autoSearchActiveAgentUuid: true, deepResearchActiveAgentUuid: true },
       });
       if (!project) {
         return { content: [{ type: "text" as const, text: "Research Project not found" }], isError: true };
       }
-      const activeAgentUuid = (project as Record<string, unknown>)[config.activeField] as string | null;
+      const activeAgentUuid = taskType === "auto_search" ? project.autoSearchActiveAgentUuid : project.deepResearchActiveAgentUuid;
       if (!activeAgentUuid) {
         return { content: [{ type: "text" as const, text: JSON.stringify({ cleared: false, reason: "no active task" }) }] };
       }
