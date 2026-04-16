@@ -19,11 +19,15 @@ export default async function RelatedWorksPage({ params }: PageProps) {
     select: {
       uuid: true,
       deepResearchDocUuid: true,
-      autoSearchActiveAgentUuid: true,
-      deepResearchActiveAgentUuid: true,
     },
   });
   if (!project) redirect("/research-projects");
+
+  // Fetch active agent UUIDs via raw SQL (fields may not be in generated Prisma client yet)
+  const activeRows = await prisma.$queryRaw<Array<{ autoSearchActiveAgentUuid: string | null; deepResearchActiveAgentUuid: string | null }>>`
+    SELECT "autoSearchActiveAgentUuid", "deepResearchActiveAgentUuid" FROM "Project" WHERE uuid = ${projectUuid}
+  `;
+  const activeAgents = activeRows[0] ?? { autoSearchActiveAgentUuid: null, deepResearchActiveAgentUuid: null };
 
   // Fetch deep research doc metadata if it exists
   let deepResearchDoc: { uuid: string; version: number; updatedAt: string } | null = null;
@@ -49,8 +53,8 @@ export default async function RelatedWorksPage({ params }: PageProps) {
         initialWorks={works}
         agents={agents.map((a) => ({ uuid: a.uuid, name: a.name }))}
         deepResearchDoc={deepResearchDoc}
-        autoSearchActiveAgentUuid={project.autoSearchActiveAgentUuid}
-        deepResearchActiveAgentUuid={project.deepResearchActiveAgentUuid}
+        autoSearchActiveAgentUuid={activeAgents.autoSearchActiveAgentUuid}
+        deepResearchActiveAgentUuid={activeAgents.deepResearchActiveAgentUuid}
       />
     </div>
   );

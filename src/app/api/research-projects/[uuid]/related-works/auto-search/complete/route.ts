@@ -16,18 +16,19 @@ export const POST = withErrorHandler<{ uuid: string }>(
     const { uuid: projectUuid } = await context.params;
     const project = await prisma.researchProject.findFirst({
       where: { uuid: projectUuid, companyUuid: auth.companyUuid },
-      select: { name: true, autoSearchActiveAgentUuid: true },
+      select: { name: true },
     });
     if (!project) return errors.notFound("Research Project");
-    if (!project.autoSearchActiveAgentUuid) return success({ cleared: false });
 
-    const agentUuid = project.autoSearchActiveAgentUuid;
+    // Read active agent UUID via raw SQL (field may not be in generated Prisma client yet)
+    const rows = await prisma.$queryRaw<Array<{ autoSearchActiveAgentUuid: string | null }>>`
+      SELECT "autoSearchActiveAgentUuid" FROM "Project" WHERE uuid = ${projectUuid}
+    `;
+    const agentUuid = rows[0]?.autoSearchActiveAgentUuid;
+    if (!agentUuid) return success({ cleared: false });
 
     // Clear the active field
-    await prisma.researchProject.update({
-      where: { uuid: projectUuid },
-      data: { autoSearchActiveAgentUuid: null },
-    });
+    await prisma.$executeRaw`UPDATE "Project" SET "autoSearchActiveAgentUuid" = NULL WHERE uuid = ${projectUuid}`;
 
     eventBus.emitChange({
       companyUuid: auth.companyUuid,

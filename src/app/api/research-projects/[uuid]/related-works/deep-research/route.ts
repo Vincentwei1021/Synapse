@@ -42,10 +42,7 @@ export const POST = withErrorHandler<{ uuid: string }>(
     }
 
     // Mark deep research as active
-    await prisma.researchProject.update({
-      where: { uuid: projectUuid },
-      data: { deepResearchActiveAgentUuid: parsed.data.agentUuid },
-    });
+    await prisma.$executeRaw`UPDATE "Project" SET "deepResearchActiveAgentUuid" = ${parsed.data.agentUuid} WHERE uuid = ${projectUuid}`;
     eventBus.emitChange({
       companyUuid: auth.companyUuid,
       researchProjectUuid: projectUuid,
