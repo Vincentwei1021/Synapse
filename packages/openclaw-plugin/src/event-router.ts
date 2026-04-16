@@ -473,7 +473,7 @@ Steps:
 4. Based on the identified gaps, use synapse_search_papers to find new relevant academic papers — craft queries specifically targeting the missing areas
 5. For each candidate paper with an arxivId, use synapse_read_paper_brief to check its TLDR and keywords — only add papers that are genuinely relevant and fill gaps
 6. For each relevant paper, use synapse_add_related_work with researchProjectUuid "${projectUuid}" to add it (duplicates are automatically skipped — if isNew=false, the paper already existed)
-7. Search with multiple query variations to maximize coverage, but call synapse_search_papers sequentially (one at a time) to avoid rate limits
+7. Search with multiple query variations to maximize coverage, but call synapse_search_papers sequentially (one at a time) to avoid rate limits. Do NOT call synapse_search_papers more than 10 times total.
 8. Focus on papers that fill gaps not covered by existing related works — do NOT search for topics already well-represented
 9. REQUIRED: After finishing all searches, call synapse_complete_task with researchProjectUuid "${projectUuid}" and taskType "auto_search" to signal completion.`;
 

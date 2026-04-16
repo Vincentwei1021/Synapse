@@ -487,12 +487,6 @@ export function ExperimentsBoard({
           <div className="relative" ref={loopDropdownRef}>
             {loopEnabled ? (
               /* ACTIVE: showing mode + agent + phase + stop */
-              <GlowBorder
-                active={loopEnabled}
-                primaryColor={getAgentColor(loopAgentUuid).primary}
-                lightColor={getAgentColor(loopAgentUuid).light}
-                variant="pulse"
-              >
               <div className="flex items-center">
                 <button
                   onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
@@ -523,7 +517,6 @@ export function ExperimentsBoard({
                   </button>
                 </button>
               </div>
-              </GlowBorder>
             ) : (
               /* OFF: zap icon + text */
               <button
@@ -659,11 +652,9 @@ export function ExperimentsBoard({
                       }}
                       className="relative space-y-3 rounded-2xl border-border bg-card p-3.5 text-left shadow-none transition-colors hover:border-primary/30"
                     >
-                      {/* Typing animation GIF — shown when agent is actively working */}
-                      {experiment.liveStatus && (
-                        <div className="absolute -top-3 -right-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border-2 border-green-400 bg-white shadow-sm dark:bg-gray-900">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src="/typing-animation.gif" alt="" className="h-8 w-8" />
+                      {experiment.liveStatus && experiment.assignee?.name && (
+                        <div className="absolute -top-2.5 -right-2.5 z-10 max-w-[120px] truncate rounded-full border border-primary/40 bg-background px-2 py-0.5 text-[10px] font-medium text-primary shadow-sm">
+                          {experiment.assignee.name}
                         </div>
                       )}
                       <div className="space-y-2">

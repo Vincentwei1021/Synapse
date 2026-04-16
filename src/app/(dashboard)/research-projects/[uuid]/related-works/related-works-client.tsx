@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
 import { GlowBorder } from "@/components/glow-border";
+import { getAgentColor } from "@/lib/agent-colors";
 import type { RelatedWorkResponse } from "@/services/related-work.service";
 
 interface AgentOption {
@@ -306,8 +307,8 @@ export function RelatedWorksClient({
         {/* Auto-search control */}
         <GlowBorder
           active={!!autoSearchActiveAgentUuid}
-          primaryColor="hsl(var(--primary))"
-          lightColor="hsl(var(--primary) / 0.4)"
+          primaryColor={getAgentColor(autoSearchActiveAgentUuid ?? "").primary}
+          lightColor={getAgentColor(autoSearchActiveAgentUuid ?? "").light}
           variant="spin"
         >
         <Card className="rounded-2xl border-border bg-card p-5">
@@ -372,8 +373,8 @@ export function RelatedWorksClient({
         {/* Deep Research control */}
         <GlowBorder
           active={!!deepResearchActiveAgentUuid}
-          primaryColor="hsl(var(--primary))"
-          lightColor="hsl(var(--primary) / 0.4)"
+          primaryColor={getAgentColor(deepResearchActiveAgentUuid ?? "").primary}
+          lightColor={getAgentColor(deepResearchActiveAgentUuid ?? "").light}
           variant="spin"
         >
         <Card className="rounded-2xl border-border bg-card p-5">
