@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { VALID_AGENT_TYPES } from "@/lib/agent-transport";
-import { isValidAgentColorKey, DEFAULT_AGENT_COLOR_KEY } from "@/lib/agent-colors";
+import { isValidAgentColorName, DEFAULT_AGENT_COLOR_NAME } from "@/lib/agent-colors";
 import {
   listApiKeys,
   createAgent,
@@ -98,9 +98,9 @@ export async function createAgentAndKeyAction(input: CreateAgentKeyInput): Promi
     return { success: false, error: "Invalid agent type" };
   }
 
-  const resolvedColor = input.color && isValidAgentColorKey(input.color)
+  const resolvedColor = input.color && isValidAgentColorName(input.color)
     ? input.color
-    : DEFAULT_AGENT_COLOR_KEY;
+    : DEFAULT_AGENT_COLOR_NAME;
 
   try {
     const agent = await createAgent({
@@ -270,7 +270,7 @@ export async function updateAgentAction(input: UpdateAgentInput): Promise<{
     if (input.color !== undefined) {
       if (input.color === null) {
         nextColor = null;
-      } else if (isValidAgentColorKey(input.color)) {
+      } else if (isValidAgentColorName(input.color)) {
         nextColor = input.color;
       } else {
         return { success: false, error: "Invalid agent color" };

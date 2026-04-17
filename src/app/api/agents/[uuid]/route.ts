@@ -8,7 +8,7 @@ import { success, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
 import { deleteAgent, getAgent, getAgentByUuid, updateAgent } from "@/services/agent.service";
 import { VALID_AGENT_TYPES } from "@/lib/agent-transport";
-import { isValidAgentColorKey } from "@/lib/agent-colors";
+import { isValidAgentColorName } from "@/lib/agent-colors";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
@@ -139,7 +139,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
     if (body.color !== undefined) {
       if (body.color === null) {
         updateData.color = null;
-      } else if (!isValidAgentColorKey(body.color)) {
+      } else if (!isValidAgentColorName(body.color)) {
         return errors.validationError({ color: "Invalid agent color" });
       } else {
         updateData.color = body.color;

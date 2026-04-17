@@ -8,7 +8,7 @@ import { success, paginated, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
 import { createAgent, listAgents } from "@/services/agent.service";
 import { VALID_AGENT_TYPES } from "@/lib/agent-transport";
-import { isValidAgentColorKey, DEFAULT_AGENT_COLOR_KEY } from "@/lib/agent-colors";
+import { isValidAgentColorName, DEFAULT_AGENT_COLOR_NAME } from "@/lib/agent-colors";
 
 // GET /api/agents - List Agents
 export const GET = withErrorHandler(async (request: NextRequest) => {
@@ -97,11 +97,11 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     });
   }
 
-  let color: string | null = DEFAULT_AGENT_COLOR_KEY;
+  let color: string | null = DEFAULT_AGENT_COLOR_NAME;
   if (body.color === null) {
     color = null;
   } else if (body.color !== undefined) {
-    if (!isValidAgentColorKey(body.color)) {
+    if (!isValidAgentColorName(body.color)) {
       return errors.validationError({ color: "Invalid agent color" });
     }
     color = body.color;

@@ -852,15 +852,15 @@
       "terracotta": "陶土色",
       "violet": "紫罗兰",
       "pink": "粉红",
-      "blue": "蓝色",
+      "orange": "橙色",
       "emerald": "翠绿",
-      "amber": "琥珀",
-      "rose": "玫瑰红",
       "cyan": "青色",
+      "yellow": "黄色",
+      "rose": "玫瑰红",
       "indigo": "靛蓝",
       "teal": "青绿",
-      "lime": "柠檬绿",
-      "slate": "石板灰"
+      "fuchsia": "品红",
+      "lime": "柠檬绿"
     },
     "type": {
       "openclaw": "OpenClaw",
@@ -1012,35 +1012,35 @@
       "experimentRevisionRequested": "请求修改"
     },
     "preferences": {
-    "title": "通知偏好",
-    "description": "配置哪些事件触发通知",
-    "preResearch": "预研",
-    "research": "研究",
-    "experiment": "实验",
-    "report": "报告",
-    "general": "通用",
-    "comingSoon": "即将推出",
-    "researchQuestionClaimed": "研究问题被认领",
-    "hypothesisFormulationRequested": "假设形成请求",
-    "hypothesisFormulationAnswered": "假设形成已回答",
-    "experimentAssigned": "实验被分配",
-    "experimentStatusChanged": "实验状态变更",
-    "experimentVerified": "实验已验证",
-    "experimentReopened": "实验被重新打开",
-    "designSubmitted": "实验设计已提交",
-    "designApproved": "实验设计已批准",
-    "designRejected": "实验设计被拒绝",
-    "commentAdded": "新评论",
-    "experimentCompleted": "实验完成",
-    "prefExperimentStatusChanged": "实验状态变更（实时）",
-    "prefExperimentProgress": "实验进度更新",
-    "prefExperimentAutoProposed": "自动提出实验",
-    "prefAutonomousLoopTriggered": "自主闭环触发",
-    "prefSynthesisUpdated": "综述更新",
-    "autoSearchCompleted": "自动搜索完成",
-    "deepResearchCompleted": "深度研究完成",
-    "mentioned": "被提及"
-  }
+      "title": "通知偏好",
+      "description": "配置哪些事件触发通知",
+      "preResearch": "预研",
+      "research": "研究",
+      "experiment": "实验",
+      "report": "报告",
+      "general": "通用",
+      "comingSoon": "即将推出",
+      "researchQuestionClaimed": "研究问题被认领",
+      "hypothesisFormulationRequested": "假设形成请求",
+      "hypothesisFormulationAnswered": "假设形成已回答",
+      "experimentAssigned": "实验被分配",
+      "experimentStatusChanged": "实验状态变更",
+      "experimentVerified": "实验已验证",
+      "experimentReopened": "实验被重新打开",
+      "designSubmitted": "实验设计已提交",
+      "designApproved": "实验设计已批准",
+      "designRejected": "实验设计被拒绝",
+      "commentAdded": "新评论",
+      "experimentCompleted": "实验完成",
+      "prefExperimentStatusChanged": "实验状态变更（实时）",
+      "prefExperimentProgress": "实验进度更新",
+      "prefExperimentAutoProposed": "自动提出实验",
+      "prefAutonomousLoopTriggered": "自主闭环触发",
+      "prefSynthesisUpdated": "综述更新",
+      "autoSearchCompleted": "自动搜索完成",
+      "deepResearchCompleted": "深度研究完成",
+      "mentioned": "被提及"
+    }
   },
   "hypothesisFormulation": {
     "title": "假说构建",
@@ -1636,7 +1636,6 @@
     "next": "下一步",
     "back": "上一步",
     "stepOf": "第 {current} 步，共 {total} 步",
-
     "step1": {
       "title": "创建你的第一个 Agent",
       "subtitle": "Agent 是一个 AI 助手，可以代替你运行实验和搜索文献。",
@@ -1655,7 +1654,6 @@
       "roleAdmin": "管理员",
       "createAgent": "创建 Agent"
     },
-
     "step2": {
       "title": "连接你的 Agent",
       "subtitle": "使用以下 API Key 和端点配置你的 Agent，然后测试连接。",
@@ -1673,7 +1671,6 @@
       "timeout": "未检测到连接，请检查 Agent 配置。",
       "retry": "重试"
     },
-
     "step3": {
       "title": "设置算力",
       "subtitle": "创建算力池并添加机器，以便 Agent 运行 GPU 任务。",
@@ -1716,13 +1713,11 @@
       "userSummary": "用户",
       "portSummary": "端口"
     },
-
     "complete": {
       "title": "设置完成！",
       "summary": "已创建 {agentCount} 个 Agent、{poolCount} 个算力池和 {nodeCount} 台机器。",
       "redirecting": "正在跳转到项目页..."
     },
-
     "sidebar": {
       "setupProgress": "设置进度",
       "agentConfigured": "Agent 已配置",

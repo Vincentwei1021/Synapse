@@ -852,15 +852,15 @@
       "terracotta": "Terracotta",
       "violet": "Violet",
       "pink": "Pink",
-      "blue": "Blue",
+      "orange": "Orange",
       "emerald": "Emerald",
-      "amber": "Amber",
-      "rose": "Rose",
       "cyan": "Cyan",
+      "yellow": "Yellow",
+      "rose": "Rose",
       "indigo": "Indigo",
       "teal": "Teal",
-      "lime": "Lime",
-      "slate": "Slate"
+      "fuchsia": "Fuchsia",
+      "lime": "Lime"
     },
     "type": {
       "openclaw": "OpenClaw",
@@ -1012,35 +1012,35 @@
       "experimentRevisionRequested": "requested revisions on"
     },
     "preferences": {
-    "title": "Notification Preferences",
-    "description": "Configure which events trigger notifications",
-    "preResearch": "Pre-research",
-    "research": "Research",
-    "experiment": "Experiment",
-    "report": "Report",
-    "general": "General",
-    "comingSoon": "Coming soon",
-    "researchQuestionClaimed": "Research question assigned",
-    "hypothesisFormulationRequested": "Hypothesis formulation requested",
-    "hypothesisFormulationAnswered": "Hypothesis formulation answered",
-    "experimentAssigned": "Experiment assigned",
-    "experimentStatusChanged": "Experiment status changed",
-    "experimentVerified": "Experiment verified",
-    "experimentReopened": "Experiment reopened",
-    "designSubmitted": "Experiment design submitted",
-    "designApproved": "Experiment design approved",
-    "designRejected": "Experiment design rejected",
-    "commentAdded": "Comment added",
-    "experimentCompleted": "Experiment completed",
-    "prefExperimentStatusChanged": "Experiment status changed (live)",
-    "prefExperimentProgress": "Experiment progress updates",
-    "prefExperimentAutoProposed": "Experiment auto-proposed",
-    "prefAutonomousLoopTriggered": "Autonomous loop triggered",
-    "prefSynthesisUpdated": "Synthesis updated",
-    "autoSearchCompleted": "Auto-search completed",
-    "deepResearchCompleted": "Deep research completed",
-    "mentioned": "Mentioned"
-  }
+      "title": "Notification Preferences",
+      "description": "Configure which events trigger notifications",
+      "preResearch": "Pre-research",
+      "research": "Research",
+      "experiment": "Experiment",
+      "report": "Report",
+      "general": "General",
+      "comingSoon": "Coming soon",
+      "researchQuestionClaimed": "Research question assigned",
+      "hypothesisFormulationRequested": "Hypothesis formulation requested",
+      "hypothesisFormulationAnswered": "Hypothesis formulation answered",
+      "experimentAssigned": "Experiment assigned",
+      "experimentStatusChanged": "Experiment status changed",
+      "experimentVerified": "Experiment verified",
+      "experimentReopened": "Experiment reopened",
+      "designSubmitted": "Experiment design submitted",
+      "designApproved": "Experiment design approved",
+      "designRejected": "Experiment design rejected",
+      "commentAdded": "Comment added",
+      "experimentCompleted": "Experiment completed",
+      "prefExperimentStatusChanged": "Experiment status changed (live)",
+      "prefExperimentProgress": "Experiment progress updates",
+      "prefExperimentAutoProposed": "Experiment auto-proposed",
+      "prefAutonomousLoopTriggered": "Autonomous loop triggered",
+      "prefSynthesisUpdated": "Synthesis updated",
+      "autoSearchCompleted": "Auto-search completed",
+      "deepResearchCompleted": "Deep research completed",
+      "mentioned": "Mentioned"
+    }
   },
   "hypothesisFormulation": {
     "title": "Hypothesis Formulation",
@@ -1368,7 +1368,7 @@
     "autonomousLoop": "Autonomous Loop",
     "autonomousLoopDesc": "When all queues are empty, agent analyzes project and proposes new experiments",
     "selectAgentToActivate": "Select an agent to activate",
-    "autonomousActive": "Active \u00b7 analyzing with {agent}",
+    "autonomousActive": "Active · analyzing with {agent}",
     "selectAgent": "Select agent...",
     "startAutonomousLoop": "Start Autonomous Loop",
     "humanReviewMode": "Human Review",
@@ -1636,7 +1636,6 @@
     "next": "Next",
     "back": "Back",
     "stepOf": "Step {current} of {total}",
-
     "step1": {
       "title": "Create Your First Agent",
       "subtitle": "An agent is an AI assistant that runs experiments and searches literature on your behalf.",
@@ -1655,7 +1654,6 @@
       "roleAdmin": "Admin",
       "createAgent": "Create Agent"
     },
-
     "step2": {
       "title": "Connect Your Agent",
       "subtitle": "Configure your agent with the API key and endpoint below, then test the connection.",
@@ -1673,7 +1671,6 @@
       "timeout": "No connection detected. Please check your agent configuration.",
       "retry": "Retry"
     },
-
     "step3": {
       "title": "Set Up Compute",
       "subtitle": "Create a compute pool and add a machine so agents can run GPU workloads.",
@@ -1716,13 +1713,11 @@
       "userSummary": "User",
       "portSummary": "Port"
     },
-
     "complete": {
       "title": "Setup Complete!",
       "summary": "Created {agentCount} agent, {poolCount} compute pool, and {nodeCount} machine.",
       "redirecting": "Redirecting to projects..."
     },
-
     "sidebar": {
       "setupProgress": "Setup Progress",
       "agentConfigured": "Agent configured",
