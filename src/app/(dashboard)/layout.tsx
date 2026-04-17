@@ -31,6 +31,9 @@ import { NotificationBell } from "@/components/notification-bell";
 import { NavigationProgress } from "@/components/navigation-progress";
 import { OnboardingProgress } from "@/components/onboarding-progress";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { SidebarSectionFrame } from "@/components/sidebar-section-frame";
+import { useAgentActivity } from "@/hooks/use-agent-activity";
+import type { AgentSummary } from "@/services/agent-activity.service";
 
 interface User {
   uuid: string;
@@ -48,6 +51,64 @@ function extractProjectUuid(pathname: string): string | null {
   // Match /research-projects/[uuid] or /research-projects/[uuid]/anything
   const match = pathname.match(/^\/research-projects\/([a-f0-9-]{36})(\/|$)/);
   return match ? match[1] : null;
+}
+
+interface ProjectNavFrameListProps {
+  items: Array<{ href: string; label: string; icon: typeof FolderKanban }>;
+  projectUuid: string;
+  isNavActive: (href: string) => boolean;
+  navGap: string;
+  navTextSize: string;
+  navIconSize: string;
+  navItemPy: string;
+}
+
+function ProjectNavFrameList({
+  items,
+  projectUuid,
+  isNavActive,
+  navGap,
+  navTextSize,
+  navIconSize,
+  navItemPy,
+}: ProjectNavFrameListProps) {
+  const agentActivity = useAgentActivity(projectUuid);
+  const getAgentsFor = (href: string): AgentSummary[] => {
+    if (href.endsWith("/related-works")) return agentActivity.relatedWorks;
+    if (href.endsWith("/experiments")) return agentActivity.experiments;
+    if (href.endsWith("/research-questions")) return agentActivity.researchQuestions;
+    if (href.endsWith("/insights")) return agentActivity.insights;
+    if (href.endsWith("/documents")) return agentActivity.documents;
+    return [];
+  };
+  return (
+    <div className={`mt-2 flex flex-col ${navGap}`}>
+      {items.map((item) => {
+        const isActive = isNavActive(item.href);
+        const Icon = item.icon;
+        return (
+          <SidebarSectionFrame key={item.href} agents={getAgentsFor(item.href)}>
+            <Link href={item.href} prefetch>
+              <Button
+                variant={isActive ? "secondary" : "ghost"}
+                size="sm"
+                className={`w-full justify-start gap-2.5 ${navTextSize} ${navItemPy} ${
+                  isActive
+                    ? "font-medium text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon
+                  className={`${navIconSize} ${isActive ? "text-primary" : ""}`}
+                />
+                {item.label}
+              </Button>
+            </Link>
+          </SidebarSectionFrame>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function DashboardLayout({
@@ -359,30 +420,15 @@ export default function DashboardLayout({
               )}
 
               {/* Project Navigation Items */}
-              <div className={`mt-2 flex flex-col ${navGap}`}>
-                {projectNavItems.map((item) => {
-                  const isActive = isNavActive(item.href);
-                  const Icon = item.icon;
-                  return (
-                    <Link key={item.href} href={item.href} prefetch>
-                      <Button
-                        variant={isActive ? "secondary" : "ghost"}
-                        size="sm"
-                        className={`w-full justify-start gap-2.5 ${navTextSize} ${navItemPy} ${
-                          isActive
-                            ? "font-medium text-foreground"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        <Icon
-                          className={`${navIconSize} ${isActive ? "text-primary" : ""}`}
-                        />
-                        {item.label}
-                      </Button>
-                    </Link>
-                  );
-                })}
-              </div>
+              <ProjectNavFrameList
+                items={projectNavItems}
+                projectUuid={currentProjectUuid}
+                isNavActive={isNavActive}
+                navGap={navGap}
+                navTextSize={navTextSize}
+                navIconSize={navIconSize}
+                navItemPy={navItemPy}
+              />
             </>
           ) : (
             <>
@@ -461,27 +507,44 @@ export default function DashboardLayout({
         <NotificationBell />
       </header>
 
-      {/* Mobile Drawer */}
-      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetContent side="left" className="w-[280px] p-0">
-          <div className="flex h-full flex-col justify-between overflow-y-auto">
-            <SidebarContent mobile />
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Desktop Sidebar - hidden below md */}
-      <aside className="hidden md:sticky md:top-0 md:flex h-screen w-[220px] flex-shrink-0 flex-col justify-between overflow-y-auto border-r border-border bg-card">
-        <SidebarContent />
-      </aside>
-
-      {/* Main Content - add top padding on mobile for the fixed header */}
       {isProjectContext && currentProject ? (
         <RealtimeProvider projectUuid={currentProject.uuid}>
+          {/* Mobile Drawer */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetContent side="left" className="w-[280px] p-0">
+              <div className="flex h-full flex-col justify-between overflow-y-auto">
+                <SidebarContent mobile />
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          {/* Desktop Sidebar - hidden below md */}
+          <aside className="hidden md:sticky md:top-0 md:flex h-screen w-[220px] flex-shrink-0 flex-col justify-between overflow-y-auto border-r border-border bg-card">
+            <SidebarContent />
+          </aside>
+
+          {/* Main Content - add top padding on mobile for the fixed header */}
           <main className="flex-1 overflow-auto pt-14 md:pt-0">{children}</main>
         </RealtimeProvider>
       ) : (
-        <main className="flex-1 overflow-auto pt-14 md:pt-0">{children}</main>
+        <>
+          {/* Mobile Drawer */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetContent side="left" className="w-[280px] p-0">
+              <div className="flex h-full flex-col justify-between overflow-y-auto">
+                <SidebarContent mobile />
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          {/* Desktop Sidebar - hidden below md */}
+          <aside className="hidden md:sticky md:top-0 md:flex h-screen w-[220px] flex-shrink-0 flex-col justify-between overflow-y-auto border-r border-border bg-card">
+            <SidebarContent />
+          </aside>
+
+          {/* Main Content - add top padding on mobile for the fixed header */}
+          <main className="flex-1 overflow-auto pt-14 md:pt-0">{children}</main>
+        </>
       )}
     </div>
     </NotificationProvider>
