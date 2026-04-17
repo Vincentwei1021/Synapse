@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { ArrowRight, BookOpen, FileText, FlaskConical, Lightbulb } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { getResearchProjectDashboardData } from "@/services/research-project.service";
 import { EditProjectDialog } from "./edit-project-dialog";
 import { CollapsibleDescription } from "./collapsible-description";
+import { DashboardStatCard } from "./dashboard-stat-card";
 
 interface PageProps {
   params: Promise<{ uuid: string }>;
@@ -34,7 +35,7 @@ export default async function DashboardPage({ params }: PageProps) {
       value: relatedWorksCount,
       helper: t("dashboard.relatedWorksHelper"),
       href: `/research-projects/${projectUuid}/related-works`,
-      icon: BookOpen,
+      icon: "relatedWorks" as const,
       iconBg: "bg-amber-100 dark:bg-amber-500/15",
       iconColor: "text-amber-700 dark:text-amber-300",
     },
@@ -43,7 +44,7 @@ export default async function DashboardPage({ params }: PageProps) {
       value: stats.researchQuestions.total,
       helper: t("dashboard.questionsHelper", { count: stats.researchQuestions.open }),
       href: `/research-projects/${projectUuid}/research-questions`,
-      icon: Lightbulb,
+      icon: "researchQuestions" as const,
       iconBg: "bg-orange-100 dark:bg-orange-500/15",
       iconColor: "text-orange-700 dark:text-orange-300",
     },
@@ -52,7 +53,7 @@ export default async function DashboardPage({ params }: PageProps) {
       value: stats.experiments.total,
       helper: t("dashboard.experimentsHelper", { count: stats.experiments.inProgress }),
       href: `/research-projects/${projectUuid}/experiments`,
-      icon: FlaskConical,
+      icon: "experiments" as const,
       iconBg: "bg-emerald-100 dark:bg-emerald-500/15",
       iconColor: "text-emerald-700 dark:text-emerald-300",
     },
@@ -61,7 +62,7 @@ export default async function DashboardPage({ params }: PageProps) {
       value: stats.documents.total,
       helper: t("dashboard.documentsHelper"),
       href: `/research-projects/${projectUuid}/documents`,
-      icon: FileText,
+      icon: "documents" as const,
       iconBg: "bg-sky-100 dark:bg-sky-500/15",
       iconColor: "text-sky-700 dark:text-sky-300",
     },
@@ -120,25 +121,19 @@ export default async function DashboardPage({ params }: PageProps) {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {statCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <Link key={card.title} href={card.href}>
-              <Card className="h-full rounded-[28px] border-border bg-card p-5 transition hover:border-primary/30 hover:shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{card.title}</p>
-                    <p className="mt-3 text-[30px] font-semibold leading-none text-foreground">{card.value}</p>
-                    <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">{card.helper}</p>
-                  </div>
-                  <div className={`rounded-2xl p-3 ${card.iconBg}`}>
-                    <Icon className={`h-5 w-5 ${card.iconColor}`} />
-                  </div>
-                </div>
-              </Card>
-            </Link>
-          );
-        })}
+        {statCards.map((card) => (
+          <DashboardStatCard
+            key={card.title}
+            projectUuid={projectUuid}
+            href={card.href}
+            title={card.title}
+            value={card.value}
+            helper={card.helper}
+            icon={card.icon}
+            iconBg={card.iconBg}
+            iconColor={card.iconColor}
+          />
+        ))}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_1.2fr]">

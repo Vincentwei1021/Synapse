@@ -979,6 +979,15 @@
     "researchProjectBadge": "研究项目",
     "notificationPreferences": "通知偏好",
     "loadMore": "加载更多",
+    "entities": {
+      "paper": "论文",
+      "researchQuestion": "RQ",
+      "experiment": "实验",
+      "document": "文档",
+      "relatedWork": "论文",
+      "experimentRun": "运行",
+      "experimentDesign": "设计"
+    },
     "types": {
       "experimentDesign_approved": "实验设计已通过",
       "experimentDesign_rejected": "实验设计已拒绝",

@@ -979,6 +979,15 @@
     "researchProjectBadge": "Research Project",
     "notificationPreferences": "Notification Preferences",
     "loadMore": "Load more",
+    "entities": {
+      "paper": "Paper",
+      "researchQuestion": "RQ",
+      "experiment": "Experiment",
+      "document": "Document",
+      "relatedWork": "Paper",
+      "experimentRun": "Run",
+      "experimentDesign": "Design"
+    },
     "types": {
       "experimentDesign_approved": "Experiment design approved",
       "experimentDesign_rejected": "Experiment design rejected",

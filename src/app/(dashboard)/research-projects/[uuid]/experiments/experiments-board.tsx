@@ -490,17 +490,17 @@ export function ExperimentsBoard({
               <div className="flex items-center">
                 <button
                   onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
-                  className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 cursor-pointer transition-all duration-200"
+                  className="flex items-center gap-2 rounded-lg border border-primary/35 bg-primary/10 px-3 py-1.5 cursor-pointer transition-all duration-200"
                 >
-                  <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse shrink-0" />
-                  <span className="whitespace-nowrap text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  <div className="h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_rgba(198,122,82,0.45)] animate-pulse shrink-0" />
+                  <span className="whitespace-nowrap text-xs font-medium text-primary">
                     {loopMode === "full_auto" ? t("experiments.fullAutoMode") : t("experiments.humanReviewMode")}
                   </span>
                   <span className="whitespace-nowrap text-xs text-muted-foreground">
                     {t("experiments.via")} {realtimeAgents.find((a) => a.uuid === loopAgentUuid)?.name ?? "Agent"}
                   </span>
                   {autonomousPhase && (
-                    <span className="whitespace-nowrap text-[11px] text-emerald-500/70 dark:text-emerald-400/70">
+                    <span className="whitespace-nowrap text-[11px] text-primary/75">
                       · {t(`experiments.autoPhase.${autonomousPhase}`)}
                     </span>
                   )}
@@ -521,9 +521,9 @@ export function ExperimentsBoard({
               /* OFF: zap icon + text */
               <button
                 onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
-                className="flex cursor-pointer items-center gap-2 rounded-lg border border-primary/65 bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition-all duration-200 hover:bg-primary/90"
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-sky-200 bg-sky-100 px-3 py-1.5 text-xs font-medium text-sky-700 shadow-sm transition-all duration-200 hover:bg-sky-200 dark:border-sky-400/30 dark:bg-sky-500/15 dark:text-sky-300 dark:hover:bg-sky-500/20"
               >
-                <Zap className="h-3.5 w-3.5 shrink-0 fill-amber-300 text-amber-300" />
+                <Zap className="h-3.5 w-3.5 shrink-0 fill-sky-300 text-sky-400 dark:fill-sky-300/80 dark:text-sky-300" />
                 <span className="whitespace-nowrap">{t("experiments.startAutoResearch")}</span>
               </button>
             )}
@@ -551,7 +551,7 @@ export function ExperimentsBoard({
                 ) : (
                   <div className="p-3 space-y-3">
                     <div className="flex items-center gap-2">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-500"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" /></svg>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-primary"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" /></svg>
                       <span className="text-sm font-medium text-foreground">
                         {loopSelectedMode === "full_auto" ? t("experiments.fullAutoMode") : t("experiments.humanReviewMode")}
                       </span>

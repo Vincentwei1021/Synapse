@@ -16,9 +16,14 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { authFetch } from "@/lib/auth-client";
 import { useNotification } from "@/contexts/notification-context";
+import {
+  formatNotificationEntityLine,
+  getNotificationCardClassName,
+  getNotificationStatusLine,
+  type NotificationEntityLabels,
+} from "@/components/notification-popup.helpers";
 
 // ===== Types =====
 
@@ -86,27 +91,6 @@ function getTypeIcon(action: string) {
   }
 }
 
-// ===== Utility: relative time =====
-
-function useRelativeTime(t: ReturnType<typeof useTranslations>) {
-  return useCallback(
-    (dateStr: string) => {
-      const now = Date.now();
-      const date = new Date(dateStr).getTime();
-      const diffMs = now - date;
-      const diffMin = Math.floor(diffMs / 60_000);
-      const diffHrs = Math.floor(diffMs / 3_600_000);
-      const diffDays = Math.floor(diffMs / 86_400_000);
-
-      if (diffMin < 1) return t("justNow");
-      if (diffMin < 60) return t("minutesAgo", { count: diffMin });
-      if (diffHrs < 24) return t("hoursAgo", { count: diffHrs });
-      return t("daysAgo", { count: diffDays });
-    },
-    [t]
-  );
-}
-
 // ===== Entity navigation =====
 
 function getEntityPath(notification: Notification): string {
@@ -138,7 +122,15 @@ export function NotificationPopup({ onClose }: NotificationPopupProps) {
   const t = useTranslations("notifications");
   const router = useRouter();
   const { refreshNotifications } = useNotification();
-  const relativeTime = useRelativeTime(t);
+  const entityLabels: NotificationEntityLabels = {
+    paper: t("entities.paper"),
+    researchQuestion: t("entities.researchQuestion"),
+    experiment: t("entities.experiment"),
+    document: t("entities.document"),
+    relatedWork: t("entities.relatedWork"),
+    experimentRun: t("entities.experimentRun"),
+    experimentDesign: t("entities.experimentDesign"),
+  };
 
   const [allNotifications, setAllNotifications] = useState<Notification[]>([]);
   const [unreadNotifications, setUnreadNotifications] = useState<Notification[]>([]);
@@ -228,15 +220,19 @@ export function NotificationPopup({ onClose }: NotificationPopupProps) {
     const { Icon, color } = getTypeIcon(notification.action);
     const projectColor = hashProjectColor(notification.researchProjectUuid);
     const isUnread = !notification.readAt;
+    const entityLine = formatNotificationEntityLine(notification, entityLabels);
+    const statusLine = getNotificationStatusLine(notification.action, (key) =>
+      t(key as Parameters<typeof t>[0]),
+    );
 
     return (
       <button
         key={notification.uuid}
         onClick={() => handleClickNotification(notification)}
-        className="flex w-full gap-2.5 px-4 py-2.5 text-left hover:bg-muted/50 transition-colors border-b border-border last:border-b-0 h-[68px]"
+        className={getNotificationCardClassName({ unread: isUnread })}
       >
         {/* Unread dot */}
-        <div className="mt-2 flex-shrink-0">
+        <div className="mt-1.5 flex-shrink-0">
           {isUnread ? (
             <div className="h-2 w-2 rounded-full bg-[#C67A52]" />
           ) : (
@@ -250,18 +246,18 @@ export function NotificationPopup({ onClose }: NotificationPopupProps) {
         </div>
 
         {/* Content — fixed 3 lines, no wrapping */}
-        <div className="min-w-0 flex-1 flex flex-col justify-center gap-0.5">
+        <div className="grid min-w-0 flex-1 grid-rows-3 items-center">
           {/* Line 1: Project name */}
-          <div className={`text-[11px] font-medium truncate ${projectColor.text}`}>
+          <div className={`truncate text-[11px] font-medium leading-none ${projectColor.text}`}>
             {notification.projectName}
           </div>
-          {/* Line 2: Entity name */}
-          <div className="text-[13px] font-medium text-foreground truncate leading-tight">
-            {notification.entityTitle}
+          {/* Line 2: Entity type + name */}
+          <div className="truncate text-[13px] font-medium leading-none text-foreground">
+            {entityLine}
           </div>
-          {/* Line 3: Action status + time */}
-          <div className="text-[11px] text-muted-foreground truncate leading-tight">
-            {t(`types.${notification.action}` as Parameters<typeof t>[0])} &middot; {relativeTime(notification.createdAt)}
+          {/* Line 3: Action status */}
+          <div className="truncate text-[11px] leading-none text-muted-foreground">
+            {statusLine}
           </div>
         </div>
       </button>
@@ -287,7 +283,9 @@ export function NotificationPopup({ onClose }: NotificationPopupProps) {
 
     return (
       <>
-        {items.map(renderItem)}
+        <div className="space-y-2 p-2">
+          {items.map(renderItem)}
+        </div>
         {items.length < total && (
           <div className="p-3 text-center">
             <Button
@@ -305,7 +303,7 @@ export function NotificationPopup({ onClose }: NotificationPopupProps) {
   };
 
   return (
-    <div className="w-[calc(100vw-2rem)] max-w-[360px] bg-card text-card-foreground">
+    <div className="w-[calc(100vw-2rem)] max-w-[420px] bg-card text-card-foreground">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <h3 className="text-sm font-semibold text-foreground">{t("title")}</h3>
