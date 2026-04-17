@@ -172,9 +172,20 @@ export async function middleware(request: NextRequest) {
 
   // --- 1. Try user_session refresh (Default Auth) ---
   // Check this first because it's a quick local operation (no external fetch).
+  const userSession = request.cookies.get("user_session")?.value;
   const userResult = await handleUserSessionRefresh(request);
   if (userResult) return userResult;
-  if (request.cookies.get("user_session")?.value) {
+
+  if (userSession) {
+    const payload = decodeJwtPayload(userSession);
+    const now = Math.floor(Date.now() / 1000);
+
+    // A malformed or expired default-auth access token should be cleared here
+    // instead of being allowed to fall through to a later server-component redirect.
+    if (!payload || typeof payload.exp !== "number" || payload.exp - now <= 10) {
+      return clearAuthAndRedirect(request);
+    }
+
     return NextResponse.next();
   }
 
