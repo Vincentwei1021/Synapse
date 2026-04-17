@@ -638,6 +638,7 @@ export async function reviewExperiment(input: {
   experimentUuid: string;
   approved: boolean;
   reviewNote?: string | null;
+  assignedAgentUuid?: string | null; // present (even if null) = caller wants to set assignment
   actorUuid: string;
 }) {
   const existing = await prisma.experiment.findFirst({
@@ -659,6 +660,14 @@ export async function reviewExperiment(input: {
     existing.createdByUuid &&
     !existing.assigneeUuid;
 
+  // For revert: if the caller provided `assignedAgentUuid` (even as null),
+  // honor it as an explicit assignment change.
+  const callerSetAssignment = Object.prototype.hasOwnProperty.call(input, "assignedAgentUuid");
+  const nextAssigneeUuid = callerSetAssignment
+    ? (input.assignedAgentUuid ?? null)
+    : existing.assigneeUuid;
+  const nextAssigneeType = nextAssigneeUuid ? "agent" : null;
+
   const updated = await prisma.experiment.update({
     where: { uuid: input.experimentUuid },
     data: {
@@ -672,6 +681,16 @@ export async function reviewExperiment(input: {
             assigneeUuid: existing.createdByUuid,
             assignedAt: new Date(),
             assignedByUuid: input.actorUuid,
+          }
+        : {}),
+      ...(!input.approved && callerSetAssignment
+        ? {
+            assigneeType: nextAssigneeType,
+            assigneeUuid: nextAssigneeUuid,
+            assignedAt: nextAssigneeUuid ? new Date() : null,
+            assignedByUuid: nextAssigneeUuid ? input.actorUuid : null,
+            liveStatus: null,
+            liveMessage: null,
           }
         : {}),
     },
@@ -724,6 +743,48 @@ export async function reviewExperiment(input: {
       await updateExperimentLiveStatus(input.experimentUuid, "sent");
     } catch (err) {
       console.error("Failed to send task_assigned notification after review approval:", err);
+    }
+  }
+
+  // Revision request: when a reverted experiment has a target agent, notify
+  // them with the feedback so they can revise the draft. If a trimmed review
+  // note is provided, also record it as a comment on the experiment.
+  const trimmedNote = (input.reviewNote ?? "").trim();
+  if (!input.approved && nextAssigneeUuid) {
+    try {
+      if (trimmedNote) {
+        await prisma.comment.create({
+          data: {
+            companyUuid: input.companyUuid,
+            targetType: "experiment",
+            targetUuid: updated.uuid,
+            content: trimmedNote,
+            authorType: "user",
+            authorUuid: input.actorUuid,
+          },
+        });
+      }
+
+      const actorName = await getActorName("user", input.actorUuid);
+      await notificationService.create({
+        companyUuid: input.companyUuid,
+        researchProjectUuid: updated.researchProjectUuid,
+        recipientType: "agent",
+        recipientUuid: nextAssigneeUuid,
+        entityType: "experiment",
+        entityUuid: updated.uuid,
+        entityTitle: updated.title,
+        projectName: existing.researchProject.name,
+        action: "experiment_revision_requested",
+        message: trimmedNote
+          ? `Revision requested: ${trimmedNote.slice(0, 160)}`
+          : "Revision requested — see the experiment draft.",
+        actorType: "user",
+        actorUuid: input.actorUuid,
+        actorName: actorName || "Unknown",
+      });
+    } catch (err) {
+      console.error("Failed to emit revision request for reverted experiment:", err);
     }
   }
 
