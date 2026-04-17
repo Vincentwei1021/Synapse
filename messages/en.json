@@ -845,6 +845,23 @@
       "permissions": "Permissions",
       "type": "Type"
     },
+    "form": {
+      "colorLabel": "Color"
+    },
+    "colors": {
+      "terracotta": "Terracotta",
+      "violet": "Violet",
+      "pink": "Pink",
+      "blue": "Blue",
+      "emerald": "Emerald",
+      "amber": "Amber",
+      "rose": "Rose",
+      "cyan": "Cyan",
+      "indigo": "Indigo",
+      "teal": "Teal",
+      "lime": "Lime",
+      "slate": "Slate"
+    },
     "type": {
       "openclaw": "OpenClaw",
       "claude_code": "Claude Code"

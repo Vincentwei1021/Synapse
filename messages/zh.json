@@ -845,6 +845,23 @@
       "permissions": "权限",
       "type": "类型"
     },
+    "form": {
+      "colorLabel": "颜色"
+    },
+    "colors": {
+      "terracotta": "陶土色",
+      "violet": "紫罗兰",
+      "pink": "粉红",
+      "blue": "蓝色",
+      "emerald": "翠绿",
+      "amber": "琥珀",
+      "rose": "玫瑰红",
+      "cyan": "青色",
+      "indigo": "靛蓝",
+      "teal": "青绿",
+      "lime": "柠檬绿",
+      "slate": "石板灰"
+    },
     "type": {
       "openclaw": "OpenClaw",
       "claude_code": "Claude Code"
