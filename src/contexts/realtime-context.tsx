@@ -89,6 +89,16 @@ export function RealtimeProvider({ projectUuid, children }: RealtimeProviderProp
           // Non-JSON message (e.g. heartbeat) — ignore for entity subscribers
         }
 
+        // Experiment events bypass the throttle so status/liveStatus/progress
+        // updates land on the same frame as the card column transition.
+        if (parsedEvent?.entityType === "experiment") {
+          clearTimeout(debounceTimer);
+          lastNotifyTime = Date.now();
+          notify();
+          notifyEntity(parsedEvent);
+          return;
+        }
+
         clearTimeout(debounceTimer);
         const now = Date.now();
         const elapsed = now - lastNotifyTime;

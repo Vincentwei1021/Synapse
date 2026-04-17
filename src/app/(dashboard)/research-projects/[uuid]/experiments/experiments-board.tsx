@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { LayoutGroup, motion } from "framer-motion";
-import { CheckCircle2, ChevronRight, CornerUpLeft, FileText, GitBranch, Loader2, PenLine, Save, Send, Sparkles, Zap } from "lucide-react";
+import { Bot, CheckCircle2, ChevronRight, CornerUpLeft, FileText, GitBranch, Loader2, PenLine, Save, Send, Sparkles, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -490,17 +490,17 @@ export function ExperimentsBoard({
               <div className="flex items-center">
                 <button
                   onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
-                  className="flex items-center gap-2 rounded-lg border border-primary/35 bg-primary/10 px-3 py-1.5 cursor-pointer transition-all duration-200"
+                  className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 cursor-pointer transition-all duration-200"
                 >
-                  <div className="h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_rgba(198,122,82,0.45)] animate-pulse shrink-0" />
-                  <span className="whitespace-nowrap text-xs font-medium text-primary">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse shrink-0" />
+                  <span className="whitespace-nowrap text-xs font-medium text-emerald-600 dark:text-emerald-400">
                     {loopMode === "full_auto" ? t("experiments.fullAutoMode") : t("experiments.humanReviewMode")}
                   </span>
                   <span className="whitespace-nowrap text-xs text-muted-foreground">
                     {t("experiments.via")} {realtimeAgents.find((a) => a.uuid === loopAgentUuid)?.name ?? "Agent"}
                   </span>
                   {autonomousPhase && (
-                    <span className="whitespace-nowrap text-[11px] text-primary/75">
+                    <span className="whitespace-nowrap text-[11px] text-emerald-600/75 dark:text-emerald-400/75">
                       · {t(`experiments.autoPhase.${autonomousPhase}`)}
                     </span>
                   )}
@@ -581,7 +581,7 @@ export function ExperimentsBoard({
                         setLoopDropdownOpen(false);
                         setLoopSelectedMode(null);
                       }}
-                      className="w-full rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-40 cursor-pointer transition-colors"
+                      className="w-full rounded-md border border-sky-200 bg-sky-100 px-3 py-1.5 text-xs font-semibold text-sky-700 shadow-sm transition-colors hover:bg-sky-200 disabled:opacity-40 cursor-pointer dark:border-sky-400/30 dark:bg-sky-500/15 dark:text-sky-300 dark:hover:bg-sky-500/20"
                     >
                       {t("experiments.activate")}
                     </button>
@@ -653,8 +653,12 @@ export function ExperimentsBoard({
                       className="relative space-y-3 rounded-2xl border-border bg-card p-3.5 text-left shadow-none transition-colors hover:border-primary/30"
                     >
                       {experiment.liveStatus && experiment.assignee?.name && (
-                        <div className="absolute -top-2.5 -right-2.5 z-10 max-w-[120px] truncate rounded-full border border-primary/40 bg-background px-2 py-0.5 text-[10px] font-medium text-primary shadow-sm">
-                          {experiment.assignee.name}
+                        <div
+                          className="absolute -top-2.5 right-2 z-10 inline-flex max-w-[80%] items-center gap-1 truncate rounded-full px-1.5 py-0.5 text-[10px] font-medium text-white whitespace-nowrap sm:text-[11px] sm:px-2"
+                          style={{ backgroundColor: getAgentColor(experiment.assignee.uuid).primary }}
+                        >
+                          <Bot className="h-2.5 w-2.5 shrink-0" />
+                          <span className="truncate">{experiment.assignee.name}</span>
                         </div>
                       )}
                       <div className="space-y-2">

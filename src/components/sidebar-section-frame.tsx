@@ -23,7 +23,13 @@ export function SidebarSectionFrame({ agents, children, className }: SidebarSect
   const tooltip = agents.map((a) => a.name).join(", ");
 
   return (
-    <div className={cn("relative rounded-lg border border-primary/80 px-1.5 py-0.5", className)}>
+    <div
+      className={cn(
+        "relative rounded-lg border border-primary/80 px-1.5 py-0.5",
+        "[&_button[data-variant=secondary]]:bg-transparent [&_button[data-variant=secondary]]:shadow-none",
+        className,
+      )}
+    >
       <div
         title={tooltip}
         className="absolute -top-2 right-1 flex items-center gap-1"

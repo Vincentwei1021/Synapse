@@ -895,14 +895,20 @@ export async function startExperiment(input: {
   assertAssignedActorAccess(existing, input.actorType, input.actorUuid, "start", input.ownerUuid);
   assertTransition(existing.status as ExperimentStatus, "in_progress");
 
+  const now = new Date();
   const updated = await prisma.experiment.update({
     where: { uuid: input.experimentUuid },
     data: {
       status: "in_progress",
-      startedAt: existing.startedAt ?? new Date(),
+      startedAt: existing.startedAt ?? now,
       assigneeType: existing.assigneeType ?? input.actorType,
       assigneeUuid: existing.assigneeUuid ?? input.actorUuid,
-      assignedAt: existing.assignedAt ?? new Date(),
+      assignedAt: existing.assignedAt ?? now,
+      // Atomically initialize live state so the card move, breathing animation,
+      // and empty-message footer all land on the same SSE event and render frame.
+      liveStatus: "running",
+      liveMessage: null,
+      liveUpdatedAt: now,
     },
     include: {
       researchQuestion: {
