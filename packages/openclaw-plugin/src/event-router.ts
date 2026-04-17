@@ -159,6 +159,9 @@ export class SynapseEventRouter {
         case "experiment_plan_requested":
           this.handleExperimentPlanRequested(notification);
           break;
+        case "experiment_revision_requested":
+          this.handleExperimentRevisionRequested(notification);
+          break;
         default:
           this.logger.info(`Unhandled notification action: "${notification.action}"`);
           break;
@@ -515,6 +518,26 @@ Your task is to flesh out this experiment into a detailed plan. Follow these ste
 
 Keep the plan actionable and specific enough that another agent could execute it.`,
       { notificationUuid: n.uuid, action: "experiment_plan_requested", entityUuid: n.entityUuid, projectUuid }
+    );
+  }
+
+  private handleExperimentRevisionRequested(n: NotificationDetail): void {
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
+    const mentionGuidance = this.buildMentionGuidance(n, "experiment");
+
+    this.triggerAgent(
+      `[Synapse] A reviewer sent experiment "${n.entityTitle}" back to draft for revision (experimentUuid: ${n.entityUuid}, projectUuid: ${projectUuid}).
+
+Reviewer feedback: ${n.message}
+
+Your task:
+1. Use synapse_get_experiment with experimentUuid "${n.entityUuid}" to re-read the experiment.
+2. Use synapse_get_comments with targetType "experiment" and targetUuid "${n.entityUuid}" to read the full feedback thread.
+3. Revise the experiment's title/description to address the feedback.
+4. Use synapse_update_experiment_plan (or the appropriate update tool) with experimentUuid "${n.entityUuid}" to save the revised plan.
+5. When the revision is ready, set the experiment status to "pending_review" so the reviewer can approve it.
+` + mentionGuidance,
+      { notificationUuid: n.uuid, action: "experiment_revision_requested", entityUuid: n.entityUuid, projectUuid }
     );
   }
 
