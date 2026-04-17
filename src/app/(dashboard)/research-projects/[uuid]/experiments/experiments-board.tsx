@@ -20,6 +20,7 @@ import { GlowBorder } from "@/components/glow-border";
 import { getAgentColor } from "@/lib/agent-colors";
 import { ANIM } from "@/lib/animation";
 import type { ExperimentResponse } from "@/services/experiment.service";
+import { RevertDialog } from "./revert-dialog";
 
 const columns = [
   { id: "draft", labelKey: "draft" },
@@ -148,6 +149,7 @@ export function ExperimentsBoard({
   const [quickAgentUuid, setQuickAgentUuid] = useState(realtimeAgents[0]?.uuid ?? "");
   const [quickCreating, setQuickCreating] = useState(false);
   const [planPanelOpen, setPlanPanelOpen] = useState(false);
+  const [revertTargetUuid, setRevertTargetUuid] = useState<string | null>(null);
   useRealtimeRefresh();
 
   async function updateAutonomousLoop(enabled: boolean, agentUuid: string, mode: string) {
@@ -398,9 +400,7 @@ export function ExperimentsBoard({
             disabled={isPending}
             onClick={(event) => {
               event.stopPropagation();
-              startTransition(() => {
-                void postAction(experiment.uuid, "review", { approved: false });
-              });
+              setRevertTargetUuid(experiment.uuid);
             }}
           >
             <CornerUpLeft className="mr-2 h-4 w-4" />
@@ -1058,6 +1058,28 @@ export function ExperimentsBoard({
           </div>
         </DialogContent>
       </Dialog>
+
+      {revertTargetUuid && (() => {
+        const target = experiments.find((e) => e.uuid === revertTargetUuid);
+        if (!target) return null;
+        const currentAssigneeUuid = target.assignee?.type === "agent" ? target.assignee.uuid : null;
+        return (
+          <RevertDialog
+            open={revertTargetUuid !== null}
+            onOpenChange={(next) => { if (!next) setRevertTargetUuid(null); }}
+            currentAssigneeUuid={currentAssigneeUuid}
+            agents={agents}
+            onSubmit={async ({ reviewNote, assignedAgentUuid }) => {
+              await postAction(target.uuid, "review", {
+                approved: false,
+                ...(reviewNote ? { reviewNote } : {}),
+                assignedAgentUuid,
+              });
+              setRevertTargetUuid(null);
+            }}
+          />
+        );
+      })()}
     </>
   );
 }

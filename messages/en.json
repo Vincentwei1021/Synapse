@@ -1008,6 +1008,9 @@
       "experiment_status_changed": "Experiment status changed",
       "experiment_progress": "Experiment progress update"
     },
+    "actions": {
+      "experimentRevisionRequested": "requested revisions on"
+    },
     "preferences": {
     "title": "Notification Preferences",
     "description": "Configure which events trigger notifications",
@@ -1399,6 +1402,16 @@
       "submit": "Draft with Agent",
       "sending": "Sending...",
       "manual": "Create Manually"
+    },
+    "reviewRevert": {
+      "title": "Send back to draft",
+      "description": "Give the agent feedback on what to revise. Leave feedback empty to return the draft without changes.",
+      "noteLabel": "Feedback for agent (optional)",
+      "notePlaceholder": "What should the agent revise?",
+      "agentLabel": "Assign to",
+      "agentNone": "No agent",
+      "submit": "Send back to draft",
+      "cancel": "Cancel"
     }
   },
   "insights": {

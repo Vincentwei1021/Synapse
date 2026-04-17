@@ -1008,6 +1008,9 @@
       "experiment_status_changed": "实验状态变更",
       "experiment_progress": "实验进度更新"
     },
+    "actions": {
+      "experimentRevisionRequested": "请求修改"
+    },
     "preferences": {
     "title": "通知偏好",
     "description": "配置哪些事件触发通知",
@@ -1399,6 +1402,16 @@
       "submit": "Agent 起草",
       "sending": "发送中...",
       "manual": "手动创建"
+    },
+    "reviewRevert": {
+      "title": "退回草稿",
+      "description": "留言告诉 Agent 需要修改什么。如果不需要修改，可留空反馈。",
+      "noteLabel": "反馈（可选）",
+      "notePlaceholder": "希望 Agent 修改什么？",
+      "agentLabel": "指派给",
+      "agentNone": "不指派",
+      "submit": "退回草稿",
+      "cancel": "取消"
     }
   },
   "insights": {
