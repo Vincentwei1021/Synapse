@@ -305,7 +305,7 @@ export function NotificationPopup({ onClose }: NotificationPopupProps) {
   };
 
   return (
-    <div className="w-[calc(100vw-2rem)] max-w-[360px]">
+    <div className="w-[calc(100vw-2rem)] max-w-[360px] bg-card text-card-foreground">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <h3 className="text-sm font-semibold text-foreground">{t("title")}</h3>
