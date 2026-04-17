@@ -8,6 +8,7 @@ import { success, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
 import { deleteAgent, getAgent, getAgentByUuid, updateAgent } from "@/services/agent.service";
 import { VALID_AGENT_TYPES } from "@/lib/agent-transport";
+import { isValidAgentColorKey } from "@/lib/agent-colors";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
@@ -39,6 +40,7 @@ export const GET = withErrorHandler<{ uuid: string }>(
       type: agent.type,
       persona: agent.persona,
       systemPrompt: agent.systemPrompt,
+      color: agent.color,
       ownerUuid: agent.ownerUuid,
       lastActiveAt: agent.lastActiveAt?.toISOString() || null,
       apiKeys: agent.apiKeys.map((k) => ({
@@ -81,6 +83,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
       type?: string;
       persona?: string | null;
       systemPrompt?: string | null;
+      color?: string | null;
     }>(request);
 
     const updateData: {
@@ -89,6 +92,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
       type?: string;
       persona?: string | null;
       systemPrompt?: string | null;
+      color?: string | null;
     } = {};
 
     if (body.name !== undefined) {
@@ -132,6 +136,16 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
       updateData.systemPrompt = body.systemPrompt?.trim() || null;
     }
 
+    if (body.color !== undefined) {
+      if (body.color === null) {
+        updateData.color = null;
+      } else if (!isValidAgentColorKey(body.color)) {
+        return errors.validationError({ color: "Invalid agent color" });
+      } else {
+        updateData.color = body.color;
+      }
+    }
+
     const updated = await updateAgent(agent.uuid, updateData);
 
     return success({
@@ -141,6 +155,7 @@ export const PATCH = withErrorHandler<{ uuid: string }>(
       type: updated.type,
       persona: updated.persona,
       systemPrompt: updated.systemPrompt,
+      color: updated.color,
       ownerUuid: updated.ownerUuid,
       lastActiveAt: updated.lastActiveAt?.toISOString() || null,
       createdAt: updated.createdAt.toISOString(),

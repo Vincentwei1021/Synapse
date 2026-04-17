@@ -23,6 +23,7 @@ export interface AgentCreateParams {
   ownerUuid: string;
   persona?: string | null;
   systemPrompt?: string | null;
+  color?: string | null;
 }
 
 export interface AgentUpdateParams {
@@ -31,6 +32,7 @@ export interface AgentUpdateParams {
   type?: string;
   persona?: string | null;
   systemPrompt?: string | null;
+  color?: string | null;
 }
 
 export interface ApiKeyCreateParams {
@@ -60,6 +62,7 @@ export async function listAgents({ companyUuid, skip, take, ownerUuid, type, tra
         roles: true,
         type: true,
         persona: true,
+        color: true,
         ownerUuid: true,
         lastActiveAt: true,
         createdAt: true,
@@ -96,7 +99,7 @@ export async function getAgent(companyUuid: string, uuid: string, ownerUuid?: st
 export async function getAgentByUuid(companyUuid: string, uuid: string, ownerUuid?: string) {
   return prisma.agent.findFirst({
     where: { uuid, companyUuid, ...(ownerUuid ? { ownerUuid } : {}) },
-    select: { uuid: true, name: true, roles: true, type: true, ownerUuid: true },
+    select: { uuid: true, name: true, roles: true, type: true, color: true, ownerUuid: true },
   });
 }
 
@@ -109,9 +112,19 @@ export async function createAgent({
   ownerUuid,
   persona,
   systemPrompt,
+  color,
 }: AgentCreateParams) {
   return prisma.agent.create({
-    data: { companyUuid, name, roles, type: type || "openclaw", ownerUuid, persona, systemPrompt },
+    data: {
+      companyUuid,
+      name,
+      roles,
+      type: type || "openclaw",
+      ownerUuid,
+      persona,
+      systemPrompt,
+      color: color ?? null,
+    },
     select: {
       uuid: true,
       name: true,
@@ -119,6 +132,7 @@ export async function createAgent({
       type: true,
       persona: true,
       systemPrompt: true,
+      color: true,
       ownerUuid: true,
       createdAt: true,
     },
@@ -148,6 +162,7 @@ export async function updateAgent(uuid: string, data: AgentUpdateParams, company
       type: true,
       persona: true,
       systemPrompt: true,
+      color: true,
       ownerUuid: true,
       lastActiveAt: true,
       createdAt: true,
@@ -264,6 +279,7 @@ export async function listAgentSummaries(companyUuid: string) {
       name: true,
       roles: true,
       type: true,
+      color: true,
     },
     orderBy: { createdAt: "asc" },
   });
@@ -275,7 +291,7 @@ export async function listRealtimeAgentSummaries(companyUuid: string) {
       companyUuid,
       type: { in: getTypesByTransport("realtime") },
     },
-    select: { uuid: true, name: true, roles: true, type: true },
+    select: { uuid: true, name: true, roles: true, type: true, color: true },
     orderBy: { createdAt: "asc" },
   });
 }

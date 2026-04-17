@@ -104,8 +104,10 @@ describe("settings actions", () => {
       companyUuid: auth.companyUuid,
       name: "New Agent",
       roles: ["research"],
+      type: "openclaw",
       ownerUuid: auth.actorUuid,
       persona: "Helpful",
+      color: "terracotta",
     });
     expect(mockCreateApiKey).toHaveBeenCalledWith(
       expect.objectContaining({ name: "New Agent" }),
