@@ -83,7 +83,7 @@ export function GlowBorder({ active, primaryColor, lightColor, variant = "spin",
           transitionDuration: phase === "fadeout" ? "700ms" : "200ms",
         }}
       />
-      {/* Spinning highlight — uses transform:rotate for Safari compat */}
+      {/* Spinning highlight — masked to border ring */}
       <div
         className="pointer-events-none absolute -inset-[2px] rounded-[18px] transition-opacity"
         style={{
@@ -95,6 +95,11 @@ export function GlowBorder({ active, primaryColor, lightColor, variant = "spin",
             ? "none"
             : `glow-rotate ${animationDuration} linear infinite`,
           transitionDuration: phase === "fadeout" ? "700ms" : "200ms",
+          padding: "2px",
+          WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          maskComposite: "exclude",
         }}
       />
       <div className="relative h-full rounded-[18px]">{children}</div>
