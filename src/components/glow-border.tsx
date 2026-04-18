@@ -12,7 +12,7 @@ interface GlowBorderProps {
 }
 
 export function GlowBorder({ active, primaryColor, lightColor, variant = "spin", className, children }: GlowBorderProps) {
-  const [phase, setPhase] = useState<"idle" | "running" | "accelerate" | "flash" | "fadeout">("idle");
+  const [phase, setPhase] = useState<"idle" | "running" | "accelerate" | "flash" | "fadeout">(active ? "running" : "idle");
   const prevActive = useRef(active);
 
   useEffect(() => {
@@ -32,7 +32,7 @@ export function GlowBorder({ active, primaryColor, lightColor, variant = "spin",
   }, [active]);
 
   if (phase === "idle") {
-    return <div className={`rounded-[18px] ${className ?? ""}`}>{children}</div>;
+    return <div className={`rounded-[18px] ${className ?? ""}`} style={{ padding: "2px" }}>{children}</div>;
   }
 
   if (variant === "pulse") {

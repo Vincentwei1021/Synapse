@@ -397,7 +397,14 @@
     "githubTokenPlaceholder": "ghp_...",
     "githubTokenHint": "需要 repo 权限的个人访问令牌。保存后不会在前端展示。",
     "githubConfigured": "令牌已配置",
-    "githubNotConfigured": "未配置令牌"
+    "githubNotConfigured": "未配置令牌",
+    "relatedWorksStatus": "相关文献",
+    "relatedWorksStatusDesc": "重置卡住的论文搜索或深度研究任务",
+    "autoSearch": "论文搜索",
+    "deepResearch": "深度研究",
+    "active": "进行中",
+    "inactive": "空闲",
+    "reset": "重置"
   },
   "researchProjects": {
     "title": "研究项目",
@@ -1331,7 +1338,11 @@
       "reassign": "重新分配",
       "start": "开始执行",
       "complete": "完成实验",
-      "resetToPendingStart": "重置回待启动"
+      "resetToPendingStart": "重置回待启动",
+      "moveTo": "移动到",
+      "deleteExperiment": "删除",
+      "deleteExperimentConfirm": "确定要删除「{title}」吗？此操作不可撤销。",
+      "deleted": "实验已删除"
     },
     "fields": {
       "title": "实验标题",

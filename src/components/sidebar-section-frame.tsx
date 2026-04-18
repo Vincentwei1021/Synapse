@@ -4,6 +4,7 @@ import { type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { getAgentColor } from "@/lib/agent-colors";
 import { GlowBorder } from "@/components/glow-border";
+import { AgentTypeIcon } from "@/components/agent-type-icon";
 import type { AgentSummary } from "@/services/agent-activity.service";
 import { getSidebarSectionFrameGlowColors } from "@/components/sidebar-section-frame.helpers";
 
@@ -43,10 +44,11 @@ export function SidebarSectionFrame({
               return (
                 <span
                   key={agent.uuid}
-                  className="truncate rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none max-w-[80px]"
+                  className="inline-flex items-center gap-0.5 truncate rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none max-w-[96px]"
                   style={{ backgroundColor: light, color: primary }}
                 >
-                  {agent.name}
+                  <AgentTypeIcon type={agent.type} className="h-2.5 w-2.5" />
+                  <span className="truncate">{agent.name}</span>
                 </span>
               );
             })}

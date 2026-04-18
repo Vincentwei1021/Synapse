@@ -12,6 +12,7 @@ export interface AgentSummary {
   uuid: string;
   name: string;
   color: string | null;
+  type: string;
 }
 
 export interface AgentActivitySummary {
@@ -93,7 +94,7 @@ export async function getProjectAgentActivity({
 
   const agents = await prisma.agent.findMany({
     where: { companyUuid, uuid: { in: allAgentUuids } },
-    select: { uuid: true, name: true, color: true },
+    select: { uuid: true, name: true, color: true, type: true },
   });
   const byUuid = new Map(agents.map((a) => [a.uuid, a]));
 
@@ -102,10 +103,10 @@ export async function getProjectAgentActivity({
       uuids
         .map((u) => byUuid.get(u))
         .filter(
-          (a): a is { uuid: string; name: string; color: string | null } =>
+          (a): a is { uuid: string; name: string; color: string | null; type: string } =>
             Boolean(a)
         )
-        .map((a) => ({ uuid: a.uuid, name: a.name, color: a.color }))
+        .map((a) => ({ uuid: a.uuid, name: a.name, color: a.color, type: a.type }))
     );
 
   return {

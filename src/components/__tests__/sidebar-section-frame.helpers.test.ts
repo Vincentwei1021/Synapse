@@ -6,8 +6,8 @@ describe("getSidebarSectionFrameGlowColors", () => {
   it("uses the first active agent color for the glow treatment", () => {
     expect(
       getSidebarSectionFrameGlowColors([
-        { uuid: "agent-a", name: "Agent A", color: "emerald" },
-        { uuid: "agent-b", name: "Agent B", color: "rose" },
+        { uuid: "agent-a", name: "Agent A", color: "emerald", type: "openclaw" },
+        { uuid: "agent-b", name: "Agent B", color: "rose", type: "claude_code" },
       ]),
     ).toEqual({
       primary: "#10b981",

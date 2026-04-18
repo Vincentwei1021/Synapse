@@ -53,11 +53,13 @@ export default async function ExperimentsPage({ params, searchParams }: PageProp
         agents={allAgents.map((agent) => ({
           uuid: agent.uuid,
           name: agent.name,
+          type: agent.type,
           lastActiveAt: agent.lastActiveAt?.toISOString() ?? null,
         }))}
         realtimeAgents={realtimeAgents.map((agent) => ({
           uuid: agent.uuid,
           name: agent.name,
+          type: agent.type,
           lastActiveAt: agent.lastActiveAt?.toISOString() ?? null,
         }))}
         initialSelectedExperimentUuid={resolvedSearchParams?.selected || null}

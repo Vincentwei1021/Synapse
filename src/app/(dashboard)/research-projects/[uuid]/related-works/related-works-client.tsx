@@ -26,6 +26,7 @@ import type { RelatedWorkResponse } from "@/services/related-work.service";
 interface AgentOption {
   uuid: string;
   name: string;
+  type: string;
 }
 
 interface DeepResearchDocInfo {
@@ -318,8 +319,8 @@ export function RelatedWorksClient({
         {/* Auto-search control */}
         <GlowBorder
           active={autoSearchUiState.isRunning}
-          primaryColor={getAgentColor(autoSearchUiState.activeAgentUuid).primary}
-          lightColor={getAgentColor(autoSearchUiState.activeAgentUuid).light}
+          primaryColor="#6366f1"
+          lightColor="#22d3ee"
           variant="spin"
           className="h-full"
         >
@@ -357,7 +358,7 @@ export function RelatedWorksClient({
               <option value="">{t("selectAgent")}</option>
               {agents.map((agent) => (
                 <option key={agent.uuid} value={agent.uuid}>
-                  {agent.name}
+                  {agent.type === "claude_code" ? "⌘ " : "◉ "}{agent.name}
                 </option>
               ))}
             </select>
@@ -385,8 +386,8 @@ export function RelatedWorksClient({
         {/* Deep Research control */}
         <GlowBorder
           active={deepResearchUiState.isRunning}
-          primaryColor={getAgentColor(deepResearchUiState.activeAgentUuid).primary}
-          lightColor={getAgentColor(deepResearchUiState.activeAgentUuid).light}
+          primaryColor="#6366f1"
+          lightColor="#22d3ee"
           variant="spin"
           className="h-full"
         >
@@ -433,7 +434,7 @@ export function RelatedWorksClient({
               <option value="">{t("selectAgent")}</option>
               {agents.map((agent) => (
                 <option key={agent.uuid} value={agent.uuid}>
-                  {agent.name}
+                  {agent.type === "claude_code" ? "⌘ " : "◉ "}{agent.name}
                 </option>
               ))}
             </select>

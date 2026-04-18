@@ -397,7 +397,14 @@
     "githubTokenPlaceholder": "ghp_...",
     "githubTokenHint": "Personal access token with repo scope. Never shown after saving.",
     "githubConfigured": "Token configured",
-    "githubNotConfigured": "No token configured"
+    "githubNotConfigured": "No token configured",
+    "relatedWorksStatus": "Related Works",
+    "relatedWorksStatusDesc": "Reset stuck auto-search or deep research tasks",
+    "autoSearch": "Paper Search",
+    "deepResearch": "Deep Research",
+    "active": "Active",
+    "inactive": "Idle",
+    "reset": "Reset"
   },
   "researchProjects": {
     "title": "Research Projects",
@@ -1331,7 +1338,11 @@
       "reassign": "Reassign",
       "start": "Start",
       "complete": "Complete",
-      "resetToPendingStart": "Reset to pending start"
+      "resetToPendingStart": "Reset to pending start",
+      "moveTo": "Move to",
+      "deleteExperiment": "Delete",
+      "deleteExperimentConfirm": "Delete \"{title}\"? This cannot be undone.",
+      "deleted": "Experiment deleted"
     },
     "fields": {
       "title": "Experiment title",

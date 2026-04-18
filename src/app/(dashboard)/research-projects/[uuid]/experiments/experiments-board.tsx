@@ -4,7 +4,17 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { LayoutGroup, motion } from "framer-motion";
-import { Bot, CheckCircle2, ChevronRight, CornerUpLeft, FileText, GitBranch, Loader2, PenLine, Save, Send, Sparkles, Zap } from "lucide-react";
+import { CheckCircle2, ChevronRight, CornerUpLeft, FileText, GitBranch, Loader2, PenLine, Save, Send, Sparkles, Trash2, Zap } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,6 +27,7 @@ import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
 import { MarkdownContent } from "@/components/markdown-content";
 import { GlowBorder } from "@/components/glow-border";
+import { AgentTypeIcon } from "@/components/agent-type-icon";
 import { getAgentColor } from "@/lib/agent-colors";
 import { ANIM } from "@/lib/animation";
 import type { ExperimentResponse } from "@/services/experiment.service";
@@ -114,8 +125,8 @@ export function ExperimentsBoard({
   researchQuestions,
 }: {
   experiments: ExperimentResponse[];
-  agents: Array<{ uuid: string; name: string; lastActiveAt: string | null }>;
-  realtimeAgents: Array<{ uuid: string; name: string; lastActiveAt: string | null }>;
+  agents: Array<{ uuid: string; name: string; type: string; lastActiveAt: string | null }>;
+  realtimeAgents: Array<{ uuid: string; name: string; type: string; lastActiveAt: string | null }>;
   initialSelectedExperimentUuid?: string | null;
   viewerUuid: string;
   viewerType: string;
@@ -152,6 +163,8 @@ export function ExperimentsBoard({
   const [quickCreating, setQuickCreating] = useState(false);
   const [planPanelOpen, setPlanPanelOpen] = useState(false);
   const [revertTargetUuid, setRevertTargetUuid] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ExperimentResponse | null>(null);
+  const [deletingExperiment, setDeletingExperiment] = useState(false);
   useRealtimeRefresh();
 
   async function updateAutonomousLoop(enabled: boolean, agentUuid: string, mode: string) {
@@ -354,6 +367,37 @@ export function ExperimentsBoard({
     router.refresh();
   }
 
+  const MOVE_TARGETS: Record<string, string[]> = {
+    draft: ["pending_review", "pending_start"],
+    pending_review: ["draft", "pending_start"],
+    pending_start: ["draft", "pending_review", "in_progress"],
+    in_progress: ["draft", "pending_review", "pending_start", "completed"],
+    completed: ["draft", "pending_review", "pending_start"],
+  };
+
+  async function handleMoveTo(experimentUuid: string, targetStatus: string) {
+    await fetch(`/api/experiments/${experimentUuid}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: targetStatus }),
+    });
+    router.refresh();
+  }
+
+  async function handleDeleteExperiment() {
+    if (!deleteTarget) return;
+    setDeletingExperiment(true);
+    try {
+      const res = await fetch(`/api/experiments/${deleteTarget.uuid}`, { method: "DELETE" });
+      if (res.ok) {
+        setDeleteTarget(null);
+        setSelectedExperimentUuid(null);
+        router.refresh();
+      }
+    } catch {}
+    setDeletingExperiment(false);
+  }
+
   const renderActionBlock = (experiment: ExperimentResponse) => {
     if (experiment.status === "draft") {
       return (
@@ -427,7 +471,7 @@ export function ExperimentsBoard({
             <option value="">{t("experiments.actions.selectAgent")}</option>
             {agents.map((agent) => (
               <option key={agent.uuid} value={agent.uuid}>
-                {agent.name}
+                {agent.type === "claude_code" ? "⌘ " : "◉ "}{agent.name}
               </option>
             ))}
           </select>
@@ -500,10 +544,10 @@ export function ExperimentsBoard({
                   className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 cursor-pointer transition-all duration-200"
                 >
                   <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse shrink-0" />
-                  <span className="whitespace-nowrap text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  <span className="whitespace-nowrap text-sm font-medium text-emerald-600 dark:text-emerald-400">
                     {loopMode === "full_auto" ? t("experiments.fullAutoMode") : t("experiments.humanReviewMode")}
                   </span>
-                  <span className="whitespace-nowrap text-xs text-muted-foreground">
+                  <span className="whitespace-nowrap text-sm text-muted-foreground">
                     {t("experiments.via")} {realtimeAgents.find((a) => a.uuid === loopAgentUuid)?.name ?? "Agent"}
                   </span>
                   {autonomousPhase && (
@@ -528,7 +572,7 @@ export function ExperimentsBoard({
               /* OFF: zap icon + text */
               <button
                 onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
-                className="flex cursor-pointer items-center gap-2 rounded-lg border border-sky-200 bg-sky-100 px-3 py-1.5 text-xs font-medium text-sky-700 shadow-sm transition-all duration-200 hover:bg-sky-200 dark:border-sky-400/30 dark:bg-sky-500/15 dark:text-sky-300 dark:hover:bg-sky-500/20"
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-sky-200 bg-sky-100 px-3 py-1.5 text-sm font-medium text-sky-700 shadow-sm transition-all duration-200 hover:bg-sky-200 dark:border-sky-400/30 dark:bg-sky-500/15 dark:text-sky-300 dark:hover:bg-sky-500/20"
               >
                 <Zap className="h-3.5 w-3.5 shrink-0 fill-sky-300 text-sky-400 dark:fill-sky-300/80 dark:text-sky-300" />
                 <span className="whitespace-nowrap">{t("experiments.startAutoResearch")}</span>
@@ -666,7 +710,7 @@ export function ExperimentsBoard({
                           className="absolute -top-2.5 right-2 z-10 inline-flex max-w-[80%] items-center gap-1 truncate rounded-full px-1.5 py-0.5 text-[10px] font-medium text-white whitespace-nowrap sm:text-[11px] sm:px-2"
                           style={{ backgroundColor: getAgentColor(experiment.assignee.uuid).primary }}
                         >
-                          <Bot className="h-2.5 w-2.5 shrink-0" />
+                          <AgentTypeIcon type={agents.find((a) => a.uuid === experiment.assignee?.uuid)?.type ?? "openclaw"} className="h-2.5 w-2.5" />
                           <span className="truncate">{experiment.assignee.name}</span>
                         </div>
                       )}
@@ -766,14 +810,42 @@ export function ExperimentsBoard({
               </SheetHeader>
 
               <div className="space-y-6 px-6 py-5">
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className={priorityBadgeClasses(selectedExperiment.priority)}>
-                    {formatPriorityLabel(t, selectedExperiment.priority)}
-                  </Badge>
-                  <Badge variant="secondary">{t(`experiments.columns.${columns.find((column) => column.id === selectedExperiment.status)?.labelKey || "draft"}`)}</Badge>
-                  {selectedExperiment.assignee?.name ? (
-                    <Badge variant="outline">{selectedExperiment.assignee.name}</Badge>
-                  ) : null}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline" className={priorityBadgeClasses(selectedExperiment.priority)}>
+                      {formatPriorityLabel(t, selectedExperiment.priority)}
+                    </Badge>
+                    <Badge variant="secondary">{t(`experiments.columns.${columns.find((column) => column.id === selectedExperiment.status)?.labelKey || "draft"}`)}</Badge>
+                    {selectedExperiment.assignee?.name ? (
+                      <Badge variant="outline">{selectedExperiment.assignee.name}</Badge>
+                    ) : null}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <select
+                      className="h-8 rounded-lg border border-border bg-background px-2 text-xs text-foreground"
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          startTransition(() => { void handleMoveTo(selectedExperiment.uuid, e.target.value); });
+                        }
+                      }}
+                    >
+                      <option value="" disabled>{t("experiments.actions.moveTo")}</option>
+                      {(MOVE_TARGETS[selectedExperiment.status] ?? []).map((target) => (
+                        <option key={target} value={target}>
+                          {t(`experiments.columns.${columns.find((c) => c.id === target)?.labelKey || "draft"}`)}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => setDeleteTarget(selectedExperiment)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
 
                 {selectedExperiment.experimentBranch && repoUrl ? (() => {
@@ -1095,6 +1167,25 @@ export function ExperimentsBoard({
           />
         );
       })()}
+
+      {/* Delete experiment dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("experiments.actions.deleteExperiment")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget ? t("experiments.actions.deleteExperimentConfirm", { title: deleteTarget.title }) : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleDeleteExperiment} disabled={deletingExperiment}>
+              {deletingExperiment ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {t("common.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

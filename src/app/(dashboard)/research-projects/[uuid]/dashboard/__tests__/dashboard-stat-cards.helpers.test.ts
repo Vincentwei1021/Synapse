@@ -5,11 +5,11 @@ import type { AgentActivitySummary } from "@/services/agent-activity.service";
 
 describe("dashboard stat card helpers", () => {
   const activity: AgentActivitySummary = {
-    relatedWorks: [{ uuid: "agent-paper", name: "Paper Scout", color: "cyan" }],
-    experiments: [{ uuid: "agent-exp", name: "Runner", color: "emerald" }],
-    researchQuestions: [{ uuid: "agent-rq", name: "Questioner", color: "orange" }],
+    relatedWorks: [{ uuid: "agent-paper", name: "Paper Scout", color: "cyan", type: "openclaw" }],
+    experiments: [{ uuid: "agent-exp", name: "Runner", color: "emerald", type: "openclaw" }],
+    researchQuestions: [{ uuid: "agent-rq", name: "Questioner", color: "orange", type: "claude_code" }],
     insights: [],
-    documents: [{ uuid: "agent-doc", name: "Writer", color: "violet" }],
+    documents: [{ uuid: "agent-doc", name: "Writer", color: "violet", type: "openclaw" }],
   };
 
   it("maps related works cards to the related works activity lane", () => {

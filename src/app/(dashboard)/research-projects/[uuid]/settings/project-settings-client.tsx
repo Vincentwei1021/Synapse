@@ -50,6 +50,8 @@ interface Project {
   repoUrl: string | null;
   githubUsername: string | null;
   githubConfigured: boolean;
+  autoSearchActive: boolean;
+  deepResearchActive: boolean;
   experiments: Experiment[];
   researchQuestions: ResearchQuestion[];
 }
@@ -120,6 +122,10 @@ export function ProjectSettingsClient({ project, pools }: ProjectSettingsClientP
   const [showDeleteProject, setShowDeleteProject] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [deletingProject, setDeletingProject] = useState(false);
+
+  // Related works reset state
+  const [resettingAutoSearch, setResettingAutoSearch] = useState(false);
+  const [resettingDeepResearch, setResettingDeepResearch] = useState(false);
 
   async function handleSave() {
     setSaving(true);
@@ -241,6 +247,28 @@ export function ProjectSettingsClient({ project, pools }: ProjectSettingsClientP
       // Silent fail — user can retry
     }
     setDeletingProject(false);
+  }
+
+  async function handleResetAutoSearch() {
+    setResettingAutoSearch(true);
+    try {
+      await fetch(`/api/research-projects/${project.uuid}/related-works/auto-search/complete`, { method: "POST" });
+      startTransition(() => { router.refresh(); });
+    } catch {
+      // Silent fail — user can retry
+    }
+    setResettingAutoSearch(false);
+  }
+
+  async function handleResetDeepResearch() {
+    setResettingDeepResearch(true);
+    try {
+      await fetch(`/api/research-projects/${project.uuid}/related-works/deep-research/complete`, { method: "POST" });
+      startTransition(() => { router.refresh(); });
+    } catch {
+      // Silent fail — user can retry
+    }
+    setResettingDeepResearch(false);
   }
 
   return (
@@ -373,6 +401,42 @@ export function ProjectSettingsClient({ project, pools }: ProjectSettingsClientP
             </Button>
             {githubMessage && (
               <span className="text-sm text-muted-foreground">{githubMessage}</span>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Related Works Status */}
+      <Card className="p-6">
+        <h2 className="text-lg font-semibold text-foreground">{t("relatedWorksStatus")}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{t("relatedWorksStatusDesc")}</p>
+        <div className="mt-4 space-y-3">
+          <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-foreground">{t("autoSearch")}</span>
+              <Badge variant={project.autoSearchActive ? "default" : "secondary"}>
+                {project.autoSearchActive ? t("active") : t("inactive")}
+              </Badge>
+            </div>
+            {project.autoSearchActive && (
+              <Button variant="outline" size="sm" disabled={resettingAutoSearch} onClick={handleResetAutoSearch}>
+                {resettingAutoSearch ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {t("reset")}
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-foreground">{t("deepResearch")}</span>
+              <Badge variant={project.deepResearchActive ? "default" : "secondary"}>
+                {project.deepResearchActive ? t("active") : t("inactive")}
+              </Badge>
+            </div>
+            {project.deepResearchActive && (
+              <Button variant="outline" size="sm" disabled={resettingDeepResearch} onClick={handleResetDeepResearch}>
+                {resettingDeepResearch ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {t("reset")}
+              </Button>
             )}
           </div>
         </div>

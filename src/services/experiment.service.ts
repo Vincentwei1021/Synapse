@@ -99,9 +99,9 @@ export type ExperimentPriority = "low" | "medium" | "high" | "immediate";
 const VALID_TRANSITIONS: Record<ExperimentStatus, ExperimentStatus[]> = {
   draft: ["pending_review", "pending_start"],
   pending_review: ["draft", "pending_start"],
-  pending_start: ["in_progress"],
-  in_progress: ["completed"],
-  completed: [],
+  pending_start: ["draft", "pending_review", "in_progress"],
+  in_progress: ["draft", "pending_review", "pending_start", "completed"],
+  completed: ["draft", "pending_review", "pending_start"],
 };
 
 const EXPERIMENT_PRIORITY_ORDER: Record<ExperimentPriority, number> = {
