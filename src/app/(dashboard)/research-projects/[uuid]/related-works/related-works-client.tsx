@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
 import { GlowBorder } from "@/components/glow-border";
 import { getAgentColor } from "@/lib/agent-colors";
+import { getRelatedWorksTaskUiState } from "./related-works-state";
 import type { RelatedWorkResponse } from "@/services/related-work.service";
 
 interface AgentOption {
@@ -33,18 +34,13 @@ interface DeepResearchDocInfo {
   updatedAt: string;
 }
 
-interface ActiveTaskState {
-  agentUuid: string | null;
-  stale: boolean;
-}
-
 interface RelatedWorksClientProps {
   projectUuid: string;
   initialWorks: RelatedWorkResponse[];
   agents: AgentOption[];
   deepResearchDoc: DeepResearchDocInfo | null;
-  autoSearchState: ActiveTaskState;
-  deepResearchState: ActiveTaskState;
+  autoSearchActiveAgentUuid: string | null;
+  deepResearchActiveAgentUuid: string | null;
 }
 
 export function RelatedWorksClient({
@@ -52,8 +48,8 @@ export function RelatedWorksClient({
   initialWorks,
   agents,
   deepResearchDoc: initialDeepResearchDoc,
-  autoSearchState,
-  deepResearchState,
+  autoSearchActiveAgentUuid,
+  deepResearchActiveAgentUuid,
 }: RelatedWorksClientProps) {
   const t = useTranslations("relatedWorks");
   const [works, setWorks] = useState(initialWorks);
@@ -114,14 +110,16 @@ export function RelatedWorksClient({
   });
   const [promptDialogOpen, setPromptDialogOpen] = useState<"search" | "deepResearch" | null>(null);
   const [promptDraft, setPromptDraft] = useState("");
-  const autoSearchIsRunning = Boolean(autoSearchState.agentUuid && !autoSearchState.stale);
-  const deepResearchIsRunning = Boolean(deepResearchState.agentUuid && !deepResearchState.stale);
-  const activeAutoSearchAgentUuid = autoSearchState.agentUuid || "";
-  const activeDeepResearchAgentUuid = deepResearchState.agentUuid || "";
-  const selectedAutoSearchAgentUuid = autoSearchAgentUuid || activeAutoSearchAgentUuid;
-  const selectedDeepResearchAgentUuid = deepResearchAgentUuid || activeDeepResearchAgentUuid;
-  const autoSearchAgentName = agents.find((agent) => agent.uuid === activeAutoSearchAgentUuid)?.name ?? "";
-  const deepResearchAgentName = agents.find((agent) => agent.uuid === activeDeepResearchAgentUuid)?.name ?? "";
+  const autoSearchUiState = getRelatedWorksTaskUiState({
+    activeAgentUuid: autoSearchActiveAgentUuid,
+    selectedAgentUuid: autoSearchAgentUuid,
+    agents,
+  });
+  const deepResearchUiState = getRelatedWorksTaskUiState({
+    activeAgentUuid: deepResearchActiveAgentUuid,
+    selectedAgentUuid: deepResearchAgentUuid,
+    agents,
+  });
 
   const openPromptDialog = useCallback((type: "search" | "deepResearch") => {
     const current = type === "search" ? searchPrompt : deepResearchPrompt;
@@ -159,7 +157,7 @@ export function RelatedWorksClient({
 
   // --- Auto-search (one-shot trigger) ---
   const handleAutoSearch = useCallback(async () => {
-    if (!selectedAutoSearchAgentUuid) return;
+    if (!autoSearchUiState.selectedAgentUuid) return;
     setSearchingPapers(true);
     setSearchTriggeredAgent(null);
     try {
@@ -168,21 +166,21 @@ export function RelatedWorksClient({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ agentUuid: selectedAutoSearchAgentUuid, customPrompt: searchPrompt || undefined }),
+          body: JSON.stringify({ agentUuid: autoSearchUiState.selectedAgentUuid, customPrompt: searchPrompt || undefined }),
         },
       );
       if (res.ok) {
-        const agentName = agents.find((a) => a.uuid === selectedAutoSearchAgentUuid)?.name ?? "";
+        const agentName = agents.find((a) => a.uuid === autoSearchUiState.selectedAgentUuid)?.name ?? "";
         setSearchTriggeredAgent(agentName);
       }
     } finally {
       setSearchingPapers(false);
     }
-  }, [projectUuid, selectedAutoSearchAgentUuid, agents, searchPrompt]);
+  }, [projectUuid, autoSearchUiState.selectedAgentUuid, agents, searchPrompt]);
 
   // --- Deep research ---
   const handleGenerateDeepResearch = useCallback(async () => {
-    if (!selectedDeepResearchAgentUuid) return;
+    if (!deepResearchUiState.selectedAgentUuid) return;
     setGeneratingDeepResearch(true);
     setDeepResearchTriggeredAgent(null);
     try {
@@ -191,17 +189,17 @@ export function RelatedWorksClient({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ agentUuid: selectedDeepResearchAgentUuid, customPrompt: deepResearchPrompt || undefined }),
+          body: JSON.stringify({ agentUuid: deepResearchUiState.selectedAgentUuid, customPrompt: deepResearchPrompt || undefined }),
         },
       );
       if (res.ok) {
-        const agentName = agents.find((a) => a.uuid === selectedDeepResearchAgentUuid)?.name ?? "";
+        const agentName = agents.find((a) => a.uuid === deepResearchUiState.selectedAgentUuid)?.name ?? "";
         setDeepResearchTriggeredAgent(agentName);
       }
     } finally {
       setGeneratingDeepResearch(false);
     }
-  }, [projectUuid, selectedDeepResearchAgentUuid, agents, deepResearchPrompt]);
+  }, [projectUuid, deepResearchUiState.selectedAgentUuid, agents, deepResearchPrompt]);
 
   // --- URL metadata fetch (client-side arXiv API) ---
   const handleUrlBlur = useCallback(async () => {
@@ -317,9 +315,9 @@ export function RelatedWorksClient({
       <div className="grid gap-4 md:grid-cols-2">
         {/* Auto-search control */}
         <GlowBorder
-          active={autoSearchIsRunning}
-          primaryColor={getAgentColor(activeAutoSearchAgentUuid).primary}
-          lightColor={getAgentColor(activeAutoSearchAgentUuid).light}
+          active={autoSearchUiState.isRunning}
+          primaryColor={getAgentColor(autoSearchUiState.activeAgentUuid).primary}
+          lightColor={getAgentColor(autoSearchUiState.activeAgentUuid).light}
           variant="spin"
           className="h-full"
         >
@@ -349,9 +347,9 @@ export function RelatedWorksClient({
 
           <div className="mt-4 flex items-center gap-2">
             <select
-              value={activeAutoSearchAgentUuid || autoSearchAgentUuid}
+              value={autoSearchUiState.selectedAgentUuid}
               onChange={(e) => { setAutoSearchAgentUuid(e.target.value); setSearchTriggeredAgent(null); }}
-              disabled={searchingPapers || autoSearchIsRunning}
+              disabled={searchingPapers || autoSearchUiState.isRunning}
               className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
             >
               <option value="">{t("selectAgent")}</option>
@@ -363,35 +361,30 @@ export function RelatedWorksClient({
             </select>
             <Button
               size="sm"
-              disabled={!selectedAutoSearchAgentUuid || searchingPapers || !!searchTriggeredAgent || autoSearchIsRunning}
+              disabled={!autoSearchUiState.selectedAgentUuid || searchingPapers || !!searchTriggeredAgent || autoSearchUiState.isRunning}
               onClick={handleAutoSearch}
               className={searchTriggeredAgent
                 ? "bg-emerald-600 text-white hover:bg-emerald-600"
-                : autoSearchIsRunning
+                : autoSearchUiState.isRunning
                   ? "bg-primary/70 text-primary-foreground"
                   : "bg-primary text-primary-foreground hover:bg-primary/90"}
             >
-              {(searchingPapers || autoSearchIsRunning) ? (
+              {(searchingPapers || autoSearchUiState.isRunning) ? (
                 <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
               ) : searchTriggeredAgent ? (
                 <Check className="mr-1.5 h-3.5 w-3.5" />
               ) : null}
-              {autoSearchIsRunning ? t("searching") : searchTriggeredAgent ? t("sent") : t("search")}
+              {autoSearchUiState.isRunning ? t("searching") : searchTriggeredAgent ? t("sent") : t("search")}
             </Button>
           </div>
-          {autoSearchState.stale && autoSearchAgentName ? (
-            <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
-              {t("staleTask", { agent: autoSearchAgentName })}
-            </p>
-          ) : null}
         </Card>
         </GlowBorder>
 
         {/* Deep Research control */}
         <GlowBorder
-          active={deepResearchIsRunning}
-          primaryColor={getAgentColor(activeDeepResearchAgentUuid).primary}
-          lightColor={getAgentColor(activeDeepResearchAgentUuid).light}
+          active={deepResearchUiState.isRunning}
+          primaryColor={getAgentColor(deepResearchUiState.activeAgentUuid).primary}
+          lightColor={getAgentColor(deepResearchUiState.activeAgentUuid).light}
           variant="spin"
           className="h-full"
         >
@@ -430,9 +423,9 @@ export function RelatedWorksClient({
 
           <div className="mt-4 flex items-center gap-2">
             <select
-              value={activeDeepResearchAgentUuid || deepResearchAgentUuid}
+              value={deepResearchUiState.selectedAgentUuid}
               onChange={(e) => { setDeepResearchAgentUuid(e.target.value); setDeepResearchTriggeredAgent(null); }}
-              disabled={generatingDeepResearch || deepResearchIsRunning}
+              disabled={generatingDeepResearch || deepResearchUiState.isRunning}
               className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
             >
               <option value="">{t("selectAgent")}</option>
@@ -444,27 +437,22 @@ export function RelatedWorksClient({
             </select>
             <Button
               size="sm"
-              disabled={!selectedDeepResearchAgentUuid || generatingDeepResearch || !!deepResearchTriggeredAgent || deepResearchIsRunning}
+              disabled={!deepResearchUiState.selectedAgentUuid || generatingDeepResearch || !!deepResearchTriggeredAgent || deepResearchUiState.isRunning}
               onClick={handleGenerateDeepResearch}
               className={deepResearchTriggeredAgent
                 ? "bg-emerald-600 text-white hover:bg-emerald-600"
-                : deepResearchIsRunning
+                : deepResearchUiState.isRunning
                   ? "bg-primary/70 text-primary-foreground"
                   : "bg-primary text-primary-foreground hover:bg-primary/90"}
             >
-              {(generatingDeepResearch || deepResearchIsRunning) ? (
+              {(generatingDeepResearch || deepResearchUiState.isRunning) ? (
                 <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
               ) : deepResearchTriggeredAgent ? (
                 <Check className="mr-1.5 h-3.5 w-3.5" />
               ) : null}
-              {deepResearchIsRunning ? t("generating") : deepResearchTriggeredAgent ? t("sent") : t("generate")}
+              {deepResearchUiState.isRunning ? t("generating") : deepResearchTriggeredAgent ? t("sent") : t("generate")}
             </Button>
           </div>
-          {deepResearchState.stale && deepResearchAgentName ? (
-            <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
-              {t("staleTask", { agent: deepResearchAgentName })}
-            </p>
-          ) : null}
         </Card>
         </GlowBorder>
       </div>

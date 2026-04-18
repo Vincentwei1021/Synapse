@@ -5,8 +5,6 @@ import { listRelatedWorks } from "@/services/related-work.service";
 import { listRealtimeAgentSummaries } from "@/services/agent.service";
 import { RelatedWorksClient } from "./related-works-client";
 
-const STALE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
-
 interface PageProps {
   params: Promise<{ uuid: string }>;
 }
@@ -22,9 +20,7 @@ export default async function RelatedWorksPage({ params }: PageProps) {
       uuid: true,
       deepResearchDocUuid: true,
       autoSearchActiveAgentUuid: true,
-      autoSearchStartedAt: true,
       deepResearchActiveAgentUuid: true,
-      deepResearchStartedAt: true,
     },
   });
   if (!project) redirect("/research-projects");
@@ -46,25 +42,6 @@ export default async function RelatedWorksPage({ params }: PageProps) {
     listRealtimeAgentSummaries(auth.companyUuid),
   ]);
 
-  // Staleness: running 30+ min AND no recent output in 30 min
-  const now = Date.now();
-
-  let autoSearchIsStale = false;
-  if (project.autoSearchActiveAgentUuid && project.autoSearchStartedAt) {
-    const runningMs = now - project.autoSearchStartedAt.getTime();
-    const latestPaperAt = works.length > 0 ? new Date(works[0].createdAt).getTime() : 0;
-    const outputAgeMs = latestPaperAt > 0 ? now - latestPaperAt : Infinity;
-    autoSearchIsStale = runningMs > STALE_THRESHOLD_MS && outputAgeMs > STALE_THRESHOLD_MS;
-  }
-
-  let deepResearchIsStale = false;
-  if (project.deepResearchActiveAgentUuid && project.deepResearchStartedAt) {
-    const runningMs = now - project.deepResearchStartedAt.getTime();
-    const docUpdatedAt = deepResearchDoc ? new Date(deepResearchDoc.updatedAt).getTime() : 0;
-    const outputAgeMs = docUpdatedAt > 0 ? now - docUpdatedAt : Infinity;
-    deepResearchIsStale = runningMs > STALE_THRESHOLD_MS && outputAgeMs > STALE_THRESHOLD_MS;
-  }
-
   return (
     <div className="space-y-6 p-4 md:p-8">
       <RelatedWorksClient
@@ -72,14 +49,8 @@ export default async function RelatedWorksPage({ params }: PageProps) {
         initialWorks={works}
         agents={agents.map((a) => ({ uuid: a.uuid, name: a.name }))}
         deepResearchDoc={deepResearchDoc}
-        autoSearchState={{
-          agentUuid: project.autoSearchActiveAgentUuid,
-          stale: autoSearchIsStale,
-        }}
-        deepResearchState={{
-          agentUuid: project.deepResearchActiveAgentUuid,
-          stale: deepResearchIsStale,
-        }}
+        autoSearchActiveAgentUuid={project.autoSearchActiveAgentUuid}
+        deepResearchActiveAgentUuid={project.deepResearchActiveAgentUuid}
       />
     </div>
   );
