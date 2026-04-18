@@ -60,7 +60,6 @@ export function GlowBorder({ active, primaryColor, lightColor, variant = "spin",
 
   const animationDuration = phase === "accelerate" ? "0.5s" : "2.5s";
   const isActive = phase === "running" || phase === "accelerate";
-  const ringOpacity = phase === "fadeout" ? 0 : phase === "flash" ? 1 : 1;
 
   return (
     <div
@@ -74,7 +73,7 @@ export function GlowBorder({ active, primaryColor, lightColor, variant = "spin",
         transition: "box-shadow 0.3s ease",
       }}
     >
-      {/* Static base ring — always visible when active */}
+      {/* Static base ring */}
       <div
         className="pointer-events-none absolute inset-0 rounded-[18px] transition-opacity"
         style={{
@@ -83,23 +82,24 @@ export function GlowBorder({ active, primaryColor, lightColor, variant = "spin",
           transitionDuration: phase === "fadeout" ? "700ms" : "200ms",
         }}
       />
-      {/* Spinning highlight ring */}
+      {/* Spinning highlight — uses transform:rotate for Safari compat */}
       <div
-        className="pointer-events-none absolute inset-0 rounded-[18px] transition-opacity"
+        className="pointer-events-none absolute inset-[-50%] transition-opacity"
         style={{
           background: phase === "flash"
             ? `conic-gradient(from 0deg, ${primaryColor}, ${lightColor}, ${primaryColor})`
-            : `conic-gradient(from var(--glow-angle), transparent 30%, ${primaryColor} 60%, ${lightColor} 80%, ${primaryColor} 90%, transparent 100%)`,
-          opacity: ringOpacity,
-          padding: "1.5px",
-          WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-          WebkitMaskComposite: "xor",
-          maskComposite: "exclude",
+            : `conic-gradient(from 0deg, transparent 30%, ${primaryColor} 60%, ${lightColor} 80%, ${primaryColor} 90%, transparent 100%)`,
+          opacity: phase === "fadeout" ? 0 : 1,
           animation: phase === "flash" || phase === "fadeout"
             ? "none"
-            : `glow-spin ${animationDuration} linear infinite`,
+            : `glow-rotate ${animationDuration} linear infinite`,
           transitionDuration: phase === "fadeout" ? "700ms" : "200ms",
-        } as React.CSSProperties}
+        }}
+      />
+      {/* Mask: cut out the center to leave only the border ring */}
+      <div
+        className="pointer-events-none absolute inset-0 rounded-[18px]"
+        style={{ background: "hsl(var(--card))", margin: "1.5px" }}
       />
       <div className="relative h-full rounded-[18px]">{children}</div>
     </div>

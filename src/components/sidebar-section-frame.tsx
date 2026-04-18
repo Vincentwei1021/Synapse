@@ -23,11 +23,12 @@ export function SidebarSectionFrame({ agents, children, active, className }: Sid
   return (
     <div
       className={cn(
-        "relative rounded-lg px-1.5 py-0.5 transition-[border-color,box-shadow] duration-200",
+        "relative rounded-lg px-1.5 py-0.5 transition-[border-color,box-shadow,background-color] duration-200",
         hasAgents
           ? "border border-primary/80"
           : "border border-transparent",
-        hasAgents && active && "shadow-[0_0_8px_0_hsl(var(--primary)/0.25)]",
+        hasAgents && active && "bg-secondary shadow-[0_0_8px_0_hsl(var(--primary)/0.25)]",
+        hasAgents && active && "[&_button[data-variant=secondary]]:bg-transparent [&_button[data-variant=secondary]]:shadow-none",
         className,
       )}
     >
