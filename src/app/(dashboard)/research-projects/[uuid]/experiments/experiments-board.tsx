@@ -17,6 +17,7 @@ import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
 import { MarkdownContent } from "@/components/markdown-content";
 import { GlowBorder } from "@/components/glow-border";
+import { isAgentWorkStale } from "@/lib/agent-presence";
 import { getAgentColor } from "@/lib/agent-colors";
 import { ANIM } from "@/lib/animation";
 import type { ExperimentResponse } from "@/services/experiment.service";
@@ -105,6 +106,7 @@ export function ExperimentsBoard({
   realtimeAgents,
   initialSelectedExperimentUuid = null,
   viewerUuid,
+  viewerType,
   projectUuid,
   autonomousLoopEnabled,
   autonomousLoopAgentUuid,
@@ -113,10 +115,11 @@ export function ExperimentsBoard({
   researchQuestions,
 }: {
   experiments: ExperimentResponse[];
-  agents: Array<{ uuid: string; name: string }>;
-  realtimeAgents: Array<{ uuid: string; name: string }>;
+  agents: Array<{ uuid: string; name: string; lastActiveAt: string | null }>;
+  realtimeAgents: Array<{ uuid: string; name: string; lastActiveAt: string | null }>;
   initialSelectedExperimentUuid?: string | null;
   viewerUuid: string;
+  viewerType: string;
   projectUuid: string;
   autonomousLoopEnabled: boolean;
   autonomousLoopAgentUuid: string | null;
@@ -327,6 +330,22 @@ export function ExperimentsBoard({
     router.refresh();
   }
 
+  const agentLastActiveAtByUuid = useMemo(
+    () => new Map(agents.map((agent) => [agent.uuid, agent.lastActiveAt])),
+    [agents],
+  );
+
+  function experimentIsStale(experiment: ExperimentResponse) {
+    if (experiment.status !== "in_progress" || experiment.assignee?.type !== "agent") {
+      return false;
+    }
+
+    return isAgentWorkStale({
+      agentLastActiveAt: agentLastActiveAtByUuid.get(experiment.assignee.uuid) ?? null,
+      lastProgressAt: experiment.liveUpdatedAt,
+    });
+  }
+
   async function handleDraftSave(experimentUuid: string) {
     setDraftSaveError(null);
 
@@ -447,29 +466,54 @@ export function ExperimentsBoard({
     }
 
     if (experiment.status === "in_progress") {
+      const stale = experimentIsStale(experiment);
       const canComplete =
         !experiment.assignee ||
         (experiment.assignee.type === "user" && experiment.assignee.uuid === viewerUuid);
+      const canReset = viewerType === "user" && stale;
 
-      if (!canComplete) {
+      if (!canComplete && !canReset) {
         return null;
       }
 
       return (
-        <Button
-          size="sm"
-          className="w-full bg-emerald-700 text-white hover:bg-emerald-600"
-          disabled={isPending}
-          onClick={(event) => {
-            event.stopPropagation();
-            startTransition(() => {
-              void postAction(experiment.uuid, "complete", { outcome: t("experiments.defaultOutcome") });
-            });
-          }}
-        >
-          <CheckCircle2 className="mr-2 h-4 w-4" />
-          {t("experiments.actions.complete")}
-        </Button>
+        <div className="space-y-2">
+          {canReset ? (
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full border-amber-300 text-amber-700 hover:bg-amber-50 hover:text-amber-800 dark:border-amber-500/40 dark:text-amber-300 dark:hover:bg-amber-500/10"
+              disabled={isPending}
+              onClick={(event) => {
+                event.stopPropagation();
+                startTransition(() => {
+                  void fetch(`/api/experiments/${experiment.uuid}/reset`, {
+                    method: "POST",
+                  }).then(() => router.refresh());
+                });
+              }}
+            >
+              <CornerUpLeft className="mr-2 h-4 w-4" />
+              {t("experiments.actions.resetToPendingStart")}
+            </Button>
+          ) : null}
+          {canComplete ? (
+            <Button
+              size="sm"
+              className="w-full bg-emerald-700 text-white hover:bg-emerald-600"
+              disabled={isPending}
+              onClick={(event) => {
+                event.stopPropagation();
+                startTransition(() => {
+                  void postAction(experiment.uuid, "complete", { outcome: t("experiments.defaultOutcome") });
+                });
+              }}
+            >
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              {t("experiments.actions.complete")}
+            </Button>
+          ) : null}
+        </div>
       );
     }
 
@@ -634,8 +678,11 @@ export function ExperimentsBoard({
                       transition={ANIM.spring}
                     >
                     <PresenceIndicator entityType="experiment" entityUuid={experiment.uuid}>
+                    {(() => {
+                      const stale = experimentIsStale(experiment);
+                      return (
                     <GlowBorder
-                      active={!!experiment.liveStatus}
+                      active={!!experiment.liveStatus && !stale}
                       primaryColor={getAgentColor(experiment.assignee?.uuid ?? "").primary}
                       lightColor={getAgentColor(experiment.assignee?.uuid ?? "").light}
                       variant="pulse"
@@ -682,7 +729,16 @@ export function ExperimentsBoard({
                         ) : null}
                       </div>
 
-                      {experiment.liveStatus ? (
+                      {stale ? (
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                            {t("experiments.card.stale")}
+                          </span>
+                          <span className="truncate text-[11px] text-amber-700 dark:text-amber-300">
+                            {t("experiments.card.agentDisconnected")}
+                          </span>
+                        </div>
+                      ) : experiment.liveStatus ? (
                         <div className="flex items-center gap-2">
                           {liveStatusBadge(t, experiment.liveStatus)}
                           {experiment.liveMessage ? (
@@ -694,6 +750,8 @@ export function ExperimentsBoard({
                       {renderActionBlock(experiment)}
                     </Card>
                     </GlowBorder>
+                      );
+                    })()}
                     </PresenceIndicator>
                     </motion.div>
                   ))

@@ -942,6 +942,67 @@ export async function startExperiment(input: {
   return formatExperiment(input.companyUuid, updated);
 }
 
+export async function resetExperimentToPendingStart(input: {
+  companyUuid: string;
+  experimentUuid: string;
+  actorUuid: string;
+}) {
+  const existing = await prisma.experiment.findFirst({
+    where: { uuid: input.experimentUuid, companyUuid: input.companyUuid },
+    include: {
+      researchQuestion: {
+        select: { uuid: true, title: true, parentQuestionUuid: true },
+      },
+    },
+  });
+
+  if (!existing) {
+    throw new Error("Experiment not found");
+  }
+
+  if (existing.status !== "in_progress") {
+    throw new Error(`Invalid experiment status transition: ${existing.status} -> pending_start`);
+  }
+
+  const updated = await prisma.experiment.update({
+    where: { uuid: input.experimentUuid },
+    data: {
+      status: "pending_start",
+      liveStatus: null,
+      liveMessage: null,
+      liveUpdatedAt: new Date(),
+      startedAt: null,
+    },
+    include: {
+      researchQuestion: {
+        select: { uuid: true, title: true, parentQuestionUuid: true },
+      },
+    },
+  });
+
+  await activityService.createActivity({
+    companyUuid: input.companyUuid,
+    researchProjectUuid: updated.researchProjectUuid,
+    targetType: "experiment",
+    targetUuid: updated.uuid,
+    actorType: "user",
+    actorUuid: input.actorUuid,
+    action: "status_changed",
+    value: { status: "pending_start", reset: true },
+  });
+
+  eventBus.emitChange({
+    companyUuid: input.companyUuid,
+    researchProjectUuid: updated.researchProjectUuid,
+    entityType: "experiment",
+    entityUuid: updated.uuid,
+    action: "updated",
+    actorUuid: input.actorUuid,
+  });
+
+  return formatExperiment(input.companyUuid, updated);
+}
+
 /**
  * Check if the autonomous loop should trigger and send notification to the loop agent.
  * Mode 1 (human_review): trigger when draft=0, pending_review=0, pending_start=0

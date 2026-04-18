@@ -142,7 +142,7 @@ function serializeNode(node: {
         uuid: string;
         title: string;
         status: string;
-      };
+      } | null;
     }>;
     experimentReservations: Array<{
       uuid: string;
@@ -151,30 +151,42 @@ function serializeNode(node: {
         uuid: string;
         title: string;
         status: string;
-      };
+      } | null;
     }>;
   }>;
 }): ComputeNodeSnapshot {
   const gpus = node.gpus.map((gpu) => {
-    const activeExperimentReservation = gpu.experimentReservations[0] ?? null;
-    const activeRunReservation = gpu.reservations[0] ?? null;
-    const activeReservation = activeExperimentReservation
-      ? {
-          uuid: activeExperimentReservation.uuid,
-          kind: "experiment" as const,
-          itemUuid: activeExperimentReservation.experiment.uuid,
-          itemTitle: activeExperimentReservation.experiment.title,
-          itemStatus: activeExperimentReservation.experiment.status,
+    const activeExperimentReservation =
+      gpu.experimentReservations.find((reservation) => reservation.experiment) ?? null;
+    const activeRunReservation =
+      gpu.reservations.find((reservation) => reservation.run) ?? null;
+    let activeReservation:
+      | {
+          uuid: string;
+          kind: "experiment" | "run";
+          itemUuid: string;
+          itemTitle: string;
+          itemStatus: string;
         }
-      : activeRunReservation
-        ? {
-            uuid: activeRunReservation.uuid,
-            kind: "run" as const,
-            itemUuid: activeRunReservation.run.uuid,
-            itemTitle: activeRunReservation.run.title,
-            itemStatus: activeRunReservation.run.status,
-          }
-        : null;
+      | null = null;
+
+    if (activeExperimentReservation?.experiment) {
+      activeReservation = {
+        uuid: activeExperimentReservation.uuid,
+        kind: "experiment",
+        itemUuid: activeExperimentReservation.experiment.uuid,
+        itemTitle: activeExperimentReservation.experiment.title,
+        itemStatus: activeExperimentReservation.experiment.status,
+      };
+    } else if (activeRunReservation?.run) {
+      activeReservation = {
+        uuid: activeRunReservation.uuid,
+        kind: "run",
+        itemUuid: activeRunReservation.run.uuid,
+        itemTitle: activeRunReservation.run.title,
+        itemStatus: activeRunReservation.run.status,
+      };
+    }
     const computedStatus = activeReservation ? "busy" : gpu.lifecycle;
 
     return {

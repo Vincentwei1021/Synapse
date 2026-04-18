@@ -73,7 +73,7 @@ export default async function DashboardPage({ params }: PageProps) {
       <div className="rounded-[32px] border border-border bg-card p-7 shadow-sm">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="text-sm font-semibold tracking-[0.08em] text-muted-foreground">
               {t("dashboard.brief")}
             </p>
             <h1 className="mt-3 text-[28px] font-semibold tracking-tight text-foreground">{project.name}</h1>
@@ -226,7 +226,7 @@ export default async function DashboardPage({ params }: PageProps) {
 function BriefCard({ title, body }: { title: string; body: string }) {
   return (
     <div className="rounded-[20px] bg-secondary/60 p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</p>
+      <p className="text-base font-semibold text-foreground">{title}</p>
       <p className="mt-2 text-sm leading-6 text-foreground">{body}</p>
     </div>
   );
@@ -243,7 +243,7 @@ function ListBriefCard({
 }) {
   return (
     <div className="rounded-[20px] bg-secondary/60 p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</p>
+      <p className="text-base font-semibold text-foreground">{title}</p>
       <div className="mt-2 space-y-1.5 text-sm leading-6 text-foreground">
         {items.length > 0 ? items.map((item) => <p key={item}>• {item}</p>) : <p>{empty}</p>}
       </div>
@@ -254,7 +254,7 @@ function ListBriefCard({
 function PipelineCell({ title, value }: { title: string; value: number }) {
   return (
     <div className="rounded-[20px] bg-secondary/60 p-4 text-center">
-      <p className="text-sm text-muted-foreground">{title}</p>
+      <p className="text-base font-medium text-muted-foreground">{title}</p>
       <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
     </div>
   );

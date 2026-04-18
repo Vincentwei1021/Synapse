@@ -64,41 +64,44 @@ export function GlowBorder({ active, primaryColor, lightColor, variant = "spin",
 
   return (
     <div
-      className={`relative ${className ?? ""}`}
+      className={`relative overflow-hidden rounded-[18px] ${className ?? ""}`}
       style={{
         boxShadow: isActive
-          ? `0 0 8px 1px ${primaryColor}40`
+          ? `0 0 10px 1px ${primaryColor}26`
           : phase === "flash"
-            ? `0 0 16px 4px ${lightColor}`
+            ? `0 0 14px 3px ${lightColor}`
             : "none",
-        borderRadius: "18px",
         transition: "box-shadow 0.3s ease",
       }}
     >
       {/* Static base ring — always visible when active */}
       <div
-        className="absolute -inset-[2px] rounded-[18px] transition-opacity"
+        className="pointer-events-none absolute inset-0 rounded-[18px] transition-opacity"
         style={{
-          border: `2px solid ${primaryColor}50`,
+          border: `1px solid ${primaryColor}42`,
           opacity: phase === "fadeout" ? 0 : isActive ? 1 : 0,
           transitionDuration: phase === "fadeout" ? "700ms" : "200ms",
         }}
       />
       {/* Spinning highlight ring */}
       <div
-        className="absolute -inset-[2px] rounded-[18px] transition-opacity"
+        className="pointer-events-none absolute inset-0 rounded-[18px] transition-opacity"
         style={{
           background: phase === "flash"
             ? `conic-gradient(from 0deg, ${primaryColor}, ${lightColor}, ${primaryColor})`
             : `conic-gradient(from var(--glow-angle), transparent 30%, ${primaryColor} 60%, ${lightColor} 80%, ${primaryColor} 90%, transparent 100%)`,
           opacity: ringOpacity,
+          padding: "1.5px",
+          WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
           animation: phase === "flash" || phase === "fadeout"
             ? "none"
             : `glow-spin ${animationDuration} linear infinite`,
           transitionDuration: phase === "fadeout" ? "700ms" : "200ms",
-        }}
+        } as React.CSSProperties}
       />
-      <div className="relative">{children}</div>
+      <div className="relative rounded-[18px]">{children}</div>
     </div>
   );
 }

@@ -176,7 +176,8 @@
     "promptHint": "这些指令会追加到内置提示词之后。Agent 始终可以使用工具、项目上下文和已有论文。留空则只使用默认指令。",
     "defaultSearchPrompt": "",
     "defaultDeepResearchPrompt": "",
-    "addPaperError": "添加论文失败。如果无法自动获取，请手动填写标题。"
+    "addPaperError": "添加论文失败。如果无法自动获取，请手动填写标题。",
+    "staleTask": "{agent} 看起来已经断联了。上一轮任务不再视为进行中，你现在可以重新触发。"
   },
   "priority": {
     "immediate": "立即执行",
@@ -1320,7 +1321,9 @@
       "unassigned": "未分配",
       "outcome": "结论",
       "parentContext": "可继承父问题实验",
-      "updatedAt": "更新于"
+      "updatedAt": "更新于",
+      "stale": "已卡住",
+      "agentDisconnected": "Agent 心跳已停止；如果任务卡住了，可以把实验重置回待启动。"
     },
     "actions": {
       "submitForReview": "提交审核",
@@ -1330,7 +1333,8 @@
       "assign": "分配",
       "reassign": "重新分配",
       "start": "开始执行",
-      "complete": "完成实验"
+      "complete": "完成实验",
+      "resetToPendingStart": "重置回待启动"
     },
     "fields": {
       "title": "实验标题",

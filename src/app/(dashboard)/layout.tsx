@@ -326,13 +326,13 @@ export default function DashboardLayout({
   // Shared sidebar content used by both desktop aside and mobile Sheet
   const SidebarContent = ({ mobile = false }: { mobile?: boolean }) => {
     // Mobile drawer uses larger text/icons since it has more room (280px vs 220px)
-    const navTextSize = mobile ? "text-[15px]" : "text-[13px]";
+    const navTextSize = mobile ? "text-[15px]" : "text-sm";
     const navIconSize = mobile ? "h-5 w-5" : "h-4 w-4";
     const navGap = mobile ? "gap-1.5" : "gap-1";
     const navItemPy = mobile ? "h-10" : "";
-    const smallTextSize = mobile ? "text-[13px]" : "text-[11px]";
-    const profileNameSize = mobile ? "text-[15px]" : "text-[13px]";
-    const profileEmailSize = mobile ? "text-[12px]" : "text-[11px]";
+    const smallTextSize = mobile ? "text-[13px]" : "text-xs";
+    const profileNameSize = mobile ? "text-[15px]" : "text-sm";
+    const profileEmailSize = mobile ? "text-[12px]" : "text-xs";
 
     return (
     <>

@@ -280,6 +280,7 @@ export async function listAgentSummaries(companyUuid: string) {
       roles: true,
       type: true,
       color: true,
+      lastActiveAt: true,
     },
     orderBy: { createdAt: "asc" },
   });
@@ -291,7 +292,7 @@ export async function listRealtimeAgentSummaries(companyUuid: string) {
       companyUuid,
       type: { in: getTypesByTransport("realtime") },
     },
-    select: { uuid: true, name: true, roles: true, type: true, color: true },
+    select: { uuid: true, name: true, roles: true, type: true, color: true, lastActiveAt: true },
     orderBy: { createdAt: "asc" },
   });
 }

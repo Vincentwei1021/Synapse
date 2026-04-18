@@ -49,7 +49,7 @@ vi.mock("@/lib/uuid-resolver", () => ({
   getActorName: vi.fn(async () => "Test User"),
 }));
 
-import { reviewExperiment } from "@/services/experiment.service";
+import { resetExperimentToPendingStart, reviewExperiment } from "@/services/experiment.service";
 
 const COMPANY = "test-company-review";
 
@@ -260,5 +260,57 @@ describe("reviewExperiment revert paths", () => {
       })
     );
     expect(mockPrisma.comment.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("resetExperimentToPendingStart", () => {
+  it("moves a stuck experiment back to pending_start and clears live state", async () => {
+    const existing = makeExperiment({ status: "in_progress", liveStatus: "running", startedAt: new Date() });
+    mockPrisma.experiment.findFirst.mockResolvedValue(existing);
+    mockPrisma.experiment.update.mockResolvedValue({
+      ...existing,
+      status: "pending_start",
+      liveStatus: null,
+      liveMessage: null,
+      startedAt: null,
+    });
+
+    await resetExperimentToPendingStart({
+      companyUuid: COMPANY,
+      experimentUuid: "exp-1",
+      actorUuid: "user-1",
+    });
+
+    expect(mockPrisma.experiment.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { uuid: "exp-1" },
+        data: expect.objectContaining({
+          status: "pending_start",
+          liveStatus: null,
+          liveMessage: null,
+          startedAt: null,
+          liveUpdatedAt: expect.any(Date),
+        }),
+      }),
+    );
+    expect(mockCreateActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "status_changed",
+        value: { status: "pending_start", reset: true },
+      }),
+    );
+  });
+
+  it("rejects resetting experiments that are not in progress", async () => {
+    mockPrisma.experiment.findFirst.mockResolvedValue(makeExperiment({ status: "pending_start" }));
+
+    await expect(
+      resetExperimentToPendingStart({
+        companyUuid: COMPANY,
+        experimentUuid: "exp-1",
+        actorUuid: "user-1",
+      }),
+    ).rejects.toThrow("Invalid experiment status transition: pending_start -> pending_start");
+    expect(mockPrisma.experiment.update).not.toHaveBeenCalled();
   });
 });

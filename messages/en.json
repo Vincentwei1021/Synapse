@@ -176,7 +176,8 @@
     "promptHint": "These instructions are appended to the built-in prompt. The agent will always have access to tools, project context, and existing papers. Leave empty to use defaults only.",
     "defaultSearchPrompt": "",
     "defaultDeepResearchPrompt": "",
-    "addPaperError": "Failed to add paper. Please provide a title if auto-fetch is unavailable."
+    "addPaperError": "Failed to add paper. Please provide a title if auto-fetch is unavailable.",
+    "staleTask": "{agent} looks disconnected. The previous task no longer appears active, so you can trigger it again."
   },
   "priority": {
     "immediate": "Immediate",
@@ -1320,7 +1321,9 @@
       "unassigned": "Unassigned",
       "outcome": "Outcome",
       "parentContext": "Parent question context",
-      "updatedAt": "Updated"
+      "updatedAt": "Updated",
+      "stale": "Stale",
+      "agentDisconnected": "Agent heartbeat stopped. Reset this experiment if it is stuck."
     },
     "actions": {
       "submitForReview": "Submit for review",
@@ -1330,7 +1333,8 @@
       "assign": "Assign",
       "reassign": "Reassign",
       "start": "Start",
-      "complete": "Complete"
+      "complete": "Complete",
+      "resetToPendingStart": "Reset to pending start"
     },
     "fields": {
       "title": "Experiment title",

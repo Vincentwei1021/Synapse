@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getServerAuthContext } from "@/lib/auth-server";
+import { isAgentWorkStale } from "@/lib/agent-presence";
 import { prisma } from "@/lib/prisma";
 import { listRelatedWorks } from "@/services/related-work.service";
 import { listRealtimeAgentSummaries } from "@/services/agent.service";
@@ -41,6 +42,21 @@ export default async function RelatedWorksPage({ params }: PageProps) {
     listRelatedWorks(auth.companyUuid, projectUuid),
     listRealtimeAgentSummaries(auth.companyUuid),
   ]);
+  const agentLastActiveAtByUuid = new Map(
+    agents.map((agent) => [agent.uuid, agent.lastActiveAt?.toISOString() ?? null]),
+  );
+  const autoSearchIsStale = Boolean(
+    project.autoSearchActiveAgentUuid &&
+      isAgentWorkStale({
+        agentLastActiveAt: agentLastActiveAtByUuid.get(project.autoSearchActiveAgentUuid) ?? null,
+      }),
+  );
+  const deepResearchIsStale = Boolean(
+    project.deepResearchActiveAgentUuid &&
+      isAgentWorkStale({
+        agentLastActiveAt: agentLastActiveAtByUuid.get(project.deepResearchActiveAgentUuid) ?? null,
+      }),
+  );
 
   return (
     <div className="space-y-6 p-4 md:p-8">
@@ -49,8 +65,14 @@ export default async function RelatedWorksPage({ params }: PageProps) {
         initialWorks={works}
         agents={agents.map((a) => ({ uuid: a.uuid, name: a.name }))}
         deepResearchDoc={deepResearchDoc}
-        autoSearchActiveAgentUuid={project.autoSearchActiveAgentUuid}
-        deepResearchActiveAgentUuid={project.deepResearchActiveAgentUuid}
+        autoSearchState={{
+          agentUuid: project.autoSearchActiveAgentUuid,
+          stale: autoSearchIsStale,
+        }}
+        deepResearchState={{
+          agentUuid: project.deepResearchActiveAgentUuid,
+          stale: deepResearchIsStale,
+        }}
       />
     </div>
   );
