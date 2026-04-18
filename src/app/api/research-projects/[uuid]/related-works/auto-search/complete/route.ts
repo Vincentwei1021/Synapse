@@ -31,7 +31,7 @@ export const POST = withErrorHandler<{ uuid: string }>(
     // Clear the active field
     await prisma.researchProject.update({
       where: { uuid: projectUuid },
-      data: { autoSearchActiveAgentUuid: null },
+      data: { autoSearchActiveAgentUuid: null, autoSearchStartedAt: null },
     });
 
     eventBus.emitChange({

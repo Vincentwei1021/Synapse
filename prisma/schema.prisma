@@ -142,8 +142,10 @@ model ResearchProject {
   autoSearchEnabled        Boolean  @default(false)
   autoSearchAgentUuid      String?
   autoSearchActiveAgentUuid   String?
+  autoSearchStartedAt      DateTime?
   deepResearchDocUuid      String?
   deepResearchActiveAgentUuid String?
+  deepResearchStartedAt    DateTime?
   repoUrl              String?
   githubUsername        String?
   githubToken          String?

@@ -44,7 +44,7 @@ export const POST = withErrorHandler<{ uuid: string }>(
     // Mark deep research as active
     await prisma.researchProject.update({
       where: { uuid: projectUuid },
-      data: { deepResearchActiveAgentUuid: parsed.data.agentUuid },
+      data: { deepResearchActiveAgentUuid: parsed.data.agentUuid, deepResearchStartedAt: new Date() },
     });
     eventBus.emitChange({
       companyUuid: auth.companyUuid,

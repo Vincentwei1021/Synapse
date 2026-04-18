@@ -44,7 +44,7 @@ export const POST = withErrorHandler<{ uuid: string }>(
     // Mark auto-search as active
     await prisma.researchProject.update({
       where: { uuid: projectUuid },
-      data: { autoSearchActiveAgentUuid: parsed.data.agentUuid },
+      data: { autoSearchActiveAgentUuid: parsed.data.agentUuid, autoSearchStartedAt: new Date() },
     });
     eventBus.emitChange({
       companyUuid: auth.companyUuid,

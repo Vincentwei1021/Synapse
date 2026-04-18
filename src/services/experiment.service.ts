@@ -1178,6 +1178,8 @@ export async function completeExperiment(input: {
       results: jsonInput(input.results),
       computeUsedHours: input.computeUsedHours ?? existing.computeUsedHours,
       completedAt: new Date(),
+      liveStatus: null,
+      liveMessage: null,
       ...(input.experimentBranch !== undefined ? { experimentBranch: input.experimentBranch } : {}),
       ...(input.commitSha !== undefined ? { commitSha: input.commitSha } : {}),
     },

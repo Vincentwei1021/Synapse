@@ -7,7 +7,6 @@ const LIVE_EXPERIMENT_STATES = [
   "queuing",
   "running",
 ] as const;
-const RELATED_WORK_ACTIVITY_WINDOW_MS = 2 * 60 * 1000; // 2 minutes
 
 export interface AgentSummary {
   uuid: string;
@@ -53,8 +52,8 @@ export async function getProjectAgentActivity({
     where: { uuid: projectUuid, companyUuid },
     select: {
       uuid: true,
-      autoSearchEnabled: true,
-      autoSearchAgentUuid: true,
+      autoSearchActiveAgentUuid: true,
+      deepResearchActiveAgentUuid: true,
     },
   });
   if (!project) {
@@ -76,22 +75,13 @@ export async function getProjectAgentActivity({
     .map((e) => e.assigneeUuid)
     .filter((u): u is string => Boolean(u));
 
-  // Related works: auto-search enabled + recent insert by that agent
+  // Related works: active auto-search or deep research agent
   const relatedWorksAgentUuids: string[] = [];
-  if (project.autoSearchEnabled && project.autoSearchAgentUuid) {
-    const since = new Date(Date.now() - RELATED_WORK_ACTIVITY_WINDOW_MS);
-    const recent = await prisma.relatedWork.findFirst({
-      where: {
-        companyUuid,
-        researchProjectUuid: projectUuid,
-        addedByAgentUuid: project.autoSearchAgentUuid,
-        createdAt: { gte: since },
-      },
-      select: { uuid: true },
-    });
-    if (recent) {
-      relatedWorksAgentUuids.push(project.autoSearchAgentUuid);
-    }
+  if (project.autoSearchActiveAgentUuid) {
+    relatedWorksAgentUuids.push(project.autoSearchActiveAgentUuid);
+  }
+  if (project.deepResearchActiveAgentUuid) {
+    relatedWorksAgentUuids.push(project.deepResearchActiveAgentUuid);
   }
 
   const allAgentUuids = Array.from(

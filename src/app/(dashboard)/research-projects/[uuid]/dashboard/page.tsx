@@ -73,7 +73,7 @@ export default async function DashboardPage({ params }: PageProps) {
       <div className="rounded-[32px] border border-border bg-card p-7 shadow-sm">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold tracking-[0.08em] text-muted-foreground">
+            <p className="text-lg font-semibold tracking-[0.08em] text-muted-foreground">
               {t("dashboard.brief")}
             </p>
             <h1 className="mt-3 text-[28px] font-semibold tracking-tight text-foreground">{project.name}</h1>
