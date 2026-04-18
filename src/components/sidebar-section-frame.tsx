@@ -28,7 +28,6 @@ export function SidebarSectionFrame({ agents, children, active, className }: Sid
           ? "border border-primary/80"
           : "border border-transparent",
         hasAgents && active && "shadow-[0_0_8px_0_hsl(var(--primary)/0.25)]",
-        "[&_button[data-variant=secondary]]:bg-transparent [&_button[data-variant=secondary]]:shadow-none",
         className,
       )}
     >

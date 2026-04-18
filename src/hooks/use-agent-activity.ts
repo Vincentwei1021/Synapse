@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRealtimeEvent } from "@/contexts/realtime-context";
 import type { AgentActivitySummary, AgentSummary } from "@/services/agent-activity.service";
 
@@ -14,12 +14,18 @@ const EMPTY: AgentActivitySummary = {
 
 export function useAgentActivity(projectUuid: string | null | undefined): AgentActivitySummary {
   const [state, setState] = useState<AgentActivitySummary>(EMPTY);
+  const prevProjectUuid = useRef(projectUuid);
+
+  // Reset only when switching to a different project (not on navigation within same project)
+  useEffect(() => {
+    if (projectUuid !== prevProjectUuid.current) {
+      if (!projectUuid) setState(EMPTY);
+      prevProjectUuid.current = projectUuid;
+    }
+  }, [projectUuid]);
 
   const refetch = useCallback(async () => {
-    if (!projectUuid) {
-      setState(EMPTY);
-      return;
-    }
+    if (!projectUuid) return;
     try {
       const res = await fetch(`/api/research-projects/${projectUuid}/agent-activity`);
       if (!res.ok) return;
