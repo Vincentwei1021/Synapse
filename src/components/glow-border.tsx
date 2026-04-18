@@ -83,13 +83,13 @@ export function GlowBorder({ active, primaryColor, lightColor, variant = "spin",
           transitionDuration: phase === "fadeout" ? "700ms" : "200ms",
         }}
       />
-      {/* Spinning highlight — masked to border ring */}
+      {/* Spinning highlight — conic-gradient angle animated via @property, masked to border ring */}
       <div
         className="pointer-events-none absolute -inset-[2px] rounded-[18px] transition-opacity"
         style={{
           background: phase === "flash"
             ? `conic-gradient(from 0deg, ${primaryColor}, ${lightColor}, ${primaryColor})`
-            : `conic-gradient(from 0deg, transparent 30%, ${primaryColor} 60%, ${lightColor} 80%, ${primaryColor} 90%, transparent 100%)`,
+            : `conic-gradient(from var(--glow-angle), transparent 30%, ${primaryColor} 60%, ${lightColor} 80%, ${primaryColor} 90%, transparent 100%)`,
           opacity: ringOpacity,
           animation: phase === "flash" || phase === "fadeout"
             ? "none"
@@ -100,7 +100,7 @@ export function GlowBorder({ active, primaryColor, lightColor, variant = "spin",
           WebkitMaskComposite: "xor",
           mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
           maskComposite: "exclude",
-        }}
+        } as React.CSSProperties}
       />
       <div className="relative h-full rounded-[18px]">{children}</div>
     </div>
