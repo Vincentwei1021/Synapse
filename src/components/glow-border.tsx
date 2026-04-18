@@ -32,7 +32,7 @@ export function GlowBorder({ active, primaryColor, lightColor, variant = "spin",
   }, [active]);
 
   if (phase === "idle") {
-    return <div className={className}>{children}</div>;
+    return <div className={`rounded-[18px] ${className ?? ""}`}>{children}</div>;
   }
 
   if (variant === "pulse") {
@@ -101,7 +101,7 @@ export function GlowBorder({ active, primaryColor, lightColor, variant = "spin",
           transitionDuration: phase === "fadeout" ? "700ms" : "200ms",
         } as React.CSSProperties}
       />
-      <div className="relative rounded-[18px]">{children}</div>
+      <div className="relative h-full rounded-[18px]">{children}</div>
     </div>
   );
 }

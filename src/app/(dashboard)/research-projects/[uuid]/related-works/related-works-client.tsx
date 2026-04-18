@@ -321,8 +321,9 @@ export function RelatedWorksClient({
           primaryColor={getAgentColor(activeAutoSearchAgentUuid).primary}
           lightColor={getAgentColor(activeAutoSearchAgentUuid).light}
           variant="spin"
+          className="h-full"
         >
-        <Card className="rounded-2xl border-border bg-card p-5">
+        <Card className="h-full rounded-2xl border-border bg-card p-5">
           <div className="flex items-start gap-3">
             <div className="flex-1">
               <div className="flex items-center gap-2">
@@ -392,8 +393,9 @@ export function RelatedWorksClient({
           primaryColor={getAgentColor(activeDeepResearchAgentUuid).primary}
           lightColor={getAgentColor(activeDeepResearchAgentUuid).light}
           variant="spin"
+          className="h-full"
         >
-        <Card className="rounded-2xl border-border bg-card p-5">
+        <Card className="h-full rounded-2xl border-border bg-card p-5">
           <div className="flex items-start gap-3">
             <div className="flex-1">
               <div className="flex items-center gap-2">

@@ -87,7 +87,7 @@ function ProjectNavFrameList({
         const isActive = isNavActive(item.href);
         const Icon = item.icon;
         return (
-          <SidebarSectionFrame key={item.href} agents={getAgentsFor(item.href)}>
+          <SidebarSectionFrame key={item.href} agents={getAgentsFor(item.href)} active={isActive}>
             <Link href={item.href} prefetch>
               <Button
                 variant={isActive ? "secondary" : "ghost"}
