@@ -42,9 +42,13 @@ export function DashboardStatCard({
   const Icon = ICONS[icon];
 
   return (
-    <SidebarSectionFrame agents={agents} className="h-full rounded-[28px] border-border/80">
+    <SidebarSectionFrame agents={agents} appearance="glow" className="h-full rounded-[28px]">
       <Link href={href} className="block h-full">
-        <Card className="h-full rounded-[28px] border-border bg-card p-5 transition hover:border-primary/30 hover:shadow-sm">
+        <Card
+          className={`h-full rounded-[28px] bg-card p-5 transition hover:border-primary/30 hover:shadow-sm ${
+            agents.length > 0 ? "border-transparent" : "border-border"
+          }`}
+        >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-base font-semibold text-foreground">{title}</p>
