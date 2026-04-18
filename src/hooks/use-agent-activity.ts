@@ -12,14 +12,17 @@ const EMPTY: AgentActivitySummary = {
   documents: [],
 };
 
+const cache = new Map<string, AgentActivitySummary>();
+
 export function useAgentActivity(projectUuid: string | null | undefined): AgentActivitySummary {
-  const [state, setState] = useState<AgentActivitySummary>(EMPTY);
+  const [state, setState] = useState<AgentActivitySummary>(() => (projectUuid ? cache.get(projectUuid) : undefined) ?? EMPTY);
   const prevProjectUuid = useRef(projectUuid);
 
   // Reset only when switching to a different project (not on navigation within same project)
   useEffect(() => {
     if (projectUuid !== prevProjectUuid.current) {
       if (!projectUuid) setState(EMPTY);
+      else setState(cache.get(projectUuid) ?? EMPTY);
       prevProjectUuid.current = projectUuid;
     }
   }, [projectUuid]);
@@ -31,7 +34,9 @@ export function useAgentActivity(projectUuid: string | null | undefined): AgentA
       if (!res.ok) return;
       const json = await res.json();
       if (json?.success && json.data) {
-        setState(json.data as AgentActivitySummary);
+        const activity = json.data as AgentActivitySummary;
+        if (projectUuid) cache.set(projectUuid, activity);
+        setState(activity);
       }
     } catch {
       // network hiccup — keep last state

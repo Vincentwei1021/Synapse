@@ -40,6 +40,7 @@ export function GlowBorder({ active, primaryColor, lightColor, variant = "spin",
       <div
         className={`relative rounded-2xl transition-shadow ${className ?? ""}`}
         style={{
+          padding: "2px",
           boxShadow: phase === "flash"
             ? `0 0 16px 4px ${lightColor}, 0 0 4px 1px ${primaryColor}`
             : phase === "fadeout"

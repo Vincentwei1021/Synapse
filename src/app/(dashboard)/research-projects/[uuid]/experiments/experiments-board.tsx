@@ -471,7 +471,7 @@ export function ExperimentsBoard({
             <option value="">{t("experiments.actions.selectAgent")}</option>
             {agents.map((agent) => (
               <option key={agent.uuid} value={agent.uuid}>
-                {agent.type === "claude_code" ? "⌘ " : "◉ "}{agent.name}
+                {agent.name}
               </option>
             ))}
           </select>

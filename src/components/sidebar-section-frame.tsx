@@ -44,10 +44,10 @@ export function SidebarSectionFrame({
               return (
                 <span
                   key={agent.uuid}
-                  className="inline-flex items-center gap-0.5 truncate rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none max-w-[96px]"
+                  className="inline-flex items-center gap-0.5 truncate rounded-full px-2 py-0.5 text-[11px] font-medium leading-none max-w-[110px]"
                   style={{ backgroundColor: light, color: primary }}
                 >
-                  <AgentTypeIcon type={agent.type} className="h-2.5 w-2.5" />
+                  <AgentTypeIcon type={agent.type} className="h-3 w-3" />
                   <span className="truncate">{agent.name}</span>
                 </span>
               );
@@ -97,10 +97,11 @@ export function SidebarSectionFrame({
             return (
               <span
                 key={agent.uuid}
-                className="truncate rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none max-w-[80px]"
+                className="inline-flex items-center gap-0.5 truncate rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none max-w-[96px]"
                 style={{ backgroundColor: light, color: primary }}
               >
-                {agent.name}
+                <AgentTypeIcon type={agent.type} className="h-2.5 w-2.5" />
+                <span className="truncate">{agent.name}</span>
               </span>
             );
           })}
