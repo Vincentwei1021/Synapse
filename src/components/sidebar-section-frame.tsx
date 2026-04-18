@@ -44,10 +44,10 @@ export function SidebarSectionFrame({
               return (
                 <span
                   key={agent.uuid}
-                  className="inline-flex items-center gap-0.5 truncate rounded-full px-2 py-0.5 text-[11px] font-medium leading-none max-w-[110px]"
+                  className="inline-flex items-center gap-1 truncate rounded-full px-2.5 py-1 text-xs font-medium leading-none max-w-[120px]"
                   style={{ backgroundColor: light, color: primary }}
                 >
-                  <AgentTypeIcon type={agent.type} className="h-3 w-3" />
+                  <AgentTypeIcon type={agent.type} className="h-3.5 w-3.5" />
                   <span className="truncate">{agent.name}</span>
                 </span>
               );
@@ -80,9 +80,9 @@ export function SidebarSectionFrame({
       className={cn(
         "relative rounded-lg px-1.5 py-0.5 transition-[border-color,box-shadow,background-color] duration-200",
         hasAgents
-          ? "border border-primary/80"
+          ? "border border-primary/80 shadow-[0_0_8px_0_hsl(var(--primary)/0.25)]"
           : "border border-transparent",
-        hasAgents && active && "bg-secondary shadow-[0_0_8px_0_hsl(var(--primary)/0.25)]",
+        hasAgents && active && "bg-secondary",
         hasAgents && active && "[&_button[data-variant=secondary]]:bg-transparent [&_button[data-variant=secondary]]:shadow-none",
         className,
       )}
