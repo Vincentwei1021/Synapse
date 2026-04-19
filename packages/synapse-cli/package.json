@@ -1,0 +1,24 @@
+{
+  "name": "@synapse-research/synapse",
+  "version": "0.2.0",
+  "description": "Synapse — AI Research Orchestration Platform (zero-dependency local mode)",
+  "license": "AGPL-3.0",
+  "bin": {
+    "synapse": "./bin/synapse.mjs"
+  },
+  "files": [
+    "bin/",
+    "dist/"
+  ],
+  "scripts": {
+    "prepack": "node scripts/prepack-pglite.mjs"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.4.4",
+    "@electric-sql/pglite-socket": "^0.1.4",
+    "dotenv": "^16.4.7"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
