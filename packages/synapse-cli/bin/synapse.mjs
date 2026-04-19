@@ -6,14 +6,14 @@
 import { existsSync, mkdirSync } from "fs";
 import { resolve, join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { exec, fork } from "child_process";
-import { promisify } from "util";
+import { execSync, fork } from "child_process";
 import { homedir } from "os";
 import { createHash, randomUUID } from "crypto";
+import { createConnection } from "net";
 
-const execAsync = promisify(exec);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = resolve(__dirname, "..", "dist");
+const PKG_ROOT = resolve(__dirname, "..");
 
 // --- Parse CLI arguments ---
 const args = process.argv.slice(2);
@@ -58,49 +58,64 @@ console.log(`  Data directory: ${dataDir}`);
 mkdirSync(dataDir, { recursive: true });
 
 const useExternalDb = !!process.env.DATABASE_URL;
-let pgliteDb = null;
+let pgliteProcess = null;
 
 if (!useExternalDb) {
-  // --- Start PGlite ---
+  // --- Start PGlite as a forked process ---
   console.log("  Starting embedded database...");
 
   const pgliteDir = join(dataDir, "pglite");
   mkdirSync(pgliteDir, { recursive: true });
 
-  const { PGlite } = await import("@electric-sql/pglite");
-  const { PGLiteSocketServer } = await import("@electric-sql/pglite-socket");
-
-  pgliteDb = new PGlite(pgliteDir);
   const pglitePort = port + 1000;
-  const socketServer = new PGLiteSocketServer({
-    db: pgliteDb,
-    port: pglitePort,
-    host: "127.0.0.1",
-  });
-  await socketServer.start();
 
-  process.env.DATABASE_URL = `postgresql://localhost:${pglitePort}/synapse`;
-  process.env.SYNAPSE_PGLITE = "1";
+  // Fork the pglite-socket server script
+  const serverScript = join(
+    PKG_ROOT,
+    "node_modules",
+    "@electric-sql",
+    "pglite-socket",
+    "dist",
+    "scripts",
+    "server.js",
+  );
+
+  pgliteProcess = fork(serverScript, [
+    `--db=${pgliteDir}`,
+    `--port=${pglitePort}`,
+    "--max-connections=10",
+  ], {
+    stdio: ["pipe", "pipe", "pipe", "ipc"],
+  });
+
+  // Wait for TCP to be ready
+  await waitForTcp("127.0.0.1", pglitePort, 30000);
   console.log(`  Embedded database listening on port ${pglitePort}`);
+
+  process.env.DATABASE_URL = `postgresql://postgres:postgres@localhost:${pglitePort}/postgres?sslmode=disable`;
+  process.env.SYNAPSE_PGLITE = "1";
 }
 
-// --- Push schema to database ---
-console.log("  Setting up database schema...");
-const schemaPath = join(DIST_DIR, "prisma", "schema.prisma");
-if (existsSync(schemaPath)) {
+// --- Run migrations ---
+console.log("  Running migrations...");
+const migrationsDir = join(DIST_DIR, "prisma", "migrations");
+if (existsSync(migrationsDir)) {
   try {
-    const { stdout, stderr } = await execAsync(
-      `npx prisma db push --schema ${schemaPath} --url "${process.env.DATABASE_URL}" --accept-data-loss`,
+    execSync(
+      `npx prisma migrate deploy --schema ${join(DIST_DIR, "prisma", "schema.prisma")} --url "${process.env.DATABASE_URL}"`,
       {
         cwd: DIST_DIR,
+        stdio: "pipe",
         env: { ...process.env },
       },
     );
-    if (stdout) console.log("  " + stdout.trim().split("\n").pop());
   } catch (err) {
-    console.error("  Schema push failed:", err.stderr || err.message);
+    const stderr = err.stderr ? err.stderr.toString() : err.message;
+    console.error("  Migration failed:", stderr);
     process.exit(1);
   }
+} else {
+  console.warn("  No migrations directory found, skipping...");
 }
 
 // --- Seed default user if empty ---
@@ -108,29 +123,33 @@ const defaultEmail = process.env.DEFAULT_USER || "admin@synapse.local";
 const defaultPassword = process.env.DEFAULT_PASSWORD || "synapse";
 
 try {
-  if (pgliteDb) {
-    // PGlite mode: seed via direct SQL on the db instance
-    const { rows } = await pgliteDb.query("SELECT COUNT(*) as count FROM \"Company\"");
-    const count = parseInt(rows[0].count, 10);
-    if (count === 0) {
-      const bcrypt = await import("bcrypt");
-      const passwordHash = await bcrypt.hash(defaultPassword, 10);
-      const companyUuid = randomUUID();
-      const userUuid = randomUUID();
+  // Use pg to directly query and seed
+  const pgMod = await import(join(DIST_DIR, "node_modules", "pg", "lib", "index.js"));
+  const pg = pgMod.default || pgMod;
+  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 
-      await pgliteDb.query(
-        `INSERT INTO "Company" (uuid, name, "createdAt", "updatedAt") VALUES ($1, $2, NOW(), NOW())`,
-        [companyUuid, "Synapse Local"]
-      );
-      await pgliteDb.query(
-        `INSERT INTO "User" (uuid, "companyUuid", email, "passwordHash", name, role, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
-        [userUuid, companyUuid, defaultEmail, passwordHash, "Admin", "pi"]
-      );
-      console.log(`  Default login: ${defaultEmail} / ${defaultPassword}`);
-    }
+  const { rows } = await pool.query('SELECT COUNT(*) as count FROM "Company"');
+  const count = parseInt(rows[0].count, 10);
+
+  if (count === 0) {
+    const bcrypt = await import("bcrypt");
+    const passwordHash = await bcrypt.hash(defaultPassword, 10);
+    const companyUuid = randomUUID();
+    const userUuid = randomUUID();
+
+    await pool.query(
+      `INSERT INTO "Company" (uuid, name, "createdAt", "updatedAt") VALUES ($1, $2, NOW(), NOW())`,
+      [companyUuid, "Synapse Local"],
+    );
+    await pool.query(
+      `INSERT INTO "User" (uuid, "companyUuid", email, "passwordHash", name, role, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
+      [userUuid, companyUuid, defaultEmail, passwordHash, "Admin", "pi"],
+    );
+    console.log(`  Default login: ${defaultEmail} / ${defaultPassword}`);
   }
+
+  await pool.end();
 } catch (err) {
-  // Table might not exist yet on first schema push, that's OK
   console.warn("  Seed check skipped:", err.message);
 }
 
@@ -154,7 +173,10 @@ const child = fork(serverJs, [], {
   stdio: "inherit",
 });
 
-child.on("exit", (code) => process.exit(code ?? 0));
+child.on("exit", (code) => {
+  if (pgliteProcess) pgliteProcess.kill();
+  process.exit(code ?? 0);
+});
 
 console.log(`  Synapse is running at http://localhost:${port}`);
 console.log("");
@@ -163,6 +185,30 @@ console.log("");
 for (const sig of ["SIGINT", "SIGTERM"]) {
   process.on(sig, () => {
     child.kill(sig);
+    if (pgliteProcess) pgliteProcess.kill();
     process.exit(0);
+  });
+}
+
+// --- Helpers ---
+function waitForTcp(host, port, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const deadline = Date.now() + timeoutMs;
+    function attempt() {
+      const socket = createConnection({ host, port });
+      socket.once("connect", () => {
+        socket.destroy();
+        resolve();
+      });
+      socket.once("error", () => {
+        socket.destroy();
+        if (Date.now() > deadline) {
+          reject(new Error(`Timeout waiting for ${host}:${port}`));
+        } else {
+          setTimeout(attempt, 200);
+        }
+      });
+    }
+    attempt();
   });
 }
