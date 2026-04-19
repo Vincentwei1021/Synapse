@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 
 // prepack-pglite.mjs
-// Prepares the synapse-cli package for npm publish:
-// 1. Builds Next.js standalone output
-// 2. Copies standalone + static + public + migrations into dist/
-// 3. Dereferences ALL pnpm symlinks at every depth
-// 4. Removes .pnpm directory
+// Prepares the synapse-cli package for npm publish.
+// Handles pnpm's symlink-based node_modules by:
+// 1. Copying standalone output as-is (preserving symlinks)
+// 2. Dereferencing top-level package symlinks individually
+// 3. Handling scoped packages (@scope/pkg)
+// 4. Removing .pnpm directory
 
 import { execSync } from "child_process";
 import {
@@ -39,12 +40,12 @@ if (!existsSync(STANDALONE)) {
   process.exit(1);
 }
 
-// --- Clean and copy standalone (with dereference) ---
+// --- Clean and copy standalone (preserving symlinks initially) ---
 if (existsSync(DIST)) rmSync(DIST, { recursive: true });
 mkdirSync(DIST, { recursive: true });
 
-console.log("[prepack] Copying standalone output (dereferencing all symlinks)...");
-cpSync(STANDALONE, DIST, { recursive: true, dereference: true });
+console.log("[prepack] Copying standalone output...");
+cpSync(STANDALONE, DIST, { recursive: true });
 
 // --- Copy static assets ---
 const staticSrc = join(PROJECT_ROOT, ".next", "static");
@@ -73,11 +74,54 @@ if (existsSync(prismaSrc)) {
   cpSync(prismaSrc, prismaDest, { recursive: true });
 }
 
-// --- Remove .pnpm if it was copied ---
-const pnpmDir = join(DIST, "node_modules", ".pnpm");
-if (existsSync(pnpmDir)) {
-  console.log("[prepack] Removing .pnpm directory...");
-  rmSync(pnpmDir, { recursive: true, force: true });
+// --- Dereference pnpm symlinks in dist/node_modules ---
+const nmDir = join(DIST, "node_modules");
+if (existsSync(nmDir)) {
+  console.log("[prepack] Dereferencing pnpm symlinks...");
+  let count = 0;
+
+  for (const entry of readdirSync(nmDir)) {
+    if (entry === ".pnpm" || entry === ".package-lock.json") continue;
+
+    const target = join(nmDir, entry);
+    const stat = lstatSync(target);
+
+    if (stat.isSymbolicLink()) {
+      deref(target);
+      count++;
+    } else if (stat.isDirectory() && entry.startsWith("@")) {
+      // Scoped packages: dereference entries inside @scope/
+      for (const sub of readdirSync(target)) {
+        const subTarget = join(target, sub);
+        const subStat = lstatSync(subTarget);
+        if (subStat.isSymbolicLink()) {
+          deref(subTarget);
+          count++;
+        }
+      }
+    }
+  }
+
+  console.log(`[prepack] Dereferenced ${count} packages`);
+
+  // Remove .pnpm directory
+  const pnpmDir = join(nmDir, ".pnpm");
+  if (existsSync(pnpmDir)) {
+    console.log("[prepack] Removing .pnpm directory...");
+    rmSync(pnpmDir, { recursive: true, force: true });
+  }
 }
 
 console.log("[prepack] Done. dist/ is ready for npm publish.");
+
+// --- Helpers ---
+
+function deref(symlinkPath) {
+  try {
+    const realPath = realpathSync(symlinkPath);
+    rmSync(symlinkPath, { force: true });
+    cpSync(realPath, symlinkPath, { recursive: true, dereference: true });
+  } catch (err) {
+    console.warn(`[prepack] Warning: could not dereference ${symlinkPath}: ${err.message}`);
+  }
+}
