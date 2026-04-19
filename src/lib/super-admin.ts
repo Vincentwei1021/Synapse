@@ -6,6 +6,9 @@ import bcrypt from "bcrypt";
 import { NextRequest, NextResponse } from "next/server";
 import { SuperAdminAuthContext } from "@/types/auth";
 import { getCookieOptions } from "@/lib/cookie-utils";
+import { logger } from "./logger";
+
+const log = logger.child({ module: "auth" });
 
 const COOKIE_NAME = "admin_session";
 const TOKEN_EXPIRY = "24h";
@@ -34,13 +37,13 @@ export async function verifySuperAdminPassword(
 ): Promise<boolean> {
   const passwordHash = process.env.SUPER_ADMIN_PASSWORD_HASH;
   if (!passwordHash) {
-    console.error("SUPER_ADMIN_PASSWORD_HASH is not set");
+    log.error("SUPER_ADMIN_PASSWORD_HASH is not set");
     return false;
   }
   try {
     return await bcrypt.compare(password, passwordHash);
   } catch (error) {
-    console.error("Password verification error:", error);
+    log.error({ err: error }, "password verification error");
     return false;
   }
 }

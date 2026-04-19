@@ -148,7 +148,7 @@ describe("listAgentSummaries", () => {
     ]);
     expect(mockPrisma.agent.findMany).toHaveBeenCalledWith({
       where: { companyUuid },
-      select: { uuid: true, name: true, roles: true },
+      select: { uuid: true, name: true, roles: true, type: true, color: true },
       orderBy: { createdAt: "asc" },
     });
   });
@@ -239,9 +239,11 @@ describe("createAgent", () => {
           companyUuid,
           name: "Test Agent",
           roles: ["researcher_agent"],
+          type: "openclaw",
           ownerUuid,
           persona: undefined,
           systemPrompt: undefined,
+          color: null,
         },
       })
     );

@@ -6,17 +6,14 @@ import { assignExperiment, deleteExperiment, getExperiment, updateExperiment } f
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
-// PATCH allows safe metadata updates + the draft→pending_review transition.
-// Dangerous transitions (start/complete) and their side effects MUST go through
-// dedicated lifecycle routes:
-//   POST /api/experiments/[uuid]/review   (pending_review -> pending_start or -> draft)
-//   POST /api/experiments/[uuid]/start    (pending_start -> in_progress)
-//   POST /api/experiments/[uuid]/complete (in_progress -> completed)
+// PATCH allows metadata updates and status transitions validated by the service layer.
+// Dedicated lifecycle routes still exist for transitions with side effects (start/complete),
+// but PATCH now also accepts any status for manual "move to" from the dashboard.
 const patchSchema = z.object({
   title: z.string().optional(),
   description: z.string().nullable().optional(),
   researchQuestionUuid: z.string().nullable().optional(),
-  status: z.enum(["draft", "pending_review", "pending_start"]).optional(),
+  status: z.enum(["draft", "pending_review", "pending_start", "in_progress", "completed"]).optional(),
   priority: z.string().optional(),
   computeBudgetHours: z.coerce.number().nullable().optional(),
   assigneeType: z.string().optional(),

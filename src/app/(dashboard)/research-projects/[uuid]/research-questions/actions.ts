@@ -8,6 +8,9 @@ import {
   deleteResearchQuestion,
   reviewResearchQuestion,
 } from "@/services/research-question.service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "research_question" });
 
 interface Attachment {
   type: string;
@@ -46,7 +49,7 @@ export async function createResearchQuestionAction(input: CreateIdeaInput) {
     revalidatePath(`/research-projects/${input.projectUuid}/research-questions`);
     return { success: true, questionUuid: idea.uuid };
   } catch (error) {
-    console.error("Failed to create idea:", error);
+    log.error({ err: error }, "Failed to create idea");
     return { success: false, error: "Failed to create idea" };
   }
 }
@@ -77,7 +80,7 @@ export async function updateResearchQuestionAction(input: UpdateIdeaInput) {
     revalidatePath(`/research-projects/${input.projectUuid}/research-questions`);
     return { success: true, idea };
   } catch (error) {
-    console.error("Failed to update idea:", error);
+    log.error({ err: error }, "Failed to update idea");
     return { success: false, error: "Failed to update idea" };
   }
 }
@@ -104,7 +107,7 @@ export async function setResearchQuestionStatusAction(input: {
     revalidatePath(`/research-projects/${input.projectUuid}/dashboard`);
     return { success: true, idea };
   } catch (error) {
-    console.error("Failed to update research question status:", error);
+    log.error({ err: error }, "Failed to update research question status");
     return { success: false, error: "Failed to update research question status" };
   }
 }
@@ -122,7 +125,7 @@ export async function deleteResearchQuestionAction(questionUuid: string, project
     revalidatePath(`/research-projects/${projectUuid}/dashboard`);
     return { success: true };
   } catch (error) {
-    console.error("Failed to delete idea:", error);
+    log.error({ err: error }, "Failed to delete idea");
     return { success: false, error: "Failed to delete idea" };
   }
 }
@@ -155,7 +158,7 @@ export async function reviewResearchQuestionAction(input: {
     revalidatePath(`/research-projects/${input.projectUuid}/dashboard`);
     return { success: true, idea };
   } catch (error) {
-    console.error("Failed to review idea:", error);
+    log.error({ err: error }, "Failed to review idea");
     return { success: false, error: "Failed to review idea" };
   }
 }

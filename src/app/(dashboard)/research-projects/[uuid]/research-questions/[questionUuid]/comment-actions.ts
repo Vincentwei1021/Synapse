@@ -4,6 +4,9 @@ import { getServerAuthContext } from "@/lib/auth-server";
 import { listComments, createComment, type CommentResponse } from "@/services/comment.service";
 import { getResearchQuestionByUuid } from "@/services/research-question.service";
 import { createActivity } from "@/services/activity.service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "research_question" });
 
 export async function getResearchQuestionCommentsAction(
   questionUuid: string
@@ -23,7 +26,7 @@ export async function getResearchQuestionCommentsAction(
     });
     return result;
   } catch (error) {
-    console.error("Failed to get idea comments:", error);
+    log.error({ err: error }, "Failed to get idea comments");
     return { comments: [], total: 0 };
   }
 }
@@ -72,7 +75,7 @@ export async function createResearchQuestionCommentAction(
 
     return { success: true, comment };
   } catch (error) {
-    console.error("Failed to create idea comment:", error);
+    log.error({ err: error }, "Failed to create idea comment");
     return { success: false, error: "Failed to create comment" };
   }
 }

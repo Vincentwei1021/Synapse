@@ -17,6 +17,9 @@ import {
   type UserSessionPayload,
 } from "@/lib/user-session";
 import { getUserByUuid } from "@/services/user.service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "auth" });
 
 // POST /api/auth/refresh
 // Refreshes the SuperAdmin session tokens (cookie-based)
@@ -77,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error("Token refresh error:", error);
+    log.error({ err: error }, "Token refresh error");
     return errors.internal("Failed to refresh token");
   }
 }

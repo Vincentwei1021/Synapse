@@ -13,6 +13,9 @@ import type {
   AnswerInput,
   HypothesisFormulationRoundResponse,
 } from "@/types/hypothesis-formulation";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "research_question" });
 
 export async function getHypothesisFormulationAction(
   questionUuid: string
@@ -29,7 +32,7 @@ export async function getHypothesisFormulationAction(
     });
     return { success: true, data };
   } catch (error) {
-    console.error("Failed to get elaboration:", error);
+    log.error({ err: error }, "Failed to get elaboration");
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to get elaboration",
@@ -66,7 +69,7 @@ export async function submitHypothesisFormulationAnswersAction(
 
     return { success: true, data };
   } catch (error) {
-    console.error("Failed to submit elaboration answers:", error);
+    log.error({ err: error }, "Failed to submit elaboration answers");
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to submit answers",
@@ -101,7 +104,7 @@ export async function skipHypothesisFormulationAction(
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to skip elaboration:", error);
+    log.error({ err: error }, "Failed to skip elaboration");
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to skip elaboration",

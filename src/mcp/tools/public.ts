@@ -308,7 +308,8 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       const experimentCountsByProject: Record<string, Record<string, number>> = {};
       if (projects.length > 0) {
         const projectUuids = projects.map((p) => p.uuid);
-        const experiments = await prisma.experiment.groupBy({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const experiments: Array<{ researchProjectUuid: string; status: string; _count: number }> = await (prisma.experiment.groupBy as any)({
           by: ["researchProjectUuid", "status"],
           where: {
             companyUuid: auth.companyUuid,

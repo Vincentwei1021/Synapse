@@ -3,6 +3,9 @@
 import { getServerAuthContext } from "@/lib/auth-server";
 import { listActivitiesWithActorNames, type ActivityResponse } from "@/services/activity.service";
 import { getExperimentRunByUuid } from "@/services/experiment-run.service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "experiment_run" });
 
 export async function getRunActivitiesAction(
   runUuid: string
@@ -28,7 +31,7 @@ export async function getRunActivitiesAction(
       take: 50,
     });
   } catch (error) {
-    console.error("Failed to get task activities:", error);
+    log.error({ err: error }, "Failed to get task activities");
     return { activities: [], total: 0 };
   }
 }

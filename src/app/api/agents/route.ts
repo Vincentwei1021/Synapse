@@ -8,6 +8,7 @@ import { success, paginated, errors } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
 import { createAgent, listAgents } from "@/services/agent.service";
 import { VALID_AGENT_TYPES } from "@/lib/agent-transport";
+import { isValidAgentColorName, DEFAULT_AGENT_COLOR_NAME } from "@/lib/agent-colors";
 
 // GET /api/agents - List Agents
 export const GET = withErrorHandler(async (request: NextRequest) => {
@@ -42,6 +43,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     roles: a.roles,
     type: a.type,
     persona: a.persona,
+    color: a.color,
     ownerUuid: a.ownerUuid,
     lastActiveAt: a.lastActiveAt?.toISOString() || null,
     apiKeyCount: a._count.apiKeys,
@@ -69,6 +71,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     type?: string;
     persona?: string | null;
     systemPrompt?: string | null;
+    color?: string | null;
   }>(request);
 
   // Validate required fields
@@ -94,6 +97,16 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     });
   }
 
+  let color: string | null = DEFAULT_AGENT_COLOR_NAME;
+  if (body.color === null) {
+    color = null;
+  } else if (body.color !== undefined) {
+    if (!isValidAgentColorName(body.color)) {
+      return errors.validationError({ color: "Invalid agent color" });
+    }
+    color = body.color;
+  }
+
   const agent = await createAgent({
     companyUuid: auth.companyUuid,
     name: body.name.trim(),
@@ -102,6 +115,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     persona: body.persona?.trim() || null,
     systemPrompt: body.systemPrompt?.trim() || null,
     ownerUuid: auth.actorUuid,
+    color,
   });
 
   return success({
@@ -111,6 +125,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     type: agent.type,
     persona: agent.persona,
     systemPrompt: agent.systemPrompt,
+    color: agent.color,
     ownerUuid: agent.ownerUuid,
     lastActiveAt: null,
     apiKeyCount: 0,

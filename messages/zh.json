@@ -142,12 +142,14 @@
     "autoSearch": "论文搜索",
     "autoSearchDesc": "使用 AI 智能体搜索相关论文",
     "search": "搜索",
+    "searching": "搜索中...",
     "sent": "已发送",
     "deepResearch": "深度研究",
     "noReport": "暂未生成报告",
     "lastGenerated": "上次生成",
     "viewDocument": "查看文档",
     "generate": "生成",
+    "generating": "生成中...",
     "selectAgent": "选择智能体...",
     "papersCount": "已收集 {count} 篇论文",
     "lastUpdated": "最后更新 {time}",
@@ -289,6 +291,8 @@
     "title": "仪表盘",
     "subtitle": "研究项目活动概览",
     "brief": "研究简报",
+    "relatedWorks": "相关文献",
+    "relatedWorksHelper": "项目收集的论文与参考文献",
     "questions": "研究问题",
     "questionsHelper": "当前有 {count} 个问题处于活跃或分析阶段",
     "experiments": "实验",
@@ -393,7 +397,14 @@
     "githubTokenPlaceholder": "ghp_...",
     "githubTokenHint": "需要 repo 权限的个人访问令牌。保存后不会在前端展示。",
     "githubConfigured": "令牌已配置",
-    "githubNotConfigured": "未配置令牌"
+    "githubNotConfigured": "未配置令牌",
+    "relatedWorksStatus": "相关文献",
+    "relatedWorksStatusDesc": "重置卡住的论文搜索或深度研究任务",
+    "autoSearch": "论文搜索",
+    "deepResearch": "深度研究",
+    "active": "进行中",
+    "inactive": "空闲",
+    "reset": "重置"
   },
   "researchProjects": {
     "title": "研究项目",
@@ -841,6 +852,23 @@
       "permissions": "权限",
       "type": "类型"
     },
+    "form": {
+      "colorLabel": "颜色"
+    },
+    "colors": {
+      "terracotta": "陶土色",
+      "violet": "紫罗兰",
+      "pink": "粉红",
+      "orange": "橙色",
+      "emerald": "翠绿",
+      "cyan": "青色",
+      "yellow": "黄色",
+      "rose": "玫瑰红",
+      "indigo": "靛蓝",
+      "teal": "青绿",
+      "fuchsia": "品红",
+      "lime": "柠檬绿"
+    },
     "type": {
       "openclaw": "OpenClaw",
       "claude_code": "Claude Code"
@@ -958,6 +986,15 @@
     "researchProjectBadge": "研究项目",
     "notificationPreferences": "通知偏好",
     "loadMore": "加载更多",
+    "entities": {
+      "paper": "论文",
+      "researchQuestion": "RQ",
+      "experiment": "实验",
+      "document": "文档",
+      "relatedWork": "论文",
+      "experimentRun": "运行",
+      "experimentDesign": "设计"
+    },
     "types": {
       "experimentDesign_approved": "实验设计已通过",
       "experimentDesign_rejected": "实验设计已拒绝",
@@ -977,38 +1014,49 @@
       "experiment_auto_proposed": "自动提议实验",
       "task_assigned": "已分配",
       "autonomous_loop_triggered": "自主循环已触发",
-      "synthesis_updated": "综合文档已更新"
+      "synthesis_updated": "综合文档已更新",
+      "auto_search_triggered": "论文搜索已启动",
+      "auto_search_completed": "论文搜索已完成",
+      "deep_research_requested": "深度研究已启动",
+      "deep_research_completed": "深度研究已完成",
+      "related_work_added": "收集到新论文",
+      "experiment_completed": "实验已完成",
+      "experiment_status_changed": "实验状态变更",
+      "experiment_progress": "实验进度更新"
+    },
+    "actions": {
+      "experimentRevisionRequested": "请求修改"
     },
     "preferences": {
-    "title": "通知偏好",
-    "description": "配置哪些事件触发通知",
-    "preResearch": "预研",
-    "research": "研究",
-    "experiment": "实验",
-    "report": "报告",
-    "general": "通用",
-    "comingSoon": "即将推出",
-    "researchQuestionClaimed": "研究问题被认领",
-    "hypothesisFormulationRequested": "假设形成请求",
-    "hypothesisFormulationAnswered": "假设形成已回答",
-    "experimentAssigned": "实验被分配",
-    "experimentStatusChanged": "实验状态变更",
-    "experimentVerified": "实验已验证",
-    "experimentReopened": "实验被重新打开",
-    "designSubmitted": "实验设计已提交",
-    "designApproved": "实验设计已批准",
-    "designRejected": "实验设计被拒绝",
-    "commentAdded": "新评论",
-    "experimentCompleted": "实验完成",
-    "prefExperimentStatusChanged": "实验状态变更（实时）",
-    "prefExperimentProgress": "实验进度更新",
-    "prefExperimentAutoProposed": "自动提出实验",
-    "prefAutonomousLoopTriggered": "自主闭环触发",
-    "prefSynthesisUpdated": "综述更新",
-    "autoSearchCompleted": "自动搜索完成",
-    "deepResearchCompleted": "深度研究完成",
-    "mentioned": "被提及"
-  }
+      "title": "通知偏好",
+      "description": "配置哪些事件触发通知",
+      "preResearch": "预研",
+      "research": "研究",
+      "experiment": "实验",
+      "report": "报告",
+      "general": "通用",
+      "comingSoon": "即将推出",
+      "researchQuestionClaimed": "研究问题被认领",
+      "hypothesisFormulationRequested": "假设形成请求",
+      "hypothesisFormulationAnswered": "假设形成已回答",
+      "experimentAssigned": "实验被分配",
+      "experimentStatusChanged": "实验状态变更",
+      "experimentVerified": "实验已验证",
+      "experimentReopened": "实验被重新打开",
+      "designSubmitted": "实验设计已提交",
+      "designApproved": "实验设计已批准",
+      "designRejected": "实验设计被拒绝",
+      "commentAdded": "新评论",
+      "experimentCompleted": "实验完成",
+      "prefExperimentStatusChanged": "实验状态变更（实时）",
+      "prefExperimentProgress": "实验进度更新",
+      "prefExperimentAutoProposed": "自动提出实验",
+      "prefAutonomousLoopTriggered": "自主闭环触发",
+      "prefSynthesisUpdated": "综述更新",
+      "autoSearchCompleted": "自动搜索完成",
+      "deepResearchCompleted": "深度研究完成",
+      "mentioned": "被提及"
+    }
   },
   "hypothesisFormulation": {
     "title": "假说构建",
@@ -1289,7 +1337,12 @@
       "assign": "分配",
       "reassign": "重新分配",
       "start": "开始执行",
-      "complete": "完成实验"
+      "complete": "完成实验",
+      "resetToPendingStart": "重置回待启动",
+      "moveTo": "移动到",
+      "deleteExperiment": "删除",
+      "deleteExperimentConfirm": "确定要删除「{title}」吗？此操作不可撤销。",
+      "deleted": "实验已删除"
     },
     "fields": {
       "title": "实验标题",
@@ -1316,6 +1369,9 @@
       "noDescription": "暂未填写实验计划。",
       "draftEditable": "这个草稿实验可以直接在右侧栏编辑，并保存回看板。",
       "computeBudget": "时间限制",
+      "elapsed": "用时",
+      "elapsedHM": "{hours} 小时 {minutes} 分钟",
+      "elapsedM": "{minutes} 分钟",
       "notSet": "未设置",
       "unlimited": "不设上限",
       "outcome": "结果摘要",
@@ -1370,6 +1426,16 @@
       "submit": "Agent 起草",
       "sending": "发送中...",
       "manual": "手动创建"
+    },
+    "reviewRevert": {
+      "title": "退回草稿",
+      "description": "留言告诉 Agent 需要修改什么。如果不需要修改，可留空反馈。",
+      "noteLabel": "反馈（可选）",
+      "notePlaceholder": "希望 Agent 修改什么？",
+      "agentLabel": "指派给",
+      "agentNone": "不指派",
+      "submit": "退回草稿",
+      "cancel": "取消"
     }
   },
   "insights": {
@@ -1594,7 +1660,6 @@
     "next": "下一步",
     "back": "上一步",
     "stepOf": "第 {current} 步，共 {total} 步",
-
     "step1": {
       "title": "创建你的第一个 Agent",
       "subtitle": "Agent 是一个 AI 助手，可以代替你运行实验和搜索文献。",
@@ -1613,7 +1678,6 @@
       "roleAdmin": "管理员",
       "createAgent": "创建 Agent"
     },
-
     "step2": {
       "title": "连接你的 Agent",
       "subtitle": "使用以下 API Key 和端点配置你的 Agent，然后测试连接。",
@@ -1631,7 +1695,6 @@
       "timeout": "未检测到连接，请检查 Agent 配置。",
       "retry": "重试"
     },
-
     "step3": {
       "title": "设置算力",
       "subtitle": "创建算力池并添加机器，以便 Agent 运行 GPU 任务。",
@@ -1674,13 +1737,11 @@
       "userSummary": "用户",
       "portSummary": "端口"
     },
-
     "complete": {
       "title": "设置完成！",
       "summary": "已创建 {agentCount} 个 Agent、{poolCount} 个算力池和 {nodeCount} 台机器。",
       "redirecting": "正在跳转到项目页..."
     },
-
     "sidebar": {
       "setupProgress": "设置进度",
       "agentConfigured": "Agent 已配置",

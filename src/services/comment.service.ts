@@ -8,9 +8,12 @@ import {
   validateTargetExists,
   type TargetType,
 } from "@/lib/uuid-resolver";
+import { logger } from "@/lib/logger";
 import * as mentionService from "@/services/mention.service";
 import * as activityService from "@/services/activity.service";
 import { eventBus, type RealtimeEvent } from "@/lib/event-bus";
+
+const log = logger.child({ module: "comment" });
 
 export interface CommentListParams {
   companyUuid: string;
@@ -165,7 +168,7 @@ export async function createComment({
     content,
     authorType,
     authorUuid,
-  ).catch((err) => console.error("[Comment] Failed to process mentions:", err));
+  ).catch((err) => log.error({ err }, "failed to process mentions"));
 
   return {
     uuid: comment.uuid,

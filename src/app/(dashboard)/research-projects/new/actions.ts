@@ -5,6 +5,9 @@ import { getServerAuthContext } from "@/lib/auth-server";
 import { createResearchProject } from "@/services/research-project.service";
 import { createResearchQuestion } from "@/services/research-question.service";
 import { createDocument } from "@/services/document.service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "research_project" });
 
 interface UploadedDocument {
   name: string;
@@ -71,7 +74,7 @@ export async function createResearchProjectAction(input: CreateProjectInput) {
 
     return { success: true, researchProjectUuid: project.uuid };
   } catch (error) {
-    console.error("Failed to create project:", error);
+    log.error({ err: error }, "Failed to create project");
     return { success: false, error: "Failed to create project" };
   }
 }

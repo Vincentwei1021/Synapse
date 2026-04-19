@@ -9,6 +9,7 @@ type RouteContext = { params: Promise<{ uuid: string }> };
 const reviewSchema = z.object({
   approved: z.boolean(),
   reviewNote: z.string().optional(),
+  assignedAgentUuid: z.string().uuid().nullable().optional(),
 });
 
 export async function POST(request: NextRequest, context: RouteContext) {
@@ -32,6 +33,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
     experimentUuid: uuid,
     approved: parsed.data.approved,
     reviewNote: parsed.data.reviewNote,
+    ...(parsed.data.assignedAgentUuid !== undefined
+      ? { assignedAgentUuid: parsed.data.assignedAgentUuid }
+      : {}),
     actorUuid: auth.actorUuid,
   });
 

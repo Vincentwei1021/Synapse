@@ -3,9 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { eventBus } from "@/lib/event-bus";
 import { formatAssigneeComplete, formatCreatedBy } from "@/lib/uuid-resolver";
 import { getActorName } from "@/lib/uuid-resolver";
+import { logger } from "@/lib/logger";
 import * as activityService from "@/services/activity.service";
 import { createDocument, updateDocument } from "@/services/document.service";
 import * as notificationService from "@/services/notification.service";
+
+const log = logger.child({ module: "experiment" });
 
 export type ExperimentStatus =
   | "draft"
@@ -99,9 +102,9 @@ export type ExperimentPriority = "low" | "medium" | "high" | "immediate";
 const VALID_TRANSITIONS: Record<ExperimentStatus, ExperimentStatus[]> = {
   draft: ["pending_review", "pending_start"],
   pending_review: ["draft", "pending_start"],
-  pending_start: ["in_progress"],
-  in_progress: ["completed"],
-  completed: [],
+  pending_start: ["draft", "pending_review", "in_progress"],
+  in_progress: ["draft", "pending_review", "pending_start", "completed"],
+  completed: ["draft", "pending_review", "pending_start"],
 };
 
 const EXPERIMENT_PRIORITY_ORDER: Record<ExperimentPriority, number> = {
@@ -548,6 +551,28 @@ export async function createExperiment(params: ExperimentCreateParams) {
     actorUuid: params.createdByUuid,
   });
 
+  const project = await prisma.researchProject.findFirst({
+    where: { uuid: params.researchProjectUuid, companyUuid: params.companyUuid },
+    select: { name: true },
+  });
+  try {
+    await notificationService.create({
+      companyUuid: params.companyUuid,
+      researchProjectUuid: params.researchProjectUuid,
+      recipientType: params.createdByType ?? "user",
+      recipientUuid: params.createdByUuid,
+      entityType: "experiment",
+      entityUuid: experiment.uuid,
+      entityTitle: experiment.title,
+      projectName: project?.name ?? "",
+      action: "experiment_created",
+      message: "created",
+      actorType: params.createdByType ?? "user",
+      actorUuid: params.createdByUuid,
+      actorName: (await getActorName(params.createdByType ?? "user", params.createdByUuid)) || "Unknown",
+    });
+  } catch {}
+
   return formatExperiment(params.companyUuid, experiment);
 }
 
@@ -571,7 +596,7 @@ export async function updateExperiment(
     data.status !== undefined
       ? await prisma.experiment.findFirst({
           where: { uuid, companyUuid },
-          select: { status: true },
+          select: { status: true, researchProjectUuid: true, researchProject: { select: { name: true } } },
         })
       : null;
 
@@ -630,6 +655,27 @@ export async function updateExperiment(
     actorUuid: actor?.actorUuid,
   });
 
+  if (data.status !== undefined && existing && actor) {
+    const statusLabel = data.status.replace(/_/g, " ");
+    try {
+      await notificationService.create({
+        companyUuid,
+        researchProjectUuid: experiment.researchProjectUuid,
+        recipientType: actor.actorType,
+        recipientUuid: actor.actorUuid,
+        entityType: "experiment",
+        entityUuid: experiment.uuid,
+        entityTitle: experiment.title,
+        projectName: existing.researchProject?.name ?? "",
+        action: "experiment_status_changed",
+        message: `→ ${statusLabel}`,
+        actorType: actor.actorType,
+        actorUuid: actor.actorUuid,
+        actorName: (await getActorName(actor.actorType, actor.actorUuid)) || "Unknown",
+      });
+    } catch {}
+  }
+
   return formatExperiment(companyUuid, experiment);
 }
 
@@ -638,6 +684,7 @@ export async function reviewExperiment(input: {
   experimentUuid: string;
   approved: boolean;
   reviewNote?: string | null;
+  assignedAgentUuid?: string | null; // present (even if null) = caller wants to set assignment
   actorUuid: string;
 }) {
   const existing = await prisma.experiment.findFirst({
@@ -659,6 +706,14 @@ export async function reviewExperiment(input: {
     existing.createdByUuid &&
     !existing.assigneeUuid;
 
+  // For revert: if the caller provided `assignedAgentUuid` (even as null),
+  // honor it as an explicit assignment change.
+  const callerSetAssignment = Object.prototype.hasOwnProperty.call(input, "assignedAgentUuid");
+  const nextAssigneeUuid = callerSetAssignment
+    ? (input.assignedAgentUuid ?? null)
+    : existing.assigneeUuid;
+  const nextAssigneeType = nextAssigneeUuid ? "agent" : null;
+
   const updated = await prisma.experiment.update({
     where: { uuid: input.experimentUuid },
     data: {
@@ -672,6 +727,16 @@ export async function reviewExperiment(input: {
             assigneeUuid: existing.createdByUuid,
             assignedAt: new Date(),
             assignedByUuid: input.actorUuid,
+          }
+        : {}),
+      ...(!input.approved && callerSetAssignment
+        ? {
+            assigneeType: nextAssigneeType,
+            assigneeUuid: nextAssigneeUuid,
+            assignedAt: nextAssigneeUuid ? new Date() : null,
+            assignedByUuid: nextAssigneeUuid ? input.actorUuid : null,
+            liveStatus: null,
+            liveMessage: null,
           }
         : {}),
     },
@@ -702,6 +767,25 @@ export async function reviewExperiment(input: {
     actorUuid: input.actorUuid,
   });
 
+  try {
+    const statusLabel = input.approved ? "pending start" : "draft";
+    await notificationService.create({
+      companyUuid: input.companyUuid,
+      researchProjectUuid: updated.researchProjectUuid,
+      recipientType: "user",
+      recipientUuid: input.actorUuid,
+      entityType: "experiment",
+      entityUuid: updated.uuid,
+      entityTitle: updated.title,
+      projectName: existing.researchProject.name,
+      action: "experiment_status_changed",
+      message: input.approved ? "→ approved" : "→ returned to draft",
+      actorType: "user",
+      actorUuid: input.actorUuid,
+      actorName: (await getActorName("user", input.actorUuid)) || "Unknown",
+    });
+  } catch {}
+
   // Send task_assigned notification when auto-assigning back to the creating agent
   if (shouldAutoAssign) {
     try {
@@ -723,14 +807,56 @@ export async function reviewExperiment(input: {
       });
       await updateExperimentLiveStatus(input.experimentUuid, "sent");
     } catch (err) {
-      console.error("Failed to send task_assigned notification after review approval:", err);
+      log.error({ err }, "failed to send task_assigned notification after review approval");
+    }
+  }
+
+  // Revision request: when a reverted experiment has a target agent, notify
+  // them with the feedback so they can revise the draft. If a trimmed review
+  // note is provided, also record it as a comment on the experiment.
+  const trimmedNote = (input.reviewNote ?? "").trim();
+  if (!input.approved && nextAssigneeUuid) {
+    try {
+      if (trimmedNote) {
+        await prisma.comment.create({
+          data: {
+            companyUuid: input.companyUuid,
+            targetType: "experiment",
+            targetUuid: updated.uuid,
+            content: trimmedNote,
+            authorType: "user",
+            authorUuid: input.actorUuid,
+          },
+        });
+      }
+
+      const actorName = await getActorName("user", input.actorUuid);
+      await notificationService.create({
+        companyUuid: input.companyUuid,
+        researchProjectUuid: updated.researchProjectUuid,
+        recipientType: "agent",
+        recipientUuid: nextAssigneeUuid,
+        entityType: "experiment",
+        entityUuid: updated.uuid,
+        entityTitle: updated.title,
+        projectName: existing.researchProject.name,
+        action: "experiment_revision_requested",
+        message: trimmedNote
+          ? `Revision requested: ${trimmedNote.slice(0, 160)}`
+          : "Revision requested — see the experiment draft.",
+        actorType: "user",
+        actorUuid: input.actorUuid,
+        actorName: actorName || "Unknown",
+      });
+    } catch (err) {
+      log.error({ err }, "failed to emit revision request for reverted experiment");
     }
   }
 
   // Check autonomous loop when experiment is rejected (queue may become empty)
   if (!input.approved) {
     await checkAutonomousLoopTrigger(updated.researchProjectUuid, input.companyUuid).catch(
-      (err) => console.error("Autonomous loop trigger check failed:", err)
+      (err) => log.error({ err }, "autonomous loop trigger check failed")
     );
   }
 
@@ -834,14 +960,20 @@ export async function startExperiment(input: {
   assertAssignedActorAccess(existing, input.actorType, input.actorUuid, "start", input.ownerUuid);
   assertTransition(existing.status as ExperimentStatus, "in_progress");
 
+  const now = new Date();
   const updated = await prisma.experiment.update({
     where: { uuid: input.experimentUuid },
     data: {
       status: "in_progress",
-      startedAt: existing.startedAt ?? new Date(),
+      startedAt: existing.startedAt ?? now,
       assigneeType: existing.assigneeType ?? input.actorType,
       assigneeUuid: existing.assigneeUuid ?? input.actorUuid,
-      assignedAt: existing.assignedAt ?? new Date(),
+      assignedAt: existing.assignedAt ?? now,
+      // Atomically initialize live state so the card move, breathing animation,
+      // and empty-message footer all land on the same SSE event and render frame.
+      liveStatus: "running",
+      liveMessage: null,
+      liveUpdatedAt: now,
     },
     include: {
       researchQuestion: {
@@ -862,6 +994,67 @@ export async function startExperiment(input: {
   });
 
   // Template-based document generation removed — agents write their own reports on completion
+
+  eventBus.emitChange({
+    companyUuid: input.companyUuid,
+    researchProjectUuid: updated.researchProjectUuid,
+    entityType: "experiment",
+    entityUuid: updated.uuid,
+    action: "updated",
+    actorUuid: input.actorUuid,
+  });
+
+  return formatExperiment(input.companyUuid, updated);
+}
+
+export async function resetExperimentToPendingStart(input: {
+  companyUuid: string;
+  experimentUuid: string;
+  actorUuid: string;
+}) {
+  const existing = await prisma.experiment.findFirst({
+    where: { uuid: input.experimentUuid, companyUuid: input.companyUuid },
+    include: {
+      researchQuestion: {
+        select: { uuid: true, title: true, parentQuestionUuid: true },
+      },
+    },
+  });
+
+  if (!existing) {
+    throw new Error("Experiment not found");
+  }
+
+  if (existing.status !== "in_progress") {
+    throw new Error(`Invalid experiment status transition: ${existing.status} -> pending_start`);
+  }
+
+  const updated = await prisma.experiment.update({
+    where: { uuid: input.experimentUuid },
+    data: {
+      status: "pending_start",
+      liveStatus: null,
+      liveMessage: null,
+      liveUpdatedAt: new Date(),
+      startedAt: null,
+    },
+    include: {
+      researchQuestion: {
+        select: { uuid: true, title: true, parentQuestionUuid: true },
+      },
+    },
+  });
+
+  await activityService.createActivity({
+    companyUuid: input.companyUuid,
+    researchProjectUuid: updated.researchProjectUuid,
+    targetType: "experiment",
+    targetUuid: updated.uuid,
+    actorType: "user",
+    actorUuid: input.actorUuid,
+    action: "status_changed",
+    value: { status: "pending_start", reset: true },
+  });
 
   eventBus.emitChange({
     companyUuid: input.companyUuid,
@@ -1039,7 +1232,7 @@ export async function completeExperiment(input: {
       experimentBranch: input.experimentBranch ?? existing.experimentBranch,
     }, input.companyUuid);
   } catch (err) {
-    console.error("Failed to append experiment results log:", err);
+    log.error({ err }, "failed to append experiment results log");
   }
 
   const updated = await prisma.experiment.update({
@@ -1050,6 +1243,8 @@ export async function completeExperiment(input: {
       results: jsonInput(input.results),
       computeUsedHours: input.computeUsedHours ?? existing.computeUsedHours,
       completedAt: new Date(),
+      liveStatus: null,
+      liveMessage: null,
       ...(input.experimentBranch !== undefined ? { experimentBranch: input.experimentBranch } : {}),
       ...(input.commitSha !== undefined ? { commitSha: input.commitSha } : {}),
     },
@@ -1095,7 +1290,7 @@ export async function completeExperiment(input: {
         actorName: "Synapse",
       });
     } catch (err) {
-      console.error("Failed to trigger experiment report:", err);
+      log.error({ err }, "failed to trigger experiment report");
     }
   }
 
@@ -1119,12 +1314,12 @@ export async function completeExperiment(input: {
       await refreshProjectSynthesis(updated.researchProjectUuid, input.companyUuid, input.actorUuid);
     }
   } catch (err) {
-    console.error("Failed to refresh synthesis after Mode 2 experiment:", err);
+    log.error({ err }, "failed to refresh synthesis after Mode 2 experiment");
   }
 
   // Check autonomous loop trigger
   await checkAutonomousLoopTrigger(updated.researchProjectUuid, input.companyUuid).catch(
-    (err) => console.error("Autonomous loop trigger check failed:", err)
+    (err) => log.error({ err }, "autonomous loop trigger check failed")
   );
 
   return formatExperiment(input.companyUuid, updated);

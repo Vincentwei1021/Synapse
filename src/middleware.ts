@@ -7,6 +7,12 @@ import { SignJWT, jwtVerify } from "jose";
 import { ACCESS_TOKEN_EXPIRY, ACCESS_TOKEN_MAX_AGE } from "@/lib/user-session";
 import { getCookieOptions } from "@/lib/cookie-utils";
 
+// Pino does NOT work in Edge Runtime — use an inline edge logger
+const edgeLog = {
+  info(msg: string, ...args: unknown[]) { console.log(`[Synapse:middleware] ${msg}`, ...args); },
+  error(msg: string, ...args: unknown[]) { console.error(`[Synapse:middleware] ${msg}`, ...args); },
+};
+
 // In-memory cache for OIDC discovery documents (per edge instance)
 const discoveryCache = new Map<string, { tokenEndpoint: string; expiresAt: number }>();
 
@@ -130,7 +136,7 @@ async function handleUserSessionRefresh(request: NextRequest): Promise<NextRespo
       .setExpirationTime(ACCESS_TOKEN_EXPIRY)
       .sign(secret);
 
-    console.log("[middleware] User session refreshed for", payload?.email || refreshPayload.userUuid);
+    edgeLog.info("User session refreshed for", payload?.email || refreshPayload.userUuid);
 
     // Write the new access token to the request cookie so downstream Server Components read it
     request.cookies.set("user_session", newAccessToken);
@@ -144,7 +150,7 @@ async function handleUserSessionRefresh(request: NextRequest): Promise<NextRespo
 
     return response;
   } catch (error) {
-    console.error("[middleware] User session refresh error:", error);
+    edgeLog.error("User session refresh error:", error);
     return null; // Let page-level auth handle redirect
   }
 }
@@ -172,8 +178,22 @@ export async function middleware(request: NextRequest) {
 
   // --- 1. Try user_session refresh (Default Auth) ---
   // Check this first because it's a quick local operation (no external fetch).
+  const userSession = request.cookies.get("user_session")?.value;
   const userResult = await handleUserSessionRefresh(request);
   if (userResult) return userResult;
+
+  if (userSession) {
+    const payload = decodeJwtPayload(userSession);
+    const now = Math.floor(Date.now() / 1000);
+
+    // A malformed or expired default-auth access token should be cleared here
+    // instead of being allowed to fall through to a later server-component redirect.
+    if (!payload || typeof payload.exp !== "number" || payload.exp - now <= 10) {
+      return clearAuthAndRedirect(request);
+    }
+
+    return NextResponse.next();
+  }
 
   // --- 2. OIDC token refresh ---
   const accessToken = request.cookies.get("oidc_access_token")?.value;
@@ -213,7 +233,7 @@ export async function middleware(request: NextRequest) {
   // Get the token endpoint
   const tokenEndpoint = await getTokenEndpoint(issuer);
   if (!tokenEndpoint) {
-    console.error("[middleware] Failed to discover token endpoint for issuer:", issuer);
+    edgeLog.error("Failed to discover token endpoint for issuer:", issuer);
     return clearAuthAndRedirect(request);
   }
 
@@ -230,7 +250,7 @@ export async function middleware(request: NextRequest) {
     });
 
     if (!tokenResponse.ok) {
-      console.error("[middleware] Token refresh failed:", tokenResponse.status);
+      edgeLog.error("Token refresh failed:", tokenResponse.status);
       return clearAuthAndRedirect(request);
     }
 
@@ -238,7 +258,7 @@ export async function middleware(request: NextRequest) {
     const newAccessToken = tokenData.access_token;
 
     if (!newAccessToken) {
-      console.error("[middleware] No access_token in refresh response");
+      edgeLog.error("No access_token in refresh response");
       return clearAuthAndRedirect(request);
     }
 
@@ -265,7 +285,7 @@ export async function middleware(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error("[middleware] Token refresh error:", error);
+    edgeLog.error("Token refresh error:", error);
     return clearAuthAndRedirect(request);
   }
 }

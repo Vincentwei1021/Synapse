@@ -9,6 +9,9 @@ import {
   type RunDraftInput,
 } from "@/services/experiment-design.service";
 import { researchProjectExists } from "@/services/research-project.service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "experiment_design" });
 
 // Create Proposal
 export async function createExperimentDesignAction(
@@ -77,7 +80,7 @@ export async function createExperimentDesignAction(
 
     return { success: true, proposal };
   } catch (error) {
-    console.error("Failed to create proposal:", error);
+    log.error({ err: error }, "Failed to create proposal");
     return { success: false, error: error instanceof Error ? error.message : "Failed to create proposal" };
   }
 }

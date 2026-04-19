@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { createUserManager, storeOidcConfig, type OidcConfig } from "@/lib/oidc";
+import { createUserManager, storeOidcConfig, clearOidcConfig, type OidcConfig } from "@/lib/oidc";
+import { clearUserManager } from "@/lib/auth-client";
+import { clientLogger } from "@/lib/logger-client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +65,10 @@ export default function LoginPage() {
         setError(data.error?.message || t("login.defaultAuth.error"));
         return;
       }
+
+      // Default-auth login should not inherit stale OIDC client state.
+      clearUserManager();
+      clearOidcConfig();
 
       // Check if user needs onboarding before redirecting
       try {
@@ -126,7 +132,7 @@ export default function LoginPage() {
         setError(result.message || t("login.noOrganizationFound"));
       }
     } catch (err) {
-      console.error("Login error:", err);
+      clientLogger.error("Login error:", err);
       setError(t("login.networkError"));
     } finally {
       setLoading(false);
@@ -170,6 +176,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    autoFocus
                     disabled={loading}
                   />
                 </div>
@@ -184,7 +191,6 @@ export default function LoginPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       disabled={loading}
-                      autoFocus
                       className="pr-10"
                     />
                     <Button
@@ -248,6 +254,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    autoFocus
                     disabled={loading}
                   />
                 </div>

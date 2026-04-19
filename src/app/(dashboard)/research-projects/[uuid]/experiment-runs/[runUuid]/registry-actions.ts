@@ -2,6 +2,9 @@
 
 import { getByRun } from "@/services/experiment-registry.service";
 import { getServerAuthContext } from "@/lib/auth-server";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "experiment_run" });
 
 export async function getExperimentRegistryAction(runUuid: string) {
   const auth = await getServerAuthContext();
@@ -9,7 +12,7 @@ export async function getExperimentRegistryAction(runUuid: string) {
   try {
     return await getByRun(auth.companyUuid, runUuid);
   } catch (error) {
-    console.error("Failed to get experiment registry:", error);
+    log.error({ err: error }, "Failed to get experiment registry");
     return null;
   }
 }

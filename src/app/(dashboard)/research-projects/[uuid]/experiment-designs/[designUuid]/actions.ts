@@ -17,6 +17,9 @@ import {
   removeRunDraft,
 } from "@/services/experiment-design.service";
 import { createActivity } from "@/services/activity.service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "experiment_design" });
 
 export async function approveDesignAction(designUuid: string, reviewNote?: string) {
   const auth = await getServerAuthContext();
@@ -54,7 +57,7 @@ export async function approveDesignAction(designUuid: string, reviewNote?: strin
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to approve proposal:", error);
+    log.error({ err: error }, "Failed to approve proposal");
     return { success: false, error: "Failed to approve proposal" };
   }
 }
@@ -84,7 +87,7 @@ export async function submitDesignAction(designUuid: string) {
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to submit proposal:", error);
+    log.error({ err: error }, "Failed to submit proposal");
     return { success: false, error: "Failed to submit proposal" };
   }
 }
@@ -125,7 +128,7 @@ export async function rejectDesignAction(designUuid: string, reviewNote?: string
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to reject proposal:", error);
+    log.error({ err: error }, "Failed to reject proposal");
     return { success: false, error: "Failed to reject proposal" };
   }
 }
@@ -153,7 +156,7 @@ export async function closeDesignAction(designUuid: string, reviewNote: string) 
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to close proposal:", error);
+    log.error({ err: error }, "Failed to close proposal");
     return { success: false, error: "Failed to close proposal" };
   }
 }
@@ -176,7 +179,7 @@ export async function deleteExperimentDesignAction(designUuid: string, projectUu
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to delete proposal:", error);
+    log.error({ err: error }, "Failed to delete proposal");
     return { success: false, error: "Failed to delete proposal" };
   }
 }
@@ -205,7 +208,7 @@ export async function addDocumentDraftAction(
 
     return { success: true, proposal: updated };
   } catch (error) {
-    console.error("Failed to add document draft:", error);
+    log.error({ err: error }, "Failed to add document draft");
     return { success: false, error: error instanceof Error ? error.message : "Failed to add document draft" };
   }
 }
@@ -239,7 +242,7 @@ export async function addRunDraftAction(
 
     return { success: true, proposal: updated };
   } catch (error) {
-    console.error("Failed to add task draft:", error);
+    log.error({ err: error }, "Failed to add task draft");
     return { success: false, error: error instanceof Error ? error.message : "Failed to add task draft" };
   }
 }
@@ -267,7 +270,7 @@ export async function updateDocumentDraftAction(
 
     return { success: true, proposal: updated };
   } catch (error) {
-    console.error("Failed to update document draft:", error);
+    log.error({ err: error }, "Failed to update document draft");
     return { success: false, error: error instanceof Error ? error.message : "Failed to update document draft" };
   }
 }
@@ -302,7 +305,7 @@ export async function updateRunDraftAction(
 
     return { success: true, proposal: updated };
   } catch (error) {
-    console.error("Failed to update task draft:", error);
+    log.error({ err: error }, "Failed to update task draft");
     return { success: false, error: error instanceof Error ? error.message : "Failed to update task draft" };
   }
 }
@@ -326,7 +329,7 @@ export async function removeDocumentDraftAction(designUuid: string, draftUuid: s
 
     return { success: true, proposal: updated };
   } catch (error) {
-    console.error("Failed to remove document draft:", error);
+    log.error({ err: error }, "Failed to remove document draft");
     return { success: false, error: error instanceof Error ? error.message : "Failed to remove document draft" };
   }
 }
@@ -350,7 +353,7 @@ export async function removeRunDraftAction(designUuid: string, draftUuid: string
 
     return { success: true, proposal: updated };
   } catch (error) {
-    console.error("Failed to remove task draft:", error);
+    log.error({ err: error }, "Failed to remove task draft");
     return { success: false, error: error instanceof Error ? error.message : "Failed to remove task draft" };
   }
 }

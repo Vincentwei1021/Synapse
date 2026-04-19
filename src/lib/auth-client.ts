@@ -4,9 +4,31 @@
 
 import { UserManager, User } from "oidc-client-ts";
 import { createUserManager, getStoredOidcConfig, storeOidcConfig, clearOidcConfig, type OidcConfig } from "./oidc";
+import { clientLogger } from "./logger-client";
 
 // Singleton UserManager instance
 let userManager: UserManager | null = null;
+let boundManager: UserManager | null = null;
+let removeUserLoadedListener: (() => void) | null = null;
+
+function bindUserManagerEvents(manager: UserManager): void {
+  if (boundManager === manager) {
+    return;
+  }
+
+  removeUserLoadedListener?.();
+
+  const handleUserLoaded = (user: User) => {
+    void syncTokenToCookie(user.access_token, user.refresh_token);
+  };
+
+  manager.events.addUserLoaded(handleUserLoaded);
+
+  boundManager = manager;
+  removeUserLoadedListener = () => {
+    manager.events.removeUserLoaded(handleUserLoaded);
+  };
+}
 
 // Get or create UserManager
 export function getUserManager(): UserManager | null {
@@ -16,6 +38,7 @@ export function getUserManager(): UserManager | null {
     const config = getStoredOidcConfig();
     if (config) {
       userManager = createUserManager(config);
+      bindUserManagerEvents(userManager);
     }
   }
   return userManager;
@@ -25,11 +48,15 @@ export function getUserManager(): UserManager | null {
 export function initUserManager(config: OidcConfig): UserManager {
   storeOidcConfig(config);
   userManager = createUserManager(config);
+  bindUserManagerEvents(userManager);
   return userManager;
 }
 
 // Clear UserManager (on logout)
 export function clearUserManager(): void {
+  removeUserLoadedListener?.();
+  removeUserLoadedListener = null;
+  boundManager = null;
   userManager = null;
 }
 
@@ -58,6 +85,9 @@ export async function getAccessToken(): Promise<string | null> {
     if (manager) {
       try {
         const renewedUser = await manager.signinSilent();
+        if (renewedUser?.access_token) {
+          await syncTokenToCookie(renewedUser.access_token, renewedUser.refresh_token);
+        }
         return renewedUser?.access_token || null;
       } catch {
         // Silent renew failed, user needs to re-login
@@ -86,7 +116,38 @@ export async function syncTokenToCookie(accessToken: string, refreshToken?: stri
     });
     return response.ok;
   } catch {
-    console.error("Failed to sync token to cookie");
+    clientLogger.error("Failed to sync token to cookie");
+    return false;
+  }
+}
+
+export async function refreshAuthCookies(): Promise<boolean> {
+  const oidcUser = await getOidcUser();
+  if (oidcUser) {
+    if (oidcUser.expired) {
+      const manager = getUserManager();
+      if (!manager) {
+        return false;
+      }
+
+      try {
+        const renewedUser = await manager.signinSilent();
+        if (!renewedUser?.access_token) {
+          return false;
+        }
+        return syncTokenToCookie(renewedUser.access_token, renewedUser.refresh_token);
+      } catch {
+        return false;
+      }
+    }
+
+    return syncTokenToCookie(oidcUser.access_token, oidcUser.refresh_token);
+  }
+
+  try {
+    const response = await fetch("/api/auth/refresh", { method: "POST" });
+    return response.ok;
+  } catch {
     return false;
   }
 }
@@ -116,7 +177,7 @@ export async function authFetch(
       try {
         const renewed = await manager.signinSilent();
         if (renewed?.access_token) {
-          await syncTokenToCookie(renewed.access_token);
+          await syncTokenToCookie(renewed.access_token, renewed.refresh_token);
           headers.set("Authorization", `Bearer ${renewed.access_token}`);
           return fetch(url, { ...options, headers });
         }

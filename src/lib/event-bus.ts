@@ -2,6 +2,9 @@
 // Dual-layer event bus: local EventEmitter + optional Redis Pub/Sub
 // Local emit for same-process delivery, Redis for cross-instance delivery.
 import { EventEmitter } from "events";
+import { logger } from "./logger";
+
+const log = logger.child({ module: "event_bus" });
 import { randomUUID } from "crypto";
 import { isRedisEnabled, getRedisPublisher, getRedisSubscriber } from "./redis";
 
@@ -12,6 +15,18 @@ export interface RealtimeEvent {
   entityUuid: string;
   action: "created" | "updated" | "deleted";
   actorUuid?: string;
+}
+
+export interface PresenceEvent {
+  type: "presence";
+  companyUuid: string;
+  researchProjectUuid: string;
+  entityType: "experiment" | "research_question" | "document" | "related_work";
+  entityUuid: string;
+  agentUuid: string;
+  agentName: string;
+  action: "view" | "mutate";
+  timestamp: number;
 }
 
 // Single Redis channel for all events (ElastiCache Serverless doesn't support PSUBSCRIBE)
@@ -95,6 +110,10 @@ class SynapseEventBus extends EventEmitter {
     this.emit("change", event);
   }
 
+  emitPresence(event: PresenceEvent) {
+    this.emit("presence", event);
+  }
+
   async disconnect(): Promise<void> {
     const pub = getRedisPublisher();
     const sub = getRedisSubscriber();
@@ -118,6 +137,6 @@ export async function ensureEventBusConnected(): Promise<void> {
     await eventBus.connect();
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[EventBus] Redis connect failed, falling back to memory:", message);
+    log.error({ err: message }, "Redis connect failed, falling back to memory");
   }
 }

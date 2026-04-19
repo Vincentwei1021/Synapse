@@ -34,7 +34,9 @@ export interface ResearchProjectUpdateParams {
   autonomousLoopAgentUuid?: string | null;
   autoSearchEnabled?: boolean;
   autoSearchAgentUuid?: string | null;
+  autoSearchActiveAgentUuid?: string | null;
   deepResearchDocUuid?: string | null;
+  deepResearchActiveAgentUuid?: string | null;
   repoUrl?: string | null;
   githubUsername?: string | null;
   githubToken?: string | null;
@@ -55,6 +57,7 @@ export interface ResearchProjectDashboardData {
     status: string;
     reviewStatus: string;
   }>;
+  relatedWorksCount: number;
 }
 
 export interface ResearchProjectInsightsData {
@@ -395,7 +398,7 @@ export async function getResearchProjectDashboardData(
   companyUuid: string,
   researchProjectUuid: string,
 ): Promise<ResearchProjectDashboardData | null> {
-  const [project, stats, recentExperiments, recentQuestions] = await Promise.all([
+  const [project, stats, recentExperiments, recentQuestions, relatedWorksCount] = await Promise.all([
     getResearchProject(companyUuid, researchProjectUuid),
     getResearchProjectStats(companyUuid, researchProjectUuid),
     prisma.experiment.findMany({
@@ -424,6 +427,9 @@ export async function getResearchProjectDashboardData(
         reviewStatus: true,
       },
     }),
+    prisma.relatedWork.count({
+      where: { companyUuid, researchProjectUuid },
+    }),
   ]);
 
   if (!project) {
@@ -435,6 +441,7 @@ export async function getResearchProjectDashboardData(
     stats,
     recentExperiments,
     recentQuestions,
+    relatedWorksCount,
   };
 }
 

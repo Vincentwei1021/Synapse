@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { VALID_AGENT_TYPES } from "@/lib/agent-transport";
+import { isValidAgentColorName, DEFAULT_AGENT_COLOR_NAME } from "@/lib/agent-colors";
 import {
   listApiKeys,
   createAgent,
@@ -20,6 +21,9 @@ import {
   reopenSession,
   type SessionResponse,
 } from "@/services/session.service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "settings" });
 
 interface ApiKeyResponse {
   uuid: string;
@@ -60,7 +64,7 @@ export async function getApiKeysAction(): Promise<{
 
     return { success: true, data };
   } catch (error) {
-    console.error("Failed to fetch API keys:", error);
+    log.error({ err: error }, "Failed to fetch API keys");
     return { success: false, error: "Failed to fetch API keys" };
   }
 }
@@ -70,6 +74,7 @@ interface CreateAgentKeyInput {
   roles: string[];
   type?: string;
   persona: string | null;
+  color?: string | null;
 }
 
 const VALID_AGENT_ROLES = new Set(["pre_research", "research", "experiment", "report", "admin"]);
@@ -96,6 +101,10 @@ export async function createAgentAndKeyAction(input: CreateAgentKeyInput): Promi
     return { success: false, error: "Invalid agent type" };
   }
 
+  const resolvedColor = input.color && isValidAgentColorName(input.color)
+    ? input.color
+    : DEFAULT_AGENT_COLOR_NAME;
+
   try {
     const agent = await createAgent({
       companyUuid: auth.companyUuid,
@@ -104,6 +113,7 @@ export async function createAgentAndKeyAction(input: CreateAgentKeyInput): Promi
       type: input.type || "openclaw",
       ownerUuid: auth.actorUuid,
       persona: input.persona?.trim() || null,
+      color: resolvedColor,
     });
 
     const apiKey = await createApiKey({
@@ -114,7 +124,7 @@ export async function createAgentAndKeyAction(input: CreateAgentKeyInput): Promi
 
     return { success: true, key: apiKey.key };
   } catch (error) {
-    console.error("Failed to create agent and API key:", error);
+    log.error({ err: error }, "Failed to create agent and API key");
     return { success: false, error: "Failed to create API key" };
   }
 }
@@ -138,7 +148,7 @@ export async function deleteApiKeyAction(uuid: string): Promise<{
     await revokeApiKey(apiKey.uuid);
     return { success: true };
   } catch (error) {
-    console.error("Failed to delete API key:", error);
+    log.error({ err: error }, "Failed to delete API key");
     return { success: false, error: "Failed to delete API key" };
   }
 }
@@ -162,7 +172,7 @@ export async function getAgentSessionsAction(agentUuid: string): Promise<{
     const sessions = await listAgentSessions(auth.companyUuid, agentUuid);
     return { success: true, data: sessions };
   } catch (error) {
-    console.error("Failed to fetch agent sessions:", error);
+    log.error({ err: error }, "Failed to fetch agent sessions");
     return { success: false, error: "Failed to fetch agent sessions" };
   }
 }
@@ -190,7 +200,7 @@ export async function closeSessionAction(sessionUuid: string): Promise<{
     await closeSession(auth.companyUuid, sessionUuid);
     return { success: true };
   } catch (error) {
-    console.error("Failed to close session:", error);
+    log.error({ err: error }, "Failed to close session");
     return { success: false, error: "Failed to close session" };
   }
 }
@@ -218,7 +228,7 @@ export async function reopenSessionAction(sessionUuid: string): Promise<{
     await reopenSession(auth.companyUuid, sessionUuid);
     return { success: true };
   } catch (error) {
-    console.error("Failed to reopen session:", error);
+    log.error({ err: error }, "Failed to reopen session");
     return { success: false, error: "Failed to reopen session" };
   }
 }
@@ -229,6 +239,7 @@ interface UpdateAgentInput {
   roles: string[];
   type?: string;
   persona: string | null;
+  color?: string | null;
 }
 
 export async function updateAgentAction(input: UpdateAgentInput): Promise<{
@@ -258,18 +269,30 @@ export async function updateAgentAction(input: UpdateAgentInput): Promise<{
       return { success: false, error: "Invalid agent type" };
     }
 
+    let nextColor: string | null | undefined = undefined;
+    if (input.color !== undefined) {
+      if (input.color === null) {
+        nextColor = null;
+      } else if (isValidAgentColorName(input.color)) {
+        nextColor = input.color;
+      } else {
+        return { success: false, error: "Invalid agent color" };
+      }
+    }
+
     await updateAgent(input.agentUuid, {
       name,
       roles,
       type: input.type,
       persona: input.persona?.trim() || null,
+      ...(nextColor !== undefined ? { color: nextColor } : {}),
     }, auth.companyUuid);
 
     await syncApiKeyNames(input.agentUuid, name);
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to update agent:", error);
+    log.error({ err: error }, "Failed to update agent");
     return { success: false, error: "Failed to update agent" };
   }
 }

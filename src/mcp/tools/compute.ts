@@ -197,7 +197,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
   server.registerTool(
     "synapse_start_experiment",
     {
-      description: "Move an assigned experiment from pending_start to in_progress, optionally reserving GPUs first.",
+      description: "Move an assigned experiment from pending_start to in_progress. Pass gpuUuids only when start_experiment should also reserve them; if you already called synapse_reserve_gpus, start without gpuUuids.",
       inputSchema: z.object({
         experimentUuid: z.string(),
         gpuUuids: z.array(z.string()).default([]),

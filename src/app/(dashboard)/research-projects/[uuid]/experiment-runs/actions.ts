@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { updateExperimentRun, getExperimentRunByUuid, getProjectRunDependencies, checkDependenciesResolved, checkAcceptanceCriteriaGate } from "@/services/experiment-run.service";
 import { createActivity } from "@/services/activity.service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "experiment_run" });
 
 // Map column IDs to task statuses
 const columnToStatusMap: Record<string, string> = {
@@ -63,7 +66,7 @@ export async function moveRunToColumnAction(
     revalidatePath(`/research-projects/${projectUuid}/experiment-runs`);
     return { success: true };
   } catch (error) {
-    console.error("Failed to move task:", error);
+    log.error({ err: error }, "Failed to move task");
     return { success: false, error: "Failed to move task" };
   }
 }
@@ -101,7 +104,7 @@ export async function forceMoveTaskToColumnAction(
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to force move task:", error);
+    log.error({ err: error }, "Failed to force move task");
     return { success: false, error: "Failed to force move task" };
   }
 }
@@ -115,7 +118,7 @@ export async function getProjectDependenciesAction(projectUuid: string) {
   try {
     return await getProjectRunDependencies(auth.companyUuid, projectUuid);
   } catch (error) {
-    console.error("Failed to get project dependencies:", error);
+    log.error({ err: error }, "Failed to get project dependencies");
     return { nodes: [], edges: [] };
   }
 }

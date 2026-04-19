@@ -50,10 +50,21 @@ export default async function ExperimentsPage({ params, searchParams }: PageProp
     <div className="p-4 md:p-8">
       <ExperimentsBoard
         experiments={experiments}
-        agents={allAgents.map((agent) => ({ uuid: agent.uuid, name: agent.name }))}
-        realtimeAgents={realtimeAgents.map((agent) => ({ uuid: agent.uuid, name: agent.name }))}
+        agents={allAgents.map((agent) => ({
+          uuid: agent.uuid,
+          name: agent.name,
+          type: agent.type,
+          lastActiveAt: agent.lastActiveAt?.toISOString() ?? null,
+        }))}
+        realtimeAgents={realtimeAgents.map((agent) => ({
+          uuid: agent.uuid,
+          name: agent.name,
+          type: agent.type,
+          lastActiveAt: agent.lastActiveAt?.toISOString() ?? null,
+        }))}
         initialSelectedExperimentUuid={resolvedSearchParams?.selected || null}
         viewerUuid={auth.actorUuid}
+        viewerType={auth.type}
         projectUuid={projectUuid}
         autonomousLoopEnabled={project?.autonomousLoopEnabled ?? false}
         autonomousLoopAgentUuid={project?.autonomousLoopAgentUuid ?? null}

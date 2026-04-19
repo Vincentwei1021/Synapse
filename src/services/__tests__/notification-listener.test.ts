@@ -244,15 +244,11 @@ describe("notification-listener", () => {
 
     it("should handle prisma errors gracefully", async () => {
       mockPrisma.experimentRun.findUnique.mockRejectedValue(new Error("DB error"));
-      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
       const event = makeEvent({ action: "assigned", targetType: "experiment_run" });
       await handleActivity(event);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "[NotificationListener] Failed to process activity:",
-        expect.any(Error)
-      );
+      // Error logging is now handled by Pino structured logger, not console.error.
+      // Verify the handler does not propagate the error and does not create notifications.
       expect(mockNotificationService.createBatch).not.toHaveBeenCalled();
-      consoleErrorSpy.mockRestore();
     });
 
     it("should create notification for task assignment with different actor and assignee", async () => {

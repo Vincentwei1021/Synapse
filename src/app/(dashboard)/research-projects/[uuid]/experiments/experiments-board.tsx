@@ -3,7 +3,18 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { CheckCircle2, ChevronRight, CornerUpLeft, FileText, GitBranch, Loader2, PenLine, Save, Send, Sparkles, Zap } from "lucide-react";
+import { LayoutGroup, motion } from "framer-motion";
+import { CheckCircle2, ChevronRight, CornerUpLeft, FileText, GitBranch, Loader2, PenLine, Save, Send, Sparkles, Trash2, Zap } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,9 +23,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
 import { MarkdownContent } from "@/components/markdown-content";
+import { GlowBorder } from "@/components/glow-border";
+import { AgentTypeIcon } from "@/components/agent-type-icon";
+import { getAgentColor } from "@/lib/agent-colors";
+import { ANIM } from "@/lib/animation";
 import type { ExperimentResponse } from "@/services/experiment.service";
+import { RevertDialog } from "./revert-dialog";
 
 const columns = [
   { id: "draft", labelKey: "draft" },
@@ -99,6 +116,7 @@ export function ExperimentsBoard({
   realtimeAgents,
   initialSelectedExperimentUuid = null,
   viewerUuid,
+  viewerType,
   projectUuid,
   autonomousLoopEnabled,
   autonomousLoopAgentUuid,
@@ -107,10 +125,11 @@ export function ExperimentsBoard({
   researchQuestions,
 }: {
   experiments: ExperimentResponse[];
-  agents: Array<{ uuid: string; name: string }>;
-  realtimeAgents: Array<{ uuid: string; name: string }>;
+  agents: Array<{ uuid: string; name: string; type: string; lastActiveAt: string | null }>;
+  realtimeAgents: Array<{ uuid: string; name: string; type: string; lastActiveAt: string | null }>;
   initialSelectedExperimentUuid?: string | null;
   viewerUuid: string;
+  viewerType: string;
   projectUuid: string;
   autonomousLoopEnabled: boolean;
   autonomousLoopAgentUuid: string | null;
@@ -143,6 +162,9 @@ export function ExperimentsBoard({
   const [quickAgentUuid, setQuickAgentUuid] = useState(realtimeAgents[0]?.uuid ?? "");
   const [quickCreating, setQuickCreating] = useState(false);
   const [planPanelOpen, setPlanPanelOpen] = useState(false);
+  const [revertTargetUuid, setRevertTargetUuid] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ExperimentResponse | null>(null);
+  const [deletingExperiment, setDeletingExperiment] = useState(false);
   useRealtimeRefresh();
 
   async function updateAutonomousLoop(enabled: boolean, agentUuid: string, mode: string) {
@@ -320,6 +342,7 @@ export function ExperimentsBoard({
     router.refresh();
   }
 
+
   async function handleDraftSave(experimentUuid: string) {
     setDraftSaveError(null);
 
@@ -342,6 +365,37 @@ export function ExperimentsBoard({
     }
 
     router.refresh();
+  }
+
+  const MOVE_TARGETS: Record<string, string[]> = {
+    draft: ["pending_review", "pending_start"],
+    pending_review: ["draft", "pending_start"],
+    pending_start: ["draft", "pending_review", "in_progress"],
+    in_progress: ["draft", "pending_review", "pending_start", "completed"],
+    completed: ["draft", "pending_review", "pending_start"],
+  };
+
+  async function handleMoveTo(experimentUuid: string, targetStatus: string) {
+    await fetch(`/api/experiments/${experimentUuid}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: targetStatus }),
+    });
+    router.refresh();
+  }
+
+  async function handleDeleteExperiment() {
+    if (!deleteTarget) return;
+    setDeletingExperiment(true);
+    try {
+      const res = await fetch(`/api/experiments/${deleteTarget.uuid}`, { method: "DELETE" });
+      if (res.ok) {
+        setDeleteTarget(null);
+        setSelectedExperimentUuid(null);
+        router.refresh();
+      }
+    } catch {}
+    setDeletingExperiment(false);
   }
 
   const renderActionBlock = (experiment: ExperimentResponse) => {
@@ -393,9 +447,7 @@ export function ExperimentsBoard({
             disabled={isPending}
             onClick={(event) => {
               event.stopPropagation();
-              startTransition(() => {
-                void postAction(experiment.uuid, "review", { approved: false });
-              });
+              setRevertTargetUuid(experiment.uuid);
             }}
           >
             <CornerUpLeft className="mr-2 h-4 w-4" />
@@ -451,20 +503,24 @@ export function ExperimentsBoard({
       }
 
       return (
-        <Button
-          size="sm"
-          className="w-full bg-emerald-700 text-white hover:bg-emerald-600"
-          disabled={isPending}
-          onClick={(event) => {
-            event.stopPropagation();
-            startTransition(() => {
-              void postAction(experiment.uuid, "complete", { outcome: t("experiments.defaultOutcome") });
-            });
-          }}
-        >
-          <CheckCircle2 className="mr-2 h-4 w-4" />
-          {t("experiments.actions.complete")}
-        </Button>
+        <div className="space-y-2">
+          {canComplete ? (
+            <Button
+              size="sm"
+              className="w-full bg-emerald-700 text-white hover:bg-emerald-600"
+              disabled={isPending}
+              onClick={(event) => {
+                event.stopPropagation();
+                startTransition(() => {
+                  void postAction(experiment.uuid, "complete", { outcome: t("experiments.defaultOutcome") });
+                });
+              }}
+            >
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              {t("experiments.actions.complete")}
+            </Button>
+          ) : null}
+        </div>
       );
     }
 
@@ -488,14 +544,14 @@ export function ExperimentsBoard({
                   className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 cursor-pointer transition-all duration-200"
                 >
                   <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse shrink-0" />
-                  <span className="whitespace-nowrap text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  <span className="whitespace-nowrap text-sm font-medium text-emerald-600 dark:text-emerald-400">
                     {loopMode === "full_auto" ? t("experiments.fullAutoMode") : t("experiments.humanReviewMode")}
                   </span>
-                  <span className="whitespace-nowrap text-xs text-muted-foreground">
+                  <span className="whitespace-nowrap text-sm text-muted-foreground">
                     {t("experiments.via")} {realtimeAgents.find((a) => a.uuid === loopAgentUuid)?.name ?? "Agent"}
                   </span>
                   {autonomousPhase && (
-                    <span className="whitespace-nowrap text-[11px] text-emerald-500/70 dark:text-emerald-400/70">
+                    <span className="whitespace-nowrap text-[11px] text-emerald-600/75 dark:text-emerald-400/75">
                       · {t(`experiments.autoPhase.${autonomousPhase}`)}
                     </span>
                   )}
@@ -516,9 +572,9 @@ export function ExperimentsBoard({
               /* OFF: zap icon + text */
               <button
                 onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
-                className="flex cursor-pointer items-center gap-2 rounded-lg border border-blue-500/65 bg-blue-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm shadow-blue-900/15 transition-all duration-200 hover:border-blue-600 hover:bg-blue-600"
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-sky-200 bg-sky-100 px-3 py-1.5 text-sm font-medium text-sky-700 shadow-sm transition-all duration-200 hover:bg-sky-200 dark:border-sky-400/30 dark:bg-sky-500/15 dark:text-sky-300 dark:hover:bg-sky-500/20"
               >
-                <Zap className="h-3.5 w-3.5 shrink-0 fill-amber-300 text-amber-300" />
+                <Zap className="h-3.5 w-3.5 shrink-0 fill-sky-300 text-sky-400 dark:fill-sky-300/80 dark:text-sky-300" />
                 <span className="whitespace-nowrap">{t("experiments.startAutoResearch")}</span>
               </button>
             )}
@@ -546,7 +602,7 @@ export function ExperimentsBoard({
                 ) : (
                   <div className="p-3 space-y-3">
                     <div className="flex items-center gap-2">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-500"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" /></svg>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-primary"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" /></svg>
                       <span className="text-sm font-medium text-foreground">
                         {loopSelectedMode === "full_auto" ? t("experiments.fullAutoMode") : t("experiments.humanReviewMode")}
                       </span>
@@ -576,7 +632,7 @@ export function ExperimentsBoard({
                         setLoopDropdownOpen(false);
                         setLoopSelectedMode(null);
                       }}
-                      className="w-full rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-40 cursor-pointer transition-colors"
+                      className="w-full rounded-md border border-sky-200 bg-sky-100 px-3 py-1.5 text-xs font-semibold text-sky-700 shadow-sm transition-colors hover:bg-sky-200 disabled:opacity-40 cursor-pointer dark:border-sky-400/30 dark:bg-sky-500/15 dark:text-sky-300 dark:hover:bg-sky-500/20"
                     >
                       {t("experiments.activate")}
                     </button>
@@ -600,6 +656,7 @@ export function ExperimentsBoard({
       </div>
 
       <div className="pb-4">
+        <LayoutGroup>
         <div className="grid gap-3 xl:grid-cols-5">
           {columns.map((column) => (
             <section
@@ -622,8 +679,21 @@ export function ExperimentsBoard({
                   </div>
                 ) : (
                   grouped[column.id].map((experiment) => (
-                    <Card
+                    <motion.div
                       key={experiment.uuid}
+                      layoutId={`experiment-card-${experiment.uuid}`}
+                      transition={ANIM.spring}
+                    >
+                    <PresenceIndicator entityType="experiment" entityUuid={experiment.uuid}>
+                    {(() => {
+                      return (
+                    <GlowBorder
+                      active={experiment.status === "in_progress" || !!experiment.liveStatus}
+                      primaryColor={getAgentColor(experiment.assignee?.uuid ?? "").primary}
+                      lightColor={getAgentColor(experiment.assignee?.uuid ?? "").light}
+                      variant="pulse"
+                    >
+                    <Card
                       role="button"
                       tabIndex={0}
                       onClick={() => { setSelectedExperimentUuid(experiment.uuid); setDismissed(false); }}
@@ -633,8 +703,17 @@ export function ExperimentsBoard({
                           { setSelectedExperimentUuid(experiment.uuid); setDismissed(false); };
                         }
                       }}
-                      className="space-y-3 rounded-2xl border-border bg-card p-3.5 text-left shadow-none transition-colors hover:border-primary/30"
+                      className="relative space-y-3 rounded-2xl border-border bg-card p-3.5 text-left shadow-none transition-colors hover:border-primary/30"
                     >
+                      {(experiment.status === "in_progress" || !!experiment.liveStatus) && experiment.assignee?.name && (
+                        <div
+                          className="absolute -top-2.5 right-2 z-10 inline-flex max-w-[80%] items-center gap-1 truncate rounded-full px-1.5 py-0.5 text-[10px] font-medium text-white whitespace-nowrap sm:text-[11px] sm:px-2"
+                          style={{ backgroundColor: getAgentColor(experiment.assignee.uuid).primary }}
+                        >
+                          <AgentTypeIcon type={agents.find((a) => a.uuid === experiment.assignee?.uuid)?.type ?? "openclaw"} className="h-2.5 w-2.5" />
+                          <span className="truncate">{experiment.assignee.name}</span>
+                        </div>
+                      )}
                       <div className="space-y-2">
                         <div className="flex items-start justify-between gap-2">
                           <h3 className="line-clamp-2 text-sm font-semibold text-foreground">{experiment.title}</h3>
@@ -667,12 +746,18 @@ export function ExperimentsBoard({
 
                       {renderActionBlock(experiment)}
                     </Card>
+                    </GlowBorder>
+                      );
+                    })()}
+                    </PresenceIndicator>
+                    </motion.div>
                   ))
                 )}
               </div>
             </section>
           ))}
         </div>
+        </LayoutGroup>
       </div>
 
       <Sheet open={Boolean(selectedExperiment)} onOpenChange={(open) => { if (!open) { setSelectedExperimentUuid(null); setDismissed(true); } }}>
@@ -725,14 +810,51 @@ export function ExperimentsBoard({
               </SheetHeader>
 
               <div className="space-y-6 px-6 py-5">
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className={priorityBadgeClasses(selectedExperiment.priority)}>
-                    {formatPriorityLabel(t, selectedExperiment.priority)}
-                  </Badge>
-                  <Badge variant="secondary">{t(`experiments.columns.${columns.find((column) => column.id === selectedExperiment.status)?.labelKey || "draft"}`)}</Badge>
-                  {selectedExperiment.assignee?.name ? (
-                    <Badge variant="outline">{selectedExperiment.assignee.name}</Badge>
-                  ) : null}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline" className={priorityBadgeClasses(selectedExperiment.priority)}>
+                      {formatPriorityLabel(t, selectedExperiment.priority)}
+                    </Badge>
+                    {selectedExperiment.assignee?.name ? (
+                      <Badge variant="outline">{selectedExperiment.assignee.name}</Badge>
+                    ) : null}
+                    <Badge variant="secondary">
+                      {t(`experiments.columns.${columns.find((column) => column.id === selectedExperiment.status)?.labelKey || "draft"}`)}
+                      {(() => {
+                        const ts = selectedExperiment.status === "completed" ? selectedExperiment.completedAt
+                          : selectedExperiment.status === "in_progress" ? (selectedExperiment.startedAt || selectedExperiment.updatedAt)
+                          : selectedExperiment.status === "pending_review" || selectedExperiment.status === "pending_start" ? (selectedExperiment.reviewedAt || selectedExperiment.updatedAt)
+                          : selectedExperiment.updatedAt;
+                        return ts ? ` · ${new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : "";
+                      })()}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <select
+                      className="h-8 rounded-lg border border-border bg-background px-2 text-xs text-foreground"
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          startTransition(() => { void handleMoveTo(selectedExperiment.uuid, e.target.value); });
+                        }
+                      }}
+                    >
+                      <option value="" disabled>{t("experiments.actions.moveTo")}</option>
+                      {(MOVE_TARGETS[selectedExperiment.status] ?? []).map((target) => (
+                        <option key={target} value={target}>
+                          {t(`experiments.columns.${columns.find((c) => c.id === target)?.labelKey || "draft"}`)}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => setDeleteTarget(selectedExperiment)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
 
                 {selectedExperiment.experimentBranch && repoUrl ? (() => {
@@ -868,33 +990,49 @@ export function ExperimentsBoard({
                 ) : (
                   <div className="grid gap-3 md:grid-cols-2">
                     <Card className="rounded-2xl border-border bg-secondary/50 p-4 shadow-none">
-                      <p className="text-xs text-muted-foreground">{t("experiments.card.question")}</p>
-                      <p className="mt-2 text-sm font-medium text-foreground">
+                      <p className="text-sm font-semibold text-foreground">{t("experiments.card.question")}</p>
+                      <p className="mt-2 text-sm leading-7 text-muted-foreground">
                         {selectedExperiment.researchQuestion?.title || t("experiments.card.unlinked")}
                       </p>
                     </Card>
                     <Card className="rounded-2xl border-border bg-secondary/50 p-4 shadow-none">
-                      <p className="text-xs text-muted-foreground">{t("experiments.detail.computeBudget")}</p>
-                      <p className="mt-2 text-sm font-medium text-foreground">
-                        {selectedExperiment.computeBudgetHours ?? t("experiments.detail.unlimited")}
+                      <p className="text-sm font-semibold text-foreground">
+                        {selectedExperiment.startedAt && selectedExperiment.completedAt
+                          ? t("experiments.detail.elapsed")
+                          : t("experiments.detail.computeBudget")}
+                      </p>
+                      <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                        {(() => {
+                          if (selectedExperiment.startedAt && selectedExperiment.completedAt) {
+                            const ms = new Date(selectedExperiment.completedAt).getTime() - new Date(selectedExperiment.startedAt).getTime();
+                            const totalMins = Math.floor(ms / 60000);
+                            const hrs = Math.floor(totalMins / 60);
+                            const remMins = totalMins % 60;
+                            if (hrs > 0) return t("experiments.detail.elapsedHM", { hours: hrs, minutes: remMins });
+                            return t("experiments.detail.elapsedM", { minutes: totalMins });
+                          }
+                          return selectedExperiment.computeBudgetHours ?? t("experiments.detail.unlimited");
+                        })()}
                       </p>
                     </Card>
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.outcome")}</h3>
-                  <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
-                    <p className="text-sm leading-7 text-muted-foreground">
-                      {selectedExperiment.outcome || t("experiments.detail.noOutcome")}
-                    </p>
-                  </Card>
-                </div>
+                {selectedExperiment.outcome ? (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.outcome")}</h3>
+                    <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
+                      <p className="text-sm leading-7 text-muted-foreground">
+                        {selectedExperiment.outcome}
+                      </p>
+                    </Card>
+                  </div>
+                ) : null}
 
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.parentContext")}</h3>
-                  <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
-                    {selectedExperiment.parentQuestionExperiments.length ? (
+                {selectedExperiment.parentQuestionExperiments.length ? (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.parentContext")}</h3>
+                    <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
                       <div className="space-y-3">
                         {selectedExperiment.parentQuestionExperiments.map((experiment) => (
                           <div key={experiment.uuid} className="rounded-2xl bg-secondary/60 px-3 py-3">
@@ -908,16 +1046,14 @@ export function ExperimentsBoard({
                           </div>
                         ))}
                       </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{t("experiments.detail.noParentContext")}</p>
-                    )}
-                  </Card>
-                </div>
+                    </Card>
+                  </div>
+                ) : null}
 
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.progressLog")}</h3>
-                  <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
-                    {progressLogs.length ? (
+                {progressLogs.length ? (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.progressLog")}</h3>
+                    <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
                       <div className="space-y-3">
                         {progressLogs.map((log) => (
                           <div key={log.uuid} className="flex gap-3 text-xs">
@@ -931,29 +1067,25 @@ export function ExperimentsBoard({
                           </div>
                         ))}
                       </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{t("experiments.detail.noProgress")}</p>
-                    )}
-                  </Card>
-                </div>
+                    </Card>
+                  </div>
+                ) : null}
 
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.results")}</h3>
-                  <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
-                    {selectedExperiment.results ? (
+                {selectedExperiment.results ? (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.results")}</h3>
+                    <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
                       <pre className="overflow-x-auto whitespace-pre-wrap text-xs leading-6 text-muted-foreground">
                         {prettyJson(selectedExperiment.results)}
                       </pre>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{t("experiments.detail.noResults")}</p>
-                    )}
-                  </Card>
-                </div>
+                    </Card>
+                  </div>
+                ) : null}
 
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.attachments")}</h3>
-                  <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
-                    {selectedExperiment.attachments?.length ? (
+                {selectedExperiment.attachments?.length ? (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.attachments")}</h3>
+                    <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
                       <ul className="space-y-2 text-sm text-foreground">
                         {selectedExperiment.attachments.map((attachment) => (
                           <li key={attachment.storedPath} className="flex items-center justify-between gap-3">
@@ -962,11 +1094,9 @@ export function ExperimentsBoard({
                           </li>
                         ))}
                       </ul>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{t("experiments.detail.noAttachments")}</p>
-                    )}
-                  </Card>
-                </div>
+                    </Card>
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : null}
@@ -1038,6 +1168,47 @@ export function ExperimentsBoard({
           </div>
         </DialogContent>
       </Dialog>
+
+      {revertTargetUuid && (() => {
+        const target = experiments.find((e) => e.uuid === revertTargetUuid);
+        if (!target) return null;
+        const currentAssigneeUuid = target.assignee?.type === "agent" ? target.assignee.uuid : null;
+        return (
+          <RevertDialog
+            open={revertTargetUuid !== null}
+            onOpenChange={(next) => { if (!next) setRevertTargetUuid(null); }}
+            currentAssigneeUuid={currentAssigneeUuid}
+            agents={agents}
+            onSubmit={async ({ reviewNote, assignedAgentUuid }) => {
+              await postAction(target.uuid, "review", {
+                approved: false,
+                ...(reviewNote ? { reviewNote } : {}),
+                assignedAgentUuid,
+              });
+              setRevertTargetUuid(null);
+            }}
+          />
+        );
+      })()}
+
+      {/* Delete experiment dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("experiments.actions.deleteExperiment")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget ? t("experiments.actions.deleteExperimentConfirm", { title: deleteTarget.title }) : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleDeleteExperiment} disabled={deletingExperiment}>
+              {deletingExperiment ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {t("common.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

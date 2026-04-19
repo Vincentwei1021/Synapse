@@ -142,12 +142,14 @@
     "autoSearch": "Paper Search",
     "autoSearchDesc": "Use an AI agent to find related papers",
     "search": "Search",
+    "searching": "Searching...",
     "sent": "Sent",
     "deepResearch": "Deep Research",
     "noReport": "No report generated yet",
     "lastGenerated": "Last generated",
     "viewDocument": "View Document",
     "generate": "Generate",
+    "generating": "Generating...",
     "selectAgent": "Select agent...",
     "papersCount": "{count} papers collected",
     "lastUpdated": "last updated {time}",
@@ -289,6 +291,8 @@
     "title": "Dashboard",
     "subtitle": "Overview of your research project activity",
     "brief": "Research brief",
+    "relatedWorks": "Related works",
+    "relatedWorksHelper": "Collected papers and literature for this project",
     "questions": "Research questions",
     "questionsHelper": "{count} currently active or waiting on elaboration",
     "experiments": "Experiments",
@@ -393,7 +397,14 @@
     "githubTokenPlaceholder": "ghp_...",
     "githubTokenHint": "Personal access token with repo scope. Never shown after saving.",
     "githubConfigured": "Token configured",
-    "githubNotConfigured": "No token configured"
+    "githubNotConfigured": "No token configured",
+    "relatedWorksStatus": "Related Works",
+    "relatedWorksStatusDesc": "Reset stuck auto-search or deep research tasks",
+    "autoSearch": "Paper Search",
+    "deepResearch": "Deep Research",
+    "active": "Active",
+    "inactive": "Idle",
+    "reset": "Reset"
   },
   "researchProjects": {
     "title": "Research Projects",
@@ -841,6 +852,23 @@
       "permissions": "Permissions",
       "type": "Type"
     },
+    "form": {
+      "colorLabel": "Color"
+    },
+    "colors": {
+      "terracotta": "Terracotta",
+      "violet": "Violet",
+      "pink": "Pink",
+      "orange": "Orange",
+      "emerald": "Emerald",
+      "cyan": "Cyan",
+      "yellow": "Yellow",
+      "rose": "Rose",
+      "indigo": "Indigo",
+      "teal": "Teal",
+      "fuchsia": "Fuchsia",
+      "lime": "Lime"
+    },
     "type": {
       "openclaw": "OpenClaw",
       "claude_code": "Claude Code"
@@ -958,6 +986,15 @@
     "researchProjectBadge": "Research Project",
     "notificationPreferences": "Notification Preferences",
     "loadMore": "Load more",
+    "entities": {
+      "paper": "Paper",
+      "researchQuestion": "RQ",
+      "experiment": "Experiment",
+      "document": "Document",
+      "relatedWork": "Paper",
+      "experimentRun": "Run",
+      "experimentDesign": "Design"
+    },
     "types": {
       "experimentDesign_approved": "Experiment design approved",
       "experimentDesign_rejected": "Experiment design rejected",
@@ -977,38 +1014,49 @@
       "experiment_auto_proposed": "Experiment auto-proposed",
       "task_assigned": "Assigned",
       "autonomous_loop_triggered": "Autonomous loop triggered",
-      "synthesis_updated": "Synthesis updated"
+      "synthesis_updated": "Synthesis updated",
+      "auto_search_triggered": "Paper search started",
+      "auto_search_completed": "Paper search completed",
+      "deep_research_requested": "Deep research started",
+      "deep_research_completed": "Deep research completed",
+      "related_work_added": "New paper collected",
+      "experiment_completed": "Experiment completed",
+      "experiment_status_changed": "Experiment status changed",
+      "experiment_progress": "Experiment progress update"
+    },
+    "actions": {
+      "experimentRevisionRequested": "requested revisions on"
     },
     "preferences": {
-    "title": "Notification Preferences",
-    "description": "Configure which events trigger notifications",
-    "preResearch": "Pre-research",
-    "research": "Research",
-    "experiment": "Experiment",
-    "report": "Report",
-    "general": "General",
-    "comingSoon": "Coming soon",
-    "researchQuestionClaimed": "Research question assigned",
-    "hypothesisFormulationRequested": "Hypothesis formulation requested",
-    "hypothesisFormulationAnswered": "Hypothesis formulation answered",
-    "experimentAssigned": "Experiment assigned",
-    "experimentStatusChanged": "Experiment status changed",
-    "experimentVerified": "Experiment verified",
-    "experimentReopened": "Experiment reopened",
-    "designSubmitted": "Experiment design submitted",
-    "designApproved": "Experiment design approved",
-    "designRejected": "Experiment design rejected",
-    "commentAdded": "Comment added",
-    "experimentCompleted": "Experiment completed",
-    "prefExperimentStatusChanged": "Experiment status changed (live)",
-    "prefExperimentProgress": "Experiment progress updates",
-    "prefExperimentAutoProposed": "Experiment auto-proposed",
-    "prefAutonomousLoopTriggered": "Autonomous loop triggered",
-    "prefSynthesisUpdated": "Synthesis updated",
-    "autoSearchCompleted": "Auto-search completed",
-    "deepResearchCompleted": "Deep research completed",
-    "mentioned": "Mentioned"
-  }
+      "title": "Notification Preferences",
+      "description": "Configure which events trigger notifications",
+      "preResearch": "Pre-research",
+      "research": "Research",
+      "experiment": "Experiment",
+      "report": "Report",
+      "general": "General",
+      "comingSoon": "Coming soon",
+      "researchQuestionClaimed": "Research question assigned",
+      "hypothesisFormulationRequested": "Hypothesis formulation requested",
+      "hypothesisFormulationAnswered": "Hypothesis formulation answered",
+      "experimentAssigned": "Experiment assigned",
+      "experimentStatusChanged": "Experiment status changed",
+      "experimentVerified": "Experiment verified",
+      "experimentReopened": "Experiment reopened",
+      "designSubmitted": "Experiment design submitted",
+      "designApproved": "Experiment design approved",
+      "designRejected": "Experiment design rejected",
+      "commentAdded": "Comment added",
+      "experimentCompleted": "Experiment completed",
+      "prefExperimentStatusChanged": "Experiment status changed (live)",
+      "prefExperimentProgress": "Experiment progress updates",
+      "prefExperimentAutoProposed": "Experiment auto-proposed",
+      "prefAutonomousLoopTriggered": "Autonomous loop triggered",
+      "prefSynthesisUpdated": "Synthesis updated",
+      "autoSearchCompleted": "Auto-search completed",
+      "deepResearchCompleted": "Deep research completed",
+      "mentioned": "Mentioned"
+    }
   },
   "hypothesisFormulation": {
     "title": "Hypothesis Formulation",
@@ -1289,7 +1337,12 @@
       "assign": "Assign",
       "reassign": "Reassign",
       "start": "Start",
-      "complete": "Complete"
+      "complete": "Complete",
+      "resetToPendingStart": "Reset to pending start",
+      "moveTo": "Move to",
+      "deleteExperiment": "Delete",
+      "deleteExperimentConfirm": "Delete \"{title}\"? This cannot be undone.",
+      "deleted": "Experiment deleted"
     },
     "fields": {
       "title": "Experiment title",
@@ -1316,6 +1369,9 @@
       "noDescription": "No experiment plan provided yet.",
       "draftEditable": "This draft can be edited directly here and saved back to the board.",
       "computeBudget": "Time Limit",
+      "elapsed": "Elapsed",
+      "elapsedHM": "{hours} hours {minutes} mins",
+      "elapsedM": "{minutes} mins",
       "notSet": "Not set",
       "unlimited": "Unlimited",
       "outcome": "Outcome summary",
@@ -1336,7 +1392,7 @@
     "autonomousLoop": "Autonomous Loop",
     "autonomousLoopDesc": "When all queues are empty, agent analyzes project and proposes new experiments",
     "selectAgentToActivate": "Select an agent to activate",
-    "autonomousActive": "Active \u00b7 analyzing with {agent}",
+    "autonomousActive": "Active · analyzing with {agent}",
     "selectAgent": "Select agent...",
     "startAutonomousLoop": "Start Autonomous Loop",
     "humanReviewMode": "Human Review",
@@ -1370,6 +1426,16 @@
       "submit": "Draft with Agent",
       "sending": "Sending...",
       "manual": "Create Manually"
+    },
+    "reviewRevert": {
+      "title": "Send back to draft",
+      "description": "Give the agent feedback on what to revise. Leave feedback empty to return the draft without changes.",
+      "noteLabel": "Feedback for agent (optional)",
+      "notePlaceholder": "What should the agent revise?",
+      "agentLabel": "Assign to",
+      "agentNone": "No agent",
+      "submit": "Send back to draft",
+      "cancel": "Cancel"
     }
   },
   "insights": {
@@ -1594,7 +1660,6 @@
     "next": "Next",
     "back": "Back",
     "stepOf": "Step {current} of {total}",
-
     "step1": {
       "title": "Create Your First Agent",
       "subtitle": "An agent is an AI assistant that runs experiments and searches literature on your behalf.",
@@ -1613,7 +1678,6 @@
       "roleAdmin": "Admin",
       "createAgent": "Create Agent"
     },
-
     "step2": {
       "title": "Connect Your Agent",
       "subtitle": "Configure your agent with the API key and endpoint below, then test the connection.",
@@ -1631,7 +1695,6 @@
       "timeout": "No connection detected. Please check your agent configuration.",
       "retry": "Retry"
     },
-
     "step3": {
       "title": "Set Up Compute",
       "subtitle": "Create a compute pool and add a machine so agents can run GPU workloads.",
@@ -1674,13 +1737,11 @@
       "userSummary": "User",
       "portSummary": "Port"
     },
-
     "complete": {
       "title": "Setup Complete!",
       "summary": "Created {agentCount} agent, {poolCount} compute pool, and {nodeCount} machine.",
       "redirecting": "Redirecting to projects..."
     },
-
     "sidebar": {
       "setupProgress": "Setup Progress",
       "agentConfigured": "Agent configured",

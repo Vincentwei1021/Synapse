@@ -5,6 +5,9 @@ import { getServerAuthContext } from "@/lib/auth-server";
 import { claimExperimentRun, getExperimentRunByUuid, updateExperimentRun, releaseExperimentRun, createExperimentRun, deleteExperimentRun, checkAcceptanceCriteriaGate } from "@/services/experiment-run.service";
 import { getAgentsByRole, getCompanyUsers } from "@/services/agent.service";
 import { createActivity } from "@/services/activity.service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "experiment_run" });
 
 export async function claimRunAction(runUuid: string) {
   const auth = await getServerAuthContext();
@@ -49,7 +52,7 @@ export async function claimRunAction(runUuid: string) {
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to claim task:", error);
+    log.error({ err: error }, "Failed to claim task");
     return { success: false, error: "Failed to claim task" };
   }
 }
@@ -96,7 +99,7 @@ export async function claimRunToAgentAction(runUuid: string, agentUuid: string) 
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to claim task to agent:", error);
+    log.error({ err: error }, "Failed to claim task to agent");
     return { success: false, error: "Failed to claim task" };
   }
 }
@@ -138,7 +141,7 @@ export async function releaseRunAction(runUuid: string) {
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to release task:", error);
+    log.error({ err: error }, "Failed to release task");
     return { success: false, error: "Failed to release task" };
   }
 }
@@ -175,7 +178,7 @@ export async function updateExperimentRunStatusAction(runUuid: string, newStatus
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to update task status:", error);
+    log.error({ err: error }, "Failed to update task status");
     return { success: false, error: "Failed to update task status" };
   }
 }
@@ -210,7 +213,7 @@ export async function verifyTaskAction(runUuid: string) {
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to verify task:", error);
+    log.error({ err: error }, "Failed to verify task");
     return { success: false, error: "Failed to verify task" };
   }
 }
@@ -257,7 +260,7 @@ export async function claimTaskToUserAction(runUuid: string, userUuid: string) {
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to assign task to user:", error);
+    log.error({ err: error }, "Failed to assign task to user");
     return { success: false, error: "Failed to assign task" };
   }
 }
@@ -304,7 +307,7 @@ export async function createExperimentRunAction(input: CreateTaskInput) {
     revalidatePath(`/research-projects/${input.projectUuid}/experiment-runs`);
     return { success: true, runUuid: task.uuid };
   } catch (error) {
-    console.error("Failed to create task:", error);
+    log.error({ err: error }, "Failed to create task");
     return { success: false, error: "Failed to create task" };
   }
 }
@@ -343,7 +346,7 @@ export async function updateExperimentRunFieldsAction(input: UpdateTaskFieldsInp
     revalidatePath(`/research-projects/${input.projectUuid}/experiment-runs`);
     return { success: true };
   } catch (error) {
-    console.error("Failed to update task:", error);
+    log.error({ err: error }, "Failed to update task");
     return { success: false, error: "Failed to update task" };
   }
 }
@@ -365,7 +368,7 @@ export async function deleteExperimentRunAction(runUuid: string, projectUuid: st
     revalidatePath(`/research-projects/${projectUuid}/experiment-runs`);
     return { success: true };
   } catch (error) {
-    console.error("Failed to delete task:", error);
+    log.error({ err: error }, "Failed to delete task");
     return { success: false, error: "Failed to delete task" };
   }
 }
@@ -386,7 +389,7 @@ export async function getDeveloperAgentsAction() {
       currentUserUuid: auth.actorUuid
     };
   } catch (error) {
-    console.error("Failed to get developer agents:", error);
+    log.error({ err: error }, "Failed to get developer agents");
     return { agents: [], users: [] };
   }
 }

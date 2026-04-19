@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Building2, Users, Bot, Plus } from "lucide-react";
+import { clientLogger } from "@/lib/logger-client";
 
 interface Stats {
   totalCompanies: number;
@@ -36,7 +37,7 @@ export default function AdminDashboardPage() {
           setAuthorized(true);
         }
       } catch (error) {
-        console.error("Failed to fetch stats:", error);
+        clientLogger.error("Failed to fetch stats:", error);
       } finally {
         setLoading(false);
       }

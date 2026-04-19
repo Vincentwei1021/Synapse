@@ -5,6 +5,9 @@
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
 import { prisma } from "./prisma";
 import type { ApiKeyValidationResult } from "@/types/auth";
+import { logger } from "./logger";
+
+const log = logger.child({ module: "api_key" });
 
 // API Key prefix
 const KEY_PREFIX = "syn_";
@@ -107,7 +110,7 @@ export async function validateApiKey(
       },
     };
   } catch (error) {
-    console.error("API key validation error:", error);
+    log.error({ err: error }, "API key validation error");
     return { valid: false, error: "Internal validation error" };
   }
 }

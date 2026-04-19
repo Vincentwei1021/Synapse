@@ -9,6 +9,7 @@ import { registerLiteratureTools } from "./tools/literature";
 import { registerResearchTools } from "./tools/research-lead";
 import { registerAdminTools } from "./tools/pi";
 import type { AgentAuthContext } from "@/types/auth";
+import { enablePresence } from "./tools/presence";
 
 export function createMcpServer(auth: AgentAuthContext): McpServer {
   const server = new McpServer({
@@ -18,6 +19,9 @@ export function createMcpServer(auth: AgentAuthContext): McpServer {
 
   const roles = auth.roles || [];
   const hasRole = (...names: string[]) => roles.some(r => names.includes(r));
+
+  // Wrap registerTool to auto-emit presence events for all tools
+  enablePresence(server, auth);
 
   // All agents — read operations, comments, notifications, sessions
   registerPublicTools(server, auth);

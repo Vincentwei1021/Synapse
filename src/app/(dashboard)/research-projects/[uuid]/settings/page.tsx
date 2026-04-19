@@ -26,6 +26,8 @@ export default async function ProjectSettingsPage({ params }: PageProps) {
       repoUrl: true,
       githubUsername: true,
       githubToken: true,
+      autoSearchActiveAgentUuid: true,
+      deepResearchActiveAgentUuid: true,
       experiments: {
         select: { uuid: true, title: true, status: true },
         orderBy: { createdAt: "desc" },
@@ -51,6 +53,8 @@ export default async function ProjectSettingsPage({ params }: PageProps) {
     repoUrl: project.repoUrl,
     githubUsername: project.githubUsername,
     githubConfigured: !!project.githubToken,
+    autoSearchActive: !!project.autoSearchActiveAgentUuid,
+    deepResearchActive: !!project.deepResearchActiveAgentUuid,
     experiments: project.experiments,
     researchQuestions: project.researchQuestions,
   };
