@@ -3,15 +3,17 @@
 // Synapse CLI — Zero-dependency local mode
 // Starts embedded PGlite + Next.js standalone server
 
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { resolve, join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { execSync, fork } from "child_process";
 import { homedir } from "os";
 import { createHash } from "crypto";
+import { createConnection } from "net";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = resolve(__dirname, "..", "dist");
+const PKG_ROOT = resolve(__dirname, "..");
 
 // --- Parse CLI arguments ---
 const args = process.argv.slice(2);
@@ -55,91 +57,101 @@ console.log(`  Data directory: ${dataDir}`);
 // --- Ensure data directory exists ---
 mkdirSync(dataDir, { recursive: true });
 
+// Clear env vars that may have been baked into the Next.js build from the build machine's .env
+if (!process.env.REDIS_URL) delete process.env.REDIS_URL;
+if (!process.env.REDIS_HOST) delete process.env.REDIS_HOST;
+
 const useExternalDb = !!process.env.DATABASE_URL;
+let pgliteProcess = null;
 
 if (!useExternalDb) {
-  // --- Start PGlite ---
+  // --- Start PGlite as a forked process ---
   console.log("  Starting embedded database...");
 
   const pgliteDir = join(dataDir, "pglite");
   mkdirSync(pgliteDir, { recursive: true });
 
-  const { PGlite } = await import("@electric-sql/pglite");
-  const { createServer } = await import("@electric-sql/pglite-socket");
-
-  const db = new PGlite(pgliteDir);
-  const socketServer = createServer(db);
-
-  // Find an available port for PGlite socket
   const pglitePort = port + 1000;
-  await new Promise((resolve, reject) => {
-    socketServer.listen(pglitePort, "127.0.0.1", () => resolve(undefined));
-    socketServer.on("error", reject);
+
+  // Fork the pglite-socket server script
+  const serverScript = join(
+    PKG_ROOT,
+    "node_modules",
+    "@electric-sql",
+    "pglite-socket",
+    "dist",
+    "scripts",
+    "server.js",
+  );
+
+  pgliteProcess = fork(serverScript, [
+    `--db=${pgliteDir}`,
+    `--port=${pglitePort}`,
+    "--max-connections=10",
+  ], {
+    stdio: ["pipe", "pipe", "pipe", "ipc"],
   });
 
-  process.env.DATABASE_URL = `postgresql://localhost:${pglitePort}/synapse`;
+  // Wait for TCP to be ready
+  await waitForTcp("127.0.0.1", pglitePort, 30000);
+  console.log(`  Embedded database listening on port ${pglitePort}`);
+
+  process.env.DATABASE_URL = `postgresql://postgres:postgres@localhost:${pglitePort}/postgres?sslmode=disable`;
   process.env.SYNAPSE_PGLITE = "1";
 }
 
 // --- Run migrations ---
 console.log("  Running migrations...");
-const schemaPath = join(DIST_DIR, "prisma", "schema.prisma");
-if (existsSync(schemaPath)) {
+const origSchemaPath = join(DIST_DIR, "prisma", "schema.prisma");
+const migrationsDir = join(DIST_DIR, "prisma", "migrations");
+if (existsSync(migrationsDir) && existsSync(origSchemaPath)) {
+  // Prisma 7 requires datasource url in schema. Copy schema + migrations
+  // to a writable temp dir and inject the url there.
+  const tmpPrisma = join(dataDir, "_prisma_tmp");
+  mkdirSync(join(tmpPrisma, "migrations"), { recursive: true });
+
+  // Copy migrations
+  const { cpSync } = await import("node:fs");
+  cpSync(join(DIST_DIR, "prisma", "migrations"), join(tmpPrisma, "migrations"), { recursive: true });
+
+  // Copy schema as-is
+  const { cpSync: cpFile } = await import("node:fs");
+  cpFile(origSchemaPath, join(tmpPrisma, "schema.prisma"));
+
+  // Prisma 7 requires prisma.config.ts/js for the datasource URL
+  writeFileSync(join(tmpPrisma, "prisma.config.js"), `
+module.exports = {
+  schema: "./schema.prisma",
+  datasource: {
+    url: process.env.DATABASE_URL,
+  },
+};
+`);
+
   try {
     execSync(
-      `npx prisma migrate deploy --schema ${schemaPath}`,
+      `npx prisma migrate deploy --config ${join(tmpPrisma, "prisma.config.js")}`,
       {
-        cwd: DIST_DIR,
+        cwd: tmpPrisma,
         stdio: "pipe",
         env: { ...process.env },
       },
     );
   } catch (err) {
-    console.error("  Migration failed:", err.message);
+    const stderr = err.stderr ? err.stderr.toString() : err.message;
+    console.error("  Migration failed:", stderr);
     process.exit(1);
   }
+} else {
+  console.warn("  No migrations directory found, skipping...");
 }
 
-// --- Seed default user if empty ---
+// --- Default auth (auto-provisions on first login) ---
 const defaultEmail = process.env.DEFAULT_USER || "admin@synapse.local";
 const defaultPassword = process.env.DEFAULT_PASSWORD || "synapse";
-
-try {
-  // Dynamic import of the generated Prisma client from dist
-  const prismaClientPath = join(DIST_DIR, "node_modules", ".prisma", "client", "index.js");
-  if (existsSync(prismaClientPath)) {
-    const { PrismaClient } = await import(prismaClientPath);
-    const seedPrisma = new PrismaClient({
-      datasources: { db: { url: process.env.DATABASE_URL } },
-    });
-
-    const companyCount = await seedPrisma.company.count();
-    if (companyCount === 0) {
-      const bcrypt = await import("bcrypt");
-      const passwordHash = await bcrypt.hash(defaultPassword, 10);
-
-      const company = await seedPrisma.company.create({
-        data: { name: "Synapse Local" },
-      });
-
-      await seedPrisma.user.create({
-        data: {
-          companyUuid: company.uuid,
-          email: defaultEmail,
-          passwordHash,
-          name: "Admin",
-          role: "pi",
-        },
-      });
-
-      console.log(`  Default login: ${defaultEmail} / ${defaultPassword}`);
-    }
-
-    await seedPrisma.$disconnect();
-  }
-} catch (err) {
-  console.warn("  Seed check skipped:", err.message);
-}
+process.env.DEFAULT_USER = defaultEmail;
+process.env.DEFAULT_PASSWORD = defaultPassword;
+console.log(`  Default login: ${defaultEmail} / ${defaultPassword}`);
 
 // --- Start Next.js standalone server ---
 const serverJs = join(DIST_DIR, "server.js");
@@ -150,7 +162,7 @@ if (!existsSync(serverJs)) {
 }
 
 process.env.PORT = String(port);
-process.env.HOSTNAME = "127.0.0.1";
+process.env.HOSTNAME = "0.0.0.0";
 process.env.NEXTAUTH_SECRET =
   process.env.NEXTAUTH_SECRET ||
   createHash("sha256").update(`synapse-local-${dataDir}`).digest("hex");
@@ -161,7 +173,10 @@ const child = fork(serverJs, [], {
   stdio: "inherit",
 });
 
-child.on("exit", (code) => process.exit(code ?? 0));
+child.on("exit", (code) => {
+  if (pgliteProcess) pgliteProcess.kill();
+  process.exit(code ?? 0);
+});
 
 console.log(`  Synapse is running at http://localhost:${port}`);
 console.log("");
@@ -170,6 +185,30 @@ console.log("");
 for (const sig of ["SIGINT", "SIGTERM"]) {
   process.on(sig, () => {
     child.kill(sig);
+    if (pgliteProcess) pgliteProcess.kill();
     process.exit(0);
+  });
+}
+
+// --- Helpers ---
+function waitForTcp(host, port, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const deadline = Date.now() + timeoutMs;
+    function attempt() {
+      const socket = createConnection({ host, port });
+      socket.once("connect", () => {
+        socket.destroy();
+        resolve();
+      });
+      socket.once("error", () => {
+        socket.destroy();
+        if (Date.now() > deadline) {
+          reject(new Error(`Timeout waiting for ${host}:${port}`));
+        } else {
+          setTimeout(attempt, 200);
+        }
+      });
+    }
+    attempt();
   });
 }

@@ -85,6 +85,7 @@ export interface AssigneeInfo {
   type: string;
   uuid: string;
   name: string;
+  color?: string | null;
   assignedAt: string | null;
   assignedBy: { type: string; uuid: string; name: string } | null;
 }
@@ -99,6 +100,15 @@ export async function formatAssigneeComplete(
 
   const assigneeName = await getActorName(assigneeType, assigneeUuid);
   if (!assigneeName) return null;
+
+  let assigneeColor: string | null = null;
+  if (assigneeType === "agent") {
+    const agent = await prisma.agent.findUnique({
+      where: { uuid: assigneeUuid },
+      select: { color: true },
+    });
+    assigneeColor = agent?.color ?? null;
+  }
 
   let assignedByInfo: { type: string; uuid: string; name: string } | null = null;
   if (assignedByUuid) {
@@ -116,6 +126,7 @@ export async function formatAssigneeComplete(
     type: assigneeType,
     uuid: assigneeUuid,
     name: assigneeName,
+    color: assigneeColor,
     assignedAt: assignedAt?.toISOString() ?? null,
     assignedBy: assignedByInfo,
   };
