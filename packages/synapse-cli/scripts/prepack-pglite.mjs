@@ -26,7 +26,11 @@ const PROJECT_ROOT = resolve(CLI_ROOT, "..", "..");
 const DIST = join(CLI_ROOT, "dist");
 
 console.log("[prepack] Building Next.js standalone...");
-execSync("pnpm build", { cwd: PROJECT_ROOT, stdio: "inherit" });
+execSync("pnpm build", {
+  cwd: PROJECT_ROOT,
+  stdio: "inherit",
+  env: { ...process.env, NODE_OPTIONS: "--max-old-space-size=4096" },
+});
 
 const STANDALONE = join(PROJECT_ROOT, ".next", "standalone");
 if (!existsSync(STANDALONE)) {
