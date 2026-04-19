@@ -688,7 +688,7 @@ export function ExperimentsBoard({
                     {(() => {
                       return (
                     <GlowBorder
-                      active={!!experiment.liveStatus || experiment.status === "in_progress"}
+                      active={experiment.status === "in_progress"}
                       primaryColor={getAgentColor(experiment.assignee?.uuid ?? "").primary}
                       lightColor={getAgentColor(experiment.assignee?.uuid ?? "").light}
                       variant="pulse"
@@ -705,7 +705,7 @@ export function ExperimentsBoard({
                       }}
                       className="relative space-y-3 rounded-2xl border-border bg-card p-3.5 text-left shadow-none transition-colors hover:border-primary/30"
                     >
-                      {(experiment.liveStatus || experiment.status === "in_progress") && experiment.assignee?.name && (
+                      {experiment.status === "in_progress" && experiment.assignee?.name && (
                         <div
                           className="absolute -top-2.5 right-2 z-10 inline-flex max-w-[80%] items-center gap-1 truncate rounded-full px-1.5 py-0.5 text-[10px] font-medium text-white whitespace-nowrap sm:text-[11px] sm:px-2"
                           style={{ backgroundColor: getAgentColor(experiment.assignee.uuid).primary }}
@@ -990,18 +990,18 @@ export function ExperimentsBoard({
                 ) : (
                   <div className="grid gap-3 md:grid-cols-2">
                     <Card className="rounded-2xl border-border bg-secondary/50 p-4 shadow-none">
-                      <p className="text-xs font-medium text-muted-foreground">{t("experiments.card.question")}</p>
-                      <p className="mt-2 text-sm text-foreground">
+                      <p className="text-sm font-semibold text-foreground">{t("experiments.card.question")}</p>
+                      <p className="mt-2 text-sm leading-7 text-muted-foreground">
                         {selectedExperiment.researchQuestion?.title || t("experiments.card.unlinked")}
                       </p>
                     </Card>
                     <Card className="rounded-2xl border-border bg-secondary/50 p-4 shadow-none">
-                      <p className="text-xs font-medium text-muted-foreground">
+                      <p className="text-sm font-semibold text-foreground">
                         {selectedExperiment.startedAt && selectedExperiment.completedAt
                           ? t("experiments.detail.elapsed")
                           : t("experiments.detail.computeBudget")}
                       </p>
-                      <p className="mt-2 text-sm text-foreground">
+                      <p className="mt-2 text-sm leading-7 text-muted-foreground">
                         {(() => {
                           if (selectedExperiment.startedAt && selectedExperiment.completedAt) {
                             const ms = new Date(selectedExperiment.completedAt).getTime() - new Date(selectedExperiment.startedAt).getTime();
