@@ -3,7 +3,7 @@
 // Synapse CLI — Zero-dependency local mode
 // Starts embedded PGlite + Next.js standalone server
 
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { resolve, join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { execSync, fork } from "child_process";
@@ -98,11 +98,22 @@ if (!useExternalDb) {
 
 // --- Run migrations ---
 console.log("  Running migrations...");
+const schemaPath = join(DIST_DIR, "prisma", "schema.prisma");
 const migrationsDir = join(DIST_DIR, "prisma", "migrations");
-if (existsSync(migrationsDir)) {
+if (existsSync(migrationsDir) && existsSync(schemaPath)) {
+  // Prisma 7 requires datasource url in schema — inject it if missing
+  let schema = readFileSync(schemaPath, "utf8");
+  if (!schema.includes('url')) {
+    schema = schema.replace(
+      'relationMode = "prisma"',
+      'relationMode = "prisma"\n  url = env("DATABASE_URL")',
+    );
+    writeFileSync(schemaPath, schema);
+  }
+
   try {
     execSync(
-      `npx prisma migrate deploy --schema ${join(DIST_DIR, "prisma", "schema.prisma")}`,
+      `npx prisma migrate deploy --schema ${schemaPath}`,
       {
         cwd: DIST_DIR,
         stdio: "pipe",
