@@ -80,13 +80,13 @@ if (!useExternalDb) {
   process.env.SYNAPSE_PGLITE = "1";
 }
 
-// --- Run migrations ---
-console.log("  Running migrations...");
+// --- Push schema to database ---
+console.log("  Setting up database schema...");
 const schemaPath = join(DIST_DIR, "prisma", "schema.prisma");
 if (existsSync(schemaPath)) {
   try {
     execSync(
-      `npx prisma migrate deploy --schema ${schemaPath}`,
+      `npx prisma db push --schema ${schemaPath} --skip-generate --accept-data-loss`,
       {
         cwd: DIST_DIR,
         stdio: "pipe",
@@ -94,7 +94,7 @@ if (existsSync(schemaPath)) {
       },
     );
   } catch (err) {
-    console.error("  Migration failed:", err.message);
+    console.error("  Schema push failed:", err.message);
     process.exit(1);
   }
 }
