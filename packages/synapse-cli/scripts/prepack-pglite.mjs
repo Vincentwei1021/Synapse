@@ -4,7 +4,7 @@
 // Prepares the synapse-cli package for npm publish:
 // 1. Builds Next.js standalone output
 // 2. Copies standalone + static + public + migrations into dist/
-// 3. Dereferences ALL pnpm symlinks so npm pack works correctly
+// 3. Dereferences ALL pnpm symlinks at every depth
 // 4. Removes .pnpm directory
 
 import { execSync } from "child_process";
@@ -39,12 +39,12 @@ if (!existsSync(STANDALONE)) {
   process.exit(1);
 }
 
-// --- Clean and copy standalone ---
+// --- Clean and copy standalone (with dereference) ---
 if (existsSync(DIST)) rmSync(DIST, { recursive: true });
 mkdirSync(DIST, { recursive: true });
 
-console.log("[prepack] Copying standalone output...");
-cpSync(STANDALONE, DIST, { recursive: true });
+console.log("[prepack] Copying standalone output (dereferencing all symlinks)...");
+cpSync(STANDALONE, DIST, { recursive: true, dereference: true });
 
 // --- Copy static assets ---
 const staticSrc = join(PROJECT_ROOT, ".next", "static");
@@ -73,46 +73,11 @@ if (existsSync(prismaSrc)) {
   cpSync(prismaSrc, prismaDest, { recursive: true });
 }
 
-// --- Dereference pnpm symlinks in dist/node_modules ---
-console.log("[prepack] Dereferencing pnpm symlinks in standalone node_modules...");
-const nmDir = join(DIST, "node_modules");
-if (existsSync(nmDir)) {
-  dereferenceDir(nmDir);
-
-  // Remove orphaned .pnpm directory
-  const pnpmDir = join(nmDir, ".pnpm");
-  if (existsSync(pnpmDir)) {
-    console.log("[prepack] Removing .pnpm directory...");
-    rmSync(pnpmDir, { recursive: true, force: true });
-  }
+// --- Remove .pnpm if it was copied ---
+const pnpmDir = join(DIST, "node_modules", ".pnpm");
+if (existsSync(pnpmDir)) {
+  console.log("[prepack] Removing .pnpm directory...");
+  rmSync(pnpmDir, { recursive: true, force: true });
 }
 
 console.log("[prepack] Done. dist/ is ready for npm publish.");
-
-// --- Helpers ---
-
-function dereferenceDir(dir) {
-  for (const entry of readdirSync(dir)) {
-    if (entry === ".pnpm") continue;
-
-    const fullPath = join(dir, entry);
-    const stat = lstatSync(fullPath);
-
-    if (stat.isSymbolicLink()) {
-      dereferenceSymlink(fullPath);
-    } else if (stat.isDirectory() && entry.startsWith("@")) {
-      // Scoped packages: recurse one level into @scope/
-      dereferenceDir(fullPath);
-    }
-  }
-}
-
-function dereferenceSymlink(target) {
-  try {
-    const realPath = realpathSync(target);
-    rmSync(target, { force: true });
-    cpSync(realPath, target, { recursive: true, dereference: true });
-  } catch (err) {
-    console.warn(`[prepack] Warning: could not dereference ${target}: ${err.message}`);
-  }
-}
