@@ -71,6 +71,7 @@ model Agent {
   name         String
   roles        String[]  @default(["researcher"]) // pm | researcher (multi-select)
   type         String    @default("openclaw") // openclaw | claude_code
+  color        String? // palette key from src/lib/agent-colors.ts. Null = hash fallback.
   // Agent persona definition (Zero Context Injection)
   persona      String? // Custom persona description (brief)
   systemPrompt String? // Full system prompt (optional, overrides default template)
@@ -140,7 +141,11 @@ model ResearchProject {
   autonomousLoopMode       String?  @default("human_review")
   autoSearchEnabled        Boolean  @default(false)
   autoSearchAgentUuid      String?
+  autoSearchActiveAgentUuid   String?
+  autoSearchStartedAt      DateTime?
   deepResearchDocUuid      String?
+  deepResearchActiveAgentUuid String?
+  deepResearchStartedAt    DateTime?
   repoUrl              String?
   githubUsername        String?
   githubToken          String?

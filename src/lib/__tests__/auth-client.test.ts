@@ -17,6 +17,7 @@ import {
   getAccessToken,
   isAuthenticated,
   syncTokenToCookie,
+  refreshAuthCookies,
   authFetch,
   createAuthFetcher,
   login,
@@ -40,6 +41,10 @@ function createMockUserManager(overrides = {}) {
     signinRedirect: vi.fn(),
     signoutRedirect: vi.fn(),
     removeUser: vi.fn(),
+    events: {
+      addUserLoaded: vi.fn(),
+      removeUserLoaded: vi.fn(),
+    },
     ...overrides,
   };
 }
@@ -253,6 +258,7 @@ describe('getAccessToken', () => {
 
   it('attempts signinSilent for expired user', async () => {
     vi.stubGlobal('window', { localStorage: {} });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true } as any));
     const expiredUser = createMockUser({ expired: true });
     const renewedUser = createMockUser({ access_token: 'renewed-token' });
     const mockManager = createMockUserManager({
@@ -265,6 +271,11 @@ describe('getAccessToken', () => {
     const result = await getAccessToken();
 
     expect(mockManager.signinSilent).toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledWith('/api/auth/sync-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken: 'renewed-token', refreshToken: 'refresh-token-abc' }),
+    });
     expect(result).toBe('renewed-token');
   });
 
@@ -381,6 +392,47 @@ describe('syncTokenToCookie', () => {
 
     expect(result).toBe(false);
     expect(console.error).toHaveBeenCalledWith('Failed to sync token to cookie');
+  });
+});
+
+describe('refreshAuthCookies', () => {
+  beforeEach(() => {
+    clearUserManager();
+    vi.clearAllMocks();
+    vi.stubGlobal('fetch', vi.fn());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('syncs the current OIDC tokens when a user session exists', async () => {
+    vi.stubGlobal('window', { localStorage: {} });
+    const mockUser = createMockUser();
+    const mockManager = createMockUserManager({
+      getUser: vi.fn().mockResolvedValue(mockUser),
+    });
+    vi.mocked(getStoredOidcConfig).mockReturnValue(mockConfig);
+    vi.mocked(createUserManager).mockReturnValue(mockManager as any);
+    vi.mocked(fetch).mockResolvedValue({ ok: true } as any);
+
+    const result = await refreshAuthCookies();
+
+    expect(result).toBe(true);
+    expect(fetch).toHaveBeenCalledWith('/api/auth/sync-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken: 'access-token-xyz', refreshToken: 'refresh-token-abc' }),
+    });
+  });
+
+  it('falls back to default-auth refresh when there is no OIDC session', async () => {
+    vi.mocked(fetch).mockResolvedValue({ ok: true } as any);
+
+    const result = await refreshAuthCookies();
+
+    expect(result).toBe(true);
+    expect(fetch).toHaveBeenCalledWith('/api/auth/refresh', { method: 'POST' });
   });
 });
 

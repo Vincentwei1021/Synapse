@@ -95,7 +95,6 @@ const plugin = {
       logger,
       triggerAgent: (message: string, metadata?: Record<string, unknown>) => {
         const timeoutSeconds = metadata?.timeoutSeconds as number | undefined;
-        // Use /hooks/agent to create an isolated agent turn for Synapse work.
         if (hooksToken) {
           wakeAgent(gatewayUrl, hooksToken, message, logger, timeoutSeconds);
         } else {

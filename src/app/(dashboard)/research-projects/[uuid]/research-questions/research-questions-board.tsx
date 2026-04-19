@@ -31,6 +31,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
+import { GlowBorder } from "@/components/glow-border";
+import { AgentTypeIcon } from "@/components/agent-type-icon";
+import { getAgentColor } from "@/lib/agent-colors";
 import type { ExperimentResponse } from "@/services/experiment.service";
 import type { ResearchQuestionResponse } from "@/services/research-question.service";
 import { IdeaCreateForm } from "./question-create-form";
@@ -53,6 +56,8 @@ type QuestionNodeData = {
   experimentCountLabel: string;
   childCountLabel: string;
   selected: boolean;
+  activeAgentName: string | null;
+  activeAgentUuid: string | null;
 };
 
 type ExperimentNodeData = {
@@ -67,13 +72,22 @@ type ExperimentNodeData = {
 type CanvasNodeData = QuestionNodeData | ExperimentNodeData;
 
 function QuestionNode({ data }: NodeProps<Node<QuestionNodeData>>) {
+  const hasActive = !!data.activeAgentUuid;
+  const colors = getAgentColor(data.activeAgentUuid ?? "");
   return (
+    <GlowBorder
+      active={hasActive}
+      primaryColor={colors.primary}
+      lightColor={colors.light}
+      variant="pulse"
+      className="rounded-[28px]"
+    >
     <div
       className={[
-        "w-[280px] rounded-[28px] border bg-card p-4 shadow-sm transition-all",
+        "relative w-[280px] rounded-[28px] border bg-card p-4 shadow-sm transition-all",
         data.selected
           ? "border-primary ring-4 ring-primary/20"
-          : "border-border hover:border-primary/30",
+          : hasActive ? "border-transparent" : "border-border hover:border-primary/30",
       ].join(" ")}
     >
       <Handle id="parent-target" type="target" position={Position.Top} className="!h-2 !w-2 !border-0 !bg-primary opacity-0" />
@@ -81,6 +95,16 @@ function QuestionNode({ data }: NodeProps<Node<QuestionNodeData>>) {
       <Handle id="peer-source" type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-primary opacity-0" />
       <Handle id="child-source" type="source" position={Position.Bottom} className="!h-2 !w-2 !border-0 !bg-primary opacity-0" />
       <Handle id="experiment-source" type="source" position={Position.Right} className="!h-2 !w-2 !border-0 !bg-primary opacity-0" />
+
+      {hasActive && data.activeAgentName && (
+        <div
+          className="absolute -top-2.5 right-3 z-10 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-white"
+          style={{ backgroundColor: colors.primary }}
+        >
+          <AgentTypeIcon type="openclaw" className="h-2.5 w-2.5" />
+          <span className="truncate max-w-[80px]">{data.activeAgentName}</span>
+        </div>
+      )}
 
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-3">
@@ -106,6 +130,7 @@ function QuestionNode({ data }: NodeProps<Node<QuestionNodeData>>) {
         </div>
       </div>
     </div>
+    </GlowBorder>
   );
 }
 
@@ -275,6 +300,9 @@ export function ResearchQuestionsBoard({
     const { positions, roots } = buildQuestionLayout(researchQuestions);
     const nodes: Node<CanvasNodeData>[] = researchQuestions.map((question) => {
       const position = positions.get(question.uuid) ?? { x: 0, y: 0 };
+      const activeExp = experiments.find(
+        (e) => e.researchQuestionUuid === question.uuid && e.status === "in_progress" && e.assignee,
+      );
       return {
         id: `q-${question.uuid}`,
         type: "question",
@@ -290,6 +318,8 @@ export function ResearchQuestionsBoard({
           experimentCountLabel: t("ideas.experimentCount", { count: question.experimentCount }),
           childCountLabel: t("ideas.childCount", { count: question.childQuestionUuids.length }),
           selected: question.uuid === selectedQuestionUuid,
+          activeAgentName: activeExp?.assignee?.name ?? null,
+          activeAgentUuid: activeExp?.assignee?.uuid ?? null,
         },
       };
     });

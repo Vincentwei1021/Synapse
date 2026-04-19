@@ -9,6 +9,7 @@ const mockAssignExperiment = vi.fn();
 const mockGetExperiment = vi.fn();
 const mockStartExperiment = vi.fn();
 const mockCompleteExperiment = vi.fn();
+const mockResetExperimentToPendingStart = vi.fn();
 const mockReserveGpusForExperiment = vi.fn();
 const mockReleaseGpuReservationsForExperiment = vi.fn();
 
@@ -47,6 +48,7 @@ vi.mock("@/services/experiment.service", () => ({
   getExperiment: (...args: unknown[]) => mockGetExperiment(...args),
   startExperiment: (...args: unknown[]) => mockStartExperiment(...args),
   completeExperiment: (...args: unknown[]) => mockCompleteExperiment(...args),
+  resetExperimentToPendingStart: (...args: unknown[]) => mockResetExperimentToPendingStart(...args),
 }));
 
 vi.mock("@/services/compute.service", () => ({
@@ -58,6 +60,7 @@ import { POST as createExperimentRoute } from "@/app/api/research-projects/[uuid
 import { PATCH as patchExperimentRoute } from "@/app/api/experiments/[uuid]/route";
 import { POST as startExperimentRoute } from "@/app/api/experiments/[uuid]/start/route";
 import { POST as completeExperimentRoute } from "@/app/api/experiments/[uuid]/complete/route";
+import { POST as resetExperimentRoute } from "@/app/api/experiments/[uuid]/reset/route";
 
 const companyUuid = "company-0000-0000-0000-000000000001";
 const projectUuid = "project-0000-0000-0000-000000000001";
@@ -82,6 +85,7 @@ describe("experiment routes", () => {
     });
     mockStartExperiment.mockResolvedValue({ uuid: experimentUuid, status: "in_progress" });
     mockCompleteExperiment.mockResolvedValue({ uuid: experimentUuid, status: "completed" });
+    mockResetExperimentToPendingStart.mockResolvedValue({ uuid: experimentUuid, status: "pending_start" });
   });
 
   it("creates experiments with an unlimited compute budget when the field is blank", async () => {
@@ -218,6 +222,51 @@ describe("experiment routes", () => {
     expect(response.status).toBe(403);
     expect(mockCompleteExperiment).not.toHaveBeenCalled();
     expect(mockReleaseGpuReservationsForExperiment).not.toHaveBeenCalled();
+  });
+
+  it("lets users reset a stuck experiment back to pending_start and releases GPUs first", async () => {
+    mockGetExperiment.mockResolvedValueOnce({
+      uuid: experimentUuid,
+      status: "in_progress",
+      assignee: { type: "agent", uuid: "agent-uuid-2" },
+    });
+
+    const response = await resetExperimentRoute(
+      new NextRequest(new URL(`/api/experiments/${experimentUuid}/reset`, "http://localhost:3000"), {
+        method: "POST",
+      }),
+      makeContext(experimentUuid),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockReleaseGpuReservationsForExperiment).toHaveBeenCalledWith(companyUuid, experimentUuid);
+    expect(mockResetExperimentToPendingStart).toHaveBeenCalledWith({
+      companyUuid,
+      experimentUuid,
+      actorUuid: "user-uuid-1",
+    });
+    expect(mockReleaseGpuReservationsForExperiment.mock.invocationCallOrder[0]).toBeLessThan(
+      mockResetExperimentToPendingStart.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("blocks agents from using the reset route", async () => {
+    mockGetAuthContext.mockResolvedValueOnce({
+      type: "agent",
+      companyUuid,
+      actorUuid: "agent-uuid-1",
+      ownerUuid: "user-uuid-1",
+    });
+
+    const response = await resetExperimentRoute(
+      new NextRequest(new URL(`/api/experiments/${experimentUuid}/reset`, "http://localhost:3000"), {
+        method: "POST",
+      }),
+      makeContext(experimentUuid),
+    );
+
+    expect(response.status).toBe(403);
+    expect(mockResetExperimentToPendingStart).not.toHaveBeenCalled();
   });
 
   it("rejects generic PATCH requests that only contain non-updatable fields", async () => {

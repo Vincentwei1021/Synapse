@@ -215,9 +215,11 @@ describe("agent management routes", () => {
       companyUuid,
       name: "Test Agent",
       roles: ["research"],
+      type: "openclaw",
       persona: "Helpful",
       systemPrompt: "Be precise",
       ownerUuid: "user-uuid-1",
+      color: "terracotta",
     });
   });
 

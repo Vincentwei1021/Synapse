@@ -100,35 +100,59 @@ describe('getServerAuthContext', () => {
     expect(mockVerifyAccessToken).toHaveBeenCalledWith('invalid-token');
   });
 
-  it('prefers OIDC token over user_session when both are present', async () => {
-    const mockUserContext: UserAuthContext = {
-      type: 'user',
-      companyUuid: 'oidc-company',
-      actorUuid: 'oidc-user',
-      email: 'oidc@test.com',
+  it('prefers user_session over OIDC token when both are present', async () => {
+    const mockPayload = {
+      companyUuid: 'session-company',
+      userUuid: 'session-user',
+      email: 'session@test.com',
+      name: 'Session User',
     };
 
     mockCookieStore({
       oidc_access_token: 'oidc-token',
       user_session: 'session-token',
     });
-    mockVerifyOidcAccessToken.mockResolvedValue(mockUserContext);
+    mockVerifyAccessToken.mockResolvedValue(mockPayload);
 
     const result = await getServerAuthContext();
 
-    expect(result).toEqual(mockUserContext);
-    expect(mockVerifyOidcAccessToken).toHaveBeenCalledWith('oidc-token');
-    expect(mockVerifyAccessToken).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      type: 'user',
+      companyUuid: 'session-company',
+      actorUuid: 'session-user',
+      email: 'session@test.com',
+      name: 'Session User',
+    });
+    expect(mockVerifyAccessToken).toHaveBeenCalledWith('session-token');
+    expect(mockVerifyOidcAccessToken).not.toHaveBeenCalled();
   });
 
-  it('returns null when OIDC token verification returns null', async () => {
-    mockCookieStore({ oidc_access_token: 'invalid-oidc-token' });
+  it('uses user_session even when an invalid OIDC cookie is also present', async () => {
+    const mockPayload = {
+      companyUuid: 'company-uuid',
+      userUuid: 'user-uuid',
+      email: 'user@test.com',
+      name: 'Test User',
+    };
+
+    mockCookieStore({
+      oidc_access_token: 'invalid-oidc-token',
+      user_session: 'valid-session-token',
+    });
     mockVerifyOidcAccessToken.mockResolvedValue(null);
+    mockVerifyAccessToken.mockResolvedValue(mockPayload);
 
     const result = await getServerAuthContext();
 
-    expect(result).toBeNull();
-    expect(mockVerifyOidcAccessToken).toHaveBeenCalledWith('invalid-oidc-token');
+    expect(result).toEqual({
+      type: 'user',
+      companyUuid: 'company-uuid',
+      actorUuid: 'user-uuid',
+      email: 'user@test.com',
+      name: 'Test User',
+    });
+    expect(mockVerifyAccessToken).toHaveBeenCalledWith('valid-session-token');
+    expect(mockVerifyOidcAccessToken).not.toHaveBeenCalled();
   });
 
   it('maps user session payload correctly without name field', async () => {

@@ -159,6 +159,9 @@ export class SynapseEventRouter {
         case "experiment_plan_requested":
           this.handleExperimentPlanRequested(notification);
           break;
+        case "experiment_revision_requested":
+          this.handleExperimentRevisionRequested(notification);
+          break;
         default:
           this.logger.info(`Unhandled notification action: "${notification.action}"`);
           break;
@@ -290,7 +293,7 @@ Base branch: ${repoAccess.baseBranch ?? "main"}`;
 
     steps.push(`${stepNum++}. If enough GPUs are available, call synapse_reserve_gpus with experimentUuid "${experimentUuid}" and the gpuUuids to reserve them. If the reservation fails (another experiment reserved them first), go back to step 1 and re-check available GPUs. If not enough GPUs are available (or reservation keeps failing), report via synapse_report_experiment_progress with liveStatus "queuing" and a message like "Waiting for N GPUs to become available", then wait and retry periodically until you can successfully reserve.`);
 
-    steps.push(`${stepNum++}. Call synapse_start_experiment with experimentUuid "${experimentUuid}" to mark the experiment as in-progress.`);
+    steps.push(`${stepNum++}. After a successful synapse_reserve_gpus call, call synapse_start_experiment with experimentUuid "${experimentUuid}" to mark the experiment as in-progress. Do not repeat gpuUuids here unless you intentionally skipped the standalone reservation step.`);
 
     steps.push(`${stepNum++}. If the compute node has managedKeyAvailable=true, call synapse_get_node_access_bundle with experimentUuid "${experimentUuid}" and the nodeUuid. Write the returned privateKeyPemBase64 to a local PEM file (chmod 600) and SSH using the returned host/user/port.`);
 
@@ -419,6 +422,7 @@ You may ONLY use these Synapse tools for this task:
 - synapse_read_paper_section
 - synapse_read_paper_full
 - synapse_save_deep_research_report
+- synapse_complete_task
 
 Steps:
 1. Use synapse_get_deep_research_report with researchProjectUuid "${projectUuid}" to check if a previous report exists — if so, read it to understand what was covered before
@@ -430,6 +434,7 @@ Steps:
    c. synapse_read_paper_full — only if needed for papers central to the research
 5. Analyze how each paper relates to the project's goals — identify key methods, findings, and gaps in the literature
 6. REQUIRED: Use synapse_save_deep_research_report with researchProjectUuid "${projectUuid}", title, and content (Markdown) to save the report. This creates v1 or updates to v2/v3 automatically.
+7. REQUIRED: After saving the report, call synapse_complete_task with researchProjectUuid "${projectUuid}" and taskType "deep_research" to signal completion.
 
 Writing guidelines:
 - Base your review on actual paper content, not just abstracts
@@ -441,7 +446,13 @@ Writing guidelines:
       ? `${basePrompt}\n\nAdditional instructions from the user:\n${n.message}`
       : basePrompt;
 
-    this.triggerAgent(prompt, { notificationUuid: n.uuid, action: "deep_research_requested", entityUuid: n.entityUuid, projectUuid, timeoutSeconds: 1800 });
+    this.triggerAgent(prompt, {
+      notificationUuid: n.uuid,
+      action: "deep_research_requested",
+      entityUuid: n.entityUuid,
+      projectUuid,
+      timeoutSeconds: 1800,
+    });
   }
 
   private handleAutoSearchTriggered(n: NotificationDetail): void {
@@ -456,21 +467,30 @@ You may ONLY use these Synapse tools for this task:
 - synapse_search_papers
 - synapse_read_paper_brief
 - synapse_add_related_work
+- synapse_complete_task
 
 Steps:
-1. Use synapse_get_related_works with researchProjectUuid "${projectUuid}" to see what papers are already collected — avoid searching for topics already well-covered
+1. Use synapse_get_related_works with researchProjectUuid "${projectUuid}" to get all collected papers — note their titles, topics, and coverage areas
 2. Use synapse_get_research_project with researchProjectUuid "${projectUuid}" to understand the research objectives, datasets, and methods
-3. Based on the project context and gaps in existing papers, use synapse_search_papers to find new relevant academic papers
-4. For each candidate paper with an arxivId, use synapse_read_paper_brief to check its TLDR and keywords — only add papers that are genuinely relevant to the project
-5. For each relevant paper, use synapse_add_related_work with researchProjectUuid "${projectUuid}" to add it (duplicates are automatically skipped — if isNew=false, the paper already existed)
-6. Search with multiple query variations to maximize coverage, but call synapse_search_papers sequentially (one at a time) to avoid rate limits
-7. Focus on papers that fill gaps not covered by existing related works`;
+3. Compare the existing paper titles against the project objectives — identify which topics or areas are NOT yet covered by collected papers
+4. Based on the identified gaps, use synapse_search_papers to find new relevant academic papers — craft queries specifically targeting the missing areas
+5. For each candidate paper with an arxivId, use synapse_read_paper_brief to check its TLDR and keywords — only add papers that are genuinely relevant and fill gaps
+6. For each relevant paper, use synapse_add_related_work with researchProjectUuid "${projectUuid}" to add it (duplicates are automatically skipped — if isNew=false, the paper already existed)
+7. Search with multiple query variations to maximize coverage, but call synapse_search_papers sequentially (one at a time) to avoid rate limits. Do NOT call synapse_search_papers more than 10 times total.
+8. Focus on papers that fill gaps not covered by existing related works — do NOT search for topics already well-represented
+9. REQUIRED: After finishing all searches, call synapse_complete_task with researchProjectUuid "${projectUuid}" and taskType "auto_search" to signal completion.`;
 
     const prompt = hasCustomPrompt
       ? `${basePrompt}\n\nAdditional instructions from the user:\n${n.message}`
       : basePrompt;
 
-    this.triggerAgent(prompt, { notificationUuid: n.uuid, action: "auto_search_triggered", entityUuid: n.entityUuid, projectUuid, timeoutSeconds: 600 });
+    this.triggerAgent(prompt, {
+      notificationUuid: n.uuid,
+      action: "auto_search_triggered",
+      entityUuid: n.entityUuid,
+      projectUuid,
+      timeoutSeconds: 600,
+    });
   }
 
   private handleExperimentPlanRequested(n: NotificationDetail): void {
@@ -498,6 +518,26 @@ Your task is to flesh out this experiment into a detailed plan. Follow these ste
 
 Keep the plan actionable and specific enough that another agent could execute it.`,
       { notificationUuid: n.uuid, action: "experiment_plan_requested", entityUuid: n.entityUuid, projectUuid }
+    );
+  }
+
+  private handleExperimentRevisionRequested(n: NotificationDetail): void {
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
+    const mentionGuidance = this.buildMentionGuidance(n, "experiment");
+
+    this.triggerAgent(
+      `[Synapse] A reviewer sent experiment "${n.entityTitle}" back to draft for revision (experimentUuid: ${n.entityUuid}, projectUuid: ${projectUuid}).
+
+Reviewer feedback: ${n.message}
+
+Your task:
+1. Use synapse_get_experiment with experimentUuid "${n.entityUuid}" to re-read the experiment.
+2. Use synapse_get_comments with targetType "experiment" and targetUuid "${n.entityUuid}" to read the full feedback thread.
+3. Revise the experiment's title/description to address the feedback.
+4. Use synapse_update_experiment_plan (or the appropriate update tool) with experimentUuid "${n.entityUuid}" to save the revised plan.
+5. When the revision is ready, set the experiment status to "pending_review" so the reviewer can approve it.
+` + mentionGuidance,
+      { notificationUuid: n.uuid, action: "experiment_revision_requested", entityUuid: n.entityUuid, projectUuid }
     );
   }
 

@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { ArrowRight, FileText, FlaskConical, Lightbulb, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { getResearchProjectDashboardData } from "@/services/research-project.service";
 import { EditProjectDialog } from "./edit-project-dialog";
 import { CollapsibleDescription } from "./collapsible-description";
+import { DashboardStatCard } from "./dashboard-stat-card";
 
 interface PageProps {
   params: Promise<{ uuid: string }>;
@@ -26,15 +27,24 @@ export default async function DashboardPage({ params }: PageProps) {
   if (!dashboardData) {
     redirect("/research-projects");
   }
-  const { project, stats, recentExperiments, recentQuestions } = dashboardData;
+  const { project, stats, recentExperiments, recentQuestions, relatedWorksCount } = dashboardData;
 
   const statCards = [
+    {
+      title: t("dashboard.relatedWorks"),
+      value: relatedWorksCount,
+      helper: t("dashboard.relatedWorksHelper"),
+      href: `/research-projects/${projectUuid}/related-works`,
+      icon: "relatedWorks" as const,
+      iconBg: "bg-amber-100 dark:bg-amber-500/15",
+      iconColor: "text-amber-700 dark:text-amber-300",
+    },
     {
       title: t("dashboard.questions"),
       value: stats.researchQuestions.total,
       helper: t("dashboard.questionsHelper", { count: stats.researchQuestions.open }),
       href: `/research-projects/${projectUuid}/research-questions`,
-      icon: Lightbulb,
+      icon: "researchQuestions" as const,
       iconBg: "bg-orange-100 dark:bg-orange-500/15",
       iconColor: "text-orange-700 dark:text-orange-300",
     },
@@ -43,25 +53,16 @@ export default async function DashboardPage({ params }: PageProps) {
       value: stats.experiments.total,
       helper: t("dashboard.experimentsHelper", { count: stats.experiments.inProgress }),
       href: `/research-projects/${projectUuid}/experiments`,
-      icon: FlaskConical,
+      icon: "experiments" as const,
       iconBg: "bg-emerald-100 dark:bg-emerald-500/15",
       iconColor: "text-emerald-700 dark:text-emerald-300",
-    },
-    {
-      title: t("dashboard.insights"),
-      value: project.latestSynthesisIdeaCount ?? 0,
-      helper: project.latestSynthesisSummary || t("dashboard.insightsHelper"),
-      href: `/research-projects/${projectUuid}/insights`,
-      icon: Sparkles,
-      iconBg: "bg-violet-100 dark:bg-violet-500/15",
-      iconColor: "text-violet-700 dark:text-violet-300",
     },
     {
       title: t("dashboard.documents"),
       value: stats.documents.total,
       helper: t("dashboard.documentsHelper"),
       href: `/research-projects/${projectUuid}/documents`,
-      icon: FileText,
+      icon: "documents" as const,
       iconBg: "bg-sky-100 dark:bg-sky-500/15",
       iconColor: "text-sky-700 dark:text-sky-300",
     },
@@ -72,7 +73,7 @@ export default async function DashboardPage({ params }: PageProps) {
       <div className="rounded-[32px] border border-border bg-card p-7 shadow-sm">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <p className="text-lg font-semibold tracking-[0.08em] text-muted-foreground">
               {t("dashboard.brief")}
             </p>
             <h1 className="mt-3 text-[28px] font-semibold tracking-tight text-foreground">{project.name}</h1>
@@ -120,25 +121,19 @@ export default async function DashboardPage({ params }: PageProps) {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {statCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <Link key={card.title} href={card.href}>
-              <Card className="h-full rounded-[28px] border-border bg-card p-5 transition hover:border-primary/30 hover:shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{card.title}</p>
-                    <p className="mt-3 text-[30px] font-semibold leading-none text-foreground">{card.value}</p>
-                    <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">{card.helper}</p>
-                  </div>
-                  <div className={`rounded-2xl p-3 ${card.iconBg}`}>
-                    <Icon className={`h-5 w-5 ${card.iconColor}`} />
-                  </div>
-                </div>
-              </Card>
-            </Link>
-          );
-        })}
+        {statCards.map((card) => (
+          <DashboardStatCard
+            key={card.title}
+            projectUuid={projectUuid}
+            href={card.href}
+            title={card.title}
+            value={card.value}
+            helper={card.helper}
+            icon={card.icon}
+            iconBg={card.iconBg}
+            iconColor={card.iconColor}
+          />
+        ))}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_1.2fr]">
@@ -231,7 +226,7 @@ export default async function DashboardPage({ params }: PageProps) {
 function BriefCard({ title, body }: { title: string; body: string }) {
   return (
     <div className="rounded-[20px] bg-secondary/60 p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</p>
+      <p className="text-base font-semibold text-foreground">{title}</p>
       <p className="mt-2 text-sm leading-6 text-foreground">{body}</p>
     </div>
   );
@@ -248,7 +243,7 @@ function ListBriefCard({
 }) {
   return (
     <div className="rounded-[20px] bg-secondary/60 p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</p>
+      <p className="text-base font-semibold text-foreground">{title}</p>
       <div className="mt-2 space-y-1.5 text-sm leading-6 text-foreground">
         {items.length > 0 ? items.map((item) => <p key={item}>• {item}</p>) : <p>{empty}</p>}
       </div>
@@ -259,7 +254,7 @@ function ListBriefCard({
 function PipelineCell({ title, value }: { title: string; value: number }) {
   return (
     <div className="rounded-[20px] bg-secondary/60 p-4 text-center">
-      <p className="text-sm text-muted-foreground">{title}</p>
+      <p className="text-base font-medium text-muted-foreground">{title}</p>
       <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
     </div>
   );

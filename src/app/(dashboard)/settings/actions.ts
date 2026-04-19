@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { VALID_AGENT_TYPES } from "@/lib/agent-transport";
+import { isValidAgentColorName, DEFAULT_AGENT_COLOR_NAME } from "@/lib/agent-colors";
 import {
   listApiKeys,
   createAgent,
@@ -70,6 +71,7 @@ interface CreateAgentKeyInput {
   roles: string[];
   type?: string;
   persona: string | null;
+  color?: string | null;
 }
 
 const VALID_AGENT_ROLES = new Set(["pre_research", "research", "experiment", "report", "admin"]);
@@ -96,6 +98,10 @@ export async function createAgentAndKeyAction(input: CreateAgentKeyInput): Promi
     return { success: false, error: "Invalid agent type" };
   }
 
+  const resolvedColor = input.color && isValidAgentColorName(input.color)
+    ? input.color
+    : DEFAULT_AGENT_COLOR_NAME;
+
   try {
     const agent = await createAgent({
       companyUuid: auth.companyUuid,
@@ -104,6 +110,7 @@ export async function createAgentAndKeyAction(input: CreateAgentKeyInput): Promi
       type: input.type || "openclaw",
       ownerUuid: auth.actorUuid,
       persona: input.persona?.trim() || null,
+      color: resolvedColor,
     });
 
     const apiKey = await createApiKey({
@@ -229,6 +236,7 @@ interface UpdateAgentInput {
   roles: string[];
   type?: string;
   persona: string | null;
+  color?: string | null;
 }
 
 export async function updateAgentAction(input: UpdateAgentInput): Promise<{
@@ -258,11 +266,23 @@ export async function updateAgentAction(input: UpdateAgentInput): Promise<{
       return { success: false, error: "Invalid agent type" };
     }
 
+    let nextColor: string | null | undefined = undefined;
+    if (input.color !== undefined) {
+      if (input.color === null) {
+        nextColor = null;
+      } else if (isValidAgentColorName(input.color)) {
+        nextColor = input.color;
+      } else {
+        return { success: false, error: "Invalid agent color" };
+      }
+    }
+
     await updateAgent(input.agentUuid, {
       name,
       roles,
       type: input.type,
       persona: input.persona?.trim() || null,
+      ...(nextColor !== undefined ? { color: nextColor } : {}),
     }, auth.companyUuid);
 
     await syncApiKeyNames(input.agentUuid, name);

@@ -197,7 +197,7 @@ export const commonToolDefinitions = defineOpenClawTools([
   }),
   createPassthroughTool<{ experimentUuid: string; gpuUuids?: string[]; workingNotes?: string }>({
     name: "synapse_start_experiment",
-    description: "Start an assigned experiment and optionally reserve GPUs.",
+    description: "Start an assigned experiment and optionally reserve GPUs. If you already used synapse_reserve_gpus, call this without gpuUuids.",
     parameters: {
       type: "object",
       properties: {
@@ -656,6 +656,24 @@ export const commonToolDefinitions = defineOpenClawTools([
       additionalProperties: false,
     },
     targetToolName: "synapse_read_paper_full",
+  }),
+
+  // =========================================================================
+  // Task Completion
+  // =========================================================================
+  createPassthroughTool<{ researchProjectUuid: string; taskType: string }>({
+    name: "synapse_complete_task",
+    description: "Signal that an agent task (auto_search or deep_research) has finished. Clears the active indicator and notifies the owner.",
+    parameters: {
+      type: "object",
+      properties: {
+        researchProjectUuid: { type: "string", description: "Research Project UUID" },
+        taskType: { type: "string", description: "Task type: auto_search | deep_research" },
+      },
+      required: ["researchProjectUuid", "taskType"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_complete_task",
   }),
 
   // =========================================================================

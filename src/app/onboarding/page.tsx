@@ -70,6 +70,7 @@ export default function OnboardingPage() {
   }, [router]);
 
   const handleSkipAll = () => {
+    localStorage.setItem("onboarding_skipped", "1");
     invalidateOnboardingCache();
     router.push("/research-projects");
   };
@@ -97,6 +98,7 @@ export default function OnboardingPage() {
     if (currentStep < TOTAL_STEPS) {
       setCurrentStep(currentStep + 1);
     } else {
+      localStorage.setItem("onboarding_skipped", "1");
       router.push("/research-projects");
     }
   };

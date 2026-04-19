@@ -23,7 +23,7 @@ import {
   LogOut,
   Menu,
 } from "lucide-react";
-import { authFetch, logout as authLogout, clearUserManager } from "@/lib/auth-client";
+import { authFetch, logout as authLogout, clearUserManager, refreshAuthCookies } from "@/lib/auth-client";
 import { RealtimeProvider } from "@/contexts/realtime-context";
 import { NotificationProvider } from "@/contexts/notification-context";
 import { ToastProvider } from "@/contexts/toast-context";
@@ -31,6 +31,9 @@ import { NotificationBell } from "@/components/notification-bell";
 import { NavigationProgress } from "@/components/navigation-progress";
 import { OnboardingProgress } from "@/components/onboarding-progress";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { SidebarSectionFrame } from "@/components/sidebar-section-frame";
+import { useAgentActivity } from "@/hooks/use-agent-activity";
+import type { AgentSummary } from "@/services/agent-activity.service";
 
 interface User {
   uuid: string;
@@ -48,6 +51,64 @@ function extractProjectUuid(pathname: string): string | null {
   // Match /research-projects/[uuid] or /research-projects/[uuid]/anything
   const match = pathname.match(/^\/research-projects\/([a-f0-9-]{36})(\/|$)/);
   return match ? match[1] : null;
+}
+
+interface ProjectNavFrameListProps {
+  items: Array<{ href: string; label: string; icon: typeof FolderKanban }>;
+  projectUuid: string;
+  isNavActive: (href: string) => boolean;
+  navGap: string;
+  navTextSize: string;
+  navIconSize: string;
+  navItemPy: string;
+}
+
+function ProjectNavFrameList({
+  items,
+  projectUuid,
+  isNavActive,
+  navGap,
+  navTextSize,
+  navIconSize,
+  navItemPy,
+}: ProjectNavFrameListProps) {
+  const agentActivity = useAgentActivity(projectUuid);
+  const getAgentsFor = (href: string): AgentSummary[] => {
+    if (href.endsWith("/related-works")) return agentActivity.relatedWorks;
+    if (href.endsWith("/experiments")) return agentActivity.experiments;
+    if (href.endsWith("/research-questions")) return agentActivity.researchQuestions;
+    if (href.endsWith("/insights")) return agentActivity.insights;
+    if (href.endsWith("/documents")) return agentActivity.documents;
+    return [];
+  };
+  return (
+    <div className={`mt-2 flex flex-col ${navGap}`}>
+      {items.map((item) => {
+        const isActive = isNavActive(item.href);
+        const Icon = item.icon;
+        return (
+          <SidebarSectionFrame key={item.href} agents={getAgentsFor(item.href)} active={isActive}>
+            <Link href={item.href} prefetch>
+              <Button
+                variant={isActive ? "secondary" : "ghost"}
+                size="sm"
+                className={`w-full justify-start gap-2.5 ${navTextSize} ${navItemPy} ${
+                  isActive
+                    ? "font-medium text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon
+                  className={`${navIconSize} ${isActive ? "text-primary" : ""}`}
+                />
+                {item.label}
+              </Button>
+            </Link>
+          </SidebarSectionFrame>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function DashboardLayout({
@@ -213,7 +274,7 @@ export default function DashboardLayout({
     if (!user) return;
     const interval = setInterval(async () => {
       try {
-        await fetch("/api/auth/refresh", { method: "POST" });
+        await refreshAuthCookies();
       } catch {
         // Refresh failed silently — next API call will handle redirect
       }
@@ -221,9 +282,13 @@ export default function DashboardLayout({
     return () => clearInterval(interval);
   }, [user]);
 
-  // Auto-redirect to onboarding for brand-new users
+  // Auto-redirect to onboarding for brand-new users (skip if user previously dismissed)
   useEffect(() => {
     if (!user || onboardingChecked) return;
+    if (localStorage.getItem("onboarding_skipped")) {
+      setOnboardingChecked(true);
+      return;
+    }
     authFetch("/api/onboarding/status")
       .then((res) => res.json())
       .then((json) => {
@@ -261,13 +326,13 @@ export default function DashboardLayout({
   // Shared sidebar content used by both desktop aside and mobile Sheet
   const SidebarContent = ({ mobile = false }: { mobile?: boolean }) => {
     // Mobile drawer uses larger text/icons since it has more room (280px vs 220px)
-    const navTextSize = mobile ? "text-[15px]" : "text-[13px]";
+    const navTextSize = mobile ? "text-[15px]" : "text-sm";
     const navIconSize = mobile ? "h-5 w-5" : "h-4 w-4";
     const navGap = mobile ? "gap-1.5" : "gap-1";
     const navItemPy = mobile ? "h-10" : "";
-    const smallTextSize = mobile ? "text-[13px]" : "text-[11px]";
-    const profileNameSize = mobile ? "text-[15px]" : "text-[13px]";
-    const profileEmailSize = mobile ? "text-[12px]" : "text-[11px]";
+    const smallTextSize = mobile ? "text-[13px]" : "text-xs";
+    const profileNameSize = mobile ? "text-[15px]" : "text-sm";
+    const profileEmailSize = mobile ? "text-[12px]" : "text-xs";
 
     return (
     <>
@@ -355,30 +420,15 @@ export default function DashboardLayout({
               )}
 
               {/* Project Navigation Items */}
-              <div className={`mt-2 flex flex-col ${navGap}`}>
-                {projectNavItems.map((item) => {
-                  const isActive = isNavActive(item.href);
-                  const Icon = item.icon;
-                  return (
-                    <Link key={item.href} href={item.href} prefetch>
-                      <Button
-                        variant={isActive ? "secondary" : "ghost"}
-                        size="sm"
-                        className={`w-full justify-start gap-2.5 ${navTextSize} ${navItemPy} ${
-                          isActive
-                            ? "font-medium text-foreground"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        <Icon
-                          className={`${navIconSize} ${isActive ? "text-primary" : ""}`}
-                        />
-                        {item.label}
-                      </Button>
-                    </Link>
-                  );
-                })}
-              </div>
+              <ProjectNavFrameList
+                items={projectNavItems}
+                projectUuid={currentProjectUuid}
+                isNavActive={isNavActive}
+                navGap={navGap}
+                navTextSize={navTextSize}
+                navIconSize={navIconSize}
+                navItemPy={navItemPy}
+              />
             </>
           ) : (
             <>
@@ -457,27 +507,44 @@ export default function DashboardLayout({
         <NotificationBell />
       </header>
 
-      {/* Mobile Drawer */}
-      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetContent side="left" className="w-[280px] p-0">
-          <div className="flex h-full flex-col justify-between overflow-y-auto">
-            <SidebarContent mobile />
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Desktop Sidebar - hidden below md */}
-      <aside className="hidden md:sticky md:top-0 md:flex h-screen w-[220px] flex-shrink-0 flex-col justify-between overflow-y-auto border-r border-border bg-card">
-        <SidebarContent />
-      </aside>
-
-      {/* Main Content - add top padding on mobile for the fixed header */}
       {isProjectContext && currentProject ? (
         <RealtimeProvider projectUuid={currentProject.uuid}>
+          {/* Mobile Drawer */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetContent side="left" className="w-[280px] p-0">
+              <div className="flex h-full flex-col justify-between overflow-y-auto">
+                <SidebarContent mobile />
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          {/* Desktop Sidebar - hidden below md */}
+          <aside className="hidden md:sticky md:top-0 md:flex h-screen w-[220px] flex-shrink-0 flex-col justify-between overflow-y-auto border-r border-border bg-card">
+            <SidebarContent />
+          </aside>
+
+          {/* Main Content - add top padding on mobile for the fixed header */}
           <main className="flex-1 overflow-auto pt-14 md:pt-0">{children}</main>
         </RealtimeProvider>
       ) : (
-        <main className="flex-1 overflow-auto pt-14 md:pt-0">{children}</main>
+        <>
+          {/* Mobile Drawer */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetContent side="left" className="w-[280px] p-0">
+              <div className="flex h-full flex-col justify-between overflow-y-auto">
+                <SidebarContent mobile />
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          {/* Desktop Sidebar - hidden below md */}
+          <aside className="hidden md:sticky md:top-0 md:flex h-screen w-[220px] flex-shrink-0 flex-col justify-between overflow-y-auto border-r border-border bg-card">
+            <SidebarContent />
+          </aside>
+
+          {/* Main Content - add top padding on mobile for the fixed header */}
+          <main className="flex-1 overflow-auto pt-14 md:pt-0">{children}</main>
+        </>
       )}
     </div>
     </NotificationProvider>

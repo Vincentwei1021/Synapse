@@ -51,6 +51,8 @@ import {
 import { useLocale } from "@/contexts/locale-context";
 import type { SessionResponse } from "@/services/session.service";
 import { formatAgentApiKeyCreatedAt } from "./agents-page-client.helpers";
+import { AgentColorPicker } from "@/components/agent-color-picker";
+import { getAgentColor } from "@/lib/agent-colors";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -60,6 +62,7 @@ interface AgentSummary {
   roles: string[];
   type: string;
   persona: string | null;
+  color: string | null;
   ownerUuid: string | null;
   lastActiveAt: Date | null;
   createdAt: Date;
@@ -145,6 +148,7 @@ export function AgentsPageClient({
   const [createRoles, setCreateRoles] = useState<string[]>([]);
   const [createPersona, setCreatePersona] = useState("");
   const [createType, setCreateType] = useState<string>("openclaw");
+  const [formColor, setFormColor] = useState<string | null>("terracotta");
   const [submitting, setSubmitting] = useState(false);
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -155,6 +159,7 @@ export function AgentsPageClient({
   const [editRoles, setEditRoles] = useState<string[]>([]);
   const [editPersona, setEditPersona] = useState("");
   const [editType, setEditType] = useState<string>("openclaw");
+  const [editColor, setEditColor] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   // API keys for detail panel
@@ -191,6 +196,7 @@ export function AgentsPageClient({
     setEditRoles(selectedAgent.roles.filter((r) => (ROLES as readonly string[]).includes(r)));
     setEditPersona(selectedAgent.persona || "");
     setEditType(selectedAgent.type || "openclaw");
+    setEditColor(selectedAgent.color ?? null);
 
     // Fetch API keys
     setLoadingKeys(true);
@@ -263,6 +269,7 @@ export function AgentsPageClient({
         roles: createRoles,
         type: createType,
         persona: createPersona.trim() || null,
+        color: formColor,
       });
 
       if (result.success && result.key) {
@@ -298,6 +305,7 @@ export function AgentsPageClient({
     setCreateRoles([]);
     setCreatePersona("");
     setCreateType("openclaw");
+    setFormColor("terracotta");
     setCreatedKey(null);
     setCopied(false);
   };
@@ -336,6 +344,7 @@ export function AgentsPageClient({
         roles: editRoles,
         type: editType,
         persona: editPersona.trim() || null,
+        color: editColor,
       });
 
       if (result.success) {
@@ -348,6 +357,7 @@ export function AgentsPageClient({
                   roles: editRoles,
                   type: editType,
                   persona: editPersona.trim() || null,
+                  color: editColor,
                 }
               : a,
           ),
@@ -360,6 +370,7 @@ export function AgentsPageClient({
                 roles: editRoles,
                 type: editType,
                 persona: editPersona.trim() || null,
+                color: editColor,
               }
             : null,
         );
@@ -462,8 +473,20 @@ export function AgentsPageClient({
                       <Bot className="h-[18px] w-[18px] text-primary" />
                     </div>
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-foreground">
-                        {agent.name}
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const { primary } = getAgentColor(agent.uuid, agent.color);
+                          return (
+                            <span
+                              aria-hidden
+                              className="inline-block h-3 w-3 rounded-full shrink-0"
+                              style={{ backgroundColor: primary }}
+                            />
+                          );
+                        })()}
+                        <div className="truncate text-sm font-medium text-foreground">
+                          {agent.name}
+                        </div>
                       </div>
                       {agent.lastActiveAt && (
                         <div className="text-[11px] text-muted-foreground">
@@ -626,6 +649,17 @@ export function AgentsPageClient({
                     </div>
                   </div>
 
+                  {/* Color */}
+                  <div className="space-y-2">
+                    <Label className="text-[13px]">
+                      {t("agents.form.colorLabel")}
+                    </Label>
+                    <AgentColorPicker
+                      value={formColor}
+                      onChange={(v) => setFormColor(v)}
+                    />
+                  </div>
+
                 </div>
 
                 <div className="flex justify-end gap-3 border-t border-border px-6 py-4">
@@ -732,6 +766,17 @@ export function AgentsPageClient({
                       </label>
                     ))}
                   </div>
+                </div>
+
+                {/* Color */}
+                <div className="space-y-2">
+                  <Label className="text-[13px]">
+                    {t("agents.form.colorLabel")}
+                  </Label>
+                  <AgentColorPicker
+                    value={editColor}
+                    onChange={(v) => setEditColor(v)}
+                  />
                 </div>
 
                 {/* Save button */}

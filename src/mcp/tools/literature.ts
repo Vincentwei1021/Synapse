@@ -6,6 +6,17 @@ import { prisma } from "@/lib/prisma";
 import * as documentService from "@/services/document.service";
 import * as notificationService from "@/services/notification.service";
 import { updateResearchProject } from "@/services/research-project.service";
+import { eventBus } from "@/lib/event-bus";
+
+const TASK_TYPE_FIELDS = {
+  auto_search: { activeField: "autoSearchActiveAgentUuid", notificationAction: "auto_search_completed" },
+  deep_research: { activeField: "deepResearchActiveAgentUuid", notificationAction: "deep_research_completed" },
+} as const;
+
+const TASK_COMPLETION_MESSAGES = {
+  auto_search: "Auto-search for related papers has completed.",
+  deep_research: "Deep research literature review has completed.",
+} as const;
 
 export function registerLiteratureTools(server: McpServer, auth: AgentAuthContext) {
   server.registerTool(
@@ -151,6 +162,34 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
         addedByAgentUuid: auth.actorUuid,
         publishedYear: year,
       });
+
+      if (rw.isNew) {
+        try {
+          const [totalCount, project, agent] = await Promise.all([
+            prisma.relatedWork.count({ where: { companyUuid: auth.companyUuid, researchProjectUuid } }),
+            prisma.researchProject.findFirst({ where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid }, select: { name: true } }),
+            prisma.agent.findUnique({ where: { uuid: auth.actorUuid }, select: { ownerUuid: true, name: true } }),
+          ]);
+          if (agent?.ownerUuid && project) {
+            await notificationService.create({
+              companyUuid: auth.companyUuid,
+              researchProjectUuid,
+              recipientType: "user",
+              recipientUuid: agent.ownerUuid,
+              entityType: "related_work",
+              entityUuid: rw.uuid,
+              entityTitle: rw.title,
+              projectName: project.name,
+              action: "related_work_added",
+              message: `New paper collected: "${rw.title}" (${totalCount} total)`,
+              actorType: "agent",
+              actorUuid: auth.actorUuid,
+              actorName: agent.name ?? "Agent",
+            });
+          }
+        } catch { /* ignore notification errors */ }
+      }
+
       return {
         content: [{ type: "text" as const, text: JSON.stringify({ relatedWork: rw }) }],
       };
@@ -269,6 +308,70 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
       return {
         content: [{ type: "text" as const, text: JSON.stringify({ document: { uuid: doc.uuid, title: doc.title, version: doc.version } }, null, 2) }],
       };
+    }
+  );
+
+  server.registerTool(
+    "synapse_complete_task",
+    {
+      description: "Signal that an agent task (auto_search or deep_research) has finished. Clears the active indicator on the project and notifies the owner.",
+      inputSchema: z.object({
+        researchProjectUuid: z.string(),
+        taskType: z.enum(["auto_search", "deep_research"]),
+      }),
+    },
+    async ({ researchProjectUuid, taskType }) => {
+      const config = TASK_TYPE_FIELDS[taskType];
+      const project = await prisma.researchProject.findFirst({
+        where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid },
+        select: { uuid: true, name: true, autoSearchActiveAgentUuid: true, deepResearchActiveAgentUuid: true },
+      });
+      if (!project) {
+        return { content: [{ type: "text" as const, text: "Research Project not found" }], isError: true };
+      }
+      const activeAgentUuid = taskType === "auto_search" ? project.autoSearchActiveAgentUuid : project.deepResearchActiveAgentUuid;
+      if (!activeAgentUuid) {
+        return { content: [{ type: "text" as const, text: JSON.stringify({ cleared: false, reason: "no active task" }) }] };
+      }
+
+      await prisma.researchProject.update({
+        where: { uuid: researchProjectUuid },
+        data: { [config.activeField]: null },
+      });
+
+      eventBus.emitChange({
+        companyUuid: auth.companyUuid,
+        researchProjectUuid,
+        entityType: "research_project",
+        entityUuid: researchProjectUuid,
+        action: "updated",
+      });
+
+      try {
+        const agent = await prisma.agent.findUnique({
+          where: { uuid: activeAgentUuid },
+          select: { ownerUuid: true, name: true },
+        });
+        if (agent?.ownerUuid) {
+          await notificationService.create({
+            companyUuid: auth.companyUuid,
+            researchProjectUuid,
+            recipientType: "user",
+            recipientUuid: agent.ownerUuid,
+            entityType: "research_project",
+            entityUuid: researchProjectUuid,
+            entityTitle: project.name,
+            projectName: project.name,
+            action: config.notificationAction,
+            message: TASK_COMPLETION_MESSAGES[taskType],
+            actorType: "agent",
+            actorUuid: activeAgentUuid,
+            actorName: agent.name ?? "Agent",
+          });
+        }
+      } catch { /* ignore notification errors */ }
+
+      return { content: [{ type: "text" as const, text: JSON.stringify({ cleared: true }) }] };
     }
   );
 }

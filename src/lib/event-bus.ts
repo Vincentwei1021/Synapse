@@ -14,6 +14,18 @@ export interface RealtimeEvent {
   actorUuid?: string;
 }
 
+export interface PresenceEvent {
+  type: "presence";
+  companyUuid: string;
+  researchProjectUuid: string;
+  entityType: "experiment" | "research_question" | "document" | "related_work";
+  entityUuid: string;
+  agentUuid: string;
+  agentName: string;
+  action: "view" | "mutate";
+  timestamp: number;
+}
+
 // Single Redis channel for all events (ElastiCache Serverless doesn't support PSUBSCRIBE)
 const REDIS_CHANNEL = "synapse:events";
 
@@ -93,6 +105,10 @@ class SynapseEventBus extends EventEmitter {
 
   emitChange(event: RealtimeEvent) {
     this.emit("change", event);
+  }
+
+  emitPresence(event: PresenceEvent) {
+    this.emit("presence", event);
   }
 
   async disconnect(): Promise<void> {

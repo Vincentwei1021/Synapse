@@ -142,7 +142,7 @@ function serializeNode(node: {
         uuid: string;
         title: string;
         status: string;
-      };
+      } | null;
     }>;
     experimentReservations: Array<{
       uuid: string;
@@ -151,30 +151,42 @@ function serializeNode(node: {
         uuid: string;
         title: string;
         status: string;
-      };
+      } | null;
     }>;
   }>;
 }): ComputeNodeSnapshot {
   const gpus = node.gpus.map((gpu) => {
-    const activeExperimentReservation = gpu.experimentReservations[0] ?? null;
-    const activeRunReservation = gpu.reservations[0] ?? null;
-    const activeReservation = activeExperimentReservation
-      ? {
-          uuid: activeExperimentReservation.uuid,
-          kind: "experiment" as const,
-          itemUuid: activeExperimentReservation.experiment.uuid,
-          itemTitle: activeExperimentReservation.experiment.title,
-          itemStatus: activeExperimentReservation.experiment.status,
+    const activeExperimentReservation =
+      gpu.experimentReservations.find((reservation) => reservation.experiment) ?? null;
+    const activeRunReservation =
+      gpu.reservations.find((reservation) => reservation.run) ?? null;
+    let activeReservation:
+      | {
+          uuid: string;
+          kind: "experiment" | "run";
+          itemUuid: string;
+          itemTitle: string;
+          itemStatus: string;
         }
-      : activeRunReservation
-        ? {
-            uuid: activeRunReservation.uuid,
-            kind: "run" as const,
-            itemUuid: activeRunReservation.run.uuid,
-            itemTitle: activeRunReservation.run.title,
-            itemStatus: activeRunReservation.run.status,
-          }
-        : null;
+      | null = null;
+
+    if (activeExperimentReservation?.experiment) {
+      activeReservation = {
+        uuid: activeExperimentReservation.uuid,
+        kind: "experiment",
+        itemUuid: activeExperimentReservation.experiment.uuid,
+        itemTitle: activeExperimentReservation.experiment.title,
+        itemStatus: activeExperimentReservation.experiment.status,
+      };
+    } else if (activeRunReservation?.run) {
+      activeReservation = {
+        uuid: activeRunReservation.uuid,
+        kind: "run",
+        itemUuid: activeRunReservation.run.uuid,
+        itemTitle: activeRunReservation.run.title,
+        itemStatus: activeRunReservation.run.status,
+      };
+    }
     const computedStatus = activeReservation ? "busy" : gpu.lifecycle;
 
     return {
@@ -538,7 +550,7 @@ export async function reserveGpusForRun(input: {
         },
         experimentReservations: {
           where: { releasedAt: null },
-          select: { uuid: true },
+          select: { uuid: true, experimentUuid: true },
         },
       },
     });
@@ -615,7 +627,7 @@ export async function reserveGpusForExperiment(input: {
         },
         experimentReservations: {
           where: { releasedAt: null },
-          select: { uuid: true },
+          select: { uuid: true, experimentUuid: true },
         },
       },
     });
@@ -628,14 +640,28 @@ export async function reserveGpusForExperiment(input: {
       (gpu) =>
         gpu.lifecycle !== GPU_AVAILABLE ||
         gpu.reservations.length > 0 ||
-        gpu.experimentReservations.length > 0,
+        gpu.experimentReservations.some((reservation) => reservation.experimentUuid !== input.experimentUuid),
     );
     if (unavailable) {
       throw new Error(`GPU ${unavailable.slotIndex} on node ${unavailable.nodeUuid} is not available`);
     }
 
+    const alreadyReservedGpuUuids = new Set(
+      gpus
+        .filter((gpu) =>
+          gpu.experimentReservations.some((reservation) => reservation.experimentUuid === input.experimentUuid),
+        )
+        .map((gpu) => gpu.uuid),
+    );
+
+    const gpuUuidsToCreate = input.gpuUuids.filter((gpuUuid) => !alreadyReservedGpuUuids.has(gpuUuid));
+
+    if (gpuUuidsToCreate.length === 0) {
+      return [];
+    }
+
     return Promise.all(
-      input.gpuUuids.map((gpuUuid) =>
+      gpuUuidsToCreate.map((gpuUuid) =>
         tx.experimentGpuReservation.create({
           data: {
             companyUuid: input.companyUuid,

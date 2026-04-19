@@ -6,6 +6,7 @@ import { getAuthContext, isUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isRealtimeAgent } from "@/lib/agent-transport";
 import * as notificationService from "@/services/notification.service";
+import { eventBus } from "@/lib/event-bus";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
@@ -39,6 +40,19 @@ export const POST = withErrorHandler<{ uuid: string }>(
         agentUuid: "This agent does not support real-time task dispatch. Select an OpenClaw agent.",
       });
     }
+
+    // Mark auto-search as active
+    await prisma.researchProject.update({
+      where: { uuid: projectUuid },
+      data: { autoSearchActiveAgentUuid: parsed.data.agentUuid, autoSearchStartedAt: new Date() },
+    });
+    eventBus.emitChange({
+      companyUuid: auth.companyUuid,
+      researchProjectUuid: projectUuid,
+      entityType: "research_project",
+      entityUuid: projectUuid,
+      action: "updated",
+    });
 
     await notificationService.create({
       companyUuid: auth.companyUuid,

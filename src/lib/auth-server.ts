@@ -10,18 +10,14 @@ import type { UserAuthContext } from "@/types/auth";
 /**
  * Get auth context from HTTP-only cookie
  * Use this in Server Components and Server Actions
- * Supports both OIDC (oidc_access_token) and default auth (user_session) cookies
+ * Supports both OIDC (oidc_access_token) and default auth (user_session) cookies.
+ * Keep the cookie precedence aligned with getAuthContext() so a stale OIDC cookie
+ * cannot shadow a valid default-auth session during server rendering.
  */
 export async function getServerAuthContext(): Promise<UserAuthContext | null> {
   const cookieStore = await cookies();
 
-  // 1. Try OIDC access token cookie
-  const oidcToken = cookieStore.get("oidc_access_token")?.value;
-  if (oidcToken) {
-    return verifyOidcAccessToken(oidcToken);
-  }
-
-  // 2. Try default auth JWT cookie (user_session)
+  // 1. Try default auth JWT cookie (user_session)
   const userSessionToken = cookieStore.get("user_session")?.value;
   if (userSessionToken) {
     const payload = await verifyAccessToken(userSessionToken);
@@ -34,6 +30,12 @@ export async function getServerAuthContext(): Promise<UserAuthContext | null> {
         name: payload.name,
       };
     }
+  }
+
+  // 2. Try OIDC access token cookie
+  const oidcToken = cookieStore.get("oidc_access_token")?.value;
+  if (oidcToken) {
+    return verifyOidcAccessToken(oidcToken);
   }
 
   return null;

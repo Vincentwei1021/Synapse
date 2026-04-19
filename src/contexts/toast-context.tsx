@@ -20,10 +20,12 @@ interface Toast {
   category: string;
   color: string;
   message: string;
+  projectName?: string;
+  entityTitle?: string;
   createdAt: number;
 }
 
-type ToastInput = Pick<Toast, "category" | "color" | "message">;
+type ToastInput = Pick<Toast, "category" | "color" | "message"> & { projectName?: string; entityTitle?: string };
 
 interface ToastContextType {
   addToast: (input: ToastInput) => void;
@@ -225,13 +227,12 @@ function ToastCard({ toast, isExiting, onDismiss }: ToastCardProps) {
     <button
       type="button"
       onClick={() => onDismiss(toast.id)}
-      className="flex items-start gap-3 rounded-xl border border-white/10 bg-zinc-900/95 px-4 py-3 shadow-2xl shadow-black/40 backdrop-blur-sm transition-transform min-w-[280px] max-w-xs cursor-pointer text-left"
+      className="flex items-start gap-3 rounded-xl border border-border bg-card px-5 py-4 shadow-2xl shadow-black/20 backdrop-blur-sm transition-transform w-[340px] cursor-pointer text-left dark:shadow-black/40"
       style={{ animation }}
     >
-      {/* Left column: dot + category */}
-      <div className="flex flex-col items-center gap-1 pt-0.5">
+      <div className="flex flex-col items-center justify-center gap-1.5 shrink-0 self-center">
         <span
-          className="block h-2 w-2 shrink-0 rounded-full"
+          className="block h-2.5 w-2.5 shrink-0 rounded-full"
           style={{ backgroundColor: toast.color, boxShadow: `0 0 6px ${toast.color}` }}
         />
         <span
@@ -242,10 +243,15 @@ function ToastCard({ toast, isExiting, onDismiss }: ToastCardProps) {
         </span>
       </div>
 
-      {/* Message */}
-      <span className="text-[13px] leading-snug text-white/90">
-        {toast.message}
-      </span>
+      <div className="min-w-0 flex-1 space-y-0.5">
+        {toast.projectName && (
+          <p className="truncate text-xs font-medium text-muted-foreground">{toast.projectName}</p>
+        )}
+        {toast.entityTitle && (
+          <p className="truncate text-sm font-semibold text-foreground">{toast.entityTitle}</p>
+        )}
+        <p className="truncate text-sm text-foreground">{toast.message}</p>
+      </div>
     </button>
   );
 }
