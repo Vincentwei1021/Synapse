@@ -6,10 +6,12 @@
 import { existsSync, mkdirSync } from "fs";
 import { resolve, join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { execSync, fork } from "child_process";
+import { exec, fork } from "child_process";
+import { promisify } from "util";
 import { homedir } from "os";
-import { createHash } from "crypto";
+import { createHash, randomUUID } from "crypto";
 
+const execAsync = promisify(exec);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = resolve(__dirname, "..", "dist");
 
@@ -56,6 +58,7 @@ console.log(`  Data directory: ${dataDir}`);
 mkdirSync(dataDir, { recursive: true });
 
 const useExternalDb = !!process.env.DATABASE_URL;
+let pgliteDb = null;
 
 if (!useExternalDb) {
   // --- Start PGlite ---
@@ -67,10 +70,10 @@ if (!useExternalDb) {
   const { PGlite } = await import("@electric-sql/pglite");
   const { PGLiteSocketServer } = await import("@electric-sql/pglite-socket");
 
-  const db = new PGlite(pgliteDir);
+  pgliteDb = new PGlite(pgliteDir);
   const pglitePort = port + 1000;
   const socketServer = new PGLiteSocketServer({
-    db,
+    db: pgliteDb,
     port: pglitePort,
     host: "127.0.0.1",
   });
@@ -78,6 +81,7 @@ if (!useExternalDb) {
 
   process.env.DATABASE_URL = `postgresql://localhost:${pglitePort}/synapse`;
   process.env.SYNAPSE_PGLITE = "1";
+  console.log(`  Embedded database listening on port ${pglitePort}`);
 }
 
 // --- Push schema to database ---
@@ -85,16 +89,16 @@ console.log("  Setting up database schema...");
 const schemaPath = join(DIST_DIR, "prisma", "schema.prisma");
 if (existsSync(schemaPath)) {
   try {
-    execSync(
+    const { stdout, stderr } = await execAsync(
       `npx prisma db push --schema ${schemaPath} --url "${process.env.DATABASE_URL}" --accept-data-loss`,
       {
         cwd: DIST_DIR,
-        stdio: "pipe",
         env: { ...process.env },
       },
     );
+    if (stdout) console.log("  " + stdout.trim().split("\n").pop());
   } catch (err) {
-    console.error("  Schema push failed:", err.message);
+    console.error("  Schema push failed:", err.stderr || err.message);
     process.exit(1);
   }
 }
@@ -104,39 +108,29 @@ const defaultEmail = process.env.DEFAULT_USER || "admin@synapse.local";
 const defaultPassword = process.env.DEFAULT_PASSWORD || "synapse";
 
 try {
-  // Dynamic import of the generated Prisma client from dist
-  const prismaClientPath = join(DIST_DIR, "node_modules", ".prisma", "client", "index.js");
-  if (existsSync(prismaClientPath)) {
-    const { PrismaClient } = await import(prismaClientPath);
-    const seedPrisma = new PrismaClient({
-      datasources: { db: { url: process.env.DATABASE_URL } },
-    });
-
-    const companyCount = await seedPrisma.company.count();
-    if (companyCount === 0) {
+  if (pgliteDb) {
+    // PGlite mode: seed via direct SQL on the db instance
+    const { rows } = await pgliteDb.query("SELECT COUNT(*) as count FROM \"Company\"");
+    const count = parseInt(rows[0].count, 10);
+    if (count === 0) {
       const bcrypt = await import("bcrypt");
       const passwordHash = await bcrypt.hash(defaultPassword, 10);
+      const companyUuid = randomUUID();
+      const userUuid = randomUUID();
 
-      const company = await seedPrisma.company.create({
-        data: { name: "Synapse Local" },
-      });
-
-      await seedPrisma.user.create({
-        data: {
-          companyUuid: company.uuid,
-          email: defaultEmail,
-          passwordHash,
-          name: "Admin",
-          role: "pi",
-        },
-      });
-
+      await pgliteDb.query(
+        `INSERT INTO "Company" (uuid, name, "createdAt", "updatedAt") VALUES ($1, $2, NOW(), NOW())`,
+        [companyUuid, "Synapse Local"]
+      );
+      await pgliteDb.query(
+        `INSERT INTO "User" (uuid, "companyUuid", email, "passwordHash", name, role, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
+        [userUuid, companyUuid, defaultEmail, passwordHash, "Admin", "pi"]
+      );
       console.log(`  Default login: ${defaultEmail} / ${defaultPassword}`);
     }
-
-    await seedPrisma.$disconnect();
   }
 } catch (err) {
+  // Table might not exist yet on first schema push, that's OK
   console.warn("  Seed check skipped:", err.message);
 }
 
@@ -149,7 +143,7 @@ if (!existsSync(serverJs)) {
 }
 
 process.env.PORT = String(port);
-process.env.HOSTNAME = "127.0.0.1";
+process.env.HOSTNAME = "0.0.0.0";
 process.env.NEXTAUTH_SECRET =
   process.env.NEXTAUTH_SECRET ||
   createHash("sha256").update(`synapse-local-${dataDir}`).digest("hex");
