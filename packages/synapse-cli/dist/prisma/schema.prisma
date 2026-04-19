@@ -1,0 +1,820 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider     = "postgresql"
+  relationMode = "prisma" // Relations managed by Prisma, no DB-level foreign key constraints
+}
+
+// Tenant
+model Company {
+  id           Int      @id @default(autoincrement())
+  uuid         String   @unique @default(uuid())
+  name         String
+  // Email domain matching (used to identify Company during login)
+  emailDomains String[] @default([]) // e.g., ["example.com", "example.org"]
+  // OIDC configuration (per-Company login, PKCE only, no Client Secret)
+  oidcIssuer   String? // OIDC Provider URL
+  oidcClientId String? // Client ID
+  oidcEnabled  Boolean  @default(false)
+  // Third-party integration tokens
+  deepxivToken String?  // DeepXiv API token for paper search & reading
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  users             User[]
+  agents            Agent[]
+  apiKeys           ApiKey[]
+  researchProjects  ResearchProject[]
+  researchQuestions ResearchQuestion[]
+  documents         Document[]
+  experiments       Experiment[]
+  experimentRuns    ExperimentRun[]
+  experimentDesigns ExperimentDesign[]
+  activities        Activity[]
+  comments          Comment[]
+  sessions          AgentSession[]
+  computePools      ComputePool[]
+  computeNodes      ComputeNode[]
+  computeGpus       ComputeGpu[]
+  runGpuReservations RunGpuReservation[]
+  experimentGpuReservations ExperimentGpuReservation[]
+}
+
+// User (human, OIDC login)
+model User {
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  companyUuid String
+  company     Company  @relation(fields: [companyUuid], references: [uuid])
+  oidcSub     String   @unique // OIDC subject
+  email       String?
+  name        String?
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+
+  ownedAgents Agent[]
+
+  @@index([companyUuid])
+}
+
+// Agent (e.g., Claude Code)
+model Agent {
+  id           Int       @id @default(autoincrement())
+  uuid         String    @unique @default(uuid())
+  companyUuid  String
+  company      Company   @relation(fields: [companyUuid], references: [uuid])
+  name         String
+  roles        String[]  @default(["researcher"]) // pm | researcher (multi-select)
+  type         String    @default("openclaw") // openclaw | claude_code
+  color        String? // palette key from src/lib/agent-colors.ts. Null = hash fallback.
+  // Agent persona definition (Zero Context Injection)
+  persona      String? // Custom persona description (brief)
+  systemPrompt String? // Full system prompt (optional, overrides default template)
+  ownerUuid    String? // User's UUID
+  owner        User?     @relation(fields: [ownerUuid], references: [uuid])
+  lastActiveAt DateTime?
+  createdAt    DateTime  @default(now())
+
+  apiKeys  ApiKey[]
+  sessions AgentSession[]
+
+  @@index([companyUuid])
+  @@index([ownerUuid])
+}
+
+// API Key (independently managed, supports rotation and revocation)
+model ApiKey {
+  id          Int       @id @default(autoincrement())
+  uuid        String    @unique @default(uuid())
+  companyUuid String
+  company     Company   @relation(fields: [companyUuid], references: [uuid])
+  agentUuid   String // Agent's UUID
+  agent       Agent     @relation(fields: [agentUuid], references: [uuid], onDelete: Cascade)
+  keyHash     String    @unique // API Key stored as hash
+  keyPrefix   String // Key prefix for display (e.g., "syn_xxx...")
+  name        String? // Optional descriptive name
+  lastUsed    DateTime?
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([companyUuid])
+  @@index([agentUuid])
+}
+
+// Project Group (single-level grouping of projects)
+model ProjectGroup {
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  companyUuid String
+  name        String
+  description String?  @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([companyUuid])
+}
+
+// Research Project
+model ResearchProject {
+  id                   Int      @id @default(autoincrement())
+  uuid                 String   @unique @default(uuid())
+  companyUuid          String
+  company              Company  @relation(fields: [companyUuid], references: [uuid])
+  name                 String
+  description          String?
+  goal                 String?
+  datasets             Json?
+  evaluationMethods    Json?
+  latestSynthesisAt    DateTime?
+  latestSynthesisIdeaCount Int?
+  latestSynthesisSummary String?
+  groupUuid            String? // nullable FK -> ProjectGroup.uuid
+  computePoolUuid      String?
+  autonomousLoopEnabled    Boolean  @default(false)
+  autonomousLoopAgentUuid  String?
+  autonomousLoopMode       String?  @default("human_review")
+  autoSearchEnabled        Boolean  @default(false)
+  autoSearchAgentUuid      String?
+  autoSearchActiveAgentUuid   String?
+  autoSearchStartedAt      DateTime?
+  deepResearchDocUuid      String?
+  deepResearchActiveAgentUuid String?
+  deepResearchStartedAt    DateTime?
+  repoUrl              String?
+  githubUsername        String?
+  githubToken          String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  researchQuestions ResearchQuestion[]
+  documents         Document[]
+  experiments       Experiment[]
+  experimentRuns    ExperimentRun[]
+  experimentDesigns ExperimentDesign[]
+  relatedWorks      RelatedWork[]
+  activities        Activity[]
+
+  @@index([companyUuid])
+  @@index([groupUuid])
+  @@index([computePoolUuid])
+  @@map("Project")
+}
+
+// Research Question (raw human input)
+model ResearchQuestion {
+  id                  Int             @id @default(autoincrement())
+  uuid                String          @unique @default(uuid())
+  companyUuid         String
+  company             Company         @relation(fields: [companyUuid], references: [uuid])
+  researchProjectUuid String          @map("projectUuid")
+  researchProject     ResearchProject @relation(fields: [researchProjectUuid], references: [uuid], onDelete: Cascade)
+  title               String
+  content             String? // Text content
+  attachments         Json? // Attachment list [{type, url, name}]
+  sourceType          String          @default("human") // human | agent
+  sourceLabel         String?
+  generatedByAgentUuid String?
+  parentQuestionUuid   String?
+  parentQuestion       ResearchQuestion?  @relation("ResearchQuestionHierarchy", fields: [parentQuestionUuid], references: [uuid], onDelete: Restrict, onUpdate: Restrict)
+  childQuestions       ResearchQuestion[] @relation("ResearchQuestionHierarchy")
+  reviewStatus        String          @default("pending") // pending | accepted | rejected
+  reviewedByUuid      String?
+  reviewNote          String?
+  reviewedAt          DateTime?
+  // Status and assignment
+  status              String          @default("open") // open | elaborating | proposal_created | completed | closed
+  assigneeType        String? // user | agent
+  assigneeUuid        String? // User or Agent UUID (polymorphic)
+  assignedAt          DateTime? // Assignment timestamp
+  assignedByUuid      String? // User UUID (human assignment)
+  // Elaboration (AI-DLC Stage 3 -- structured requirements clarification)
+  elaborationDepth    String? // "minimal" | "standard" | "comprehensive"
+  elaborationStatus   String? // "pending_answers" | "validating" | "resolved"
+  // New research-specific fields
+  hypothesisStatement String?
+  nullHypothesis      String?
+  priorWork           String?
+  researchType        String?
+  createdByUuid       String // User UUID
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  experiments         Experiment[]
+
+  @@index([companyUuid])
+  @@index([researchProjectUuid])
+  @@index([status])
+  @@index([assigneeUuid])
+  @@index([reviewStatus])
+  @@index([parentQuestionUuid])
+  @@map("Idea")
+}
+
+// Document (PRD, tech design, etc. -- ExperimentDesign output)
+model Document {
+  id                   Int             @id @default(autoincrement())
+  uuid                 String          @unique @default(uuid())
+  companyUuid          String
+  company              Company         @relation(fields: [companyUuid], references: [uuid])
+  researchProjectUuid  String          @map("projectUuid")
+  researchProject      ResearchProject @relation(fields: [researchProjectUuid], references: [uuid], onDelete: Cascade)
+  type                 String // prd | tech_design | adr | ...
+  title                String
+  content              String? // Markdown content
+  version              Int             @default(1)
+  experimentDesignUuid String?         @map("proposalUuid") // Source ExperimentDesign UUID (traceable)
+  createdByUuid        String // User or Agent UUID
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  @@index([companyUuid])
+  @@index([researchProjectUuid])
+  @@index([experimentDesignUuid])
+}
+
+model Experiment {
+  id                  Int             @id @default(autoincrement())
+  uuid                String          @unique @default(uuid())
+  companyUuid         String
+  company             Company         @relation(fields: [companyUuid], references: [uuid])
+  researchProjectUuid String          @map("projectUuid")
+  researchProject     ResearchProject @relation(fields: [researchProjectUuid], references: [uuid], onDelete: Cascade)
+  researchQuestionUuid String?
+  researchQuestion    ResearchQuestion? @relation(fields: [researchQuestionUuid], references: [uuid], onDelete: SetNull, onUpdate: Restrict)
+  title               String
+  description         String?
+  status              String          @default("draft") // draft | pending_review | pending_start | in_progress | completed
+  priority            String          @default("medium")
+  computeBudgetHours  Float?
+  computeUsedHours    Float?
+  attachments         Json?
+  results             Json?
+  outcome             String?
+  assigneeType        String?
+  assigneeUuid        String?
+  assignedAt          DateTime?
+  assignedByUuid      String?
+  createdByUuid       String
+  createdByType       String          @default("user") // user | agent
+  reviewedByUuid      String?
+  reviewNote          String?
+  reviewedAt          DateTime?
+  startedAt           DateTime?
+  completedAt         DateTime?
+  liveStatus    String?
+  liveMessage   String?
+  liveUpdatedAt DateTime?
+  baseBranch           String?
+  experimentBranch     String?
+  commitSha            String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  gpuReservations ExperimentGpuReservation[]
+  progressLogs ExperimentProgressLog[]
+
+  @@index([companyUuid])
+  @@index([researchProjectUuid])
+  @@index([researchQuestionUuid])
+  @@index([status])
+  @@index([assigneeUuid])
+  @@map("Experiment")
+}
+
+// Experiment Run (ExperimentDesign output or manually created)
+model ExperimentRun {
+  id                      Int                   @id @default(autoincrement())
+  uuid                    String                @unique @default(uuid())
+  companyUuid             String
+  company                 Company               @relation(fields: [companyUuid], references: [uuid])
+  researchProjectUuid     String                @map("projectUuid")
+  researchProject         ResearchProject       @relation(fields: [researchProjectUuid], references: [uuid], onDelete: Cascade)
+  title                   String
+  description             String?
+  // Status and assignment
+  status                  String                @default("open") // open | assigned | in_progress | to_verify | done | closed
+  priority                String                @default("medium") // low | medium | high
+  acceptanceCriteria      String? // Acceptance criteria (Markdown)
+  assigneeType            String? // user | agent
+  assigneeUuid            String? // User or Agent UUID (polymorphic)
+  assignedAt              DateTime? // Assignment timestamp
+  assignedByUuid          String? // User UUID (human assignment)
+  experimentDesignUuid    String?               @map("proposalUuid") // Source ExperimentDesign UUID (traceable, optional)
+  // New research-specific fields
+  experimentConfig        Json?
+  experimentResults       Json?
+  baselineRunUuid         String?
+  computeBudgetHours      Float?
+  computeUsedHours        Float?
+  outcome                 String?
+  earlyStopTriggered      Boolean                  @default(false)
+  createdByUuid           String // User or Agent UUID
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  // Run dependencies (DAG)
+  dependsOn               RunDependency[]       @relation("taskDependencies")
+  dependedBy              RunDependency[]       @relation("taskDependedBy")
+  // Session checkins
+  sessionCheckins         SessionRunCheckin[]
+  // Structured acceptance criteria (independent table)
+  acceptanceCriteriaItems AcceptanceCriterion[]
+  gpuReservations         RunGpuReservation[]
+
+  @@index([companyUuid])
+  @@index([researchProjectUuid])
+  @@index([experimentDesignUuid])
+  @@index([assigneeUuid])
+  @@index([status])
+  @@map("Task")
+}
+
+// Run dependency (DAG edge)
+model RunDependency {
+  id               Int           @id @default(autoincrement())
+  runUuid          String        @map("taskUuid")
+  dependsOnRunUuid String        @map("dependsOnUuid")
+  run              ExperimentRun @relation("taskDependencies", fields: [runUuid], references: [uuid], onDelete: Cascade)
+  dependsOnRun     ExperimentRun @relation("taskDependedBy", fields: [dependsOnRunUuid], references: [uuid], onDelete: Cascade)
+  createdAt        DateTime      @default(now())
+
+  @@unique([runUuid, dependsOnRunUuid])
+  @@index([runUuid])
+  @@index([dependsOnRunUuid])
+  @@map("TaskDependency")
+}
+
+// Acceptance Criterion (independent table -- per-row atomic updates, no concurrent write conflicts)
+model AcceptanceCriterion {
+  id              Int           @id @default(autoincrement())
+  uuid            String        @unique @default(uuid())
+  runUuid         String        @map("taskUuid")
+  run             ExperimentRun @relation(fields: [runUuid], references: [uuid], onDelete: Cascade)
+  description     String
+  required        Boolean       @default(true)
+  // Dev self-check (developer fills during work)
+  devStatus       String        @default("pending") // pending | passed | failed
+  devEvidence     String?
+  devMarkedByType String? // "user" | "agent"
+  devMarkedBy     String? // UUID of marker
+  devMarkedAt     DateTime?
+  // Admin verification (admin/user fills during verify)
+  status          String        @default("pending") // pending | passed | failed
+  evidence        String?
+  markedByType    String? // "user" | "agent"
+  markedBy        String? // UUID of marker
+  markedAt        DateTime?
+  sortOrder       Int           @default(0)
+  // New research-specific fields
+  metricName      String?
+  operator        String?
+  threshold       Float?
+  isEarlyStop     Boolean       @default(false)
+  actualValue     Float?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([runUuid])
+}
+
+// Experiment Design (container model: created by Agent/human, approved by human, contains document drafts and task drafts)
+model ExperimentDesign {
+  id                  Int             @id @default(autoincrement())
+  uuid                String          @unique @default(uuid())
+  companyUuid         String
+  company             Company         @relation(fields: [companyUuid], references: [uuid])
+  researchProjectUuid String          @map("projectUuid")
+  researchProject     ResearchProject @relation(fields: [researchProjectUuid], references: [uuid], onDelete: Cascade)
+  title               String
+  description         String?
+
+  // Input source (what the ExperimentDesign is based on)
+  inputType  String // idea | document
+  inputUuids Json // Array of UUID strings
+
+  // Container contents (can include both documents and tasks)
+  documentDrafts Json? // Document draft list [{type, title, content}]
+  taskDrafts     Json? // Task draft list [{title, description, priority, acceptanceCriteria}]
+
+  // Status and approval
+  status         String    @default("draft") // draft | pending | approved | rejected | revised
+  createdByUuid  String // Agent or User UUID
+  createdByType  String    @default("agent") // agent | user
+  reviewedByUuid String? // User UUID
+  reviewNote     String? // Review note
+  reviewedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([companyUuid])
+  @@index([researchProjectUuid])
+  @@index([status])
+  @@map("Proposal")
+}
+
+// Comment (can comment on ResearchQuestion, ExperimentDesign, ExperimentRun, Document)
+model Comment {
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  companyUuid String
+  company     Company  @relation(fields: [companyUuid], references: [uuid])
+  targetType  String // research_question | experiment | experiment_design | experiment_run | document
+  targetUuid  String // UUID of target entity
+  content     String
+  authorType  String // user | agent
+  authorUuid  String // User or Agent UUID
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([companyUuid])
+  @@index([targetType, targetUuid])
+}
+
+// Activity stream (project-level) -- generic design
+model Activity {
+  id                  Int             @id @default(autoincrement())
+  uuid                String          @unique @default(uuid())
+  companyUuid         String
+  company             Company         @relation(fields: [companyUuid], references: [uuid])
+  researchProjectUuid String          @map("projectUuid")
+  researchProject     ResearchProject @relation(fields: [researchProjectUuid], references: [uuid], onDelete: Cascade)
+  // Target entity (generic design)
+  targetType          String // research_question | experiment | experiment_design | experiment_run | document
+  targetUuid          String // Target entity UUID
+  // Action info
+  actorType           String // user | agent
+  actorUuid           String // Actor UUID
+  action              String // created | assigned | released | status_changed | submitted | approved | rejected | comment_added
+  value               Json? // Action result value (e.g., new status, assignment target info)
+  // Session attribution (denormalized to avoid joins)
+  sessionUuid         String?
+  sessionName         String?
+  createdAt           DateTime        @default(now())
+
+  @@index([companyUuid])
+  @@index([researchProjectUuid])
+  @@index([targetType, targetUuid])
+  @@index([createdAt])
+}
+
+// Agent Session (sub-session for swarm mode observability)
+model AgentSession {
+  id           Int                 @id @default(autoincrement())
+  uuid         String              @unique @default(uuid())
+  companyUuid  String
+  company      Company             @relation(fields: [companyUuid], references: [uuid])
+  agentUuid    String
+  agent        Agent               @relation(fields: [agentUuid], references: [uuid], onDelete: Cascade)
+  name         String
+  description  String?
+  status       String              @default("active") // active | inactive | closed
+  lastActiveAt DateTime            @default(now())
+  expiresAt    DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  runCheckins  SessionRunCheckin[]
+
+  @@index([companyUuid])
+  @@index([agentUuid])
+  @@index([status])
+}
+
+model ComputePool {
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  companyUuid String
+  company     Company  @relation(fields: [companyUuid], references: [uuid])
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  nodes ComputeNode[]
+
+  @@index([companyUuid])
+}
+
+model ComputeNode {
+  id             Int      @id @default(autoincrement())
+  uuid           String   @unique @default(uuid())
+  companyUuid    String
+  company        Company  @relation(fields: [companyUuid], references: [uuid])
+  poolUuid       String
+  pool           ComputePool @relation(fields: [poolUuid], references: [uuid], onDelete: Cascade)
+  label          String
+  ec2InstanceId  String?
+  instanceType   String?
+  region         String?
+  lifecycle      String   @default("idle") // idle | offline | maintenance
+  sshHost        String?
+  sshUser        String?
+  sshPort        Int?
+  sshKeyPath     String?
+  sshKeyName     String?
+  sshKeyFingerprint String?
+  sshKeySource   String?
+  ssmTarget      String?
+  notes             String?
+  telemetryEnabled  Boolean   @default(false)
+  telemetryError    String?
+  lastReportedAt DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  gpus ComputeGpu[]
+
+  @@index([companyUuid])
+  @@index([poolUuid, lifecycle])
+  @@unique([companyUuid, ec2InstanceId])
+}
+
+model ComputeGpu {
+  id                 Int      @id @default(autoincrement())
+  uuid               String   @unique @default(uuid())
+  companyUuid        String
+  company            Company  @relation(fields: [companyUuid], references: [uuid])
+  nodeUuid           String
+  node               ComputeNode @relation(fields: [nodeUuid], references: [uuid], onDelete: Cascade)
+  slotIndex          Int
+  model              String
+  memoryGb           Int?
+  lifecycle          String   @default("available") // available | offline | maintenance | unhealthy
+  utilizationPercent Int?
+  memoryUsedGb       Float?
+  temperatureC       Int?
+  notes              String?
+  lastReportedAt     DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  reservations RunGpuReservation[]
+  experimentReservations ExperimentGpuReservation[]
+
+  @@index([companyUuid])
+  @@index([nodeUuid, lifecycle])
+  @@unique([nodeUuid, slotIndex])
+}
+
+model RunGpuReservation {
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  companyUuid String
+  company     Company  @relation(fields: [companyUuid], references: [uuid])
+  runUuid     String
+  run         ExperimentRun @relation(fields: [runUuid], references: [uuid], onDelete: Cascade)
+  gpuUuid     String
+  gpu         ComputeGpu @relation(fields: [gpuUuid], references: [uuid], onDelete: Cascade)
+  attachedAt  DateTime @default(now())
+  releasedAt  DateTime?
+
+  @@index([companyUuid])
+  @@index([runUuid, releasedAt])
+  @@index([gpuUuid, releasedAt])
+}
+
+model ExperimentGpuReservation {
+  id            Int        @id @default(autoincrement())
+  uuid          String     @unique @default(uuid())
+  companyUuid   String
+  company       Company    @relation(fields: [companyUuid], references: [uuid])
+  experimentUuid String
+  experiment    Experiment @relation(fields: [experimentUuid], references: [uuid], onDelete: Cascade, onUpdate: Restrict)
+  gpuUuid       String
+  gpu           ComputeGpu @relation(fields: [gpuUuid], references: [uuid], onDelete: Cascade)
+  attachedAt    DateTime   @default(now())
+  releasedAt    DateTime?
+
+  @@index([companyUuid])
+  @@index([experimentUuid, releasedAt])
+  @@index([gpuUuid, releasedAt])
+}
+
+model ExperimentProgressLog {
+  id             Int        @id @default(autoincrement())
+  uuid           String     @unique @default(uuid())
+  companyUuid    String
+  experimentUuid String
+  experiment     Experiment @relation(fields: [experimentUuid], references: [uuid], onDelete: Cascade)
+  message        String
+  phase          String?
+  actorUuid      String
+  createdAt      DateTime   @default(now())
+
+  @@index([experimentUuid, createdAt])
+  @@index([companyUuid])
+}
+
+model RelatedWork {
+  id                  Int             @id @default(autoincrement())
+  uuid                String          @unique @default(uuid())
+  companyUuid         String
+  researchProjectUuid String
+  researchProject     ResearchProject @relation(fields: [researchProjectUuid], references: [uuid], onDelete: Cascade)
+  title               String
+  authors             String?
+  abstract            String?
+  url                 String
+  arxivId             String?
+  source              String
+  addedBy             String
+  addedByAgentUuid    String?
+  publishedYear       Int?
+  createdAt           DateTime        @default(now())
+
+  @@index([companyUuid])
+  @@index([researchProjectUuid])
+}
+
+// Session-Run checkin relation (many-to-many)
+model SessionRunCheckin {
+  id          Int           @id @default(autoincrement())
+  sessionUuid String
+  session     AgentSession  @relation(fields: [sessionUuid], references: [uuid], onDelete: Cascade)
+  runUuid     String        @map("taskUuid")
+  run         ExperimentRun @relation(fields: [runUuid], references: [uuid], onDelete: Cascade)
+  checkinAt   DateTime      @default(now())
+  checkoutAt  DateTime?
+
+  @@unique([sessionUuid, runUuid])
+  @@index([sessionUuid])
+  @@index([runUuid])
+  @@map("SessionTaskCheckin")
+}
+
+// Notification
+model Notification {
+  id                  Int       @id @default(autoincrement())
+  uuid                String    @unique @default(uuid())
+  companyUuid         String
+  researchProjectUuid String    @map("projectUuid")
+  // Recipient (polymorphic: user | agent)
+  recipientType       String // user | agent
+  recipientUuid       String
+  // Related entity
+  entityType          String // task | idea | proposal | document | comment
+  entityUuid          String
+  entityTitle         String // Denormalized to avoid joins
+  projectName         String // Denormalized for project badge UI
+  // Action info
+  action              String // assigned | status_changed | verified | reopened | submitted | approved | rejected | claimed | comment_added
+  message             String // Human-readable message
+  actorType           String // user | agent
+  actorUuid           String
+  actorName           String // Denormalized to avoid joins
+  // Status
+  readAt              DateTime?
+  archivedAt          DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([recipientType, recipientUuid, readAt])
+  @@index([companyUuid, recipientUuid])
+  @@index([entityType, entityUuid])
+  @@index([researchProjectUuid])
+}
+
+// Notification preferences
+model NotificationPreference {
+  id                             Int      @id @default(autoincrement())
+  uuid                           String   @unique @default(uuid())
+  companyUuid                    String
+  ownerType                      String // user | agent
+  ownerUuid                      String
+  // Toggle for each notification type (all enabled by default)
+  runAssigned                    Boolean  @default(true) @map("taskAssigned")
+  runStatusChanged               Boolean  @default(true) @map("taskStatusChanged")
+  runVerified                    Boolean  @default(true) @map("taskVerified")
+  runReopened                    Boolean  @default(true) @map("taskReopened")
+  designSubmitted                Boolean  @default(true) @map("proposalSubmitted")
+  designApproved                 Boolean  @default(true) @map("proposalApproved")
+  designRejected                 Boolean  @default(true) @map("proposalRejected")
+  researchQuestionClaimed        Boolean  @default(true) @map("ideaClaimed")
+  commentAdded                   Boolean  @default(true)
+  hypothesisFormulationRequested Boolean  @default(true) @map("elaborationRequested")
+  hypothesisFormulationAnswered  Boolean  @default(true) @map("elaborationAnswered")
+  experimentCompleted            Boolean  @default(true)
+  experimentAutoProposed         Boolean  @default(true)
+  experimentStatusChanged        Boolean  @default(true)
+  experimentProgress             Boolean  @default(true)
+  synthesisUpdated               Boolean  @default(true)
+  autoSearchCompleted            Boolean  @default(true)
+  deepResearchCompleted          Boolean  @default(true)
+  autonomousLoopTriggered        Boolean  @default(true)
+  mentioned                      Boolean  @default(true)
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @updatedAt
+
+  @@unique([ownerType, ownerUuid])
+  @@index([companyUuid])
+}
+
+// Mention (tracks @mentions in comments, tasks, ideas)
+model Mention {
+  id            Int      @id @default(autoincrement())
+  uuid          String   @unique @default(uuid())
+  companyUuid   String
+  // Source: where the mention occurred
+  sourceType    String // comment | task | idea
+  sourceUuid    String // UUID of the comment, task, or idea
+  // Target: who was mentioned
+  mentionedType String // user | agent
+  mentionedUuid String
+  // Actor: who wrote the mention
+  actorType     String // user | agent
+  actorUuid     String
+  createdAt     DateTime @default(now())
+
+  @@index([companyUuid])
+  @@index([mentionedType, mentionedUuid])
+  @@index([sourceType, sourceUuid])
+}
+
+// Hypothesis Formulation (structured requirements clarification)
+model HypothesisFormulation {
+  id                   Int       @id @default(autoincrement())
+  uuid                 String    @unique @default(uuid())
+  companyUuid          String
+  researchQuestionUuid String    @map("ideaUuid")
+  roundNumber          Int
+  status               String    @default("pending_answers") // pending_answers | answered | validated | needs_followup
+  createdByType        String // agent | user
+  createdByUuid        String
+  validatedAt          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  questions HypothesisFormulationQuestion[]
+
+  @@index([researchQuestionUuid])
+  @@index([companyUuid])
+  @@map("ElaborationRound")
+}
+
+// Hypothesis Formulation Question (individual Q&A item within a round)
+model HypothesisFormulationQuestion {
+  id               Int                   @id @default(autoincrement())
+  uuid             String                @unique @default(uuid())
+  roundUuid        String
+  round            HypothesisFormulation @relation(fields: [roundUuid], references: [uuid], onDelete: Cascade)
+  questionId       String // Round-scoped ID: "q1", "q2", etc.
+  text             String
+  category         String // hypothesis | methodology | prior_work | resources | success_metrics | scope
+  options          Json // [{id, label, description?}] -- 2-5 options
+  required         Boolean               @default(true)
+  // Answer (null = unanswered)
+  selectedOptionId String?
+  customText       String?
+  answeredAt       DateTime?
+  answeredByType   String? // user | agent
+  answeredByUuid   String?
+  // Validation issue (null = no issue)
+  issueType        String? // contradiction | ambiguity | incomplete
+  issueDescription String?
+
+  @@unique([roundUuid, questionId])
+  @@index([roundUuid])
+  @@map("ElaborationQuestion")
+}
+
+// Experiment Registry (new model for tracking experiment runs)
+model ExperimentRegistry {
+  id                  Int       @id @default(autoincrement())
+  uuid                String    @unique @default(uuid())
+  companyUuid         String
+  researchProjectUuid String
+  runUuid             String
+  config              Json
+  environment         Json
+  seed                Int?
+  startedAt           DateTime
+  completedAt         DateTime?
+  metrics             Json?
+  artifacts           Json?
+  reproducible        Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+
+  @@index([companyUuid])
+  @@index([researchProjectUuid])
+  @@index([runUuid])
+}
+
+// Baseline (new model for tracking research baselines)
+model Baseline {
+  id                  Int      @id @default(autoincrement())
+  uuid                String   @unique @default(uuid())
+  companyUuid         String
+  researchProjectUuid String
+  name                String
+  metrics             Json
+  experimentUuid      String?
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([companyUuid])
+  @@index([researchProjectUuid])
+}

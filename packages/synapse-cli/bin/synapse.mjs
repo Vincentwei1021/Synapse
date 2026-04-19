@@ -65,17 +65,16 @@ if (!useExternalDb) {
   mkdirSync(pgliteDir, { recursive: true });
 
   const { PGlite } = await import("@electric-sql/pglite");
-  const { createServer } = await import("@electric-sql/pglite-socket");
+  const { PGLiteSocketServer } = await import("@electric-sql/pglite-socket");
 
   const db = new PGlite(pgliteDir);
-  const socketServer = createServer(db);
-
-  // Find an available port for PGlite socket
   const pglitePort = port + 1000;
-  await new Promise((resolve, reject) => {
-    socketServer.listen(pglitePort, "127.0.0.1", () => resolve(undefined));
-    socketServer.on("error", reject);
+  const socketServer = new PGLiteSocketServer({
+    db,
+    port: pglitePort,
+    host: "127.0.0.1",
   });
+  await socketServer.start();
 
   process.env.DATABASE_URL = `postgresql://localhost:${pglitePort}/synapse`;
   process.env.SYNAPSE_PGLITE = "1";
