@@ -815,6 +815,9 @@ export function ExperimentsBoard({
                     <Badge variant="outline" className={priorityBadgeClasses(selectedExperiment.priority)}>
                       {formatPriorityLabel(t, selectedExperiment.priority)}
                     </Badge>
+                    {selectedExperiment.assignee?.name ? (
+                      <Badge variant="outline">{selectedExperiment.assignee.name}</Badge>
+                    ) : null}
                     <Badge variant="secondary">
                       {t(`experiments.columns.${columns.find((column) => column.id === selectedExperiment.status)?.labelKey || "draft"}`)}
                       {(() => {
@@ -825,9 +828,6 @@ export function ExperimentsBoard({
                         return ts ? ` · ${new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : "";
                       })()}
                     </Badge>
-                    {selectedExperiment.assignee?.name ? (
-                      <Badge variant="outline">{selectedExperiment.assignee.name}</Badge>
-                    ) : null}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <select
@@ -1005,10 +1005,11 @@ export function ExperimentsBoard({
                         {(() => {
                           if (selectedExperiment.startedAt && selectedExperiment.completedAt) {
                             const ms = new Date(selectedExperiment.completedAt).getTime() - new Date(selectedExperiment.startedAt).getTime();
-                            const mins = Math.floor(ms / 60000);
-                            const hrs = Math.floor(mins / 60);
-                            const remMins = mins % 60;
-                            return hrs > 0 ? `${hrs}h ${remMins}m` : `${mins}m`;
+                            const totalMins = Math.floor(ms / 60000);
+                            const hrs = Math.floor(totalMins / 60);
+                            const remMins = totalMins % 60;
+                            if (hrs > 0) return t("experiments.detail.elapsedHM", { hours: hrs, minutes: remMins });
+                            return t("experiments.detail.elapsedM", { minutes: totalMins });
                           }
                           return selectedExperiment.computeBudgetHours ?? t("experiments.detail.unlimited");
                         })()}

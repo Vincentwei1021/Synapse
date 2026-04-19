@@ -548,6 +548,28 @@ export async function createExperiment(params: ExperimentCreateParams) {
     actorUuid: params.createdByUuid,
   });
 
+  const project = await prisma.researchProject.findFirst({
+    where: { uuid: params.researchProjectUuid, companyUuid: params.companyUuid },
+    select: { name: true },
+  });
+  try {
+    await notificationService.create({
+      companyUuid: params.companyUuid,
+      researchProjectUuid: params.researchProjectUuid,
+      recipientType: params.createdByType ?? "user",
+      recipientUuid: params.createdByUuid,
+      entityType: "experiment",
+      entityUuid: experiment.uuid,
+      entityTitle: experiment.title,
+      projectName: project?.name ?? "",
+      action: "experiment_created",
+      message: `${experiment.title} created`,
+      actorType: params.createdByType ?? "user",
+      actorUuid: params.createdByUuid,
+      actorName: await getActorName(params.companyUuid, params.createdByType ?? "user", params.createdByUuid),
+    });
+  } catch {}
+
   return formatExperiment(params.companyUuid, experiment);
 }
 
@@ -571,7 +593,7 @@ export async function updateExperiment(
     data.status !== undefined
       ? await prisma.experiment.findFirst({
           where: { uuid, companyUuid },
-          select: { status: true },
+          select: { status: true, researchProjectUuid: true, researchProject: { select: { name: true } } },
         })
       : null;
 
@@ -629,6 +651,27 @@ export async function updateExperiment(
     action: "updated",
     actorUuid: actor?.actorUuid,
   });
+
+  if (data.status !== undefined && existing && actor) {
+    const statusLabel = data.status.replace(/_/g, " ");
+    try {
+      await notificationService.create({
+        companyUuid,
+        researchProjectUuid: experiment.researchProjectUuid,
+        recipientType: actor.actorType,
+        recipientUuid: actor.actorUuid,
+        entityType: "experiment",
+        entityUuid: experiment.uuid,
+        entityTitle: experiment.title,
+        projectName: existing.researchProject?.name ?? "",
+        action: "experiment_status_changed",
+        message: `${experiment.title} → ${statusLabel}`,
+        actorType: actor.actorType,
+        actorUuid: actor.actorUuid,
+        actorName: await getActorName(companyUuid, actor.actorType, actor.actorUuid),
+      });
+    } catch {}
+  }
 
   return formatExperiment(companyUuid, experiment);
 }

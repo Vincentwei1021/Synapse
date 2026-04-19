@@ -32,6 +32,7 @@ const TOAST_MAP: Record<string, { category: string; color: string }> = {
   deep_research_requested: { category: "Research", color: "#a855f7" },
   deep_research_completed: { category: "Research", color: "#a855f7" },
   deep_research_failed: { category: "Research", color: "#ef4444" },
+  experiment_created: { category: "Experiment", color: "#818cf8" },
   experiment_status_changed: { category: "Experiment", color: "#818cf8" },
   experiment_progress: { category: "Experiment", color: "#818cf8" },
   experiment_completed: { category: "Experiment", color: "#818cf8" },

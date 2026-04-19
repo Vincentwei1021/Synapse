@@ -1370,6 +1370,8 @@
       "draftEditable": "This draft can be edited directly here and saved back to the board.",
       "computeBudget": "Time Limit",
       "elapsed": "Elapsed",
+      "elapsedHM": "{hours} hours {minutes} mins",
+      "elapsedM": "{minutes} mins",
       "notSet": "Not set",
       "unlimited": "Unlimited",
       "outcome": "Outcome summary",
