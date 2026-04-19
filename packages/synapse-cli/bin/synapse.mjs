@@ -110,19 +110,23 @@ if (existsSync(migrationsDir) && existsSync(origSchemaPath)) {
   const { cpSync } = await import("node:fs");
   cpSync(join(DIST_DIR, "prisma", "migrations"), join(tmpPrisma, "migrations"), { recursive: true });
 
-  // Copy and patch schema
-  let schema = readFileSync(origSchemaPath, "utf8");
-  if (!schema.includes('url')) {
-    schema = schema.replace(
-      'relationMode = "prisma"',
-      'relationMode = "prisma"\n  url              = env("DATABASE_URL")',
-    );
-  }
-  writeFileSync(join(tmpPrisma, "schema.prisma"), schema);
+  // Copy schema as-is
+  const { cpSync: cpFile } = await import("node:fs");
+  cpFile(origSchemaPath, join(tmpPrisma, "schema.prisma"));
+
+  // Prisma 7 requires prisma.config.ts/js for the datasource URL
+  writeFileSync(join(tmpPrisma, "prisma.config.js"), `
+module.exports = {
+  schema: "./schema.prisma",
+  datasource: {
+    url: process.env.DATABASE_URL,
+  },
+};
+`);
 
   try {
     execSync(
-      `npx prisma migrate deploy --schema ${join(tmpPrisma, "schema.prisma")}`,
+      `npx prisma migrate deploy --config ${join(tmpPrisma, "prisma.config.js")}`,
       {
         cwd: tmpPrisma,
         stdio: "pipe",
