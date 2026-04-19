@@ -57,13 +57,10 @@ console.log(`  Data directory: ${dataDir}`);
 // --- Ensure data directory exists ---
 mkdirSync(dataDir, { recursive: true });
 
-<<<<<<< HEAD
 // Clear env vars that may have been baked into the Next.js build from the build machine's .env
 if (!process.env.REDIS_URL) delete process.env.REDIS_URL;
 if (!process.env.REDIS_HOST) delete process.env.REDIS_HOST;
 
-=======
->>>>>>> 466e226a0d8669a162ff6f84623ecce9742108aa
 const useExternalDb = !!process.env.DATABASE_URL;
 let pgliteProcess = null;
 

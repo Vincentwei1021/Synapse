@@ -689,8 +689,8 @@ export function ExperimentsBoard({
                       return (
                     <GlowBorder
                       active={experiment.status === "in_progress" || !!experiment.liveStatus}
-                      primaryColor={getAgentColor(experiment.assignee?.uuid ?? "").primary}
-                      lightColor={getAgentColor(experiment.assignee?.uuid ?? "").light}
+                      primaryColor={getAgentColor(experiment.assignee?.uuid ?? "", experiment.assignee?.color).primary}
+                      lightColor={getAgentColor(experiment.assignee?.uuid ?? "", experiment.assignee?.color).light}
                       variant="pulse"
                     >
                     <Card
@@ -708,7 +708,7 @@ export function ExperimentsBoard({
                       {(experiment.status === "in_progress" || !!experiment.liveStatus) && experiment.assignee?.name && (
                         <div
                           className="absolute -top-2.5 right-2 z-10 inline-flex max-w-[80%] items-center gap-1 truncate rounded-full px-1.5 py-0.5 text-[10px] font-medium text-white whitespace-nowrap sm:text-[11px] sm:px-2"
-                          style={{ backgroundColor: getAgentColor(experiment.assignee.uuid).primary }}
+                          style={{ backgroundColor: getAgentColor(experiment.assignee.uuid, experiment.assignee.color).primary }}
                         >
                           <AgentTypeIcon type={agents.find((a) => a.uuid === experiment.assignee?.uuid)?.type ?? "openclaw"} className="h-2.5 w-2.5" />
                           <span className="truncate">{experiment.assignee.name}</span>

@@ -47,6 +47,7 @@ export interface ExperimentResponse {
     type: string;
     uuid: string;
     name: string;
+    color?: string | null;
     assignedAt: string | null;
     assignedBy: { type: string; uuid: string; name: string } | null;
   } | null;
