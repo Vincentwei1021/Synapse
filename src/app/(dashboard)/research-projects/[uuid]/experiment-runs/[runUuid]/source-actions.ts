@@ -2,6 +2,9 @@
 
 import { getServerAuthContext } from "@/lib/auth-server";
 import { getExperimentDesignByUuid } from "@/services/experiment-design.service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "experiment_run" });
 
 export interface ProposalSource {
   uuid: string;
@@ -27,7 +30,7 @@ export async function getRunSourceAction(
       title: proposal.title,
     };
   } catch (error) {
-    console.error("Failed to get task source:", error);
+    log.error({ err: error }, "Failed to get task source");
     return null;
   }
 }

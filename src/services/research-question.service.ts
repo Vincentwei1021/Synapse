@@ -7,8 +7,11 @@ import { formatAssigneeComplete, formatCreatedBy } from "@/lib/uuid-resolver";
 import { eventBus } from "@/lib/event-bus";
 import { ApiError } from "@/lib/api-handler";
 import { AlreadyClaimedError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
 import * as mentionService from "@/services/mention.service";
 import * as activityService from "@/services/activity.service";
+
+const log = logger.child({ module: "research_question" });
 
 // ===== Type Definitions =====
 
@@ -452,7 +455,7 @@ export async function updateResearchQuestion(
       data.content,
       actorContext.actorType,
       actorContext.actorUuid,
-    ).catch((err) => console.error("[Idea] Failed to process mentions:", err));
+    ).catch((err) => log.error({ err }, "failed to process mentions"));
   }
 
   return formatResearchQuestionResponse(idea);

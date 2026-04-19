@@ -5,6 +5,9 @@ import { getServerAuthContext } from "@/lib/auth-server";
 import { assignResearchQuestion, releaseResearchQuestion, getResearchQuestionByUuid } from "@/services/research-question.service";
 import { getAgentsByRole, getCompanyUsers } from "@/services/agent.service";
 import { createActivity } from "@/services/activity.service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "research_question" });
 
 export async function claimIdeaAction(questionUuid: string) {
   const auth = await getServerAuthContext();
@@ -48,7 +51,7 @@ export async function claimIdeaAction(questionUuid: string) {
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to claim idea:", error);
+    log.error({ err: error }, "Failed to claim idea");
     return { success: false, error: "Failed to claim idea" };
   }
 }
@@ -95,7 +98,7 @@ export async function claimIdeaToAgentAction(questionUuid: string, agentUuid: st
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to claim idea to agent:", error);
+    log.error({ err: error }, "Failed to claim idea to agent");
     return { success: false, error: "Failed to claim idea" };
   }
 }
@@ -131,7 +134,7 @@ export async function claimIdeaToUserAction(questionUuid: string, userUuid: stri
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to claim idea to user:", error);
+    log.error({ err: error }, "Failed to claim idea to user");
     return { success: false, error: "Failed to claim idea" };
   }
 }
@@ -161,7 +164,7 @@ export async function releaseIdeaAction(questionUuid: string) {
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to release idea:", error);
+    log.error({ err: error }, "Failed to release idea");
     return { success: false, error: "Failed to release idea" };
   }
 }
@@ -180,7 +183,7 @@ export async function getPmAgentsAction() {
     ]);
     return { agents, users };
   } catch (error) {
-    console.error("Failed to get PM agents:", error);
+    log.error({ err: error }, "Failed to get PM agents");
     return { agents: [], users: [] };
   }
 }

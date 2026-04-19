@@ -27,6 +27,7 @@ import { TaskDetailPanel } from "./run-detail-panel";
 import { getBatchWorkerCountsAction } from "./session-actions";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
 import { GoNoGoBadge } from "@/components/go-no-go-badge";
+import { clientLogger } from "@/lib/logger-client";
 
 interface Task {
   uuid: string;
@@ -263,7 +264,7 @@ export function KanbanBoard({ projectUuid, initialTasks, currentUserUuid, select
         setForceDialogBlockers([]);
         router.refresh();
       } else {
-        console.error("Failed to force move task:", result.error);
+        clientLogger.error("Failed to force move task:", result.error);
       }
     } finally {
       setForceMoving(false);

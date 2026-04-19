@@ -1,8 +1,11 @@
 import { eventBus } from "@/lib/event-bus";
+import { logger } from "@/lib/logger";
 import { releaseGpuReservationsForRun } from "@/services/compute.service";
 import { refreshProjectSynthesis } from "@/services/project-synthesis.service";
 import * as activityService from "@/services/activity.service";
 import * as mentionService from "@/services/mention.service";
+
+const log = logger.child({ module: "experiment_run" });
 
 export function emitExperimentRunChange(params: {
   companyUuid: string;
@@ -70,7 +73,7 @@ export function queueExperimentRunMentionProcessing(params: {
     params.newDescription,
     params.actorContext.actorType,
     params.actorContext.actorUuid,
-  ).catch((err) => console.error("[ExperimentRun] Failed to process mentions:", err));
+  ).catch((err) => log.error({ err }, "failed to process mentions"));
 }
 
 async function processNewMentions(

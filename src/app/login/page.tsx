@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { createUserManager, storeOidcConfig, clearOidcConfig, type OidcConfig } from "@/lib/oidc";
 import { clearUserManager } from "@/lib/auth-client";
+import { clientLogger } from "@/lib/logger-client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -131,7 +132,7 @@ export default function LoginPage() {
         setError(result.message || t("login.noOrganizationFound"));
       }
     } catch (err) {
-      console.error("Login error:", err);
+      clientLogger.error("Login error:", err);
       setError(t("login.networkError"));
     } finally {
       setLoading(false);

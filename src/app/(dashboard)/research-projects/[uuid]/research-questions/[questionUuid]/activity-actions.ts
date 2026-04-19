@@ -3,6 +3,9 @@
 import { getServerAuthContext } from "@/lib/auth-server";
 import { listActivitiesWithActorNames, type ActivityResponse } from "@/services/activity.service";
 import { getResearchQuestionByUuid } from "@/services/research-question.service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "research_question" });
 
 export async function getQuestionActivitiesAction(
   questionUuid: string
@@ -27,7 +30,7 @@ export async function getQuestionActivitiesAction(
       take: 50,
     });
   } catch (error) {
-    console.error("Failed to get idea activities:", error);
+    log.error({ err: error }, "Failed to get idea activities");
     return { activities: [], total: 0 };
   }
 }

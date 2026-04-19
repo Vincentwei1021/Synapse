@@ -296,8 +296,6 @@ describe("createComment", () => {
     ]);
     (createMentions as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("DB error"));
 
-    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
     await createComment({
       companyUuid,
       targetType: "experiment_run",
@@ -310,8 +308,9 @@ describe("createComment", () => {
     // Give async fire-and-forget time to resolve
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(consoleErrorSpy).toHaveBeenCalled();
-    consoleErrorSpy.mockRestore();
+    // The comment should still be created successfully despite mention processing error.
+    // Error logging is now handled by Pino structured logger, not console.error.
+    expect(mockPrisma.comment.create).toHaveBeenCalled();
   });
 
   it("should process mentions for idea target type", async () => {

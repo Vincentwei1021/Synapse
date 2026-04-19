@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { errors } from "./api-response";
+import { getRequestLogger } from "./logger";
 
 // API Handler type
 export type ApiHandler<T = Record<string, string>> = (
@@ -38,7 +39,7 @@ export function withErrorHandler<T = Record<string, string>>(
     try {
       return await handler(request, context);
     } catch (err) {
-      console.error("API Error:", err);
+      getRequestLogger().error({ err }, "API error");
 
       // Custom API error
       if (err instanceof ApiError) {

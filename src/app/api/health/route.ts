@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getRedisHealth } from "@/lib/redis";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "health" });
 
 export async function GET() {
   const timestamp = new Date().toISOString();
@@ -20,7 +23,7 @@ export async function GET() {
       redis,
     });
   } catch (error) {
-    console.error("Health check failed:", error);
+    log.error({ err: error }, "Health check failed");
     return NextResponse.json(
       {
         status: "error",
