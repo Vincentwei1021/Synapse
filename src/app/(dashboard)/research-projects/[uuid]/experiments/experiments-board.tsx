@@ -688,7 +688,7 @@ export function ExperimentsBoard({
                     {(() => {
                       return (
                     <GlowBorder
-                      active={experiment.status === "in_progress"}
+                      active={experiment.status === "in_progress" || !!experiment.liveStatus}
                       primaryColor={getAgentColor(experiment.assignee?.uuid ?? "").primary}
                       lightColor={getAgentColor(experiment.assignee?.uuid ?? "").light}
                       variant="pulse"
@@ -705,7 +705,7 @@ export function ExperimentsBoard({
                       }}
                       className="relative space-y-3 rounded-2xl border-border bg-card p-3.5 text-left shadow-none transition-colors hover:border-primary/30"
                     >
-                      {experiment.status === "in_progress" && experiment.assignee?.name && (
+                      {(experiment.status === "in_progress" || !!experiment.liveStatus) && experiment.assignee?.name && (
                         <div
                           className="absolute -top-2.5 right-2 z-10 inline-flex max-w-[80%] items-center gap-1 truncate rounded-full px-1.5 py-0.5 text-[10px] font-medium text-white whitespace-nowrap sm:text-[11px] sm:px-2"
                           style={{ backgroundColor: getAgentColor(experiment.assignee.uuid).primary }}

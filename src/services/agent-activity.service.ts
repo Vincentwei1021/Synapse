@@ -61,14 +61,17 @@ export async function getProjectAgentActivity({
     return { ...EMPTY_ACTIVITY };
   }
 
-  // Experiments: any in_progress experiment with an agent assignee
+  // Experiments: agent is actively working (liveStatus set) or status is in_progress
   const liveExperiments = await prisma.experiment.findMany({
     where: {
       companyUuid,
       researchProjectUuid: projectUuid,
-      status: "in_progress",
       assigneeType: "agent",
       assigneeUuid: { not: null },
+      OR: [
+        { status: "in_progress" },
+        { liveStatus: { in: LIVE_EXPERIMENT_STATES as unknown as string[] } },
+      ],
     },
     select: { assigneeUuid: true },
   });
