@@ -86,7 +86,7 @@ const schemaPath = join(DIST_DIR, "prisma", "schema.prisma");
 if (existsSync(schemaPath)) {
   try {
     execSync(
-      `npx prisma db push --schema ${schemaPath} --skip-generate --accept-data-loss`,
+      `npx prisma db push --schema ${schemaPath} --url "${process.env.DATABASE_URL}" --accept-data-loss`,
       {
         cwd: DIST_DIR,
         stdio: "pipe",
