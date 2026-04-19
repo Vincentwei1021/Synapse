@@ -98,24 +98,33 @@ if (!useExternalDb) {
 
 // --- Run migrations ---
 console.log("  Running migrations...");
-const schemaPath = join(DIST_DIR, "prisma", "schema.prisma");
+const origSchemaPath = join(DIST_DIR, "prisma", "schema.prisma");
 const migrationsDir = join(DIST_DIR, "prisma", "migrations");
-if (existsSync(migrationsDir) && existsSync(schemaPath)) {
-  // Prisma 7 requires datasource url in schema — inject it if missing
-  let schema = readFileSync(schemaPath, "utf8");
+if (existsSync(migrationsDir) && existsSync(origSchemaPath)) {
+  // Prisma 7 requires datasource url in schema. Copy schema + migrations
+  // to a writable temp dir and inject the url there.
+  const tmpPrisma = join(dataDir, "_prisma_tmp");
+  mkdirSync(join(tmpPrisma, "migrations"), { recursive: true });
+
+  // Copy migrations
+  const { cpSync } = await import("node:fs");
+  cpSync(join(DIST_DIR, "prisma", "migrations"), join(tmpPrisma, "migrations"), { recursive: true });
+
+  // Copy and patch schema
+  let schema = readFileSync(origSchemaPath, "utf8");
   if (!schema.includes('url')) {
     schema = schema.replace(
       'relationMode = "prisma"',
-      'relationMode = "prisma"\n  url = env("DATABASE_URL")',
+      'relationMode = "prisma"\n  url              = env("DATABASE_URL")',
     );
-    writeFileSync(schemaPath, schema);
   }
+  writeFileSync(join(tmpPrisma, "schema.prisma"), schema);
 
   try {
     execSync(
-      `npx prisma migrate deploy --schema ${schemaPath}`,
+      `npx prisma migrate deploy --schema ${join(tmpPrisma, "schema.prisma")}`,
       {
-        cwd: DIST_DIR,
+        cwd: tmpPrisma,
         stdio: "pipe",
         env: { ...process.env },
       },
