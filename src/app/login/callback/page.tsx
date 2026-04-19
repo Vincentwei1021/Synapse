@@ -9,6 +9,7 @@ import {
   extractUserInfo,
 } from "@/lib/oidc";
 import { initUserManager } from "@/lib/auth-client";
+import { clientLogger } from "@/lib/logger-client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Music, Loader2 } from "lucide-react";
@@ -90,7 +91,7 @@ export default function OidcCallbackPage() {
       }
       router.push("/research-projects");
     } catch (err) {
-      console.error("OIDC callback error:", err);
+      clientLogger.error("OIDC callback error:", err);
       setError(
         err instanceof Error ? err.message : t("authFailed")
       );

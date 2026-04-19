@@ -4,6 +4,9 @@ import { getServerAuthContext } from "@/lib/auth-server";
 import { listComments, createComment, type CommentResponse } from "@/services/comment.service";
 import { getExperimentDesign } from "@/services/experiment-design.service";
 import { createActivity } from "@/services/activity.service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "experiment_design" });
 
 export async function getDesignCommentsAction(
   designUuid: string
@@ -23,7 +26,7 @@ export async function getDesignCommentsAction(
     });
     return result;
   } catch (error) {
-    console.error("Failed to get proposal comments:", error);
+    log.error({ err: error }, "Failed to get proposal comments");
     return { comments: [], total: 0 };
   }
 }
@@ -74,7 +77,7 @@ export async function createDesignCommentAction(
 
     return { success: true, comment };
   } catch (error) {
-    console.error("Failed to create proposal comment:", error);
+    log.error({ err: error }, "Failed to create proposal comment");
     return { success: false, error: "Failed to create comment" };
   }
 }

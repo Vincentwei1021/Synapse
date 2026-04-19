@@ -5,6 +5,9 @@
 import { NextRequest } from "next/server";
 import { success, errors } from "@/lib/api-response";
 import { getUserIdentity } from "@/services/user.service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "auth" });
 
 // Decode JWT without verification (just to extract claims)
 function decodeJwt(token: string): Record<string, unknown> | null {
@@ -60,7 +63,7 @@ export async function GET(request: NextRequest) {
       company: user.company,
     });
   } catch (error) {
-    console.error("Auth me error:", error);
+    log.error({ err: error }, "Auth me error");
     return errors.internal("Failed to get user info");
   }
 }

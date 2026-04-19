@@ -3,6 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { updateDocument, getDocumentByUuid } from "@/services/document.service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "document" });
 
 export async function updateDocumentAction(
   documentUuid: string,
@@ -28,7 +31,7 @@ export async function updateDocumentAction(
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to update document:", error);
+    log.error({ err: error }, "Failed to update document");
     return { success: false, error: "Failed to update document" };
   }
 }

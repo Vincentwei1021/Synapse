@@ -24,6 +24,7 @@ import {
   Menu,
 } from "lucide-react";
 import { authFetch, logout as authLogout, clearUserManager, refreshAuthCookies } from "@/lib/auth-client";
+import { clientLogger } from "@/lib/logger-client";
 import { RealtimeProvider } from "@/contexts/realtime-context";
 import { NotificationProvider } from "@/contexts/notification-context";
 import { ToastProvider } from "@/contexts/toast-context";
@@ -192,7 +193,7 @@ export default function DashboardLayout({
         return;
       }
     } catch (error) {
-      console.error("Session check failed:", error);
+      clientLogger.error("Session check failed:", error);
       clearUserManager();
       router.push("/login");
       return;
@@ -205,7 +206,7 @@ export default function DashboardLayout({
     try {
       const response = await authFetch("/api/research-projects");
       if (!response.ok) {
-        console.error("Failed to fetch projects:", response.status);
+        clientLogger.error("Failed to fetch projects:", response.status);
         return;
       }
       const data = await response.json();
@@ -214,7 +215,7 @@ export default function DashboardLayout({
         setProjects(projectList);
       }
     } catch (error) {
-      console.error("Failed to fetch projects:", error);
+      clientLogger.error("Failed to fetch projects:", error);
     }
   };
 

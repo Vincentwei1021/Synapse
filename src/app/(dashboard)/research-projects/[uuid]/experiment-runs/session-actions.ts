@@ -7,6 +7,9 @@ import {
   batchGetWorkerCountsForRuns,
   type RunSessionInfo,
 } from "@/services/session.service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "experiment_run" });
 
 export async function getExperimentRunSessionsAction(runUuid: string): Promise<{
   success: boolean;
@@ -22,7 +25,7 @@ export async function getExperimentRunSessionsAction(runUuid: string): Promise<{
     const sessions = await getSessionsForRun(auth.companyUuid, runUuid);
     return { success: true, data: sessions };
   } catch (error) {
-    console.error("Failed to fetch task sessions:", error);
+    log.error({ err: error }, "Failed to fetch task sessions");
     return { success: false, error: "Failed to fetch task sessions" };
   }
 }
@@ -41,7 +44,7 @@ export async function getBatchWorkerCountsAction(runUuids: string[]): Promise<{
     const counts = await batchGetWorkerCountsForRuns(auth.companyUuid, runUuids);
     return { success: true, data: counts };
   } catch (error) {
-    console.error("Failed to fetch batch worker counts:", error);
+    log.error({ err: error }, "Failed to fetch batch worker counts");
     return { success: false, error: "Failed to fetch batch worker counts" };
   }
 }

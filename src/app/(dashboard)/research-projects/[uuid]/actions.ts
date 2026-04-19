@@ -5,6 +5,9 @@ import { getServerAuthContext } from "@/lib/auth-server";
 import { getResearchProject, deleteResearchProject, updateResearchProject } from "@/services/research-project.service";
 import { revalidatePath } from "next/cache";
 import { getActiveSessionsForProject, type RunSessionInfo } from "@/services/session.service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "research_project" });
 
 export async function deleteResearchProjectAction(projectUuid: string) {
   const auth = await getServerAuthContext();
@@ -20,7 +23,7 @@ export async function deleteResearchProjectAction(projectUuid: string) {
   try {
     await deleteResearchProject(projectUuid);
   } catch (error) {
-    console.error("Failed to delete project:", error);
+    log.error({ err: error }, "Failed to delete project");
     return { success: false, error: "Failed to delete project" };
   }
 
@@ -46,7 +49,7 @@ export async function updateResearchProjectAction(
     revalidatePath(`/research-projects/${projectUuid}/dashboard`);
     return { success: true, data: updated };
   } catch (error) {
-    console.error("Failed to update project:", error);
+    log.error({ err: error }, "Failed to update project");
     return { success: false, error: "Failed to update project" };
   }
 }
@@ -65,7 +68,7 @@ export async function getProjectActiveSessionsAction(projectUuid: string): Promi
     const sessions = await getActiveSessionsForProject(auth.companyUuid, projectUuid);
     return { success: true, data: sessions };
   } catch (error) {
-    console.error("Failed to fetch active sessions:", error);
+    log.error({ err: error }, "Failed to fetch active sessions");
     return { success: false, error: "Failed to fetch active sessions" };
   }
 }

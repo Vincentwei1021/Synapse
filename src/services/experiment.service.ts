@@ -3,9 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { eventBus } from "@/lib/event-bus";
 import { formatAssigneeComplete, formatCreatedBy } from "@/lib/uuid-resolver";
 import { getActorName } from "@/lib/uuid-resolver";
+import { logger } from "@/lib/logger";
 import * as activityService from "@/services/activity.service";
 import { createDocument, updateDocument } from "@/services/document.service";
 import * as notificationService from "@/services/notification.service";
+
+const log = logger.child({ module: "experiment" });
 
 export type ExperimentStatus =
   | "draft"
@@ -804,7 +807,7 @@ export async function reviewExperiment(input: {
       });
       await updateExperimentLiveStatus(input.experimentUuid, "sent");
     } catch (err) {
-      console.error("Failed to send task_assigned notification after review approval:", err);
+      log.error({ err }, "failed to send task_assigned notification after review approval");
     }
   }
 
@@ -846,14 +849,14 @@ export async function reviewExperiment(input: {
         actorName: actorName || "Unknown",
       });
     } catch (err) {
-      console.error("Failed to emit revision request for reverted experiment:", err);
+      log.error({ err }, "failed to emit revision request for reverted experiment");
     }
   }
 
   // Check autonomous loop when experiment is rejected (queue may become empty)
   if (!input.approved) {
     await checkAutonomousLoopTrigger(updated.researchProjectUuid, input.companyUuid).catch(
-      (err) => console.error("Autonomous loop trigger check failed:", err)
+      (err) => log.error({ err }, "autonomous loop trigger check failed")
     );
   }
 
@@ -1229,7 +1232,7 @@ export async function completeExperiment(input: {
       experimentBranch: input.experimentBranch ?? existing.experimentBranch,
     }, input.companyUuid);
   } catch (err) {
-    console.error("Failed to append experiment results log:", err);
+    log.error({ err }, "failed to append experiment results log");
   }
 
   const updated = await prisma.experiment.update({
@@ -1287,7 +1290,7 @@ export async function completeExperiment(input: {
         actorName: "Synapse",
       });
     } catch (err) {
-      console.error("Failed to trigger experiment report:", err);
+      log.error({ err }, "failed to trigger experiment report");
     }
   }
 
@@ -1311,12 +1314,12 @@ export async function completeExperiment(input: {
       await refreshProjectSynthesis(updated.researchProjectUuid, input.companyUuid, input.actorUuid);
     }
   } catch (err) {
-    console.error("Failed to refresh synthesis after Mode 2 experiment:", err);
+    log.error({ err }, "failed to refresh synthesis after Mode 2 experiment");
   }
 
   // Check autonomous loop trigger
   await checkAutonomousLoopTrigger(updated.researchProjectUuid, input.companyUuid).catch(
-    (err) => console.error("Autonomous loop trigger check failed:", err)
+    (err) => log.error({ err }, "autonomous loop trigger check failed")
   );
 
   return formatExperiment(input.companyUuid, updated);

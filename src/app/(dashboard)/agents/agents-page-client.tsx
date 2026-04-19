@@ -49,6 +49,7 @@ import {
   reopenSessionAction,
 } from "@/app/(dashboard)/settings/actions";
 import { useLocale } from "@/contexts/locale-context";
+import { clientLogger } from "@/lib/logger-client";
 import type { SessionResponse } from "@/services/session.service";
 import { formatAgentApiKeyCreatedAt } from "./agents-page-client.helpers";
 import { AgentColorPicker } from "@/components/agent-color-picker";
@@ -294,7 +295,7 @@ export function AgentsPageClient({
         }
       }
     } catch (error) {
-      console.error("Failed to create agent:", error);
+      clientLogger.error("Failed to create agent:", error);
     } finally {
       setSubmitting(false);
     }
@@ -321,7 +322,7 @@ export function AgentsPageClient({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error("Failed to copy:", error);
+      clientLogger.error("Failed to copy:", error);
     }
   };
 
@@ -376,7 +377,7 @@ export function AgentsPageClient({
         );
       }
     } catch (error) {
-      console.error("Failed to update agent:", error);
+      clientLogger.error("Failed to update agent:", error);
     } finally {
       setSaving(false);
     }
@@ -392,7 +393,7 @@ export function AgentsPageClient({
         setAgentApiKeys((prev) => prev.filter((k) => k.uuid !== keyToDelete));
       }
     } catch (error) {
-      console.error("Failed to delete API key:", error);
+      clientLogger.error("Failed to delete API key:", error);
     } finally {
       setDeleteConfirmOpen(false);
       setKeyToDelete(null);

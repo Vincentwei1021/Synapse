@@ -49,8 +49,6 @@ describe('verifyOidcAccessToken', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset console.error mock to avoid noise in test output
-    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   it('returns UserAuthContext for valid access token', async () => {
@@ -182,10 +180,6 @@ describe('verifyOidcAccessToken', () => {
     const result = await verifyOidcAccessToken(token);
 
     expect(result).toBeNull();
-    expect(console.error).toHaveBeenCalledWith(
-      'OIDC token verification failed:',
-      expect.any(Error)
-    );
   });
 
   it('creates JWKS with correct issuer URL', async () => {

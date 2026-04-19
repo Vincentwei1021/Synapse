@@ -2,6 +2,9 @@
 // Dual-layer event bus: local EventEmitter + optional Redis Pub/Sub
 // Local emit for same-process delivery, Redis for cross-instance delivery.
 import { EventEmitter } from "events";
+import { logger } from "./logger";
+
+const log = logger.child({ module: "event_bus" });
 import { randomUUID } from "crypto";
 import { isRedisEnabled, getRedisPublisher, getRedisSubscriber } from "./redis";
 
@@ -134,6 +137,6 @@ export async function ensureEventBusConnected(): Promise<void> {
     await eventBus.connect();
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[EventBus] Redis connect failed, falling back to memory:", message);
+    log.error({ err: message }, "Redis connect failed, falling back to memory");
   }
 }

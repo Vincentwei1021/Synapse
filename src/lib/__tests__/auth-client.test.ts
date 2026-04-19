@@ -357,7 +357,6 @@ describe('syncTokenToCookie', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal('fetch', vi.fn());
-    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -391,7 +390,6 @@ describe('syncTokenToCookie', () => {
     const result = await syncTokenToCookie('access-token');
 
     expect(result).toBe(false);
-    expect(console.error).toHaveBeenCalledWith('Failed to sync token to cookie');
   });
 });
 

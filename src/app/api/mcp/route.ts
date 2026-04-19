@@ -8,6 +8,9 @@ import { createMcpServer } from "@/mcp/server";
 import { extractApiKey, validateApiKey } from "@/lib/api-key";
 import { getResearchProjectUuidsByGroup } from "@/services/research-project.service";
 import type { AgentAuthContext, AgentRole } from "@/types/auth";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "mcp" });
 
 // Store session transport instances with activity tracking
 const sessions = new Map<string, {
@@ -29,8 +32,8 @@ function cleanupExpiredSessions() {
   const now = Date.now();
   for (const [sessionId, session] of sessions.entries()) {
     if (now - session.lastActivity > SESSION_TIMEOUT_MS) {
-      console.log(`[MCP] Cleaning up expired session: ${sessionId}`);
-      session.transport.close().catch(console.error);
+      log.debug({ sessionId }, "cleaning up expired session");
+      session.transport.close().catch((err) => log.error({ err }, "session close error during cleanup"));
       sessions.delete(sessionId);
     }
   }
@@ -136,7 +139,7 @@ export async function POST(request: NextRequest) {
     const response = await transport.handleRequest(request);
     return response;
   } catch (error) {
-    console.error("MCP endpoint error:", error);
+    log.error({ err: error }, "MCP endpoint error");
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -164,7 +167,7 @@ export async function DELETE(request: NextRequest) {
 
     return new Response(null, { status: 204 });
   } catch (error) {
-    console.error("MCP session close error:", error);
+    log.error({ err: error }, "MCP session close error");
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

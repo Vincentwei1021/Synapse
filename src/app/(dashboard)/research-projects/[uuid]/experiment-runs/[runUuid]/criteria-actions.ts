@@ -3,6 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { markAcceptanceCriteria, reportCriteriaSelfCheck, resetAcceptanceCriterion, getExperimentRunByUuid } from "@/services/experiment-run.service";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "experiment_run" });
 
 export async function markCriteriaAction(
   runUuid: string,
@@ -36,7 +39,7 @@ export async function markCriteriaAction(
 
     return { success: true, data: result };
   } catch (error) {
-    console.error("Failed to mark acceptance criteria:", error);
+    log.error({ err: error }, "Failed to mark acceptance criteria");
     return { success: false, error: "Failed to mark acceptance criteria" };
   }
 }
@@ -67,7 +70,7 @@ export async function resetCriterionAction(
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to reset acceptance criterion:", error);
+    log.error({ err: error }, "Failed to reset acceptance criterion");
     return { success: false, error: "Failed to reset acceptance criterion" };
   }
 }
@@ -99,7 +102,7 @@ export async function selfCheckCriteriaAction(
 
     return { success: true, data: result };
   } catch (error) {
-    console.error("Failed to self-check acceptance criteria:", error);
+    log.error({ err: error }, "Failed to self-check acceptance criteria");
     return { success: false, error: "Failed to self-check acceptance criteria" };
   }
 }
