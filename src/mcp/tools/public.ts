@@ -308,14 +308,14 @@ export function registerPublicTools(server: McpServer, auth: AgentAuthContext) {
       const experimentCountsByProject: Record<string, Record<string, number>> = {};
       if (projects.length > 0) {
         const projectUuids = projects.map((p) => p.uuid);
-        const experiments = await prisma.experiment.groupBy({
+        const experiments = await (prisma.experiment.groupBy as Function)({
           by: ["researchProjectUuid", "status"],
           where: {
             companyUuid: auth.companyUuid,
             researchProjectUuid: { in: projectUuids },
           },
           _count: true,
-        });
+        }) as Array<{ researchProjectUuid: string; status: string; _count: number }>;
         for (const row of experiments) {
           if (!experimentCountsByProject[row.researchProjectUuid]) {
             experimentCountsByProject[row.researchProjectUuid] = {};
