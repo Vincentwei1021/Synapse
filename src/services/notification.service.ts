@@ -242,6 +242,8 @@ export async function create(
     notificationUuid: notification.uuid,
     action: params.action,
     message: params.message,
+    projectName: params.projectName,
+    entityTitle: params.entityTitle,
     unreadCount,
   });
 
@@ -309,6 +311,8 @@ export async function createBatch(
         )?.uuid,
         action: recipientNotification?.action,
         message: recipientNotification?.message,
+        projectName: recipientNotification?.projectName,
+        entityTitle: recipientNotification?.entityTitle,
         unreadCount,
       });
     })

@@ -822,9 +822,9 @@ export function ExperimentsBoard({
                       {t(`experiments.columns.${columns.find((column) => column.id === selectedExperiment.status)?.labelKey || "draft"}`)}
                       {(() => {
                         const ts = selectedExperiment.status === "completed" ? selectedExperiment.completedAt
-                          : selectedExperiment.status === "in_progress" ? selectedExperiment.startedAt
-                          : selectedExperiment.status === "pending_review" || selectedExperiment.status === "pending_start" ? selectedExperiment.reviewedAt
-                          : null;
+                          : selectedExperiment.status === "in_progress" ? (selectedExperiment.startedAt || selectedExperiment.updatedAt)
+                          : selectedExperiment.status === "pending_review" || selectedExperiment.status === "pending_start" ? (selectedExperiment.reviewedAt || selectedExperiment.updatedAt)
+                          : selectedExperiment.updatedAt;
                         return ts ? ` · ${new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : "";
                       })()}
                     </Badge>
@@ -990,18 +990,18 @@ export function ExperimentsBoard({
                 ) : (
                   <div className="grid gap-3 md:grid-cols-2">
                     <Card className="rounded-2xl border-border bg-secondary/50 p-4 shadow-none">
-                      <p className="text-xs text-muted-foreground">{t("experiments.card.question")}</p>
-                      <p className="mt-2 text-sm font-medium text-foreground">
+                      <p className="text-sm text-muted-foreground">{t("experiments.card.question")}</p>
+                      <p className="mt-2 text-base font-medium text-foreground">
                         {selectedExperiment.researchQuestion?.title || t("experiments.card.unlinked")}
                       </p>
                     </Card>
                     <Card className="rounded-2xl border-border bg-secondary/50 p-4 shadow-none">
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                         {selectedExperiment.startedAt && selectedExperiment.completedAt
                           ? t("experiments.detail.elapsed")
                           : t("experiments.detail.computeBudget")}
                       </p>
-                      <p className="mt-2 text-sm font-medium text-foreground">
+                      <p className="mt-2 text-base font-medium text-foreground">
                         {(() => {
                           if (selectedExperiment.startedAt && selectedExperiment.completedAt) {
                             const ms = new Date(selectedExperiment.completedAt).getTime() - new Date(selectedExperiment.startedAt).getTime();

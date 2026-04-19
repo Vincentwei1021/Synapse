@@ -92,6 +92,8 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
                 category: toastConfig.category,
                 color: toastConfig.color,
                 message: data.message,
+                projectName: data.projectName,
+                entityTitle: data.entityTitle,
               });
             }
           }
