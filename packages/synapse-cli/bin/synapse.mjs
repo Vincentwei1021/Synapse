@@ -161,6 +161,29 @@ if (!existsSync(serverJs)) {
   process.exit(1);
 }
 
+// Ensure .next/cache is writable — when installed globally via sudo,
+// the package dir is root-owned but the process runs as a normal user.
+const cacheDir = join(dataDir, "next-cache");
+const distCacheDir = join(DIST_DIR, ".next", "cache");
+mkdirSync(cacheDir, { recursive: true });
+try {
+  const { lstatSync: lstat, symlinkSync, unlinkSync } = await import("node:fs");
+  try {
+    const stat = lstat(distCacheDir);
+    if (stat.isSymbolicLink()) {
+      unlinkSync(distCacheDir);
+    }
+  } catch {
+    // doesn't exist yet — fine
+  }
+  if (!existsSync(distCacheDir)) {
+    symlinkSync(cacheDir, distCacheDir);
+  }
+} catch {
+  // If we can't symlink (e.g. dir already exists as real dir), try direct mkdir
+  mkdirSync(distCacheDir, { recursive: true });
+}
+
 process.env.PORT = String(port);
 process.env.HOSTNAME = "0.0.0.0";
 process.env.NEXTAUTH_SECRET =

@@ -44,7 +44,6 @@ import {
   createResearchQuestionCommentAction,
 } from "./[questionUuid]/comment-actions";
 import { getQuestionActivitiesAction } from "./[questionUuid]/activity-actions";
-import { updateResearchQuestionAction, deleteResearchQuestionAction } from "./actions";
 import type { ActivityResponse } from "@/services/activity.service";
 import type { CommentResponse } from "@/services/comment.service";
 import { Streamdown } from "streamdown";
@@ -296,32 +295,45 @@ export function IdeaDetailPanel({
     setIsSaving(true);
     setEditError(null);
 
-    const result = await updateResearchQuestionAction({
-      questionUuid: idea.uuid,
-      projectUuid,
-      title: editTitle.trim(),
-      content: editContent.trim() || null,
-    });
+    try {
+      const response = await fetch(`/api/research-questions/${idea.uuid}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: editTitle.trim(),
+          content: editContent.trim() || null,
+        }),
+      });
 
-    setIsSaving(false);
+      setIsSaving(false);
 
-    if (result.success) {
-      setIsEditing(false);
-      router.refresh();
-    } else {
-      setEditError(result.error || t("ideas.updateFailed"));
+      if (response.ok) {
+        setIsEditing(false);
+        router.refresh();
+      } else {
+        setEditError(t("ideas.updateFailed"));
+      }
+    } catch {
+      setIsSaving(false);
+      setEditError(t("ideas.updateFailed"));
     }
   };
 
   const handleDelete = async () => {
     setIsDeleting(true);
-    const result = await deleteResearchQuestionAction(idea.uuid, projectUuid);
-    setIsDeleting(false);
+    try {
+      const response = await fetch(`/api/research-questions/${idea.uuid}`, {
+        method: "DELETE",
+      });
+      setIsDeleting(false);
 
-    if (result.success) {
-      onDeleted?.();
-      onClose();
-      router.refresh();
+      if (response.ok) {
+        onDeleted?.();
+        onClose();
+        router.refresh();
+      }
+    } catch {
+      setIsDeleting(false);
     }
   };
 
