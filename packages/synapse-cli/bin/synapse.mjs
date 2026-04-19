@@ -8,7 +8,7 @@ import { resolve, join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { execSync, fork } from "child_process";
 import { homedir } from "os";
-import { createHash, randomUUID } from "crypto";
+import { createHash } from "crypto";
 import { createConnection } from "net";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -142,40 +142,12 @@ module.exports = {
   console.warn("  No migrations directory found, skipping...");
 }
 
-// --- Seed default user if empty ---
+// --- Default auth (auto-provisions on first login) ---
 const defaultEmail = process.env.DEFAULT_USER || "admin@synapse.local";
 const defaultPassword = process.env.DEFAULT_PASSWORD || "synapse";
-
-try {
-  // Use pg to directly query and seed
-  const pgMod = await import(join(DIST_DIR, "node_modules", "pg", "lib", "index.js"));
-  const pg = pgMod.default || pgMod;
-  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-
-  const { rows } = await pool.query('SELECT COUNT(*) as count FROM "Company"');
-  const count = parseInt(rows[0].count, 10);
-
-  if (count === 0) {
-    const bcrypt = await import("bcrypt");
-    const passwordHash = await bcrypt.hash(defaultPassword, 10);
-    const companyUuid = randomUUID();
-    const userUuid = randomUUID();
-
-    await pool.query(
-      `INSERT INTO "Company" (uuid, name, "createdAt", "updatedAt") VALUES ($1, $2, NOW(), NOW())`,
-      [companyUuid, "Synapse Local"],
-    );
-    await pool.query(
-      `INSERT INTO "User" (uuid, "companyUuid", email, "passwordHash", name, role, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
-      [userUuid, companyUuid, defaultEmail, passwordHash, "Admin", "pi"],
-    );
-    console.log(`  Default login: ${defaultEmail} / ${defaultPassword}`);
-  }
-
-  await pool.end();
-} catch (err) {
-  console.warn("  Seed check skipped:", err.message);
-}
+process.env.DEFAULT_USER = defaultEmail;
+process.env.DEFAULT_PASSWORD = defaultPassword;
+console.log(`  Default login: ${defaultEmail} / ${defaultPassword}`);
 
 // --- Start Next.js standalone server ---
 const serverJs = join(DIST_DIR, "server.js");
