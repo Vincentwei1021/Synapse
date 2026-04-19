@@ -102,7 +102,7 @@ const migrationsDir = join(DIST_DIR, "prisma", "migrations");
 if (existsSync(migrationsDir)) {
   try {
     execSync(
-      `npx prisma migrate deploy --schema ${join(DIST_DIR, "prisma", "schema.prisma")} --url "${process.env.DATABASE_URL}"`,
+      `npx prisma migrate deploy --schema ${join(DIST_DIR, "prisma", "schema.prisma")}`,
       {
         cwd: DIST_DIR,
         stdio: "pipe",
