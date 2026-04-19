@@ -161,13 +161,10 @@ if (!existsSync(serverJs)) {
   process.exit(1);
 }
 
-// Ensure .next/cache is writable — prepack creates it with 0o777,
-// but if missing, try to create it. Falls back gracefully.
+// .next/cache writability is ensured by postinstall script (chmod 777).
+// If missing, try to create. Non-fatal if it fails.
 const distCacheDir = join(DIST_DIR, ".next", "cache");
-try {
-  const { accessSync, constants } = await import("node:fs");
-  accessSync(distCacheDir, constants.W_OK);
-} catch {
+if (!existsSync(distCacheDir)) {
   try { mkdirSync(distCacheDir, { recursive: true }); } catch { /* non-fatal */ }
 }
 
