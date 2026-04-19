@@ -1,0 +1,79 @@
+{
+  "name": "synapse-skill",
+  "version": "0.1.0",
+  "description": "Synapse AI Agent collaboration platform skill. Supports PM, Developer, and Admin roles via MCP tools for the Idea-Proposal-Task workflow.",
+  "author": "synapse",
+  "license": "AGPL-3.0",
+  "keywords": [
+    "synapse",
+    "skill",
+    "project-management",
+    "ai-agent",
+    "mcp",
+    "pm",
+    "developer",
+    "admin",
+    "collaboration"
+  ],
+  "synapse": {
+    "category": "project-management",
+    "mcp_server": "synapse",
+    "files": {
+      "SKILL.md": "/skill/SKILL.md",
+      "references/00-common-tools.md": "/skill/references/00-common-tools.md",
+      "references/01-setup.md": "/skill/references/01-setup.md",
+      "references/02-pm-workflow.md": "/skill/references/02-pm-workflow.md",
+      "references/03-developer-workflow.md": "/skill/references/03-developer-workflow.md",
+      "references/04-admin-workflow.md": "/skill/references/04-admin-workflow.md",
+      "references/06-claude-code-agent-teams.md": "/skill/references/06-claude-code-agent-teams.md"
+    },
+    "requires": {
+      "mcp": ["synapse"]
+    },
+    "triggers": [
+      "synapse",
+      "checkin",
+      "claim task",
+      "claim idea",
+      "create proposal",
+      "submit proposal",
+      "verify task",
+      "approve proposal",
+      "project management",
+      "report work",
+      "sub-agent",
+      "swarm",
+      "worker"
+    ]
+  },
+  "moltbot": {
+    "category": "project-management",
+    "files": {
+      "SKILL.md": "/skill/SKILL.md",
+      "references/00-common-tools.md": "/skill/references/00-common-tools.md",
+      "references/01-setup.md": "/skill/references/01-setup.md",
+      "references/02-pm-workflow.md": "/skill/references/02-pm-workflow.md",
+      "references/03-developer-workflow.md": "/skill/references/03-developer-workflow.md",
+      "references/04-admin-workflow.md": "/skill/references/04-admin-workflow.md",
+      "references/06-claude-code-agent-teams.md": "/skill/references/06-claude-code-agent-teams.md"
+    },
+    "requires": {
+      "mcp": ["synapse"]
+    },
+    "triggers": [
+      "synapse",
+      "checkin",
+      "claim task",
+      "claim idea",
+      "create proposal",
+      "submit proposal",
+      "verify task",
+      "approve proposal",
+      "project management",
+      "report work",
+      "sub-agent",
+      "swarm",
+      "worker"
+    ]
+  }
+}

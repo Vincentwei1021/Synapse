@@ -1,0 +1,737 @@
+{
+  "version": 3,
+  "pages404": true,
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/admin/companies/[uuid]",
+      "regex": "^/admin/companies/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/admin/companies/(?<nxtPuuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/admin/companies/[uuid]",
+      "regex": "^/api/admin/companies/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/admin/companies/(?<nxtPuuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/agents/[uuid]",
+      "regex": "^/api/agents/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/agents/(?<nxtPuuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/agents/[uuid]/sessions",
+      "regex": "^/api/agents/([^/]+?)/sessions(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/agents/(?<nxtPuuid>[^/]+?)/sessions(?:/)?$"
+    },
+    {
+      "page": "/api/api-keys/[uuid]",
+      "regex": "^/api/api\\-keys/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/api\\-keys/(?<nxtPuuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/compute-nodes/[uuid]",
+      "regex": "^/api/compute\\-nodes/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/compute\\-nodes/(?<nxtPuuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/compute-pools/[uuid]",
+      "regex": "^/api/compute\\-pools/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/compute\\-pools/(?<nxtPuuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/documents/[uuid]",
+      "regex": "^/api/documents/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/documents/(?<nxtPuuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/experiment-designs/[uuid]",
+      "regex": "^/api/experiment\\-designs/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/experiment\\-designs/(?<nxtPuuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/experiment-designs/[uuid]/approve",
+      "regex": "^/api/experiment\\-designs/([^/]+?)/approve(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/experiment\\-designs/(?<nxtPuuid>[^/]+?)/approve(?:/)?$"
+    },
+    {
+      "page": "/api/experiment-designs/[uuid]/close",
+      "regex": "^/api/experiment\\-designs/([^/]+?)/close(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/experiment\\-designs/(?<nxtPuuid>[^/]+?)/close(?:/)?$"
+    },
+    {
+      "page": "/api/experiment-designs/[uuid]/reject",
+      "regex": "^/api/experiment\\-designs/([^/]+?)/reject(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/experiment\\-designs/(?<nxtPuuid>[^/]+?)/reject(?:/)?$"
+    },
+    {
+      "page": "/api/experiment-runs/[uuid]",
+      "regex": "^/api/experiment\\-runs/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/experiment\\-runs/(?<nxtPuuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/experiment-runs/[uuid]/claim",
+      "regex": "^/api/experiment\\-runs/([^/]+?)/claim(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/experiment\\-runs/(?<nxtPuuid>[^/]+?)/claim(?:/)?$"
+    },
+    {
+      "page": "/api/experiment-runs/[uuid]/dependencies",
+      "regex": "^/api/experiment\\-runs/([^/]+?)/dependencies(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/experiment\\-runs/(?<nxtPuuid>[^/]+?)/dependencies(?:/)?$"
+    },
+    {
+      "page": "/api/experiment-runs/[uuid]/dependencies/[dependsOnRunUuid]",
+      "regex": "^/api/experiment\\-runs/([^/]+?)/dependencies/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid",
+        "nxtPdependsOnRunUuid": "nxtPdependsOnRunUuid"
+      },
+      "namedRegex": "^/api/experiment\\-runs/(?<nxtPuuid>[^/]+?)/dependencies/(?<nxtPdependsOnRunUuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/experiment-runs/[uuid]/evaluate-criteria",
+      "regex": "^/api/experiment\\-runs/([^/]+?)/evaluate\\-criteria(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/experiment\\-runs/(?<nxtPuuid>[^/]+?)/evaluate\\-criteria(?:/)?$"
+    },
+    {
+      "page": "/api/experiment-runs/[uuid]/registry",
+      "regex": "^/api/experiment\\-runs/([^/]+?)/registry(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/experiment\\-runs/(?<nxtPuuid>[^/]+?)/registry(?:/)?$"
+    },
+    {
+      "page": "/api/experiment-runs/[uuid]/release",
+      "regex": "^/api/experiment\\-runs/([^/]+?)/release(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/experiment\\-runs/(?<nxtPuuid>[^/]+?)/release(?:/)?$"
+    },
+    {
+      "page": "/api/experiment-runs/[uuid]/sessions",
+      "regex": "^/api/experiment\\-runs/([^/]+?)/sessions(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/experiment\\-runs/(?<nxtPuuid>[^/]+?)/sessions(?:/)?$"
+    },
+    {
+      "page": "/api/experiments/[uuid]",
+      "regex": "^/api/experiments/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/experiments/(?<nxtPuuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/experiments/[uuid]/complete",
+      "regex": "^/api/experiments/([^/]+?)/complete(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/experiments/(?<nxtPuuid>[^/]+?)/complete(?:/)?$"
+    },
+    {
+      "page": "/api/experiments/[uuid]/progress",
+      "regex": "^/api/experiments/([^/]+?)/progress(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/experiments/(?<nxtPuuid>[^/]+?)/progress(?:/)?$"
+    },
+    {
+      "page": "/api/experiments/[uuid]/request-plan",
+      "regex": "^/api/experiments/([^/]+?)/request\\-plan(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/experiments/(?<nxtPuuid>[^/]+?)/request\\-plan(?:/)?$"
+    },
+    {
+      "page": "/api/experiments/[uuid]/reset",
+      "regex": "^/api/experiments/([^/]+?)/reset(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/experiments/(?<nxtPuuid>[^/]+?)/reset(?:/)?$"
+    },
+    {
+      "page": "/api/experiments/[uuid]/review",
+      "regex": "^/api/experiments/([^/]+?)/review(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/experiments/(?<nxtPuuid>[^/]+?)/review(?:/)?$"
+    },
+    {
+      "page": "/api/experiments/[uuid]/start",
+      "regex": "^/api/experiments/([^/]+?)/start(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/experiments/(?<nxtPuuid>[^/]+?)/start(?:/)?$"
+    },
+    {
+      "page": "/api/notifications/[uuid]/archive",
+      "regex": "^/api/notifications/([^/]+?)/archive(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/notifications/(?<nxtPuuid>[^/]+?)/archive(?:/)?$"
+    },
+    {
+      "page": "/api/notifications/[uuid]/read",
+      "regex": "^/api/notifications/([^/]+?)/read(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/notifications/(?<nxtPuuid>[^/]+?)/read(?:/)?$"
+    },
+    {
+      "page": "/api/project-groups/[uuid]",
+      "regex": "^/api/project\\-groups/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/project\\-groups/(?<nxtPuuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/project-groups/[uuid]/dashboard",
+      "regex": "^/api/project\\-groups/([^/]+?)/dashboard(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/project\\-groups/(?<nxtPuuid>[^/]+?)/dashboard(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]",
+      "regex": "^/api/research\\-projects/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/activity",
+      "regex": "^/api/research\\-projects/([^/]+?)/activity(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/activity(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/agent-activity",
+      "regex": "^/api/research\\-projects/([^/]+?)/agent\\-activity(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/agent\\-activity(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/available",
+      "regex": "^/api/research\\-projects/([^/]+?)/available(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/available(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/baselines",
+      "regex": "^/api/research\\-projects/([^/]+?)/baselines(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/baselines(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/documents",
+      "regex": "^/api/research\\-projects/([^/]+?)/documents(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/documents(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/experiment-designs",
+      "regex": "^/api/research\\-projects/([^/]+?)/experiment\\-designs(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/experiment\\-designs(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/experiment-designs/summary",
+      "regex": "^/api/research\\-projects/([^/]+?)/experiment\\-designs/summary(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/experiment\\-designs/summary(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/experiment-designs/[designUuid]/validate",
+      "regex": "^/api/research\\-projects/([^/]+?)/experiment\\-designs/([^/]+?)/validate(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid",
+        "nxtPdesignUuid": "nxtPdesignUuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/experiment\\-designs/(?<nxtPdesignUuid>[^/]+?)/validate(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/experiment-runs",
+      "regex": "^/api/research\\-projects/([^/]+?)/experiment\\-runs(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/experiment\\-runs(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/experiment-runs/dependencies",
+      "regex": "^/api/research\\-projects/([^/]+?)/experiment\\-runs/dependencies(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/experiment\\-runs/dependencies(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/experiments",
+      "regex": "^/api/research\\-projects/([^/]+?)/experiments(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/experiments(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/github/branches",
+      "regex": "^/api/research\\-projects/([^/]+?)/github/branches(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/github/branches(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/group",
+      "regex": "^/api/research\\-projects/([^/]+?)/group(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/group(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/related-works",
+      "regex": "^/api/research\\-projects/([^/]+?)/related\\-works(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/related\\-works(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/related-works/auto-search",
+      "regex": "^/api/research\\-projects/([^/]+?)/related\\-works/auto\\-search(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/related\\-works/auto\\-search(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/related-works/auto-search/complete",
+      "regex": "^/api/research\\-projects/([^/]+?)/related\\-works/auto\\-search/complete(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/related\\-works/auto\\-search/complete(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/related-works/deep-research",
+      "regex": "^/api/research\\-projects/([^/]+?)/related\\-works/deep\\-research(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/related\\-works/deep\\-research(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/related-works/deep-research/complete",
+      "regex": "^/api/research\\-projects/([^/]+?)/related\\-works/deep\\-research/complete(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/related\\-works/deep\\-research/complete(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/related-works/[workUuid]",
+      "regex": "^/api/research\\-projects/([^/]+?)/related\\-works/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid",
+        "nxtPworkUuid": "nxtPworkUuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/related\\-works/(?<nxtPworkUuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/research-projects/[uuid]/research-questions",
+      "regex": "^/api/research\\-projects/([^/]+?)/research\\-questions(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-projects/(?<nxtPuuid>[^/]+?)/research\\-questions(?:/)?$"
+    },
+    {
+      "page": "/api/research-questions/[uuid]",
+      "regex": "^/api/research\\-questions/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-questions/(?<nxtPuuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/research-questions/[uuid]/claim",
+      "regex": "^/api/research\\-questions/([^/]+?)/claim(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-questions/(?<nxtPuuid>[^/]+?)/claim(?:/)?$"
+    },
+    {
+      "page": "/api/research-questions/[uuid]/move",
+      "regex": "^/api/research\\-questions/([^/]+?)/move(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-questions/(?<nxtPuuid>[^/]+?)/move(?:/)?$"
+    },
+    {
+      "page": "/api/research-questions/[uuid]/release",
+      "regex": "^/api/research\\-questions/([^/]+?)/release(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-questions/(?<nxtPuuid>[^/]+?)/release(?:/)?$"
+    },
+    {
+      "page": "/api/sessions/[uuid]",
+      "regex": "^/api/sessions/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/sessions/(?<nxtPuuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/project-groups/[uuid]",
+      "regex": "^/project\\-groups/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/project\\-groups/(?<nxtPuuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/research-projects/[uuid]/activity",
+      "regex": "^/research\\-projects/([^/]+?)/activity(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/research\\-projects/(?<nxtPuuid>[^/]+?)/activity(?:/)?$"
+    },
+    {
+      "page": "/research-projects/[uuid]/dashboard",
+      "regex": "^/research\\-projects/([^/]+?)/dashboard(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/research\\-projects/(?<nxtPuuid>[^/]+?)/dashboard(?:/)?$"
+    },
+    {
+      "page": "/research-projects/[uuid]/documents",
+      "regex": "^/research\\-projects/([^/]+?)/documents(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/research\\-projects/(?<nxtPuuid>[^/]+?)/documents(?:/)?$"
+    },
+    {
+      "page": "/research-projects/[uuid]/documents/[documentUuid]",
+      "regex": "^/research\\-projects/([^/]+?)/documents/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid",
+        "nxtPdocumentUuid": "nxtPdocumentUuid"
+      },
+      "namedRegex": "^/research\\-projects/(?<nxtPuuid>[^/]+?)/documents/(?<nxtPdocumentUuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/research-projects/[uuid]/experiment-designs",
+      "regex": "^/research\\-projects/([^/]+?)/experiment\\-designs(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/research\\-projects/(?<nxtPuuid>[^/]+?)/experiment\\-designs(?:/)?$"
+    },
+    {
+      "page": "/research-projects/[uuid]/experiment-designs/new",
+      "regex": "^/research\\-projects/([^/]+?)/experiment\\-designs/new(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/research\\-projects/(?<nxtPuuid>[^/]+?)/experiment\\-designs/new(?:/)?$"
+    },
+    {
+      "page": "/research-projects/[uuid]/experiment-designs/[designUuid]",
+      "regex": "^/research\\-projects/([^/]+?)/experiment\\-designs/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid",
+        "nxtPdesignUuid": "nxtPdesignUuid"
+      },
+      "namedRegex": "^/research\\-projects/(?<nxtPuuid>[^/]+?)/experiment\\-designs/(?<nxtPdesignUuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/research-projects/[uuid]/experiment-runs",
+      "regex": "^/research\\-projects/([^/]+?)/experiment\\-runs(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/research\\-projects/(?<nxtPuuid>[^/]+?)/experiment\\-runs(?:/)?$"
+    },
+    {
+      "page": "/research-projects/[uuid]/experiment-runs/[runUuid]",
+      "regex": "^/research\\-projects/([^/]+?)/experiment\\-runs/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid",
+        "nxtPrunUuid": "nxtPrunUuid"
+      },
+      "namedRegex": "^/research\\-projects/(?<nxtPuuid>[^/]+?)/experiment\\-runs/(?<nxtPrunUuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/research-projects/[uuid]/experiments",
+      "regex": "^/research\\-projects/([^/]+?)/experiments(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/research\\-projects/(?<nxtPuuid>[^/]+?)/experiments(?:/)?$"
+    },
+    {
+      "page": "/research-projects/[uuid]/experiments/new",
+      "regex": "^/research\\-projects/([^/]+?)/experiments/new(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/research\\-projects/(?<nxtPuuid>[^/]+?)/experiments/new(?:/)?$"
+    },
+    {
+      "page": "/research-projects/[uuid]/insights",
+      "regex": "^/research\\-projects/([^/]+?)/insights(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/research\\-projects/(?<nxtPuuid>[^/]+?)/insights(?:/)?$"
+    },
+    {
+      "page": "/research-projects/[uuid]/related-works",
+      "regex": "^/research\\-projects/([^/]+?)/related\\-works(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/research\\-projects/(?<nxtPuuid>[^/]+?)/related\\-works(?:/)?$"
+    },
+    {
+      "page": "/research-projects/[uuid]/research-questions",
+      "regex": "^/research\\-projects/([^/]+?)/research\\-questions(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/research\\-projects/(?<nxtPuuid>[^/]+?)/research\\-questions(?:/)?$"
+    },
+    {
+      "page": "/research-projects/[uuid]/research-questions/[questionUuid]",
+      "regex": "^/research\\-projects/([^/]+?)/research\\-questions/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid",
+        "nxtPquestionUuid": "nxtPquestionUuid"
+      },
+      "namedRegex": "^/research\\-projects/(?<nxtPuuid>[^/]+?)/research\\-questions/(?<nxtPquestionUuid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/research-projects/[uuid]/settings",
+      "regex": "^/research\\-projects/([^/]+?)/settings(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/research\\-projects/(?<nxtPuuid>[^/]+?)/settings(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/admin",
+      "regex": "^/admin(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin(?:/)?$"
+    },
+    {
+      "page": "/admin/companies",
+      "regex": "^/admin/companies(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/companies(?:/)?$"
+    },
+    {
+      "page": "/admin/companies/new",
+      "regex": "^/admin/companies/new(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/companies/new(?:/)?$"
+    },
+    {
+      "page": "/agents",
+      "regex": "^/agents(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/agents(?:/)?$"
+    },
+    {
+      "page": "/compute",
+      "regex": "^/compute(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/compute(?:/)?$"
+    },
+    {
+      "page": "/favicon.ico",
+      "regex": "^/favicon\\.ico(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/favicon\\.ico(?:/)?$"
+    },
+    {
+      "page": "/login",
+      "regex": "^/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/login/admin",
+      "regex": "^/login/admin(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login/admin(?:/)?$"
+    },
+    {
+      "page": "/login/callback",
+      "regex": "^/login/callback(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login/callback(?:/)?$"
+    },
+    {
+      "page": "/login/silent-refresh",
+      "regex": "^/login/silent\\-refresh(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login/silent\\-refresh(?:/)?$"
+    },
+    {
+      "page": "/onboarding",
+      "regex": "^/onboarding(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/onboarding(?:/)?$"
+    },
+    {
+      "page": "/research-projects",
+      "regex": "^/research\\-projects(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/research\\-projects(?:/)?$"
+    },
+    {
+      "page": "/research-projects/new",
+      "regex": "^/research\\-projects/new(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/research\\-projects/new(?:/)?$"
+    },
+    {
+      "page": "/settings",
+      "regex": "^/settings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/settings(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSuffix": ".prefetch.rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments"
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}
