@@ -3,9 +3,9 @@
 // prepack-pglite.mjs
 // Prepares the synapse-cli package for npm publish.
 // Handles pnpm's symlink-based node_modules by:
-// 1. Copying standalone output as-is (preserving symlinks)
-// 2. Dereferencing top-level package symlinks individually
-// 3. Handling scoped packages (@scope/pkg)
+// 1. Copying standalone output as-is
+// 2. Hoisting all packages from .pnpm to top-level node_modules
+// 3. Dereferencing top-level symlinks
 // 4. Removing .pnpm directory
 
 import { execSync } from "child_process";
@@ -40,7 +40,7 @@ if (!existsSync(STANDALONE)) {
   process.exit(1);
 }
 
-// --- Clean and copy standalone (preserving symlinks initially) ---
+// --- Clean and copy standalone ---
 if (existsSync(DIST)) rmSync(DIST, { recursive: true });
 mkdirSync(DIST, { recursive: true });
 
@@ -74,11 +74,57 @@ if (existsSync(prismaSrc)) {
   cpSync(prismaSrc, prismaDest, { recursive: true });
 }
 
-// --- Dereference pnpm symlinks in dist/node_modules ---
+// --- Hoist and dereference pnpm packages ---
 const nmDir = join(DIST, "node_modules");
+const pnpmDir = join(nmDir, ".pnpm");
+
 if (existsSync(nmDir)) {
-  console.log("[prepack] Dereferencing pnpm symlinks...");
-  let count = 0;
+  // Step 1: Hoist all packages from .pnpm/*/node_modules/* to top-level
+  if (existsSync(pnpmDir)) {
+    console.log("[prepack] Hoisting packages from .pnpm...");
+    let hoisted = 0;
+
+    for (const pnpmEntry of readdirSync(pnpmDir)) {
+      const innerNm = join(pnpmDir, pnpmEntry, "node_modules");
+      if (!existsSync(innerNm)) continue;
+
+      for (const pkg of readdirSync(innerNm)) {
+        if (pkg === ".pnpm") continue;
+
+        const srcPath = join(innerNm, pkg);
+        const stat = lstatSync(srcPath);
+
+        if (pkg.startsWith("@")) {
+          // Scoped package: hoist entries inside it
+          if (!stat.isDirectory()) continue;
+          for (const subPkg of readdirSync(srcPath)) {
+            const subSrc = join(srcPath, subPkg);
+            const subDest = join(nmDir, pkg, subPkg);
+            if (!existsSync(subDest)) {
+              mkdirSync(join(nmDir, pkg), { recursive: true });
+              const realPath = stat.isSymbolicLink ? realpathSync(subSrc) : subSrc;
+              cpSync(realPath, subDest, { recursive: true, dereference: true });
+              hoisted++;
+            }
+          }
+        } else {
+          // Regular package
+          const destPath = join(nmDir, pkg);
+          if (!existsSync(destPath)) {
+            const realPath = stat.isSymbolicLink() ? realpathSync(srcPath) : srcPath;
+            cpSync(realPath, destPath, { recursive: true, dereference: true });
+            hoisted++;
+          }
+        }
+      }
+    }
+
+    console.log(`[prepack] Hoisted ${hoisted} packages`);
+  }
+
+  // Step 2: Dereference remaining top-level symlinks
+  console.log("[prepack] Dereferencing top-level symlinks...");
+  let derefCount = 0;
 
   for (const entry of readdirSync(nmDir)) {
     if (entry === ".pnpm" || entry === ".package-lock.json") continue;
@@ -88,24 +134,21 @@ if (existsSync(nmDir)) {
 
     if (stat.isSymbolicLink()) {
       deref(target);
-      count++;
+      derefCount++;
     } else if (stat.isDirectory() && entry.startsWith("@")) {
-      // Scoped packages: dereference entries inside @scope/
       for (const sub of readdirSync(target)) {
         const subTarget = join(target, sub);
-        const subStat = lstatSync(subTarget);
-        if (subStat.isSymbolicLink()) {
+        if (lstatSync(subTarget).isSymbolicLink()) {
           deref(subTarget);
-          count++;
+          derefCount++;
         }
       }
     }
   }
 
-  console.log(`[prepack] Dereferenced ${count} packages`);
+  console.log(`[prepack] Dereferenced ${derefCount} symlinks`);
 
-  // Remove .pnpm directory
-  const pnpmDir = join(nmDir, ".pnpm");
+  // Step 3: Remove .pnpm
   if (existsSync(pnpmDir)) {
     console.log("[prepack] Removing .pnpm directory...");
     rmSync(pnpmDir, { recursive: true, force: true });
