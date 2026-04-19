@@ -1369,6 +1369,7 @@
       "noDescription": "暂未填写实验计划。",
       "draftEditable": "这个草稿实验可以直接在右侧栏编辑，并保存回看板。",
       "computeBudget": "时间限制",
+      "elapsed": "用时",
       "notSet": "未设置",
       "unlimited": "不设上限",
       "outcome": "结果摘要",

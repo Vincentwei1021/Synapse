@@ -815,7 +815,16 @@ export function ExperimentsBoard({
                     <Badge variant="outline" className={priorityBadgeClasses(selectedExperiment.priority)}>
                       {formatPriorityLabel(t, selectedExperiment.priority)}
                     </Badge>
-                    <Badge variant="secondary">{t(`experiments.columns.${columns.find((column) => column.id === selectedExperiment.status)?.labelKey || "draft"}`)}</Badge>
+                    <Badge variant="secondary">
+                      {t(`experiments.columns.${columns.find((column) => column.id === selectedExperiment.status)?.labelKey || "draft"}`)}
+                      {(() => {
+                        const ts = selectedExperiment.status === "completed" ? selectedExperiment.completedAt
+                          : selectedExperiment.status === "in_progress" ? selectedExperiment.startedAt
+                          : selectedExperiment.status === "pending_review" || selectedExperiment.status === "pending_start" ? selectedExperiment.reviewedAt
+                          : null;
+                        return ts ? ` · ${new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : "";
+                      })()}
+                    </Badge>
                     {selectedExperiment.assignee?.name ? (
                       <Badge variant="outline">{selectedExperiment.assignee.name}</Badge>
                     ) : null}
@@ -987,9 +996,22 @@ export function ExperimentsBoard({
                       </p>
                     </Card>
                     <Card className="rounded-2xl border-border bg-secondary/50 p-4 shadow-none">
-                      <p className="text-xs text-muted-foreground">{t("experiments.detail.computeBudget")}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {selectedExperiment.startedAt && selectedExperiment.completedAt
+                          ? t("experiments.detail.elapsed")
+                          : t("experiments.detail.computeBudget")}
+                      </p>
                       <p className="mt-2 text-sm font-medium text-foreground">
-                        {selectedExperiment.computeBudgetHours ?? t("experiments.detail.unlimited")}
+                        {(() => {
+                          if (selectedExperiment.startedAt && selectedExperiment.completedAt) {
+                            const ms = new Date(selectedExperiment.completedAt).getTime() - new Date(selectedExperiment.startedAt).getTime();
+                            const mins = Math.floor(ms / 60000);
+                            const hrs = Math.floor(mins / 60);
+                            const remMins = mins % 60;
+                            return hrs > 0 ? `${hrs}h ${remMins}m` : `${mins}m`;
+                          }
+                          return selectedExperiment.computeBudgetHours ?? t("experiments.detail.unlimited");
+                        })()}
                       </p>
                     </Card>
                   </div>
