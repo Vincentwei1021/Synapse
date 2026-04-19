@@ -566,7 +566,7 @@ export async function createExperiment(params: ExperimentCreateParams) {
       message: `${experiment.title} created`,
       actorType: params.createdByType ?? "user",
       actorUuid: params.createdByUuid,
-      actorName: (await getActorName(params.companyUuid, params.createdByType ?? "user", params.createdByUuid)) || "Unknown",
+      actorName: (await getActorName(params.createdByType ?? "user", params.createdByUuid)) || "Unknown",
     });
   } catch {}
 
@@ -668,7 +668,7 @@ export async function updateExperiment(
         message: `${experiment.title} → ${statusLabel}`,
         actorType: actor.actorType,
         actorUuid: actor.actorUuid,
-        actorName: (await getActorName(companyUuid, actor.actorType, actor.actorUuid)) || "Unknown",
+        actorName: (await getActorName(actor.actorType, actor.actorUuid)) || "Unknown",
       });
     } catch {}
   }
