@@ -74,6 +74,15 @@ if (existsSync(prismaSrc)) {
   cpSync(prismaSrc, prismaDest, { recursive: true });
 }
 
+// --- Create world-writable .next/cache for global installs ---
+// When installed via `sudo npm install -g`, package dir is root-owned.
+// Next.js needs a writable cache dir. Pre-create with 0o777.
+const nextCacheDir = join(DIST, ".next", "cache");
+mkdirSync(nextCacheDir, { recursive: true });
+const { chmodSync } = await import("node:fs");
+chmodSync(nextCacheDir, 0o777);
+console.log("[prepack] Created writable .next/cache directory");
+
 // --- Remove .env files (may contain build machine secrets) ---
 for (const envFile of [".env", ".env.local", ".env.production"]) {
   const envPath = join(DIST, envFile);

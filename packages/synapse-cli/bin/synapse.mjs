@@ -161,27 +161,14 @@ if (!existsSync(serverJs)) {
   process.exit(1);
 }
 
-// Ensure .next/cache is writable — when installed globally via sudo,
-// the package dir is root-owned but the process runs as a normal user.
-const cacheDir = join(dataDir, "next-cache");
+// Ensure .next/cache is writable — prepack creates it with 0o777,
+// but if missing, try to create it. Falls back gracefully.
 const distCacheDir = join(DIST_DIR, ".next", "cache");
-mkdirSync(cacheDir, { recursive: true });
 try {
-  const { lstatSync: lstat, symlinkSync, unlinkSync } = await import("node:fs");
-  try {
-    const stat = lstat(distCacheDir);
-    if (stat.isSymbolicLink()) {
-      unlinkSync(distCacheDir);
-    }
-  } catch {
-    // doesn't exist yet — fine
-  }
-  if (!existsSync(distCacheDir)) {
-    symlinkSync(cacheDir, distCacheDir);
-  }
+  const { accessSync, constants } = await import("node:fs");
+  accessSync(distCacheDir, constants.W_OK);
 } catch {
-  // If we can't symlink (e.g. dir already exists as real dir), try direct mkdir
-  mkdirSync(distCacheDir, { recursive: true });
+  try { mkdirSync(distCacheDir, { recursive: true }); } catch { /* non-fatal */ }
 }
 
 process.env.PORT = String(port);
