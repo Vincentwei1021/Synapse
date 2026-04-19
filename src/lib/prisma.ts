@@ -39,7 +39,7 @@ const basePrisma =
         : ["error"],
   });
 
-export const prisma = isPglite
+export const prisma: PrismaClient = isPglite
   ? basePrisma.$extends({
       query: {
         async $allOperations({ args, query }) {
@@ -63,7 +63,7 @@ export const prisma = isPglite
           throw new Error("unreachable");
         },
       },
-    })
+    }) as unknown as PrismaClient
   : basePrisma;
 
 if (process.env.NODE_ENV !== "production") {
