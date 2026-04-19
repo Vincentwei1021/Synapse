@@ -990,18 +990,18 @@ export function ExperimentsBoard({
                 ) : (
                   <div className="grid gap-3 md:grid-cols-2">
                     <Card className="rounded-2xl border-border bg-secondary/50 p-4 shadow-none">
-                      <p className="text-sm text-muted-foreground">{t("experiments.card.question")}</p>
-                      <p className="mt-2 text-base font-medium text-foreground">
+                      <p className="text-xs font-medium text-muted-foreground">{t("experiments.card.question")}</p>
+                      <p className="mt-2 text-sm text-foreground">
                         {selectedExperiment.researchQuestion?.title || t("experiments.card.unlinked")}
                       </p>
                     </Card>
                     <Card className="rounded-2xl border-border bg-secondary/50 p-4 shadow-none">
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs font-medium text-muted-foreground">
                         {selectedExperiment.startedAt && selectedExperiment.completedAt
                           ? t("experiments.detail.elapsed")
                           : t("experiments.detail.computeBudget")}
                       </p>
-                      <p className="mt-2 text-base font-medium text-foreground">
+                      <p className="mt-2 text-sm text-foreground">
                         {(() => {
                           if (selectedExperiment.startedAt && selectedExperiment.completedAt) {
                             const ms = new Date(selectedExperiment.completedAt).getTime() - new Date(selectedExperiment.startedAt).getTime();

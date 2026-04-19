@@ -230,7 +230,7 @@ function ToastCard({ toast, isExiting, onDismiss }: ToastCardProps) {
       className="flex items-start gap-3 rounded-xl border border-border bg-card px-5 py-4 shadow-2xl shadow-black/20 backdrop-blur-sm transition-transform w-[340px] cursor-pointer text-left dark:shadow-black/40"
       style={{ animation }}
     >
-      <div className="flex flex-col items-center gap-1.5 pt-0.5 shrink-0">
+      <div className="flex flex-col items-center justify-center gap-1.5 shrink-0 self-center">
         <span
           className="block h-2.5 w-2.5 shrink-0 rounded-full"
           style={{ backgroundColor: toast.color, boxShadow: `0 0 6px ${toast.color}` }}

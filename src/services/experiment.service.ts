@@ -764,6 +764,25 @@ export async function reviewExperiment(input: {
     actorUuid: input.actorUuid,
   });
 
+  try {
+    const statusLabel = input.approved ? "pending start" : "draft";
+    await notificationService.create({
+      companyUuid: input.companyUuid,
+      researchProjectUuid: updated.researchProjectUuid,
+      recipientType: "user",
+      recipientUuid: input.actorUuid,
+      entityType: "experiment",
+      entityUuid: updated.uuid,
+      entityTitle: updated.title,
+      projectName: existing.researchProject.name,
+      action: "experiment_status_changed",
+      message: input.approved ? "→ approved" : "→ returned to draft",
+      actorType: "user",
+      actorUuid: input.actorUuid,
+      actorName: (await getActorName("user", input.actorUuid)) || "Unknown",
+    });
+  } catch {}
+
   // Send task_assigned notification when auto-assigning back to the creating agent
   if (shouldAutoAssign) {
     try {
