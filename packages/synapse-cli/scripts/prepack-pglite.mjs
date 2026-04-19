@@ -79,8 +79,9 @@ if (existsSync(prismaSrc)) {
 // Next.js needs a writable cache dir. Pre-create with 0o777.
 const nextCacheDir = join(DIST, ".next", "cache");
 mkdirSync(nextCacheDir, { recursive: true });
-const { chmodSync } = await import("node:fs");
+const { chmodSync, writeFileSync: writeSync } = await import("node:fs");
 chmodSync(nextCacheDir, 0o777);
+writeSync(join(nextCacheDir, ".gitkeep"), "");
 console.log("[prepack] Created writable .next/cache directory");
 
 // --- Remove .env files (may contain build machine secrets) ---

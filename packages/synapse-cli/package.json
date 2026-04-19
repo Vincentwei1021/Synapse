@@ -1,6 +1,6 @@
 {
   "name": "@synapse-research/synapse",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Synapse — AI Research Orchestration Platform (zero-dependency local mode)",
   "license": "AGPL-3.0",
   "bin": {
