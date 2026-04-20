@@ -28,7 +28,22 @@ const DIST = join(CLI_ROOT, "dist");
 
 // --- Build ---
 console.log("[prepack] Building Next.js standalone...");
-execSync("pnpm build", {
+function findPnpm() {
+  try {
+    execSync("pnpm --version", { stdio: "ignore" });
+    return "pnpm";
+  } catch {
+    try {
+      execSync("npx pnpm --version", { stdio: "ignore" });
+      return "npx pnpm";
+    } catch {
+      console.error("[prepack] ERROR: pnpm not found. Install via: npm install -g pnpm");
+      process.exit(1);
+    }
+  }
+}
+const pnpm = findPnpm();
+execSync(`${pnpm} build`, {
   cwd: PROJECT_ROOT,
   stdio: "inherit",
   env: { ...process.env, NODE_OPTIONS: "--max-old-space-size=4096" },

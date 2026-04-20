@@ -235,7 +235,9 @@ describe("createComment", () => {
     // Give async fire-and-forget time to resolve
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(createActivity).not.toHaveBeenCalled();
+    // Only the comment_added activity is emitted — no mention activities for self
+    expect(createActivity).toHaveBeenCalledTimes(1);
+    expect(createActivity).toHaveBeenCalledWith(expect.objectContaining({ action: "comment_added" }));
   });
 
   it("should handle multiple mentions", async () => {
@@ -261,12 +263,14 @@ describe("createComment", () => {
     // Give async fire-and-forget time to resolve
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(createActivity).toHaveBeenCalledTimes(2);
+    // 2 mention activities + 1 comment_added activity
+    expect(createActivity).toHaveBeenCalledTimes(3);
   });
 
   it("should not process mentions when content has no mentions", async () => {
     const record = makeCommentRecord();
     mockPrisma.comment.create.mockResolvedValue(record);
+    mockPrisma.experimentRun.findUnique.mockResolvedValue({ researchProjectUuid: "project-uuid", title: "Test" });
     (parseMentions as ReturnType<typeof vi.fn>).mockReturnValue([]);
 
     await createComment({
@@ -282,7 +286,9 @@ describe("createComment", () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(createMentions).not.toHaveBeenCalled();
-    expect(createActivity).not.toHaveBeenCalled();
+    // comment_added activity is still emitted even without mentions
+    expect(createActivity).toHaveBeenCalledTimes(1);
+    expect(createActivity).toHaveBeenCalledWith(expect.objectContaining({ action: "comment_added" }));
   });
 
   it("should handle mention processing errors gracefully", async () => {

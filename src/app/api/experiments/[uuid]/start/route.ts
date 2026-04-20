@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { errors, success } from "@/lib/api-response";
 import { getAuthContext, isAgent, isAssignee } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { getExperiment, startExperiment } from "@/services/experiment.service";
 import { reserveGpusForExperiment } from "@/services/compute.service";
 
@@ -29,8 +30,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return errors.notFound("Experiment");
   }
 
-  if (existing.assignee && !isAssignee(auth, existing.assignee.type, existing.assignee.uuid)) {
-    return errors.permissionDenied("Only assignee can start experiment");
+  if (existing.assignee) {
+    let assigneeOwnerUuid: string | null = null;
+    if (existing.assignee.type === "agent") {
+      const agent = await prisma.agent.findUnique({
+        where: { uuid: existing.assignee.uuid },
+        select: { ownerUuid: true },
+      });
+      assigneeOwnerUuid = agent?.ownerUuid ?? null;
+    }
+    if (!isAssignee(auth, existing.assignee.type, existing.assignee.uuid, assigneeOwnerUuid)) {
+      return errors.permissionDenied("Only assignee can start experiment");
+    }
   }
 
   if (existing.status !== "pending_start") {
