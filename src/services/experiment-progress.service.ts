@@ -28,7 +28,7 @@ export async function createProgressLog(input: {
     prisma.experiment.update({
       where: { uuid: input.experimentUuid },
       data: {
-        liveStatus: input.liveStatus ?? "running",
+        ...(input.liveStatus !== undefined ? { liveStatus: input.liveStatus } : {}),
         liveMessage: input.message,
         liveUpdatedAt: now,
       },

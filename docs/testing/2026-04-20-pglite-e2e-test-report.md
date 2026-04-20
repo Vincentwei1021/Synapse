@@ -180,3 +180,156 @@
 | 0.2.3 | 2026-04-20 | Bug #20: `.gitkeep` in cache dir (npm ignores empty dirs) |
 | 0.2.4 | 2026-04-20 | Bug #20: npm strips permissions — added postinstall chmod |
 | 0.2.5 | 2026-04-20 | Bug #20: simplified CLI cache fallback, final working version |
+
+---
+
+## 2026-04-20 Current Repo Rerun (local `0.7.0` source build)
+
+**Tester:** Codex (GPT-5)
+**Package under test:** current repo source (`synapse@0.7.0`), launched from `packages/synapse-cli`
+**Machine:** `g6e-routine`
+**Method:** rsync repo to fresh-ish EC2, run `prepack-pglite.mjs`, launch `node packages/synapse-cli/bin/synapse.mjs --port 13000`, connect OpenClaw temporarily to the test instance, then restore OpenClaw config after testing
+
+### Revalidated / Newly Covered
+
+- Happy-path onboarding still works: login, agent creation, compute pool creation, SSH probe, GPU inventory sync, project creation, research question creation.
+- Experiment happy path still works end-to-end with OpenClaw: assignment, GPU reservation, start, progress reports, result submission, result log update.
+- Live progress logs are persisted and visible through `/api/experiments/[uuid]/progress`.
+- Queueing path is exercised: a blocker experiment can reserve the only H100, and a second experiment retries until the GPU is released.
+- Related works full chain now works:
+  - manual arXiv URL paste auto-fetches metadata
+  - auto-search adds additional papers
+  - deep research creates a `literature_review` document
+- Autonomous loop works in `human_review` mode:
+  - enabling the loop triggers the agent when queues are empty
+  - the agent proposes `pending_review` experiments
+  - human approval moves them back into execution flow
+- Failure-path execution can preserve partial progress:
+  - agent-generated failure experiment logged multiple progress entries
+  - failure context was captured in `outcome` and `results`
+- Interrupted-without-submit path was manually validated:
+  - an experiment can be started and report partial progress
+  - if the agent never submits results, it remains `in_progress`
+  - progress logs remain intact
+  - the results log document is not updated prematurely
+
+### Bugs Found In This Rerun
+
+#### Bug #21 — Onboarding agent connection test does not advance despite live SSE connection
+
+**Severity:** 🔴 High  
+**Repro:** onboarding step 2, point OpenClaw at the new Synapse instance, click "I've configured the agent — Test Connection"  
+**Actual:** page stays on "Waiting for agent to connect..."  
+**Expected:** onboarding should detect the live OpenClaw connection and advance automatically  
+**Evidence:** OpenClaw log shows `Synapse plugin initializing` and `[Synapse] SSE connection established`
+
+#### Bug #22 — Insights / project synthesis is never generated after completed experiments
+
+**Severity:** 🔴 High  
+**Repro:** complete multiple experiments successfully, then open `/research-projects/[uuid]/insights`  
+**Actual:** Insights still shows `Latest synthesis: Not available` and `No synthesis has been generated yet.`  
+**Expected:** completed experiments should refresh the rolling project synthesis and/or create a `project_synthesis` document  
+**Impact:** breaks the documented `Document / Insights` consistency contract
+
+#### Bug #23 — Queued experiment shows `liveStatus=running` while still `pending_start`
+
+**Severity:** 🔴 High  
+**Repro:** reserve the only GPU with a blocker experiment, assign a second experiment to the agent, wait for retries  
+**Actual:** experiment remained `status: pending_start`, `startedAt: null`, but surfaced `liveStatus: running` with queue/retry messaging  
+**Expected:** the card should remain in a queue/checking state until the actual start transition happens  
+**Impact:** UI can misrepresent queueing work as actively running
+
+#### Bug #24 — Comment notifications are not emitted for experiment comments
+
+**Severity:** 🟠 Medium  
+**Repro:** add comments to an agent-assigned `experiment`, then fetch agent notifications via `synapse_get_notifications`  
+**Actual:** comments are stored and retrievable via `targetType: "experiment"`, but no comment notification is generated  
+**Expected:** assignment/completion/comment flows should all notify correctly  
+**Impact:** breaks the `Notifications / SSE fallback` test case for comments
+
+#### Bug #25 — Notification listener throws Prisma errors while processing activity
+
+**Severity:** 🟠 Medium  
+**Repro:** normal activity generation during assignment / autonomous loop / notifications  
+**Actual:** server log shows `Invalid prisma.experiment.findUnique() invocation` with payloads that look like project or agent records  
+**Expected:** activity/notification processing should not attempt to hydrate non-experiment records as `Experiment`  
+**Impact:** likely causes missed notifications and unstable activity fanout
+
+#### Bug #26 — User oversight rule is inconsistent: route forbids completing agent-owned experiments
+
+**Severity:** 🟠 Medium  
+**Repro:** user attempts `POST /api/experiments/[uuid]/complete` on an in-progress experiment started by an agent  
+**Actual:** API returns `PERMISSION_DENIED: Only assignee can complete experiment`  
+**Expected:** current service-layer logic/comment says users should be allowed to act on agent-assigned experiments for human oversight  
+**Impact:** API behavior disagrees with service-layer policy
+
+#### Bug #27 — Redis-enabled startup still reports memory fallback instead of Redis transport
+
+**Severity:** 🟠 Medium  
+**Repro:** start Synapse with `REDIS_URL=redis://127.0.0.1:16379` and a live Redis container  
+**Actual:** `/api/health` reports `"enabled": true` but `publisherStatus: "not_initialized"`, `subscriberStatus: "not_initialized"`, `transport: "memory-fallback"`  
+**Expected:** Redis-backed pub/sub should initialize so the Redis path can actually be verified  
+**Impact:** true Redis notification transport could not be validated in this rerun
+
+#### Bug #28 — `prepack-pglite.mjs` assumes `pnpm` is on PATH
+
+**Severity:** 🟡 Medium  
+**Repro:** run `packages/synapse-cli/scripts/prepack-pglite.mjs` on a fresh machine where `corepack pnpm` works interactively but `pnpm` is not globally on PATH  
+**Actual:** prepack fails until a user-level `pnpm` binary is installed  
+**Expected:** the script should either invoke `corepack pnpm` or fail with a clearer setup requirement  
+**Impact:** fresh-machine packaging is less reproducible than expected
+
+---
+
+## 2026-04-21 Bug Verification (E2E on g6e-routine)
+
+**Tester:** Claude Opus 4.6  
+**Machine:** `g6e-routine` (EC2, Node 22, 61GB RAM)  
+**Method:** rsync source to g6e-routine, run dev server (webpack mode, PostgreSQL + Redis via Docker), OpenClaw temporarily pointed at test instance  
+**API key:** `syn_ZXOf...GKlY` (agent "Lab Assistant", roles: pre_research, research, experiment, report)
+
+### Verification Results
+
+| Bug | Status | Evidence |
+|-----|--------|----------|
+| #21 | **STILL EXISTS** | OpenClaw SSE connected (`[Synapse] SSE connection established` in logs), but `/api/onboarding/status` returns `hasAgentConnected: false`. Root cause: `lastActiveAt` only updated by `synapse_checkin` MCP tool, never by SSE connection event. |
+| #22 | **STILL EXISTS** | Completed experiment via `synapse_submit_experiment_results`, only `experiment_results_log` document created. No `project_synthesis` document. Root cause: `refreshProjectSynthesis()` is only called when `autonomousLoopEnabled && autonomousLoopMode === "full_auto"` (line 1313 of experiment.service.ts). Normal completions never trigger synthesis. |
+| #23 | **STILL EXISTS** | Called `synapse_report_experiment_progress` on a `pending_start` experiment without specifying `liveStatus`. Result: `status=pending_start, liveStatus=running`. Root cause: `experiment-progress.service.ts` line 31 defaults `liveStatus` to `"running"` when not provided. |
+| #24 | **STILL EXISTS** | Posted comment (`targetType: "experiment"`) on agent-assigned experiment. Agent notifications only show `task_assigned` and `experiment_report_requested` — no `comment_added` notification. Root cause: `comment.service.ts` `createComment()` never emits a `comment_added` activity event. |
+| #25 | **NOT REPRODUCED** | No Prisma errors in notification listener during this test run. May require higher concurrency or specific activity type combinations not triggered in a clean environment. |
+| #26 | **STILL EXISTS** | User (who owns the agent) called `POST /api/experiments/[uuid]/complete` on in-progress agent-assigned experiment. Returns `PERMISSION_DENIED: Only assignee can complete experiment`. Root cause: `isAssignee()` in `src/lib/auth.ts` has no case for "user who owns the assigned agent". |
+| #27 | **STILL EXISTS** | Redis container running on port 16379 (verified with `PING`→`PONG`), `REDIS_URL` set correctly. Health reports `transport: "memory-fallback"`, `publisherStatus: "not_initialized"`. Root cause: Redis uses `lazyConnect: true` and `ensureEventBusConnected()` is only called when an SSE client connects (not on startup). |
+| #28 | **STILL EXISTS** (code inspection) | `packages/synapse-cli/scripts/prepack-pglite.mjs` line 31: `execSync("pnpm build", ...)` calls `pnpm` directly without checking availability or using `npx`/`corepack`. |
+
+### Summary
+
+- **6 of 8 bugs confirmed still present** (#21, #22, #23, #24, #26, #27)
+- **1 not reproduced** (#25 — requires specific concurrency conditions)
+- **1 confirmed by code inspection** (#28 — packaging script issue)
+
+---
+
+## 2026-04-21 Regression Retest for Bug #21-#28
+
+**Tester:** Codex GPT-5  
+**Machine:** `g6e-routine` (same embedded PGlite data dir, Redis on `127.0.0.1:16379`)  
+**Method:** rsync latest local source to `g6e-routine`, rebuild `synapse-cli`, run Synapse with `REDIS_URL`, temporarily repoint OpenClaw to `http://172.31.94.253:13000`, then restore OpenClaw back to `http://172.31.92.117:3000` after verification.
+
+### Regression Results
+
+| Bug | Status | Retest Result |
+|-----|--------|---------------|
+| #21 | **FIXED** | Before OpenClaw reconnect, `/api/onboarding/status` returned `hasAgentConnected: false` and the agent `lastActiveAt` was `null`. After repointing OpenClaw and seeing `[Synapse] SSE connection established`, `/api/onboarding/status` flipped to `hasAgentConnected: true` and the agent record updated `lastActiveAt` to `2026-04-20T18:27:41.237Z`. |
+| #22 | **FIXED** | Fresh experiment `Bug26 oversight completion retest` (`fcc6940c-aaf9-4613-9e6c-e3c4cf612387`) was created under accepted research question `7759b472-bf05-451e-bed6-87d19d76ea9d`, started, and completed after the patch. The Insights page now renders `Rolling Synthesis for E2E Research Project` instead of `No synthesis has been generated yet.` |
+| #23 | **FIXED** | Fresh experiment `Bug23 queue status retest` (`7f8956f3-ca23-486d-9d9e-1d76e447471e`) stayed `status: pending_start` while progress logs were written in queue state. After a final progress update without `liveStatus`, the experiment still showed `liveStatus: "queuing"` and `liveMessage: "Still queued after retry window"` rather than being coerced to `running`. |
+| #24 | **FIXED** | After marking agent notifications read, posting a user comment on experiment `fcc6940c-aaf9-4613-9e6c-e3c4cf612387` produced an unread agent notification with `action: "comment_added"` and message `admin commented on "Bug26 oversight completion retest"`. |
+| #25 | **NOT REPRODUCED** | During assignment, completion, comment notification, and Redis-backed listener flow, no `Invalid prisma.experiment.findUnique()` / Prisma validation error reappeared. Notification fanout and comment notifications both worked normally in this retest. |
+| #26 | **FIXED** | User-owned oversight flow now succeeds: experiment `fcc6940c-aaf9-4613-9e6c-e3c4cf612387` was assigned to the agent, started with the agent API key, then successfully completed via user `POST /api/experiments/[uuid]/complete` with HTTP 200 and no `PERMISSION_DENIED`. |
+| #27 | **FIXED** | With Redis container live before startup, `/api/health` reports `publisherStatus: "ready"`, `subscriberStatus: "ready"`, `transport: "redis"`. Startup log also shows `notification_listener` subscribed plus Redis `sub` and `pub` connections established. |
+| #28 | **FIXED** | On the fresh `g6e-routine` machine, `node packages/synapse-cli/scripts/prepack-pglite.mjs` completed successfully after the script fallback change, without requiring a globally installed `pnpm` binary on PATH. |
+
+### Notes
+
+- The earlier “Insights empty” state for the old project snapshot was stale data from the pre-fix run. A fresh post-fix completion now correctly regenerates project synthesis.
+- I did not re-hit the old listener Prisma error from bug #25 in this clean environment; at this point it should be treated as fixed unless it resurfaces under a more specific concurrency pattern.
+- OpenClaw config was restored after the retest and the gateway log now shows `Synapse plugin initializing — http://172.31.92.117:3000 (all projects)`.

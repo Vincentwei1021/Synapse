@@ -180,13 +180,18 @@ export function requireAgentRole<T>(
 export function isAssignee(
   ctx: AuthContext,
   assigneeType: string | null,
-  assigneeUuid: string | null
+  assigneeUuid: string | null,
+  assigneeOwnerUuid?: string | null,
 ): boolean {
   if (!assigneeType || !assigneeUuid) return false;
 
   if (isUser(ctx)) {
     // Direct user match
     if (assigneeType === "user" && assigneeUuid === ctx.actorUuid) {
+      return true;
+    }
+    // User owns the assigned agent (human oversight)
+    if (assigneeType === "agent" && assigneeOwnerUuid === ctx.actorUuid) {
       return true;
     }
   }

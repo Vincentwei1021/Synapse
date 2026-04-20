@@ -7,6 +7,7 @@ import { logger } from "@/lib/logger";
 import * as activityService from "@/services/activity.service";
 import { createDocument, updateDocument } from "@/services/document.service";
 import * as notificationService from "@/services/notification.service";
+import { refreshProjectSynthesis } from "@/services/project-synthesis.service";
 
 const log = logger.child({ module: "experiment" });
 
@@ -1304,18 +1305,11 @@ export async function completeExperiment(input: {
     actorUuid: input.actorUuid,
   });
 
-  // In Mode 2, refresh project synthesis after every experiment completion
+  // Refresh project synthesis after every experiment completion
   try {
-    const loopProject = await prisma.researchProject.findFirst({
-      where: { uuid: updated.researchProjectUuid, companyUuid: input.companyUuid },
-      select: { autonomousLoopEnabled: true, autonomousLoopMode: true },
-    });
-    if (loopProject?.autonomousLoopEnabled && loopProject.autonomousLoopMode === "full_auto") {
-      const { refreshProjectSynthesis } = await import("@/services/project-synthesis.service");
-      await refreshProjectSynthesis(updated.researchProjectUuid, input.companyUuid, input.actorUuid);
-    }
+    await refreshProjectSynthesis(input.companyUuid, updated.researchProjectUuid, input.actorUuid);
   } catch (err) {
-    log.error({ err }, "failed to refresh synthesis after Mode 2 experiment");
+    log.error({ err }, "failed to refresh project synthesis after experiment completion");
   }
 
   // Check autonomous loop trigger

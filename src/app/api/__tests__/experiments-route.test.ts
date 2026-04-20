@@ -21,13 +21,16 @@ vi.mock("@/lib/auth", () => ({
     auth: { type: string; actorUuid: string; ownerUuid?: string },
     assigneeType: string | null,
     assigneeUuid: string | null,
+    assigneeOwnerUuid?: string | null,
   ) => {
     if (!assigneeType || !assigneeUuid) {
       return false;
     }
 
     if (auth.type === "user") {
-      return assigneeType === "user" && assigneeUuid === auth.actorUuid;
+      if (assigneeType === "user" && assigneeUuid === auth.actorUuid) return true;
+      if (assigneeType === "agent" && assigneeOwnerUuid === auth.actorUuid) return true;
+      return false;
     }
 
     return (
@@ -54,6 +57,14 @@ vi.mock("@/services/experiment.service", () => ({
 vi.mock("@/services/compute.service", () => ({
   reserveGpusForExperiment: (...args: unknown[]) => mockReserveGpusForExperiment(...args),
   releaseGpuReservationsForExperiment: (...args: unknown[]) => mockReleaseGpuReservationsForExperiment(...args),
+}));
+
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    agent: {
+      findUnique: vi.fn().mockResolvedValue({ ownerUuid: "other-owner-uuid" }),
+    },
+  },
 }));
 
 import { POST as createExperimentRoute } from "@/app/api/research-projects/[uuid]/experiments/route";

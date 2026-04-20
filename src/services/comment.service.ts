@@ -145,7 +145,7 @@ export async function createComment({
   // Get author name
   const authorName = await getActorName(comment.authorType, comment.authorUuid);
 
-  // Emit SSE event for real-time comment updates (fire-and-forget)
+  // Emit SSE event for real-time comment updates and create activity (fire-and-forget)
   resolveProjectUuid(targetType, targetUuid).then((researchProjectUuid) => {
     if (researchProjectUuid) {
       eventBus.emitChange({
@@ -156,6 +156,15 @@ export async function createComment({
         action: "updated",
         actorUuid: authorUuid,
       });
+      activityService.createActivity({
+        companyUuid,
+        researchProjectUuid,
+        targetType: targetType as activityService.TargetType,
+        targetUuid,
+        actorType: authorType,
+        actorUuid: authorUuid,
+        action: "comment_added",
+      }).catch((err) => log.error({ err }, "failed to create comment_added activity"));
     }
   }).catch(() => {});
 

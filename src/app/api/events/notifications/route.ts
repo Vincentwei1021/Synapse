@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
-import { getAuthContext } from "@/lib/auth";
+import { getAuthContext, isAgent } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { ensureEventBusConnected, eventBus } from "@/lib/event-bus";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +12,13 @@ export async function GET(request: NextRequest) {
   }
 
   await ensureEventBusConnected();
+
+  if (isAgent(auth)) {
+    prisma.agent.update({
+      where: { uuid: auth.actorUuid },
+      data: { lastActiveAt: new Date() },
+    }).catch(() => {});
+  }
 
   const channel = `notification:${auth.type}:${auth.actorUuid}`;
 
