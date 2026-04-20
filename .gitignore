@@ -58,6 +58,7 @@ packages/synapse-cdk/lib/*.d.ts
 
 # Synapse plugin state
 .synapse/
+.tmp-synapse-*
 
 #demo
 dev-story-demo/
