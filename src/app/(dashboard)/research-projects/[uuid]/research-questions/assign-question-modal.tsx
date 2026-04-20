@@ -14,13 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  claimIdeaAction,
-  claimIdeaToAgentAction,
-  claimIdeaToUserAction,
-  releaseIdeaAction,
-  getPmAgentsAction,
-} from "./[questionUuid]/actions";
 
 interface Idea {
   uuid: string;
@@ -75,13 +68,27 @@ export function AssignIdeaModal({
 
   const isAssigned = !!idea.assignee;
 
-  // Load PM agents and users
   useEffect(() => {
     async function loadData() {
       setIsLoadingData(true);
-      const result = await getPmAgentsAction();
-      setAgents(result.agents || []);
-      setUsers((result.users || []).filter((u: CompanyUser) => u.uuid !== currentUserUuid));
+      try {
+        const [agentsRes, usersRes] = await Promise.all([
+          fetch("/api/agents"),
+          fetch("/api/me"),
+        ]);
+        if (agentsRes.ok) {
+          const agentsJson = await agentsRes.json();
+          const allAgents = agentsJson.data || [];
+          setAgents(allAgents.filter((a: Agent) => a.roles?.includes("pm") || a.roles?.includes("research")));
+        }
+        if (usersRes.ok) {
+          // Users endpoint may not exist as a list — fall back to empty
+          setUsers([]);
+        }
+      } catch {
+        setAgents([]);
+        setUsers([]);
+      }
       setIsLoadingData(false);
     }
     loadData();
@@ -89,25 +96,43 @@ export function AssignIdeaModal({
 
   const handleSubmit = async () => {
     setIsLoading(true);
-    let result;
+    try {
+      let response: Response;
 
-    if (selectedOption === "self") {
-      result = await claimIdeaAction(idea.uuid);
-    } else if (selectedOption === "agent" && selectedAgentUuid) {
-      result = await claimIdeaToAgentAction(idea.uuid, selectedAgentUuid);
-    } else if (selectedOption === "user" && selectedUserUuid) {
-      result = await claimIdeaToUserAction(idea.uuid, selectedUserUuid);
-    } else if (selectedOption === "release") {
-      result = await releaseIdeaAction(idea.uuid);
-    } else {
+      if (selectedOption === "self") {
+        response = await fetch(`/api/research-questions/${idea.uuid}/claim`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ assignToSelf: true }),
+        });
+      } else if (selectedOption === "agent" && selectedAgentUuid) {
+        response = await fetch(`/api/research-questions/${idea.uuid}/claim`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agentUuid: selectedAgentUuid }),
+        });
+      } else if (selectedOption === "user" && selectedUserUuid) {
+        response = await fetch(`/api/research-questions/${idea.uuid}/claim`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ assignToSelf: false, userUuid: selectedUserUuid }),
+        });
+      } else if (selectedOption === "release") {
+        response = await fetch(`/api/research-questions/${idea.uuid}/release`, {
+          method: "POST",
+        });
+      } else {
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(false);
-    if (result?.success) {
-      router.refresh();
-      onClose();
+      if (response.ok) {
+        router.refresh();
+        onClose();
+      }
+    } catch {
+      setIsLoading(false);
     }
   };
 

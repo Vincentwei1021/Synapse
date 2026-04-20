@@ -36,12 +36,8 @@ import { AgentTypeIcon } from "@/components/agent-type-icon";
 import { getAgentColor } from "@/lib/agent-colors";
 import type { ExperimentResponse } from "@/services/experiment.service";
 import type { ResearchQuestionResponse } from "@/services/research-question.service";
+import { useRouter } from "next/navigation";
 import { IdeaCreateForm } from "./question-create-form";
-import {
-  deleteResearchQuestionAction,
-  reviewResearchQuestionAction,
-  setResearchQuestionStatusAction,
-} from "./actions";
 
 const COLUMN_GAP = 380;
 const ROW_GAP = 300;
@@ -267,6 +263,7 @@ export function ResearchQuestionsBoard({
   experiments: ExperimentResponse[];
 }) {
   const t = useTranslations();
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [selectedQuestionUuid, setSelectedQuestionUuid] = useState<string | null>(researchQuestions[0]?.uuid ?? null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -380,11 +377,14 @@ export function ResearchQuestionsBoard({
     if (!selectedQuestion) return;
 
     startTransition(() => {
-      void setResearchQuestionStatusAction({
-        projectUuid,
-        questionUuid: selectedQuestion.uuid,
-        status,
-      });
+      void (async () => {
+        await fetch(`/api/research-questions/${selectedQuestion.uuid}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        });
+        router.refresh();
+      })();
     });
   };
 
@@ -393,9 +393,12 @@ export function ResearchQuestionsBoard({
 
     startTransition(() => {
       void (async () => {
-        await deleteResearchQuestionAction(selectedQuestion.uuid, projectUuid);
+        await fetch(`/api/research-questions/${selectedQuestion.uuid}`, {
+          method: "DELETE",
+        });
         setDeleteDialogOpen(false);
         setSelectedQuestionUuid(null);
+        router.refresh();
       })();
     });
   };
@@ -564,11 +567,14 @@ export function ResearchQuestionsBoard({
                     disabled={isPending}
                     onClick={() =>
                       startTransition(() => {
-                        void reviewResearchQuestionAction({
-                          projectUuid,
-                          questionUuid: selectedQuestion.uuid,
-                          reviewStatus: "accepted",
-                        });
+                        void (async () => {
+                          await fetch(`/api/research-questions/${selectedQuestion.uuid}/review`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ reviewStatus: "accepted" }),
+                          });
+                          router.refresh();
+                        })();
                       })
                     }
                   >
@@ -580,11 +586,14 @@ export function ResearchQuestionsBoard({
                     disabled={isPending}
                     onClick={() =>
                       startTransition(() => {
-                        void reviewResearchQuestionAction({
-                          projectUuid,
-                          questionUuid: selectedQuestion.uuid,
-                          reviewStatus: "rejected",
-                        });
+                        void (async () => {
+                          await fetch(`/api/research-questions/${selectedQuestion.uuid}/review`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ reviewStatus: "rejected" }),
+                          });
+                          router.refresh();
+                        })();
                       })
                     }
                   >

@@ -22,10 +22,11 @@ interface Toast {
   message: string;
   projectName?: string;
   entityTitle?: string;
+  action?: string;
   createdAt: number;
 }
 
-type ToastInput = Pick<Toast, "category" | "color" | "message"> & { projectName?: string; entityTitle?: string };
+type ToastInput = Pick<Toast, "category" | "color" | "message"> & { projectName?: string; entityTitle?: string; action?: string };
 
 interface ToastContextType {
   addToast: (input: ToastInput) => void;
@@ -231,10 +232,17 @@ function ToastCard({ toast, isExiting, onDismiss }: ToastCardProps) {
       style={{ animation }}
     >
       <div className="flex flex-col items-center justify-center gap-1.5 shrink-0 self-center">
-        <span
-          className="block h-2.5 w-2.5 shrink-0 rounded-full"
-          style={{ backgroundColor: toast.color, boxShadow: `0 0 6px ${toast.color}` }}
-        />
+        {toast.action?.endsWith("_completed") ? (
+          <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="8" fill={toast.color} opacity="0.15" />
+            <path d="M5 8.5l2 2 4-4.5" stroke={toast.color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ) : (
+          <span
+            className="block h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: toast.color, boxShadow: `0 0 6px ${toast.color}` }}
+          />
+        )}
         <span
           className="text-[11px] font-semibold leading-tight"
           style={{ color: toast.color }}

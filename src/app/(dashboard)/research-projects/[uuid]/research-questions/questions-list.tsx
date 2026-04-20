@@ -19,7 +19,6 @@ import { code } from "@streamdown/code";
 import { IdeaDetailPanel } from "./question-detail-panel";
 import { useRealtimeRefresh } from "@/contexts/realtime-context";
 import { usePanelUrl } from "@/hooks/use-panel-url";
-import { reviewResearchQuestionAction } from "./actions";
 
 interface IdeaItem {
   uuid: string;
@@ -231,10 +230,10 @@ export function IdeasList({
                       onClick={(event) => {
                         event.stopPropagation();
                         startTransition(async () => {
-                          await reviewResearchQuestionAction({
-                            projectUuid,
-                            questionUuid: idea.uuid,
-                            reviewStatus: "accepted",
+                          await fetch(`/api/research-questions/${idea.uuid}/review`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ reviewStatus: "accepted" }),
                           });
                           router.refresh();
                         });
@@ -250,10 +249,10 @@ export function IdeasList({
                       onClick={(event) => {
                         event.stopPropagation();
                         startTransition(async () => {
-                          await reviewResearchQuestionAction({
-                            projectUuid,
-                            questionUuid: idea.uuid,
-                            reviewStatus: "rejected",
+                          await fetch(`/api/research-questions/${idea.uuid}/review`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ reviewStatus: "rejected" }),
                           });
                           router.refresh();
                         });

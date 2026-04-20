@@ -471,6 +471,14 @@
       "namedRegex": "^/api/research\\-questions/(?<nxtPuuid>[^/]+?)/release(?:/)?$"
     },
     {
+      "page": "/api/research-questions/[uuid]/review",
+      "regex": "^/api/research\\-questions/([^/]+?)/review(?:/)?$",
+      "routeKeys": {
+        "nxtPuuid": "nxtPuuid"
+      },
+      "namedRegex": "^/api/research\\-questions/(?<nxtPuuid>[^/]+?)/review(?:/)?$"
+    },
+    {
       "page": "/api/sessions/[uuid]",
       "regex": "^/api/sessions/([^/]+?)(?:/)?$",
       "routeKeys": {

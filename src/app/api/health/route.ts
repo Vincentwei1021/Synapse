@@ -13,9 +13,12 @@ export async function GET() {
     // Test database connection
     await prisma.$queryRaw`SELECT 1`;
 
-    const degraded = redis.enabled && redis.transport !== "redis";
+    const redisActuallyFailed =
+      redis.enabled &&
+      redis.transport !== "redis" &&
+      (redis.publisherStatus !== "not_initialized" || redis.subscriberStatus !== "not_initialized");
     return NextResponse.json({
-      status: degraded ? "degraded" : "ok",
+      status: redisActuallyFailed ? "degraded" : "ok",
       timestamp,
       database: {
         status: "connected",

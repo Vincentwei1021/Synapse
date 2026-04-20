@@ -24,11 +24,22 @@ Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.co
 
 ## What's New
 
-**v0.6.1** — Experiment Board UI Polish (2026-04-15) &nbsp; 🔴 `New`
+**v0.7.0** — PGlite Local Mode & Server Action Fix (2026-04-20) &nbsp; 🔴 `New`
+- **One-command local install**: `npm install -g @synapse-research/synapse && synapse` — zero-dependency PGlite mode, no PostgreSQL or Redis required
+- Fixed critical bug where research question creation silently failed in standalone mode (server actions replaced with REST API)
+- Fixed cache directory permission error when installed globally via `sudo npm install -g`
+- Completion notifications now show a checkmark icon instead of a plain dot
+- Health check no longer reports "degraded" when Redis is configured but not yet lazy-loaded
+
+<details>
+<summary><strong>v0.6.1</strong> — Experiment Board UI Polish (2026-04-15)</summary>
+
 - Project descriptions on the dashboard now preserve intentional blank lines when expanded, improving readability for structured briefs
 - The experiment plan side panel now renders above the detail sheet overlay, uses the shared panel background, and allows normal text selection
 - The autonomous experiment entry button is more prominent, with refreshed blue styling and a yellow lightning icon for faster scanning
 - The experiment detail sheet is wider on large screens, giving experiment plans, results, and progress logs more room
+
+</details>
 
 <details>
 <summary><strong>v0.6.0</strong> — Agent Types &amp; Research Copilot (2026-04-12)</summary>
@@ -169,7 +180,20 @@ Five agent permission roles (composable):
 
 ## Getting Started
 
-### Quick Start with Docker
+### Quick Start (No Dependencies)
+
+```bash
+npm install -g @synapse-research/synapse
+synapse
+```
+
+Open [http://localhost:13000](http://localhost:13000) and log in with `admin@synapse.local` / `synapse`.
+
+This runs Synapse with an embedded PGlite database — no PostgreSQL or Redis required. Data is stored in `~/.synapse/data`.
+
+Options: `synapse --port 3000 --data-dir /path/to/data --help`
+
+### Docker
 
 ```bash
 git clone https://github.com/Vincentwei1021/Synapse.git

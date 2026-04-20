@@ -1,6 +1,6 @@
 {
   "name": "@synapse-research/synapse",
-  "version": "0.2.1",
+  "version": "0.2.5",
   "description": "Synapse — AI Research Orchestration Platform (zero-dependency local mode)",
   "license": "AGPL-3.0",
   "bin": {
@@ -11,7 +11,8 @@
     "dist/"
   ],
   "scripts": {
-    "prepack": "node scripts/prepack-pglite.mjs"
+    "prepack": "node scripts/prepack-pglite.mjs",
+    "postinstall": "node -e \"try{require('fs').chmodSync(require('path').join(__dirname,'dist','.next','cache'),0o777)}catch{}\""
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.4.4",

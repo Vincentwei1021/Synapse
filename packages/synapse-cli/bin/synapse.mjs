@@ -161,6 +161,13 @@ if (!existsSync(serverJs)) {
   process.exit(1);
 }
 
+// .next/cache writability is ensured by postinstall script (chmod 777).
+// If missing, try to create. Non-fatal if it fails.
+const distCacheDir = join(DIST_DIR, ".next", "cache");
+if (!existsSync(distCacheDir)) {
+  try { mkdirSync(distCacheDir, { recursive: true }); } catch { /* non-fatal */ }
+}
+
 process.env.PORT = String(port);
 process.env.HOSTNAME = "0.0.0.0";
 process.env.NEXTAUTH_SECRET =

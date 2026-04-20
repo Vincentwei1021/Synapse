@@ -17,7 +17,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { createResearchQuestionAction, updateResearchQuestionAction } from "./actions";
 
 interface IdeaCreateFormProps {
   projectUuid: string;
@@ -98,24 +97,26 @@ export function IdeaCreateForm({
     startTransition(() => {
       void (async () => {
         try {
-          const result =
-            mode === "edit" && questionUuid
-              ? await updateResearchQuestionAction({
-                  projectUuid,
-                  questionUuid,
-                  title: title.trim(),
-                  content: content.trim() || null,
-                  parentQuestionUuid: parentQuestionUuid || null,
-                })
-              : await createResearchQuestionAction({
-                  projectUuid,
-                  title: title.trim(),
-                  content: content.trim() || undefined,
-                  parentQuestionUuid: parentQuestionUuid || null,
-                });
+          const isEdit = mode === "edit" && questionUuid;
+          const url = isEdit
+            ? `/api/research-questions/${questionUuid}`
+            : `/api/research-projects/${projectUuid}/research-questions`;
+          const method = isEdit ? "PATCH" : "POST";
 
-          if (!result.success) {
-            setError(result.error || (mode === "edit" ? t("ideas.updateFailed") : t("ideas.createFailed")));
+          const body = {
+            title: title.trim(),
+            content: content.trim() || null,
+            parentQuestionUuid: parentQuestionUuid || null,
+          };
+
+          const response = await fetch(url, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+
+          if (!response.ok) {
+            setError(isEdit ? t("ideas.updateFailed") : t("ideas.createFailed"));
             return;
           }
 
