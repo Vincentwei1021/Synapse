@@ -69,19 +69,23 @@ These tests were blocked by Bug #19 in the v0.2.1 report and are now passing:
 
 ---
 
-## SSE Notification Verification (PGlite Mode)
+## End-to-End Agent Flow (PGlite Mode + OpenClaw)
 
-Initial testing appeared to show SSE notifications broken in PGlite mode. Follow-up investigation confirmed SSE works correctly:
+Full agent lifecycle tested via OpenClaw plugin connected to g6e-routine PGlite instance (SSH tunnel, localhost:13100 → g6e:13000).
 
 | # | Test | Result | Notes |
 |---|------|--------|-------|
-| 1 | SSE connection established | ✅ | `: connected` heartbeat received |
-| 2 | `read-all` triggers `count_update` SSE event | ✅ | `data: {"type":"count_update","unreadCount":0}` received |
-| 3 | EventBus singleton shared in standalone | ✅ | Single `next-server` process, `globalThis` singleton |
-| 4 | `assignExperiment()` creates notification | ✅ | 3 `task_assigned` notifications in agent's inbox |
-| 5 | Agent notification emits to SSE channel | ✅ | `notification:agent:<uuid>` channel works |
+| 1 | SSE connection from OpenClaw plugin | ✅ | Gateway log: `[Synapse] SSE connection established` |
+| 2 | Assign experiment to agent (UI) | ✅ | liveStatus: "sent", agent badge on card |
+| 3 | SSE notification delivered to plugin | ✅ | Gateway log: `Agent woken: [Synapse] Experiment assigned: Quick connectivity test` |
+| 4 | Agent hook creates session | ✅ | New `agent:main:hook:...` session appeared in `openclaw sessions` |
+| 5 | Agent calls `synapse_start_experiment` | ✅ | Experiment moved to `in_progress` |
+| 6 | Agent calls `synapse_submit_experiment_results` | ✅ | Experiment completed with structured results |
+| 7 | Experiment status → completed | ✅ | `outcome: "Connectivity test passed"`, results include timestamps |
+| 8 | Agent color on experiment card (sidebar) | ✅ | "Lab Assistant" with terracotta color badge in sidebar nav |
+| 9 | EventBus in-memory works in standalone | ✅ | Single `next-server` process, `globalThis` singleton, SSE events delivered |
 
-**The initial "SSE broken" report was a test infrastructure issue**: the OpenClaw plugin wasn't connected during assignment because the SSH tunnel wasn't set up yet, and the gateway restart disconnected the plugin temporarily. The in-memory EventBus correctly delivers SSE events within the single Next.js standalone process.
+**Note**: Initial test round failed because OpenClaw couldn't reach g6e-routine directly (different VPC subnets, port 13000 blocked by security group). Resolved by SSH tunnel. The SSE + EventBus architecture works correctly in PGlite standalone mode.
 
 ---
 
