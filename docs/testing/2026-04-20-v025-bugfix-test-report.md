@@ -69,6 +69,22 @@ These tests were blocked by Bug #19 in the v0.2.1 report and are now passing:
 
 ---
 
+## SSE Notification Verification (PGlite Mode)
+
+Initial testing appeared to show SSE notifications broken in PGlite mode. Follow-up investigation confirmed SSE works correctly:
+
+| # | Test | Result | Notes |
+|---|------|--------|-------|
+| 1 | SSE connection established | ✅ | `: connected` heartbeat received |
+| 2 | `read-all` triggers `count_update` SSE event | ✅ | `data: {"type":"count_update","unreadCount":0}` received |
+| 3 | EventBus singleton shared in standalone | ✅ | Single `next-server` process, `globalThis` singleton |
+| 4 | `assignExperiment()` creates notification | ✅ | 3 `task_assigned` notifications in agent's inbox |
+| 5 | Agent notification emits to SSE channel | ✅ | `notification:agent:<uuid>` channel works |
+
+**The initial "SSE broken" report was a test infrastructure issue**: the OpenClaw plugin wasn't connected during assignment because the SSH tunnel wasn't set up yet, and the gateway restart disconnected the plugin temporarily. The in-memory EventBus correctly delivers SSE events within the single Next.js standalone process.
+
+---
+
 ## Version History
 
 | Version | Changes |
