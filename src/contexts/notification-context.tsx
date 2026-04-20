@@ -94,6 +94,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
                 message: data.message,
                 projectName: data.projectName,
                 entityTitle: data.entityTitle,
+                action: data.action,
               });
             }
           }
