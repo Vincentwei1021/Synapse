@@ -79,6 +79,10 @@ describe("SynapseEventRouter", () => {
     expect(prompt).toContain("post a comment on this experiment");
     expect(prompt).toContain("@[Alice](user:user-1)");
     expect(prompt).toContain("synapse_report_experiment_progress");
+    expect(prompt).toContain("set up automated monitoring without cron");
+    expect(prompt).toContain("sleep 60 seconds between checks");
+    expect(prompt).toContain("Never let the sleep interval exceed 30 minutes");
+    expect(prompt).not.toContain("Create a cron job");
     expect(metadata).toMatchObject({
       action: "task_assigned",
       entityType: "experiment",
