@@ -272,6 +272,45 @@ describe("reviewExperiment revert paths", () => {
     );
     expect(mockPrisma.comment.create).not.toHaveBeenCalled();
   });
+
+  it("re-emits task_assigned when an already-assigned draft revision is approved", async () => {
+    const existing = makeExperiment({
+      status: "pending_review",
+      assigneeType: "agent",
+      assigneeUuid: "a-1",
+      createdByUuid: "a-1",
+    });
+    mockPrisma.experiment.findFirst.mockResolvedValue(existing);
+    mockPrisma.experiment.update.mockResolvedValue({
+      ...existing,
+      status: "pending_start",
+      assigneeType: "agent",
+      assigneeUuid: "a-1",
+    });
+
+    await reviewExperiment({
+      companyUuid: COMPANY,
+      experimentUuid: "exp-1",
+      approved: true,
+      actorUuid: "user-1",
+    });
+
+    expect(mockPrisma.experiment.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "pending_start",
+        }),
+      })
+    );
+
+    expect(mockNotificationCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "task_assigned",
+        recipientType: "agent",
+        recipientUuid: "a-1",
+      })
+    );
+  });
 });
 
 describe("updateExperimentWorkflowStatus", () => {

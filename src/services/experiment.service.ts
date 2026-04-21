@@ -789,15 +789,21 @@ export async function reviewExperiment(input: {
     });
   } catch {}
 
-  // Send task_assigned notification when auto-assigning back to the creating agent
-  if (shouldAutoAssign) {
+  const approvedAgentAssigneeUuid =
+    input.approved && updated.assigneeType === "agent" && updated.assigneeUuid
+      ? updated.assigneeUuid
+      : null;
+
+  // When an approved experiment is already assigned to an agent, re-emit
+  // task_assigned so the plugin wakes the agent to start execution.
+  if (approvedAgentAssigneeUuid) {
     try {
       const actorName = await getActorName("user", input.actorUuid);
       await notificationService.create({
         companyUuid: input.companyUuid,
         researchProjectUuid: updated.researchProjectUuid,
         recipientType: "agent",
-        recipientUuid: existing.createdByUuid,
+        recipientUuid: approvedAgentAssigneeUuid,
         entityType: "experiment",
         entityUuid: updated.uuid,
         entityTitle: updated.title,
@@ -808,9 +814,14 @@ export async function reviewExperiment(input: {
         actorUuid: input.actorUuid,
         actorName: actorName || "Unknown",
       });
-      await updateExperimentLiveStatus(input.experimentUuid, "sent");
     } catch (err) {
       log.error({ err }, "failed to send task_assigned notification after review approval");
+    }
+
+    try {
+      await updateExperimentLiveStatus(input.experimentUuid, "sent");
+    } catch (err) {
+      log.error({ err }, "failed to update live status after review approval");
     }
   }
 
