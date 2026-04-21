@@ -346,10 +346,15 @@ ${steps.join("\n")}`;
   private handleMentioned(n: NotificationDetail): void {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
     const mentionGuidance = this.buildMentionGuidance(n, n.entityType);
+    const experimentRevisionGuidance =
+      n.entityType === "experiment"
+        ? `If the feedback requires changing the experiment plan, first use synapse_update_experiment_status with status "draft", then use synapse_update_experiment_plan, and finally move it back with synapse_update_experiment_status status "pending_review".\n`
+        : "";
 
     this.triggerAgent(
       `[Synapse] You were @mentioned in ${n.entityType} '${n.entityTitle}' (entityType: ${n.entityType}, entityUuid: ${n.entityUuid}, projectUuid: ${projectUuid}): ${n.message}\n` +
       `Review the ${n.entityType} content and use synapse_get_comments (targetType: "${n.entityType}", targetUuid: "${n.entityUuid}") to see the full conversation, then respond.\n` +
+      experimentRevisionGuidance +
       mentionGuidance,
       { notificationUuid: n.uuid, action: "mentioned", entityUuid: n.entityUuid, projectUuid }
     );
@@ -533,9 +538,10 @@ Reviewer feedback: ${n.message}
 Your task:
 1. Use synapse_get_experiment with experimentUuid "${n.entityUuid}" to re-read the experiment.
 2. Use synapse_get_comments with targetType "experiment" and targetUuid "${n.entityUuid}" to read the full feedback thread.
-3. Revise the experiment's title/description to address the feedback.
-4. Use synapse_update_experiment_plan (or the appropriate update tool) with experimentUuid "${n.entityUuid}" to save the revised plan.
-5. When the revision is ready, set the experiment status to "pending_review" so the reviewer can approve it.
+3. If the experiment is not already in draft, use synapse_update_experiment_status with status "draft" before editing the plan.
+4. Revise the experiment's title/description to address the feedback.
+5. Use synapse_update_experiment_plan (or the appropriate update tool) with experimentUuid "${n.entityUuid}" to save the revised plan.
+6. When the revision is ready, use synapse_update_experiment_status with status "pending_review" so the reviewer can approve it.
 ` + mentionGuidance,
       { notificationUuid: n.uuid, action: "experiment_revision_requested", entityUuid: n.entityUuid, projectUuid }
     );

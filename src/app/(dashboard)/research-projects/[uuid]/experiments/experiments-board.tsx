@@ -31,6 +31,7 @@ import { AgentTypeIcon } from "@/components/agent-type-icon";
 import { getAgentColor } from "@/lib/agent-colors";
 import { ANIM } from "@/lib/animation";
 import type { ExperimentResponse } from "@/services/experiment.service";
+import { ExperimentComments } from "./experiment-comments";
 import { RevertDialog } from "./revert-dialog";
 
 const columns = [
@@ -1097,6 +1098,12 @@ export function ExperimentsBoard({
                     </Card>
                   </div>
                 ) : null}
+
+                <ExperimentComments
+                  experimentUuid={selectedExperiment.uuid}
+                  currentActorType={viewerType === "agent" ? "agent" : "user"}
+                  currentActorUuid={viewerUuid}
+                />
               </div>
             </div>
           ) : null}

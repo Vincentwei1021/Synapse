@@ -240,6 +240,7 @@ describe("SynapseEventRouter", () => {
     const [prompt] = triggerAgent.mock.calls[0];
     expect(prompt).toContain("@mentioned");
     expect(prompt).toContain("synapse_get_comments");
+    expect(prompt).toContain("synapse_update_experiment_status");
     expect(prompt).toContain("@[Alice](user:user-1)");
   });
 
