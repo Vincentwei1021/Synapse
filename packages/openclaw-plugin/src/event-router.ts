@@ -357,7 +357,13 @@ ${steps.join("\n")}`;
       `Review the ${n.entityType} content and use synapse_get_comments (targetType: "${n.entityType}", targetUuid: "${n.entityUuid}") to see the full conversation, then respond.\n` +
       experimentRevisionGuidance +
       mentionGuidance,
-      { notificationUuid: n.uuid, action: "mentioned", entityUuid: n.entityUuid, projectUuid }
+      {
+        notificationUuid: n.uuid,
+        action: "mentioned",
+        entityType: n.entityType,
+        entityUuid: n.entityUuid,
+        projectUuid,
+      }
     );
   }
 

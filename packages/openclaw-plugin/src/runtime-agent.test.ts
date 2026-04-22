@@ -26,6 +26,21 @@ describe("runtime-agent", () => {
     });
   });
 
+  it("uses a per-notification identity for mentions", () => {
+    expect(
+      buildSynapseRunIdentity({
+        action: "mentioned",
+        entityType: "experiment",
+        entityUuid: "experiment-123",
+        notificationUuid: "notification-456",
+      }),
+    ).toEqual({
+      lane: "synapse:experiment:notification-456",
+      sessionId: "synapse-experiment-notification-456",
+      sessionKey: "synapse:experiment:notification-456",
+    });
+  });
+
   it("dispatches through embedded runtime with a dedicated lane and session", async () => {
     const logger = createLogger();
     const loadConfig = vi.fn(() => ({ session: { store: "/tmp/sessions.json" } }));

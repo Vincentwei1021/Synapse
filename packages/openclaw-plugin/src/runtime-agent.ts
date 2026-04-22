@@ -45,6 +45,9 @@ export interface SynapseRuntimeAgentApi {
 }
 
 const DEFAULT_TIMEOUT_SECONDS = 7 * 24 * 3600;
+const PER_NOTIFICATION_IDENTITY_ACTIONS = new Set([
+  "mentioned",
+]);
 
 function normalizeIdentityPart(value: string | undefined, fallback: string): string {
   const normalized = (value ?? "")
@@ -63,9 +66,14 @@ export function buildSynapseRunIdentity(metadata?: SynapseAgentTriggerMetadata):
   sessionKey: string;
 } {
   const scope = normalizeIdentityPart(metadata?.entityType ?? metadata?.action, "event");
+  const action = normalizeIdentityPart(metadata?.action, "");
+  const shouldUseNotificationIdentity =
+    action !== "" && PER_NOTIFICATION_IDENTITY_ACTIONS.has(action);
   const subject = normalizeIdentityPart(
-    metadata?.entityUuid ?? metadata?.projectUuid ?? metadata?.notificationUuid,
-    "dispatch",
+    shouldUseNotificationIdentity
+      ? metadata?.notificationUuid
+      : metadata?.entityUuid ?? metadata?.projectUuid ?? metadata?.notificationUuid,
+    shouldUseNotificationIdentity ? "notification" : "dispatch",
   );
 
   return {
