@@ -334,6 +334,7 @@ export async function saveExperimentReportDocument(input: {
 }
 
 function assertTransition(from: ExperimentStatus, to: ExperimentStatus) {
+  if (from === to) return;
   if (!VALID_TRANSITIONS[from]?.includes(to)) {
     throw new Error(`Invalid experiment status transition: ${from} -> ${to}`);
   }
