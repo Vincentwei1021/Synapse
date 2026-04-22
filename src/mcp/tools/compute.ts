@@ -528,6 +528,40 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
   );
 
   server.registerTool(
+    "synapse_save_experiment_report",
+    {
+      description: "Create or update the dedicated experiment result document for a completed experiment.",
+      inputSchema: z.object({
+        experimentUuid: z.string().describe("Experiment UUID"),
+        title: z.string().optional().describe("Optional report title"),
+        content: z.string().describe("Full experiment report content (Markdown)"),
+      }),
+    },
+    async ({ experimentUuid, title, content }) => {
+      try {
+        const document = await experimentService.saveExperimentReportDocument({
+          companyUuid: auth.companyUuid,
+          actorType: auth.type,
+          actorUuid: auth.actorUuid,
+          ownerUuid: auth.ownerUuid,
+          experimentUuid,
+          title: title ?? null,
+          content,
+        });
+
+        return {
+          content: [{ type: "text", text: JSON.stringify({ document }, null, 2) }],
+        };
+      } catch (error) {
+        return {
+          content: [{ type: "text", text: error instanceof Error ? error.message : "Failed to save experiment report" }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.registerTool(
     "synapse_report_experiment_progress",
     {
       description:

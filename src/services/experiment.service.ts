@@ -156,6 +156,16 @@ function buildExperimentDocumentTitle(title: string) {
   return `Experiment Result · ${title}`;
 }
 
+function ensureExperimentDocumentMarker(content: string, experimentUuid: string) {
+  const marker = buildExperimentDocumentMarker(experimentUuid);
+  if (content.includes(marker)) {
+    return content;
+  }
+
+  const trimmed = content.trim();
+  return trimmed ? `${marker}\n\n${trimmed}` : marker;
+}
+
 function formatExperimentDocumentContent(experiment: {
   uuid: string;
   title: string;
@@ -247,6 +257,80 @@ async function syncExperimentResultDocument(input: {
   });
 
   return document.uuid;
+}
+
+export async function saveExperimentReportDocument(input: {
+  companyUuid: string;
+  actorType: string;
+  actorUuid: string;
+  ownerUuid?: string | null;
+  experimentUuid: string;
+  title?: string | null;
+  content: string;
+}) {
+  const experiment = await prisma.experiment.findFirst({
+    where: { uuid: input.experimentUuid, companyUuid: input.companyUuid },
+    select: {
+      uuid: true,
+      title: true,
+      researchProjectUuid: true,
+      assigneeType: true,
+      assigneeUuid: true,
+    },
+  });
+
+  if (!experiment) {
+    throw new Error("Experiment not found");
+  }
+
+  assertAssignedActorAccess(experiment, input.actorType, input.actorUuid, "complete", input.ownerUuid);
+
+  const marker = buildExperimentDocumentMarker(experiment.uuid);
+  const documentTitle = input.title?.trim() || buildExperimentDocumentTitle(experiment.title);
+  const documentContent = ensureExperimentDocumentMarker(input.content, experiment.uuid);
+
+  const existing = await prisma.document.findFirst({
+    where: {
+      companyUuid: input.companyUuid,
+      researchProjectUuid: experiment.researchProjectUuid,
+      type: EXPERIMENT_RESULT_DOCUMENT_TYPE,
+      content: {
+        contains: marker,
+      },
+    },
+    select: { uuid: true, version: true },
+  });
+
+  if (existing) {
+    const updated = await updateDocument(existing.uuid, {
+      title: documentTitle,
+      content: documentContent,
+      incrementVersion: true,
+    });
+
+    return {
+      uuid: updated.uuid,
+      title: updated.title,
+      version: updated.version,
+      action: "updated" as const,
+    };
+  }
+
+  const created = await createDocument({
+    companyUuid: input.companyUuid,
+    researchProjectUuid: experiment.researchProjectUuid,
+    type: EXPERIMENT_RESULT_DOCUMENT_TYPE,
+    title: documentTitle,
+    content: documentContent,
+    createdByUuid: input.actorUuid,
+  });
+
+  return {
+    uuid: created.uuid,
+    title: created.title,
+    version: created.version,
+    action: "created" as const,
+  };
 }
 
 function assertTransition(from: ExperimentStatus, to: ExperimentStatus) {

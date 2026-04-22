@@ -442,6 +442,21 @@ export const commonToolDefinitions = defineOpenClawTools([
     },
     targetToolName: "synapse_get_document",
   }),
+  createPassthroughTool<{ experimentUuid: string; title?: string; content: string }>({
+    name: "synapse_save_experiment_report",
+    description: "Create or update the dedicated experiment result document for a completed experiment.",
+    parameters: {
+      type: "object",
+      properties: {
+        experimentUuid: { type: "string", description: "Experiment UUID" },
+        title: { type: "string", description: "Optional report title" },
+        content: { type: "string", description: "Full experiment report content (Markdown)" },
+      },
+      required: ["experimentUuid", "content"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_save_experiment_report",
+  }),
 
   // =========================================================================
   // Comments

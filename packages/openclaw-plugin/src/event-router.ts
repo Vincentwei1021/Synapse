@@ -571,7 +571,7 @@ Write a detailed experiment report document for this experiment. Follow these st
    - Analysis and interpretation
    - Conclusions and next steps
 4. Write the report in the same language as the project description.
-5. Use synapse_add_comment to post the report as a comment on the experiment (targetType: "experiment", targetUuid: "${n.entityUuid}")
+5. Use synapse_save_experiment_report with experimentUuid "${n.entityUuid}" and the full Markdown content to create or update the dedicated experiment result document for this experiment. Do NOT post the report as an experiment comment.
 
 Keep the report focused on THIS experiment only — do not summarize the entire project.`,
       { notificationUuid: n.uuid, action: "experiment_report_requested", entityUuid: n.entityUuid, projectUuid }

@@ -210,7 +210,8 @@ describe("SynapseEventRouter", () => {
     expect(triggerAgent).toHaveBeenCalledTimes(1);
     const [prompt] = triggerAgent.mock.calls[0];
     expect(prompt).toContain("Baseline experiment");
-    expect(prompt).toContain("synapse_add_comment");
+    expect(prompt).toContain("synapse_save_experiment_report");
+    expect(prompt).toContain("Do NOT post the report as an experiment comment");
   });
 
   it("routes @mention events with entity context", async () => {
