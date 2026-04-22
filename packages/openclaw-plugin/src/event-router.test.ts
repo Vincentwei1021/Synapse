@@ -82,6 +82,9 @@ describe("SynapseEventRouter", () => {
     expect(prompt).toContain("set up automated monitoring without cron");
     expect(prompt).toContain("sleep 60 seconds between checks");
     expect(prompt).toContain("Never let the sleep interval exceed 30 minutes");
+    expect(prompt).toContain("run Python in unbuffered mode");
+    expect(prompt).toContain("python -u");
+    expect(prompt).toContain("PYTHONUNBUFFERED=1");
     expect(prompt).not.toContain("Create a cron job");
     expect(metadata).toMatchObject({
       action: "task_assigned",
