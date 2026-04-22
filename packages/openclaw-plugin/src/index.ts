@@ -5,9 +5,47 @@ import { synapseConfigSchema, type SynapsePluginConfig, validateConfigWithWarnin
 import { SynapseMcpClient } from "./mcp-client.js";
 import { SynapseSseListener } from "./sse-listener.js";
 import { SynapseEventRouter } from "./event-router.js";
-import { triggerSynapseAgentTurn } from "./runtime-agent.js";
 import { registerCommonTools } from "./tools/common-tools.js";
 import { registerSynapseCommands } from "./commands.js";
+
+/**
+ * Trigger the OpenClaw agent by dispatching an isolated agent turn through
+ * the gateway's /hooks/agent endpoint. This treats the Synapse assignment as
+ * a primary prompt instead of a side-channel wake event.
+ */
+const DEFAULT_TIMEOUT_SECONDS = 7 * 24 * 3600; // 7 days for unlimited budget
+
+async function wakeAgent(
+  gatewayUrl: string,
+  hooksToken: string,
+  text: string,
+  logger: { info: (msg: string) => void; warn: (msg: string) => void },
+  timeoutSeconds?: number,
+) {
+  try {
+    const res = await fetch(`${gatewayUrl}/hooks/agent`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${hooksToken}`,
+      },
+      body: JSON.stringify({
+        message: text,
+        name: "Synapse",
+        wakeMode: "now",
+        deliver: true,
+        timeoutSeconds: timeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS,
+      }),
+    });
+    if (!res.ok) {
+      logger.warn(`Wake agent failed: HTTP ${res.status}`);
+    } else {
+      logger.info(`Agent woken: ${text.slice(0, 80)}...`);
+    }
+  } catch (err) {
+    logger.warn(`Wake agent error: ${err}`);
+  }
+}
 
 const plugin = {
   id: "synapse-openclaw-plugin",
@@ -34,6 +72,11 @@ const plugin = {
     const synapseUrl = config.synapseUrl!;
     const apiKey = config.apiKey!;
 
+    // Resolve gateway URL and hooks token from OpenClaw config
+    const gatewayPort = api.config?.gateway?.port ?? 18789;
+    const gatewayUrl = `http://127.0.0.1:${gatewayPort}`;
+    const hooksToken = api.config?.hooks?.token ?? "";
+
     logger.info(
       `Synapse plugin initializing — ${synapseUrl} (${config.projectUuids?.length || "all"} projects)`
     );
@@ -51,14 +94,14 @@ const plugin = {
       config,
       logger,
       triggerAgent: (message: string, metadata?: Record<string, unknown>) => {
-        void triggerSynapseAgentTurn({
-          api,
-          logger,
-          message,
-          metadata,
-        }).catch((err) => {
-          logger.warn(`[Synapse] Embedded agent dispatch failed: ${err}`);
-        });
+        const timeoutSeconds = metadata?.timeoutSeconds as number | undefined;
+        if (hooksToken) {
+          wakeAgent(gatewayUrl, hooksToken, message, logger, timeoutSeconds);
+        } else {
+          logger.warn(
+            `[Synapse] Cannot wake agent — hooks.token not configured. Event: ${message.slice(0, 100)}`
+          );
+        }
       },
     });
 

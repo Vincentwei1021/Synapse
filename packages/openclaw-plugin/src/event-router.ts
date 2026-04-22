@@ -303,16 +303,15 @@ Base branch: ${repoAccess.baseBranch ?? "main"}`;
 
     steps.push(`${stepNum++}. Execute the experiment on the compute node according to the experiment description. For long-running jobs, prefer launching the workload inside tmux so the process survives disconnects and you can re-attach later. If the workload writes Python stdout/stderr to a log file, run Python in unbuffered mode so logs appear in real time for monitoring. Prefer python -u (or PYTHONUNBUFFERED=1). If helpful, combine it with tee/stdout piping so progress is visible immediately instead of being trapped in a full buffer.`);
 
-    steps.push(`${stepNum++}. For long-running experiments (training jobs, multi-hour evaluations), set up automated monitoring without cron:
+    steps.push(`${stepNum++}. For long-running experiments (training jobs, multi-hour evaluations), set up automated monitoring:
    a. Write a monitoring script on the compute node that reads the latest training/evaluation logs, extracts key metrics (loss, accuracy, eval scores, etc.), and outputs a concise summary.
-   b. Test the script to make sure it works correctly. Also verify the underlying experiment process is running in a durable session (prefer tmux for long jobs) and is writing unbuffered logs (for Python: python -u, PYTHONUNBUFFERED=1, flush=True where needed, or another effective approach) so your polling loop can actually see fresh output while the job is running.
-   c. Run a polling loop yourself using sleep between checks. Start aggressively (for example, sleep 60 seconds between checks), then gradually back off if the job is still running. Never let the sleep interval exceed 30 minutes.
-   d. On each polling pass, call synapse_report_experiment_progress with experimentUuid "${experimentUuid}" to report the latest metrics summary when there is a meaningful update, status transition, or enough time has passed that the human would want reassurance the run is still healthy.
-   e. The monitoring script or loop should also detect when the experiment finishes (e.g. training completes, final evaluation done). When completion is detected, stop the polling loop immediately.
-   f. Once completion is detected, you are responsible for the remaining steps: ${hasRepo ? "handle code changes per project description, " : ""}submit results, and clean up.
-   For short experiments that you can monitor directly, skip the extended polling loop and proceed to the next steps manually.`);
+   b. Test the script to make sure it works correctly. Also verify the underlying experiment process is running in a durable session (prefer tmux for long jobs) and is writing unbuffered logs (for Python: python -u, PYTHONUNBUFFERED=1, flush=True where needed, or another effective approach) so the monitoring script can see fresh output.
+   c. Create a cron job that runs every 30 minutes: the script calls synapse_report_experiment_progress with experimentUuid "${experimentUuid}" to report the latest metrics summary, and delivers updates to the latest channel.
+   d. The monitoring script should also detect when the experiment finishes (e.g. training completes, final evaluation done). When completion is detected, the script should send a message notifying you (the agent) that the experiment has finished.
+   e. Once you receive the completion notification, you are responsible for the remaining steps: ${hasRepo ? "handle code changes per project description, " : ""}submit results, and clean up. Remove the cron job after you have completed everything.
+   For short experiments that you can monitor directly, skip the cron setup and proceed to the next steps manually.`);
 
-    steps.push(`${stepNum++}. If you are monitoring the experiment directly, call synapse_report_experiment_progress with experimentUuid "${experimentUuid}" at each major step (data download, training start, each evaluation checkpoint, major metric change, etc.).`);
+    steps.push(`${stepNum++}. If you are monitoring the experiment directly (no cron), call synapse_report_experiment_progress with experimentUuid "${experimentUuid}" at each major step (data download, training start, each evaluation checkpoint, major metric change, etc.).`);
 
     if (hasRepo) {
       steps.push(`${stepNum++}. After the experiment completes, commit your changes and push. The project description may specify a branch strategy (e.g. single persistent branch, per-experiment branches, keep/discard workflow). Follow it. If not specified, decide: create a new branch for this experiment, or commit on the current branch — based on how the project organizes its code.`);
@@ -357,13 +356,7 @@ ${steps.join("\n")}`;
       `Review the ${n.entityType} content and use synapse_get_comments (targetType: "${n.entityType}", targetUuid: "${n.entityUuid}") to see the full conversation, then respond.\n` +
       experimentRevisionGuidance +
       mentionGuidance,
-      {
-        notificationUuid: n.uuid,
-        action: "mentioned",
-        entityType: n.entityType,
-        entityUuid: n.entityUuid,
-        projectUuid,
-      }
+      { notificationUuid: n.uuid, action: "mentioned", entityUuid: n.entityUuid, projectUuid }
     );
   }
 
