@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { LayoutGroup, motion } from "framer-motion";
@@ -24,7 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { PresenceIndicator } from "@/components/ui/presence-indicator";
-import { useRealtimeRefresh } from "@/contexts/realtime-context";
+import { useRealtimeEntityEvent, useRealtimeRefresh } from "@/contexts/realtime-context";
 import { MarkdownContent } from "@/components/markdown-content";
 import { GlowBorder } from "@/components/glow-border";
 import { AgentTypeIcon } from "@/components/agent-type-icon";
@@ -168,6 +168,20 @@ export function ExperimentsBoard({
   const [deletingExperiment, setDeletingExperiment] = useState(false);
   useRealtimeRefresh();
 
+  const loadProgressLogs = useCallback(async (experimentUuid: string) => {
+    try {
+      const response = await fetch(`/api/experiments/${experimentUuid}/progress`);
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setProgressLogs(data.data.logs || []);
+      } else {
+        setProgressLogs([]);
+      }
+    } catch {
+      setProgressLogs([]);
+    }
+  }, []);
+
   async function updateAutonomousLoop(enabled: boolean, agentUuid: string, mode: string) {
     const res = await fetch(`/api/research-projects/${projectUuid}`, {
       method: "PATCH",
@@ -249,11 +263,13 @@ export function ExperimentsBoard({
       setProgressLogs([]);
       return;
     }
-    fetch(`/api/experiments/${selectedExperimentUuid}/progress`)
-      .then(r => r.json())
-      .then(d => { if (d.success) setProgressLogs(d.data.logs || []); })
-      .catch(() => setProgressLogs([]));
-  }, [selectedExperimentUuid]);
+    void loadProgressLogs(selectedExperimentUuid);
+  }, [loadProgressLogs, selectedExperimentUuid]);
+
+  useRealtimeEntityEvent("experiment", selectedExperimentUuid ?? "", () => {
+    if (!selectedExperimentUuid) return;
+    void loadProgressLogs(selectedExperimentUuid);
+  });
 
   // Derive autonomous loop phase from experiment board state
   const autonomousPhase = useMemo(() => {
@@ -1102,7 +1118,6 @@ export function ExperimentsBoard({
                 <ExperimentComments
                   experimentUuid={selectedExperiment.uuid}
                   currentActorType={viewerType === "agent" ? "agent" : "user"}
-                  currentActorUuid={viewerUuid}
                 />
               </div>
             </div>

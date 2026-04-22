@@ -30,11 +30,9 @@ function formatRelativeTime(dateString: string, t: ReturnType<typeof useTranslat
 export function ExperimentComments({
   experimentUuid,
   currentActorType,
-  currentActorUuid,
 }: {
   experimentUuid: string;
   currentActorType: "user" | "agent";
-  currentActorUuid?: string;
 }) {
   const t = useTranslations();
   const [comment, setComment] = useState("");
@@ -66,8 +64,7 @@ export function ExperimentComments({
     void loadComments();
   }, [loadComments]);
 
-  useRealtimeEntityEvent("experiment", experimentUuid, (event) => {
-    if (currentActorUuid && event.actorUuid === currentActorUuid) return;
+  useRealtimeEntityEvent("experiment", experimentUuid, () => {
     void loadComments();
   });
 

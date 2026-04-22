@@ -79,7 +79,7 @@ export function RealtimeProvider({ projectUuid, children }: RealtimeProviderProp
     function connect() {
       // Close any existing connection before opening a new one
       disconnect();
-      es = new EventSource(`/api/events?projectUuid=${projectUuid}`);
+      es = new EventSource(`/api/events?researchProjectUuid=${projectUuid}`);
       es.onmessage = (msg) => {
         // Parse event data for entity-specific subscribers
         let parsedEvent: RealtimeEvent | null = null;
