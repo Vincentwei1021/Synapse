@@ -87,4 +87,26 @@ describe("middleware default-auth handling", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
   });
+
+  it("refreshes the session when only user_refresh is present", async () => {
+    mockJwtVerify.mockResolvedValueOnce({
+      payload: {
+        tokenType: "refresh",
+        userUuid: "user-1",
+        companyUuid: "company-1",
+        email: "admin@example.com",
+        name: "Admin",
+        oidcSub: "default-auth-user",
+      },
+    });
+
+    const response = await middleware(
+      createRequest("user_refresh=valid-refresh-token"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.cookies.get("user_session")?.value).toBeTruthy();
+    expect(response.cookies.get("user_refresh")?.value).toBeTruthy();
+  });
 });
