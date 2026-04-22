@@ -111,6 +111,17 @@ function prettyJson(value: unknown) {
   }
 }
 
+const DETAIL_PANEL_DEFAULT_WIDTH = 720;
+const DETAIL_PANEL_MIN_WIDTH = 560;
+const PLAN_PANEL_DEFAULT_WIDTH = 560;
+const PLAN_PANEL_MIN_WIDTH = 420;
+const PANEL_VIEWPORT_GAP = 80;
+const PROGRESS_LOG_PREVIEW_COUNT = 10;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
 export function ExperimentsBoard({
   experiments,
   agents,
@@ -163,10 +174,63 @@ export function ExperimentsBoard({
   const [quickAgentUuid, setQuickAgentUuid] = useState(realtimeAgents[0]?.uuid ?? "");
   const [quickCreating, setQuickCreating] = useState(false);
   const [planPanelOpen, setPlanPanelOpen] = useState(false);
+  const [detailPanelWidth, setDetailPanelWidth] = useState(DETAIL_PANEL_DEFAULT_WIDTH);
+  const [planPanelWidth, setPlanPanelWidth] = useState(PLAN_PANEL_DEFAULT_WIDTH);
+  const [showAllProgressLogs, setShowAllProgressLogs] = useState(false);
   const [revertTargetUuid, setRevertTargetUuid] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ExperimentResponse | null>(null);
   const [deletingExperiment, setDeletingExperiment] = useState(false);
   useRealtimeRefresh();
+
+  const getDetailPanelMaxWidth = useCallback(
+    (nextPlanWidth = planPanelOpen ? planPanelWidth : 0) => {
+      if (typeof window === "undefined") return DETAIL_PANEL_DEFAULT_WIDTH;
+      return Math.max(DETAIL_PANEL_MIN_WIDTH, window.innerWidth - nextPlanWidth - PANEL_VIEWPORT_GAP);
+    },
+    [planPanelOpen, planPanelWidth],
+  );
+
+  const getPlanPanelMaxWidth = useCallback(
+    (nextDetailWidth = detailPanelWidth) => {
+      if (typeof window === "undefined") return PLAN_PANEL_DEFAULT_WIDTH;
+      return Math.max(PLAN_PANEL_MIN_WIDTH, window.innerWidth - nextDetailWidth - PANEL_VIEWPORT_GAP);
+    },
+    [detailPanelWidth],
+  );
+
+  const startPanelResize = useCallback(
+    (event: React.PointerEvent<HTMLElement>, panel: "detail" | "plan") => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const startX = event.clientX;
+      const startWidth = panel === "detail" ? detailPanelWidth : planPanelWidth;
+
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        const nextWidth = startWidth - (moveEvent.clientX - startX);
+
+        if (panel === "detail") {
+          setDetailPanelWidth(clamp(nextWidth, DETAIL_PANEL_MIN_WIDTH, getDetailPanelMaxWidth()));
+          return;
+        }
+
+        setPlanPanelWidth(clamp(nextWidth, PLAN_PANEL_MIN_WIDTH, getPlanPanelMaxWidth()));
+      };
+
+      const handlePointerUp = () => {
+        window.removeEventListener("pointermove", handlePointerMove);
+        window.removeEventListener("pointerup", handlePointerUp);
+        document.body.style.removeProperty("cursor");
+        document.body.style.removeProperty("user-select");
+      };
+
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", handlePointerUp);
+    },
+    [detailPanelWidth, getDetailPanelMaxWidth, getPlanPanelMaxWidth, planPanelWidth],
+  );
 
   const loadProgressLogs = useCallback(async (experimentUuid: string) => {
     try {
@@ -261,8 +325,10 @@ export function ExperimentsBoard({
   useEffect(() => {
     if (!selectedExperimentUuid) {
       setProgressLogs([]);
+      setShowAllProgressLogs(false);
       return;
     }
+    setShowAllProgressLogs(false);
     void loadProgressLogs(selectedExperimentUuid);
   }, [loadProgressLogs, selectedExperimentUuid]);
 
@@ -306,6 +372,10 @@ export function ExperimentsBoard({
     () => experiments.find((experiment) => experiment.uuid === selectedExperimentUuid) ?? null,
     [experiments, selectedExperimentUuid],
   );
+  const visibleProgressLogs = showAllProgressLogs
+    ? progressLogs
+    : progressLogs.slice(0, PROGRESS_LOG_PREVIEW_COUNT);
+  const hiddenProgressLogCount = Math.max(progressLogs.length - visibleProgressLogs.length, 0);
 
   useEffect(() => {
     if (!selectedExperiment) {
@@ -334,6 +404,28 @@ export function ExperimentsBoard({
     );
     setDraftSaveError(null);
   }, [selectedExperiment]);
+
+  useEffect(() => {
+    function syncPanelWidths() {
+      const nextPlanWidth = clamp(planPanelWidth, PLAN_PANEL_MIN_WIDTH, getPlanPanelMaxWidth());
+      if (nextPlanWidth !== planPanelWidth) {
+        setPlanPanelWidth(nextPlanWidth);
+      }
+
+      const nextDetailWidth = clamp(
+        detailPanelWidth,
+        DETAIL_PANEL_MIN_WIDTH,
+        getDetailPanelMaxWidth(planPanelOpen ? nextPlanWidth : 0),
+      );
+      if (nextDetailWidth !== detailPanelWidth) {
+        setDetailPanelWidth(nextDetailWidth);
+      }
+    }
+
+    syncPanelWidths();
+    window.addEventListener("resize", syncPanelWidths);
+    return () => window.removeEventListener("resize", syncPanelWidths);
+  }, [detailPanelWidth, getDetailPanelMaxWidth, getPlanPanelMaxWidth, planPanelOpen, planPanelWidth]);
 
   async function handleAssign(experimentUuid: string) {
     const assigneeUuid = assignments[experimentUuid];
@@ -778,9 +870,24 @@ export function ExperimentsBoard({
       </div>
 
       <Sheet open={Boolean(selectedExperiment)} onOpenChange={(open) => { if (!open) { setSelectedExperimentUuid(null); setDismissed(true); } }}>
-        <SheetContent side="right" className="w-full sm:max-w-[640px] lg:w-1/3 lg:max-w-none">
+        <SheetContent
+          side="right"
+          className="w-full border-l border-border sm:max-w-none"
+          style={{ width: `min(calc(100vw - 1rem), ${detailPanelWidth}px)` }}
+        >
           {planPanelOpen && selectedExperiment?.description ? (
-            <div className="absolute inset-y-0 right-full hidden w-[480px] overflow-y-auto border-r border-border bg-background shadow-xl sm:block">
+            <div
+              className="absolute inset-y-0 right-full hidden overflow-y-auto border-r border-border bg-background shadow-xl sm:block"
+              style={{ width: `min(calc(100vw - 1rem), ${planPanelWidth}px)` }}
+            >
+              <button
+                type="button"
+                onPointerDown={(event) => startPanelResize(event, "plan")}
+                className="absolute inset-y-0 left-0 z-20 hidden w-3 -translate-x-1/2 cursor-col-resize bg-transparent sm:block"
+                aria-label={t("experiments.detail.resizePlanPanel")}
+              >
+                <div className="mx-auto h-full w-px bg-border transition-colors hover:bg-primary" />
+              </button>
               <div className="flex items-center justify-between border-b border-border px-5 py-4">
                 <h3 className="text-sm font-semibold text-foreground">{t("experiments.fields.description")}</h3>
                 <button
@@ -798,6 +905,14 @@ export function ExperimentsBoard({
 
           {selectedExperiment ? (
             <div className="h-full overflow-y-auto">
+              <button
+                type="button"
+                onPointerDown={(event) => startPanelResize(event, "detail")}
+                className="absolute inset-y-0 left-0 z-20 hidden w-3 -translate-x-1/2 cursor-col-resize bg-transparent sm:block"
+                aria-label={t("experiments.detail.resizeDetailPanel")}
+              >
+                <div className="mx-auto h-full w-px bg-border transition-colors hover:bg-primary" />
+              </button>
               <SheetHeader className="border-b border-border px-6 py-5">
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -1072,7 +1187,7 @@ export function ExperimentsBoard({
                     <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.progressLog")}</h3>
                     <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
                       <div className="space-y-3">
-                        {progressLogs.map((log) => (
+                        {visibleProgressLogs.map((log) => (
                           <div key={log.uuid} className="flex gap-3 text-xs">
                             <span className="shrink-0 text-muted-foreground">
                               {new Date(log.createdAt).toLocaleTimeString()}
@@ -1083,6 +1198,17 @@ export function ExperimentsBoard({
                             <span className="text-foreground">{log.message}</span>
                           </div>
                         ))}
+                        {hiddenProgressLogCount > 0 ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => setShowAllProgressLogs(true)}
+                          >
+                            {t("experiments.detail.loadRemainingProgress", { count: hiddenProgressLogCount })}
+                          </Button>
+                        ) : null}
                       </div>
                     </Card>
                   </div>

@@ -1392,6 +1392,9 @@
       "viewOnGithub": "View on GitHub",
       "progressLog": "Progress Log",
       "noProgress": "No progress updates yet",
+      "loadRemainingProgress": "Load remaining {count} entries",
+      "resizePlanPanel": "Resize experiment plan panel",
+      "resizeDetailPanel": "Resize experiment detail panel",
       "saveFailed": "Failed to save experiment changes."
     },
     "autonomousLoop": "Autonomous Loop",

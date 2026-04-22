@@ -1392,6 +1392,9 @@
       "viewOnGithub": "在 GitHub 上查看",
       "progressLog": "进度日志",
       "noProgress": "暂无进度更新",
+      "loadRemainingProgress": "加载剩余 {count} 条记录",
+      "resizePlanPanel": "调整实验计划面板宽度",
+      "resizeDetailPanel": "调整实验详情面板宽度",
       "saveFailed": "保存实验修改失败。"
     },
     "autonomousLoop": "自主闭环",
