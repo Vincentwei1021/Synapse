@@ -85,6 +85,8 @@ describe("SynapseEventRouter", () => {
     expect(prompt).toContain("run Python in unbuffered mode");
     expect(prompt).toContain("python -u");
     expect(prompt).toContain("PYTHONUNBUFFERED=1");
+    expect(prompt).toContain("prefer launching the workload inside tmux");
+    expect(prompt).toContain("prefer tmux for long jobs");
     expect(prompt).not.toContain("Create a cron job");
     expect(metadata).toMatchObject({
       action: "task_assigned",
