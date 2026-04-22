@@ -213,6 +213,42 @@ describe("createComment", () => {
     });
   });
 
+  it("waits for mention processing before resolving createComment", async () => {
+    const record = makeCommentRecord({ content: "Hello @user(uuid-123,John)" });
+    const researchProjectUuid = "project-0000-0000-0000-000000000001";
+    mockPrisma.comment.create.mockResolvedValue(record);
+    mockPrisma.experimentRun.findUnique.mockResolvedValue({ researchProjectUuid, title: "Test Task" });
+
+    (parseMentions as ReturnType<typeof vi.fn>).mockReturnValue([
+      { type: "user", uuid: "uuid-123", displayName: "John" },
+    ]);
+
+    let releaseMentionProcessing: (() => void) | null = null;
+    const mentionPromise = new Promise<void>((resolve) => {
+      releaseMentionProcessing = resolve;
+    });
+    (createMentions as ReturnType<typeof vi.fn>).mockReturnValue(mentionPromise);
+
+    let resolved = false;
+    const pending = createComment({
+      companyUuid,
+      targetType: "experiment_run",
+      targetUuid,
+      content: "Hello @user(uuid-123,John)",
+      authorType: "user",
+      authorUuid,
+    }).then(() => {
+      resolved = true;
+    });
+
+    await Promise.resolve();
+    expect(resolved).toBe(false);
+
+    releaseMentionProcessing?.();
+    await pending;
+    expect(resolved).toBe(true);
+  });
+
   it("should skip self-mentions when processing mentions", async () => {
     const record = makeCommentRecord({ content: "Hello @user(user-0000-0000-0000-000000000001,Myself)" });
     const researchProjectUuid = "project-0000-0000-0000-000000000001";
