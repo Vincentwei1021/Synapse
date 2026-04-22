@@ -737,8 +737,9 @@ export async function reviewExperiment(input: {
             assigneeUuid: nextAssigneeUuid,
             assignedAt: nextAssigneeUuid ? new Date() : null,
             assignedByUuid: nextAssigneeUuid ? input.actorUuid : null,
-            liveStatus: null,
+            liveStatus: nextAssigneeUuid ? "sent" : null,
             liveMessage: null,
+            liveUpdatedAt: new Date(),
           }
         : {}),
     },
@@ -788,15 +789,21 @@ export async function reviewExperiment(input: {
     });
   } catch {}
 
-  // Send task_assigned notification when auto-assigning back to the creating agent
-  if (shouldAutoAssign) {
+  const approvedAgentAssigneeUuid =
+    input.approved && updated.assigneeType === "agent" && updated.assigneeUuid
+      ? updated.assigneeUuid
+      : null;
+
+  // When an approved experiment is already assigned to an agent, re-emit
+  // task_assigned so the plugin wakes the agent to start execution.
+  if (approvedAgentAssigneeUuid) {
     try {
       const actorName = await getActorName("user", input.actorUuid);
       await notificationService.create({
         companyUuid: input.companyUuid,
         researchProjectUuid: updated.researchProjectUuid,
         recipientType: "agent",
-        recipientUuid: existing.createdByUuid,
+        recipientUuid: approvedAgentAssigneeUuid,
         entityType: "experiment",
         entityUuid: updated.uuid,
         entityTitle: updated.title,
@@ -807,9 +814,14 @@ export async function reviewExperiment(input: {
         actorUuid: input.actorUuid,
         actorName: actorName || "Unknown",
       });
-      await updateExperimentLiveStatus(input.experimentUuid, "sent");
     } catch (err) {
       log.error({ err }, "failed to send task_assigned notification after review approval");
+    }
+
+    try {
+      await updateExperimentLiveStatus(input.experimentUuid, "sent");
+    } catch (err) {
+      log.error({ err }, "failed to update live status after review approval");
     }
   }
 
@@ -861,6 +873,105 @@ export async function reviewExperiment(input: {
       (err) => log.error({ err }, "autonomous loop trigger check failed")
     );
   }
+
+  return formatExperiment(input.companyUuid, updated);
+}
+
+export async function updateExperimentWorkflowStatus(input: {
+  companyUuid: string;
+  experimentUuid: string;
+  status: Extract<ExperimentStatus, "draft" | "pending_review" | "pending_start">;
+  actorType: "agent" | "user";
+  actorUuid: string;
+  ownerUuid?: string | null;
+  liveStatus?: string | null;
+  liveMessage?: string | null;
+}) {
+  const existing = await prisma.experiment.findFirst({
+    where: { uuid: input.experimentUuid, companyUuid: input.companyUuid },
+    include: {
+      researchProject: { select: { name: true } },
+      researchQuestion: {
+        select: { uuid: true, title: true, parentQuestionUuid: true },
+      },
+    },
+  });
+
+  if (!existing) {
+    throw new Error("Experiment not found");
+  }
+
+  if (input.actorType === "agent") {
+    assertAssignedActorAccess(existing, input.actorType, input.actorUuid, "start", input.ownerUuid);
+  }
+
+  assertTransition(existing.status as ExperimentStatus, input.status);
+
+  const nextLiveStatus =
+    input.status === "draft"
+      ? input.liveStatus ?? "running"
+      : input.liveStatus ?? null;
+  const nextLiveMessage =
+    input.status === "draft"
+      ? input.liveMessage ?? "Revising experiment plan"
+      : input.liveMessage ?? null;
+
+  const updated = await prisma.experiment.update({
+    where: { uuid: input.experimentUuid },
+    data: {
+      status: input.status,
+      liveStatus: nextLiveStatus,
+      liveMessage: nextLiveMessage,
+      liveUpdatedAt: new Date(),
+    },
+    include: {
+      researchQuestion: {
+        select: { uuid: true, title: true, parentQuestionUuid: true },
+      },
+    },
+  });
+
+  await activityService.createActivity({
+    companyUuid: input.companyUuid,
+    researchProjectUuid: updated.researchProjectUuid,
+    targetType: "experiment",
+    targetUuid: updated.uuid,
+    actorType: input.actorType,
+    actorUuid: input.actorUuid,
+    action: "status_changed",
+    value: {
+      status: input.status,
+      liveStatus: nextLiveStatus,
+      liveMessage: nextLiveMessage,
+    },
+  });
+
+  eventBus.emitChange({
+    companyUuid: input.companyUuid,
+    researchProjectUuid: updated.researchProjectUuid,
+    entityType: "experiment",
+    entityUuid: updated.uuid,
+    action: "updated",
+    actorUuid: input.actorUuid,
+  });
+
+  try {
+    await notificationService.create({
+      companyUuid: input.companyUuid,
+      researchProjectUuid: updated.researchProjectUuid,
+      recipientType: input.actorType,
+      recipientUuid: input.actorUuid,
+      entityType: "experiment",
+      entityUuid: updated.uuid,
+      entityTitle: updated.title,
+      projectName: existing.researchProject.name,
+      action: "experiment_status_changed",
+      message: `→ ${input.status.replace(/_/g, " ")}`,
+      actorType: input.actorType,
+      actorUuid: input.actorUuid,
+      actorName: (await getActorName(input.actorType, input.actorUuid)) || "Unknown",
+    });
+  } catch {}
 
   return formatExperiment(input.companyUuid, updated);
 }

@@ -788,6 +788,52 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
   );
 
   server.registerTool(
+    "synapse_update_experiment_status",
+    {
+      description: "Update an assigned experiment's workflow status during planning or revision. Use this to move an experiment into draft while revising, then send it back to pending_review or pending_start. For execution, keep using synapse_start_experiment and synapse_submit_experiment_results.",
+      inputSchema: z.object({
+        experimentUuid: z.string(),
+        status: z.enum(["draft", "pending_review", "pending_start"]),
+        liveStatus: z
+          .enum(["sent", "ack", "checking_resources", "queuing", "running"])
+          .nullable()
+          .optional()
+          .describe("Optional live badge override. Draft defaults to running; pending_review/pending_start default to cleared."),
+        liveMessage: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("Optional short status text shown on the experiment card."),
+      }),
+    },
+    async ({ experimentUuid, status, liveStatus, liveMessage }) => {
+      const experiment = await experimentService.getExperiment(auth.companyUuid, experimentUuid);
+      if (!experiment) {
+        return { content: [{ type: "text", text: "Experiment not found" }], isError: true };
+      }
+
+      if (!isAssignedToActor(experiment.assignee, auth)) {
+        return { content: [{ type: "text", text: "Experiment is assigned to another actor" }], isError: true };
+      }
+
+      const updated = await experimentService.updateExperimentWorkflowStatus({
+        companyUuid: auth.companyUuid,
+        experimentUuid,
+        status,
+        actorType: "agent",
+        actorUuid: auth.actorUuid,
+        ownerUuid: auth.ownerUuid,
+        liveStatus,
+        liveMessage,
+      });
+
+      return {
+        content: [{ type: "text", text: JSON.stringify({ experiment: updated }, null, 2) }],
+      };
+    }
+  );
+
+  server.registerTool(
     "synapse_update_experiment_plan",
     {
       description: "Update an experiment's plan/details. Use this when asked to flesh out an experiment plan from a brief description. You can update title, description, research question link, and priority.",

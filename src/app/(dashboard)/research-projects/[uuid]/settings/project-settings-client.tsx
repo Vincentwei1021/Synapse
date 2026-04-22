@@ -40,6 +40,13 @@ interface ResearchQuestion {
   status: string;
 }
 
+interface ProjectDocument {
+  uuid: string;
+  title: string;
+  type: string;
+  version: number;
+}
+
 interface Project {
   uuid: string;
   name: string;
@@ -53,6 +60,7 @@ interface Project {
   autoSearchActive: boolean;
   deepResearchActive: boolean;
   experiments: Experiment[];
+  documents: ProjectDocument[];
   researchQuestions: ResearchQuestion[];
 }
 
@@ -117,6 +125,10 @@ export function ProjectSettingsClient({ project, pools }: ProjectSettingsClientP
   // Delete question state
   const [deleteQuestionTarget, setDeleteQuestionTarget] = useState<ResearchQuestion | null>(null);
   const [deletingQuestion, setDeletingQuestion] = useState(false);
+
+  // Delete document state
+  const [deleteDocumentTarget, setDeleteDocumentTarget] = useState<ProjectDocument | null>(null);
+  const [deletingDocument, setDeletingDocument] = useState(false);
 
   // Delete project state
   const [showDeleteProject, setShowDeleteProject] = useState(false);
@@ -232,6 +244,25 @@ export function ProjectSettingsClient({ project, pools }: ProjectSettingsClientP
       // Silent fail — user can retry
     }
     setDeletingQuestion(false);
+  }
+
+  async function handleDeleteDocument() {
+    if (!deleteDocumentTarget) return;
+    setDeletingDocument(true);
+    try {
+      const response = await fetch(`/api/documents/${deleteDocumentTarget.uuid}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        setDeleteDocumentTarget(null);
+        startTransition(() => {
+          router.refresh();
+        });
+      }
+    } catch {
+      // Silent fail — user can retry
+    }
+    setDeletingDocument(false);
   }
 
   async function handleDeleteProject() {
@@ -526,6 +557,46 @@ export function ProjectSettingsClient({ project, pools }: ProjectSettingsClientP
         </div>
       </Card>
 
+      {/* Manage Documents */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">{t("documents")}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("documentCount", { count: project.documents.length })}
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 space-y-2">
+          {project.documents.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("noDocuments")}</p>
+          ) : (
+            project.documents.map((document) => (
+              <div
+                key={document.uuid}
+                className="flex items-center justify-between rounded-lg border border-border px-4 py-3"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="truncate text-sm font-medium text-foreground">
+                    {document.title}
+                  </span>
+                  <Badge variant="outline">{document.type}</Badge>
+                  <Badge variant="secondary">v{document.version}</Badge>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => setDeleteDocumentTarget(document)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))
+          )}
+        </div>
+      </Card>
+
       {/* Danger Zone */}
       <Card className="border-destructive/40 p-6">
         <h2 className="text-lg font-semibold text-destructive">{t("dangerZone")}</h2>
@@ -573,6 +644,38 @@ export function ProjectSettingsClient({ project, pools }: ProjectSettingsClientP
               disabled={deletingExperiment}
             >
               {deletingExperiment ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              {tc("delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Document Dialog */}
+      <AlertDialog
+        open={!!deleteDocumentTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteDocumentTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("deleteDocument")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteDocumentTarget
+                ? t("deleteDocumentConfirm", { title: deleteDocumentTarget.title })
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tc("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleDeleteDocument}
+              disabled={deletingDocument}
+            >
+              {deletingDocument ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
               {tc("delete")}

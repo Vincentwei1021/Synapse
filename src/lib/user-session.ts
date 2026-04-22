@@ -8,9 +8,10 @@ import { UserAuthContext } from "@/types/auth";
 import { getCookieOptions } from "@/lib/cookie-utils";
 
 const COOKIE_NAME = "user_session";
-export const ACCESS_TOKEN_EXPIRY = "1h"; // Access token expiry
-export const ACCESS_TOKEN_MAX_AGE = 60 * 60; // Cookie maxAge in seconds — must match ACCESS_TOKEN_EXPIRY
-const REFRESH_TOKEN_EXPIRY = "7d"; // Long-lived refresh token
+export const ACCESS_TOKEN_EXPIRY = "30d"; // Access token expiry for default-auth sessions
+export const ACCESS_TOKEN_MAX_AGE = 30 * 24 * 60 * 60; // Cookie maxAge in seconds — must match ACCESS_TOKEN_EXPIRY
+export const REFRESH_TOKEN_EXPIRY = "365d"; // Long-lived refresh token for default-auth sessions
+export const REFRESH_TOKEN_MAX_AGE = 365 * 24 * 60 * 60;
 const REFRESH_COOKIE_NAME = "user_refresh";
 
 // Get JWT signing secret
@@ -55,8 +56,12 @@ export async function createUserRefreshToken(
   payload: UserSessionPayload
 ): Promise<string> {
   return new SignJWT({
+    type: payload.type,
     userUuid: payload.userUuid,
     companyUuid: payload.companyUuid,
+    email: payload.email,
+    name: payload.name,
+    oidcSub: payload.oidcSub,
     tokenType: "refresh",
   })
     .setProtectedHeader({ alg: "HS256" })
@@ -178,7 +183,7 @@ export function setUserSessionCookies(
   response.cookies.set(COOKIE_NAME, accessToken, getCookieOptions(ACCESS_TOKEN_MAX_AGE));
 
   // Refresh token cookie (long-lived)
-  response.cookies.set(REFRESH_COOKIE_NAME, refreshToken, getCookieOptions(7 * 24 * 60 * 60));
+  response.cookies.set(REFRESH_COOKIE_NAME, refreshToken, getCookieOptions(REFRESH_TOKEN_MAX_AGE));
 }
 
 // Clear user session cookies

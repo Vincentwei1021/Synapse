@@ -4,7 +4,12 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { SignJWT, jwtVerify } from "jose";
-import { ACCESS_TOKEN_EXPIRY, ACCESS_TOKEN_MAX_AGE } from "@/lib/user-session";
+import {
+  ACCESS_TOKEN_EXPIRY,
+  ACCESS_TOKEN_MAX_AGE,
+  REFRESH_TOKEN_EXPIRY,
+  REFRESH_TOKEN_MAX_AGE,
+} from "@/lib/user-session";
 import { getCookieOptions } from "@/lib/cookie-utils";
 
 // Pino does NOT work in Edge Runtime — use an inline edge logger
@@ -88,23 +93,26 @@ function clearAuthAndRedirect(request: NextRequest): NextResponse {
 // without calling any external endpoint.
 async function handleUserSessionRefresh(request: NextRequest): Promise<NextResponse | null> {
   const userSession = request.cookies.get("user_session")?.value;
+  const userRefresh = request.cookies.get("user_refresh")?.value;
 
-  if (!userSession) {
-    return null; // No user_session cookie — not a Default Auth user
+  if (!userSession && !userRefresh) {
+    return null; // No default-auth cookies at all
   }
 
-  // Check expiry
-  const payload = decodeJwtPayload(userSession);
-  if (payload && typeof payload.exp === "number") {
-    const now = Math.floor(Date.now() / 1000);
-    // Still valid with comfortable margin — pass through
-    if (payload.exp - now > 10) {
-      return null;
+  const payload = userSession ? decodeJwtPayload(userSession) : null;
+
+  if (userSession) {
+    // Check expiry
+    if (payload && typeof payload.exp === "number") {
+      const now = Math.floor(Date.now() / 1000);
+      // Still valid with comfortable margin — pass through
+      if (payload.exp - now > 10) {
+        return null;
+      }
     }
   }
 
-  // Token expired or about to expire — try refresh
-  const userRefresh = request.cookies.get("user_refresh")?.value;
+  // Access token is missing, expired, or about to expire — try refresh
   if (!userRefresh) {
     // No refresh token — cannot renew, let page-level auth handle redirect
     return null;
@@ -127,19 +135,50 @@ async function handleUserSessionRefresh(request: NextRequest): Promise<NextRespo
       tokenType: "access",
       userUuid: payload?.userUuid ?? refreshPayload.userUuid,
       companyUuid: payload?.companyUuid ?? refreshPayload.companyUuid,
-      email: payload?.email,
-      name: payload?.name,
-      oidcSub: payload?.oidcSub,
+      email:
+        (typeof payload?.email === "string" && payload.email) ||
+        (typeof refreshPayload.email === "string" && refreshPayload.email) ||
+        "",
+      name:
+        (typeof payload?.name === "string" && payload.name) ||
+        (typeof refreshPayload.name === "string" ? refreshPayload.name : undefined),
+      oidcSub:
+        (typeof payload?.oidcSub === "string" && payload.oidcSub) ||
+        (typeof refreshPayload.oidcSub === "string" && refreshPayload.oidcSub) ||
+        "",
     })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
       .setExpirationTime(ACCESS_TOKEN_EXPIRY)
       .sign(secret);
 
+    const newRefreshToken = await new SignJWT({
+      type: "user",
+      tokenType: "refresh",
+      userUuid: refreshPayload.userUuid,
+      companyUuid: refreshPayload.companyUuid,
+      email:
+        (typeof refreshPayload.email === "string" && refreshPayload.email) ||
+        (typeof payload?.email === "string" ? payload.email : "") ||
+        "",
+      name:
+        (typeof refreshPayload.name === "string" && refreshPayload.name) ||
+        (typeof payload?.name === "string" ? payload.name : undefined),
+      oidcSub:
+        (typeof refreshPayload.oidcSub === "string" && refreshPayload.oidcSub) ||
+        (typeof payload?.oidcSub === "string" ? payload.oidcSub : "") ||
+        "",
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime(REFRESH_TOKEN_EXPIRY)
+      .sign(secret);
+
     edgeLog.info("User session refreshed for", payload?.email || refreshPayload.userUuid);
 
     // Write the new access token to the request cookie so downstream Server Components read it
     request.cookies.set("user_session", newAccessToken);
+    request.cookies.set("user_refresh", newRefreshToken);
 
     const response = NextResponse.next({
       request: { headers: request.headers },
@@ -147,6 +186,7 @@ async function handleUserSessionRefresh(request: NextRequest): Promise<NextRespo
 
     // Write the new access token to the response cookie for the browser
     response.cookies.set("user_session", newAccessToken, getCookieOptions(ACCESS_TOKEN_MAX_AGE));
+    response.cookies.set("user_refresh", newRefreshToken, getCookieOptions(REFRESH_TOKEN_MAX_AGE));
 
     return response;
   } catch (error) {

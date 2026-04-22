@@ -45,6 +45,8 @@ import {
   getRefreshTokenFromRequest,
   ACCESS_TOKEN_EXPIRY,
   ACCESS_TOKEN_MAX_AGE,
+  REFRESH_TOKEN_EXPIRY,
+  REFRESH_TOKEN_MAX_AGE,
   USER_SESSION_COOKIE,
   USER_REFRESH_COOKIE,
   UserSessionPayload,
@@ -141,7 +143,7 @@ describe('createUserRefreshToken', () => {
     expect(mockSign).toHaveBeenCalled();
   });
 
-  it('only includes userUuid and companyUuid in refresh token', async () => {
+  it('includes the fields needed for refresh-only session recovery', async () => {
     const payload: UserSessionPayload = {
       type: 'user',
       userUuid: 'user-123',
@@ -578,14 +580,14 @@ describe('setUserSessionCookies', () => {
       secure: false,
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60,
+      maxAge: 30 * 24 * 60 * 60,
     });
     expect(mockSetCookie).toHaveBeenCalledWith('user_refresh', 'refresh-token', {
       httpOnly: true,
       secure: false,
       sameSite: 'lax',
       path: '/',
-      maxAge: 7 * 24 * 60 * 60,
+      maxAge: 365 * 24 * 60 * 60,
     });
   });
 
@@ -599,8 +601,8 @@ describe('setUserSessionCookies', () => {
 
     setUserSessionCookies(response, 'access-token', 'refresh-token');
 
-    expect(getCookieOptions).toHaveBeenCalledWith(60 * 60); // ACCESS_TOKEN_MAX_AGE
-    expect(getCookieOptions).toHaveBeenCalledWith(7 * 24 * 60 * 60); // 7 days
+    expect(getCookieOptions).toHaveBeenCalledWith(30 * 24 * 60 * 60); // ACCESS_TOKEN_MAX_AGE
+    expect(getCookieOptions).toHaveBeenCalledWith(365 * 24 * 60 * 60); // 1 year
   });
 });
 
@@ -663,8 +665,10 @@ describe('getRefreshTokenFromRequest', () => {
 
 describe('constants', () => {
   it('exports correct constants', () => {
-    expect(ACCESS_TOKEN_EXPIRY).toBe('1h');
-    expect(ACCESS_TOKEN_MAX_AGE).toBe(60 * 60);
+    expect(ACCESS_TOKEN_EXPIRY).toBe('30d');
+    expect(ACCESS_TOKEN_MAX_AGE).toBe(30 * 24 * 60 * 60);
+    expect(REFRESH_TOKEN_EXPIRY).toBe('365d');
+    expect(REFRESH_TOKEN_MAX_AGE).toBe(365 * 24 * 60 * 60);
     expect(USER_SESSION_COOKIE).toBe('user_session');
     expect(USER_REFRESH_COOKIE).toBe('user_refresh');
   });

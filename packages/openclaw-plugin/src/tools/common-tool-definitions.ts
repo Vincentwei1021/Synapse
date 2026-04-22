@@ -248,6 +248,27 @@ export const commonToolDefinitions = defineOpenClawTools([
     targetToolName: "synapse_report_experiment_progress",
   }),
   createPassthroughTool<{
+    experimentUuid: string;
+    status: "draft" | "pending_review" | "pending_start";
+    liveStatus?: "sent" | "ack" | "checking_resources" | "queuing" | "running" | null;
+    liveMessage?: string | null;
+  }>({
+    name: "synapse_update_experiment_status",
+    description: "Update an assigned experiment's workflow status during planning or revision. Use this to move an experiment into draft while revising, then send it back to pending_review or pending_start.",
+    parameters: {
+      type: "object",
+      properties: {
+        experimentUuid: { type: "string", description: "Experiment UUID" },
+        status: { type: "string", description: "New workflow status: draft | pending_review | pending_start" },
+        liveStatus: { type: "string", description: "Optional live badge override for the experiment card" },
+        liveMessage: { type: "string", description: "Optional short status text for the experiment card" },
+      },
+      required: ["experimentUuid", "status"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_update_experiment_status",
+  }),
+  createPassthroughTool<{
     researchProjectUuid: string;
     title: string;
     description: string;

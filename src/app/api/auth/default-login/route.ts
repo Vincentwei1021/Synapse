@@ -15,6 +15,7 @@ import {
   setUserSessionCookies,
   UserSessionPayload,
 } from "@/lib/user-session";
+import { getCookieOptions } from "@/lib/cookie-utils";
 import { findOrCreateDefaultUser } from "@/services/user.service";
 
 interface DefaultLoginRequest {
@@ -84,6 +85,14 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       redirectTo: "/",
     },
   });
+
+  // Switching from SSO to default auth should clear any stale OIDC cookies so
+  // the next navigation cannot mix two auth modes.
+  const expireOpts = getCookieOptions(0);
+  response.cookies.set("oidc_access_token", "", expireOpts);
+  response.cookies.set("oidc_refresh_token", "", expireOpts);
+  response.cookies.set("oidc_client_id", "", expireOpts);
+  response.cookies.set("oidc_issuer", "", expireOpts);
 
   setUserSessionCookies(response, accessToken, refreshToken);
 

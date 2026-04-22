@@ -79,6 +79,15 @@ describe("SynapseEventRouter", () => {
     expect(prompt).toContain("post a comment on this experiment");
     expect(prompt).toContain("@[Alice](user:user-1)");
     expect(prompt).toContain("synapse_report_experiment_progress");
+    expect(prompt).toContain("set up automated monitoring without cron");
+    expect(prompt).toContain("sleep 60 seconds between checks");
+    expect(prompt).toContain("Never let the sleep interval exceed 30 minutes");
+    expect(prompt).toContain("run Python in unbuffered mode");
+    expect(prompt).toContain("python -u");
+    expect(prompt).toContain("PYTHONUNBUFFERED=1");
+    expect(prompt).toContain("prefer launching the workload inside tmux");
+    expect(prompt).toContain("prefer tmux for long jobs");
+    expect(prompt).not.toContain("Create a cron job");
     expect(metadata).toMatchObject({
       action: "task_assigned",
       entityType: "experiment",
@@ -240,6 +249,7 @@ describe("SynapseEventRouter", () => {
     const [prompt] = triggerAgent.mock.calls[0];
     expect(prompt).toContain("@mentioned");
     expect(prompt).toContain("synapse_get_comments");
+    expect(prompt).toContain("synapse_update_experiment_status");
     expect(prompt).toContain("@[Alice](user:user-1)");
   });
 

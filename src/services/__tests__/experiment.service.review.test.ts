@@ -49,7 +49,11 @@ vi.mock("@/lib/uuid-resolver", () => ({
   getActorName: vi.fn(async () => "Test User"),
 }));
 
-import { resetExperimentToPendingStart, reviewExperiment } from "@/services/experiment.service";
+import {
+  resetExperimentToPendingStart,
+  reviewExperiment,
+  updateExperimentWorkflowStatus,
+} from "@/services/experiment.service";
 
 const COMPANY = "test-company-review";
 
@@ -136,7 +140,13 @@ describe("reviewExperiment revert paths", () => {
       })
     );
     expect(mockPrisma.comment.create).not.toHaveBeenCalled();
-    expect(mockNotificationCreate).not.toHaveBeenCalled();
+    expect(mockNotificationCreate).toHaveBeenCalledTimes(1);
+    expect(mockNotificationCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "experiment_status_changed",
+        recipientUuid: "user-1",
+      })
+    );
   });
 
   it("reverting with an agent + note creates a comment and emits experiment_revision_requested", async () => {
@@ -162,6 +172,7 @@ describe("reviewExperiment revert paths", () => {
           status: "draft",
           assigneeType: "agent",
           assigneeUuid: "a-1",
+          liveStatus: "sent",
         }),
       })
     );
@@ -260,6 +271,115 @@ describe("reviewExperiment revert paths", () => {
       })
     );
     expect(mockPrisma.comment.create).not.toHaveBeenCalled();
+  });
+
+  it("re-emits task_assigned when an already-assigned draft revision is approved", async () => {
+    const existing = makeExperiment({
+      status: "pending_review",
+      assigneeType: "agent",
+      assigneeUuid: "a-1",
+      createdByUuid: "a-1",
+    });
+    mockPrisma.experiment.findFirst.mockResolvedValue(existing);
+    mockPrisma.experiment.update.mockResolvedValue({
+      ...existing,
+      status: "pending_start",
+      assigneeType: "agent",
+      assigneeUuid: "a-1",
+    });
+
+    await reviewExperiment({
+      companyUuid: COMPANY,
+      experimentUuid: "exp-1",
+      approved: true,
+      actorUuid: "user-1",
+    });
+
+    expect(mockPrisma.experiment.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "pending_start",
+        }),
+      })
+    );
+
+    expect(mockNotificationCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "task_assigned",
+        recipientType: "agent",
+        recipientUuid: "a-1",
+      })
+    );
+  });
+});
+
+describe("updateExperimentWorkflowStatus", () => {
+  it("lets the assigned agent move an experiment to draft with working live status", async () => {
+    const existing = makeExperiment({ status: "pending_review" });
+    mockPrisma.experiment.findFirst.mockResolvedValue(existing);
+    mockPrisma.experiment.update.mockResolvedValue({
+      ...existing,
+      status: "draft",
+      liveStatus: "running",
+      liveMessage: "Revising experiment plan",
+      liveUpdatedAt: new Date(),
+    });
+
+    await updateExperimentWorkflowStatus({
+      companyUuid: COMPANY,
+      experimentUuid: "exp-1",
+      status: "draft",
+      actorType: "agent",
+      actorUuid: "a-1",
+    });
+
+    expect(mockPrisma.experiment.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "draft",
+          liveStatus: "running",
+          liveMessage: "Revising experiment plan",
+        }),
+      })
+    );
+
+    expect(mockCreateActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorType: "agent",
+        actorUuid: "a-1",
+        action: "status_changed",
+      })
+    );
+  });
+
+  it("clears live status when the assigned agent sends the revision back to pending_review", async () => {
+    const existing = makeExperiment({ status: "draft", liveStatus: "running" });
+    mockPrisma.experiment.findFirst.mockResolvedValue(existing);
+    mockPrisma.experiment.update.mockResolvedValue({
+      ...existing,
+      status: "pending_review",
+      liveStatus: null,
+      liveMessage: null,
+      liveUpdatedAt: new Date(),
+    });
+
+    await updateExperimentWorkflowStatus({
+      companyUuid: COMPANY,
+      experimentUuid: "exp-1",
+      status: "pending_review",
+      actorType: "agent",
+      actorUuid: "a-1",
+    });
+
+    expect(mockPrisma.experiment.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "pending_review",
+          liveStatus: null,
+          liveMessage: null,
+        }),
+      })
+    );
   });
 });
 

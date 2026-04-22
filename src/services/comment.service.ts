@@ -168,8 +168,9 @@ export async function createComment({
     }
   }).catch(() => {});
 
-  // Process @mentions in comment content (fire-and-forget)
-  processCommentMentions(
+  // Process @mentions before returning so notification delivery / SSE wake-up
+  // stays on the request's critical path and is less likely to be dropped.
+  await processCommentMentions(
     companyUuid,
     targetType,
     targetUuid,
