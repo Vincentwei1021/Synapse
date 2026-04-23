@@ -990,29 +990,43 @@ export function ExperimentsBoard({
                   </div>
                 </div>
 
-                {selectedExperiment.experimentBranch && repoUrl ? (() => {
-                  const cleanRepoUrl = repoUrl.replace(/\.git$/, "");
+                {(selectedExperiment.resultDocument || (selectedExperiment.experimentBranch && repoUrl)) ? (() => {
+                  const cleanRepoUrl = repoUrl?.replace(/\.git$/, "") ?? null;
                   return (
-                    <div className="flex items-center gap-2 text-sm">
-                      <GitBranch className="h-4 w-4 text-muted-foreground" />
-                      <a
-                        href={`${cleanRepoUrl}/tree/${selectedExperiment.experimentBranch}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        {selectedExperiment.experimentBranch}
-                      </a>
-                      {selectedExperiment.commitSha && (
+                    <div className="flex flex-wrap items-center gap-3 text-sm">
+                      {selectedExperiment.experimentBranch && cleanRepoUrl ? (
+                        <div className="flex items-center gap-2">
+                          <GitBranch className="h-4 w-4 text-muted-foreground" />
+                          <a
+                            href={`${cleanRepoUrl}/tree/${selectedExperiment.experimentBranch}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline"
+                          >
+                            {selectedExperiment.experimentBranch}
+                          </a>
+                          {selectedExperiment.commitSha ? (
+                            <a
+                              href={`${cleanRepoUrl}/commit/${selectedExperiment.commitSha}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-mono text-xs text-muted-foreground hover:text-primary"
+                            >
+                              {selectedExperiment.commitSha.slice(0, 7)}
+                            </a>
+                          ) : null}
+                        </div>
+                      ) : null}
+
+                      {selectedExperiment.resultDocument ? (
                         <a
-                          href={`${cleanRepoUrl}/commit/${selectedExperiment.commitSha}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-mono text-xs text-muted-foreground hover:text-primary"
+                          href={`/research-projects/${projectUuid}/documents/${selectedExperiment.resultDocument.uuid}`}
+                          className="inline-flex items-center gap-1.5 text-primary hover:underline"
                         >
-                          {selectedExperiment.commitSha.slice(0, 7)}
+                          <FileText className="h-4 w-4" />
+                          <span>{t("experiments.detail.resultDocument")}</span>
                         </a>
-                      )}
+                      ) : null}
                     </div>
                   );
                 })() : null}

@@ -133,7 +133,8 @@
     "openMenu": "Open menu",
     "agents": "Agents",
     "relatedWorks": "Related Works",
-    "projectSettings": "Settings"
+    "projectSettings": "Settings",
+    "autoBadge": "AUTO"
   },
   "relatedWorks": {
     "title": "Related Works",
@@ -1389,6 +1390,8 @@
       "noResults": "No structured results have been captured yet.",
       "experimentBranch": "Code Branch",
       "commitSha": "Commit",
+      "resultDocument": "Result Document",
+      "viewDocument": "Open document",
       "viewOnGithub": "View on GitHub",
       "progressLog": "Progress Log",
       "noProgress": "No progress updates yet",
@@ -1450,6 +1453,8 @@
   "insights": {
     "title": "Insights",
     "subtitle": "Project-level synthesis across completed experiments, comparisons, and conclusions.",
+    "refresh": "Refresh synthesis",
+    "refreshing": "Refreshing...",
     "latestUpdate": "Latest synthesis",
     "coveredIdeas": "Covered questions",
     "summary": "Summary",

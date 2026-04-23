@@ -224,36 +224,59 @@ export async function searchMentionables(params: SearchMentionablesParams): Prom
     agentOwnerUuid = ownerUuid;
   }
 
-  // If query is empty, return only user's own agents (ordered by createdAt DESC)
-  // Design decision: We surface recently created agents first for quick access.
-  // Human users are not shown in the empty-query case to keep the UX focused on AI agents.
+  // If query is empty, return a small starter set so typing `@` shows immediate
+  // feedback instead of appearing inert.
   if (!query) {
-    if (agentOwnerUuid) {
-      const agents = await prisma.agent.findMany({
-        where: {
-          companyUuid,
-          ownerUuid: agentOwnerUuid,
-        },
+    const starterLimit = Math.min(DEFAULT_EMPTY_QUERY_LIMIT, effectiveLimit);
+    const [users, agents] = await Promise.all([
+      prisma.user.findMany({
+        where: { companyUuid },
         select: {
           uuid: true,
           name: true,
-          roles: true,
+          email: true,
+          avatarUrl: true,
         },
-        orderBy: { createdAt: 'desc' },
-        take: Math.min(DEFAULT_EMPTY_QUERY_LIMIT, effectiveLimit),
-      });
+        orderBy: [{ name: "asc" }],
+        take: starterLimit,
+      }),
+      agentOwnerUuid
+        ? prisma.agent.findMany({
+            where: {
+              companyUuid,
+              ownerUuid: agentOwnerUuid,
+            },
+            select: {
+              uuid: true,
+              name: true,
+              roles: true,
+            },
+            orderBy: { createdAt: "desc" },
+            take: starterLimit,
+          })
+        : Promise.resolve([]),
+    ]);
 
-      for (const agent of agents) {
-        results.push({
-          type: "agent",
-          uuid: agent.uuid,
-          name: agent.name,
-          roles: agent.roles,
-        });
-      }
+    for (const user of users) {
+      results.push({
+        type: "user",
+        uuid: user.uuid,
+        name: user.name ?? user.email ?? "Unknown",
+        email: user.email,
+        avatarUrl: user.avatarUrl,
+      });
     }
 
-    return results;
+    for (const agent of agents) {
+      results.push({
+        type: "agent",
+        uuid: agent.uuid,
+        name: agent.name,
+        roles: agent.roles,
+      });
+    }
+
+    return results.slice(0, starterLimit);
   }
   // Search users (all company users are mentionable)
   const users = await prisma.user.findMany({

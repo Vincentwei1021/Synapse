@@ -45,6 +45,7 @@ interface User {
 interface Project {
   uuid: string;
   name: string;
+  autonomousLoopEnabled?: boolean;
 }
 
 // Extract research project UUID from URL
@@ -55,7 +56,7 @@ function extractProjectUuid(pathname: string): string | null {
 }
 
 interface ProjectNavFrameListProps {
-  items: Array<{ href: string; label: string; icon: typeof FolderKanban }>;
+  items: Array<{ href: string; label: string; icon: typeof FolderKanban; badge?: string }>;
   projectUuid: string;
   isNavActive: (href: string) => boolean;
   navGap: string;
@@ -102,7 +103,12 @@ function ProjectNavFrameList({
                 <Icon
                   className={`${navIconSize} ${isActive ? "text-primary" : ""}`}
                 />
-                {item.label}
+                <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+                {item.badge ? (
+                  <span className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-600 dark:text-emerald-400">
+                    {item.badge}
+                  </span>
+                ) : null}
               </Button>
             </Link>
           </SidebarSectionFrame>
@@ -251,12 +257,17 @@ export default function DashboardLayout({
       { href: `/research-projects/${currentProjectUuid}/dashboard`, label: t("nav.overview"), icon: LayoutDashboard },
       { href: `/research-projects/${currentProjectUuid}/related-works`, label: t("nav.relatedWorks"), icon: BookOpen },
       { href: `/research-projects/${currentProjectUuid}/research-questions`, label: t("nav.researchQuestions"), icon: Lightbulb },
-      { href: `/research-projects/${currentProjectUuid}/experiments`, label: t("nav.experiments"), icon: CheckSquare },
+      {
+        href: `/research-projects/${currentProjectUuid}/experiments`,
+        label: t("nav.experiments"),
+        icon: CheckSquare,
+        badge: currentProject?.autonomousLoopEnabled ? t("nav.autoBadge") : undefined,
+      },
       { href: `/research-projects/${currentProjectUuid}/insights`, label: t("nav.insights"), icon: LineChart },
       { href: `/research-projects/${currentProjectUuid}/documents`, label: t("nav.documents"), icon: FileText },
       { href: `/research-projects/${currentProjectUuid}/settings`, label: t("nav.projectSettings"), icon: Settings },
     ];
-  }, [currentProjectUuid, t]);
+  }, [currentProject?.autonomousLoopEnabled, currentProjectUuid, t]);
 
   useEffect(() => {
     globalNavItems.forEach((item) => {

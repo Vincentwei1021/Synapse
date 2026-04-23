@@ -41,6 +41,8 @@ export const GET = withErrorHandler(async (request: NextRequest, context: RouteC
     uuid: researchProject.uuid,
     name: researchProject.name,
     description: researchProject.description,
+    autonomousLoopEnabled: projectGithub?.autonomousLoopEnabled ?? false,
+    autonomousLoopMode: projectGithub?.autonomousLoopMode ?? null,
     createdAt: researchProject.createdAt.toISOString(),
     updatedAt: researchProject.updatedAt.toISOString(),
     repoUrl: projectGithub?.repoUrl ?? null,

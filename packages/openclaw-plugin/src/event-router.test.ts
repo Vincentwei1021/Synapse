@@ -76,8 +76,8 @@ describe("SynapseEventRouter", () => {
     const [prompt, metadata] = triggerAgent.mock.calls[0];
     expect(prompt).toContain("Experiment assigned: Train the baseline");
     expect(prompt).toContain("Time limit: Unlimited");
-    expect(prompt).toContain("post a comment on this experiment");
-    expect(prompt).toContain("@[Alice](user:user-1)");
+    expect(prompt).not.toContain("post a comment on this experiment");
+    expect(prompt).not.toContain("@[Alice](user:user-1)");
     expect(prompt).toContain("synapse_report_experiment_progress");
     expect(prompt).toContain("self-contained cron monitoring script");
     expect(prompt).toContain("cron job (every 30 minutes)");

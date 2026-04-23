@@ -307,6 +307,7 @@ export const MentionEditor = forwardRef<MentionEditorRef, MentionEditorProps>(
     const suggestionLoadingRef = useRef(false);
     const keyDownRef = useRef<KeyDownHandler | null>(null);
     const popupRef = useRef<HTMLDivElement | null>(null);
+    const lastRequestedQueryRef = useRef<string | null>(null);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const currentCommandRef = useRef<((attrs: any) => void) | null>(null);
     const [, forceUpdate] = useState(0);
@@ -336,6 +337,20 @@ export const MentionEditor = forwardRef<MentionEditorRef, MentionEditorProps>(
     }, []);
 
     const debouncedFetch = useDebouncedCallback(fetchMentionables, 250);
+
+    const requestMentionables = useCallback((query: string) => {
+      if (lastRequestedQueryRef.current === query) {
+        return;
+      }
+      lastRequestedQueryRef.current = query;
+
+      if (!query.trim()) {
+        void fetchMentionables("");
+        return;
+      }
+
+      debouncedFetch(query);
+    }, [debouncedFetch, fetchMentionables]);
 
     // Re-render popup when items change
     useEffect(() => {
@@ -374,7 +389,7 @@ export const MentionEditor = forwardRef<MentionEditorRef, MentionEditorProps>(
             char: "@",
             allowSpaces: true,
             items: ({ query }: { query: string }) => {
-              debouncedFetch(query);
+              requestMentionables(query);
               return suggestionItemsRef.current;
             },
             render: () => {
@@ -456,6 +471,7 @@ export const MentionEditor = forwardRef<MentionEditorRef, MentionEditorProps>(
                   popupRef.current?.remove();
                   popupRef.current = null;
                   currentCommandRef.current = null;
+                  lastRequestedQueryRef.current = null;
                   suggestionItemsRef.current = [];
                   suggestionLoadingRef.current = false;
                 },

@@ -133,7 +133,8 @@
     "openMenu": "打开菜单",
     "agents": "智能体",
     "relatedWorks": "相关文献",
-    "projectSettings": "项目设置"
+    "projectSettings": "项目设置",
+    "autoBadge": "AUTO"
   },
   "relatedWorks": {
     "title": "相关文献",
@@ -1389,6 +1390,8 @@
       "noResults": "尚未写入结构化结果。",
       "experimentBranch": "代码分支",
       "commitSha": "提交",
+      "resultDocument": "结果文档",
+      "viewDocument": "打开文档",
       "viewOnGithub": "在 GitHub 上查看",
       "progressLog": "进度日志",
       "noProgress": "暂无进度更新",
@@ -1450,6 +1453,8 @@
   "insights": {
     "title": "洞察",
     "subtitle": "汇总项目级实验结果分析、横向比对和最终结论。",
+    "refresh": "触发分析",
+    "refreshing": "分析中...",
     "latestUpdate": "最近一次分析",
     "coveredIdeas": "纳入分析的问题数",
     "summary": "摘要",

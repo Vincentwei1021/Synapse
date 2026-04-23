@@ -199,7 +199,6 @@ export class SynapseEventRouter {
 
   private async handleExperimentAssigned(n: NotificationDetail): Promise<void> {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
-    const mentionGuidance = this.buildMentionGuidance(n, "experiment");
 
     let experiment: ExperimentDetail | null = null;
     let project: ResearchProjectDetail | null = null;
@@ -321,8 +320,6 @@ Base branch: ${repoAccess.baseBranch ?? "main"}`;
     }
 
     steps.push(`${stepNum++}. Call synapse_submit_experiment_results with experimentUuid "${experimentUuid}"${hasRepo ? ". Include experimentBranch and commitSha if you pushed code" : ""} to complete the experiment. This also releases the reserved GPUs. (Skip this step if a cron script was set up — the cron handles submission.)`);
-
-    steps.push(mentionGuidance);
 
     const prompt = `[Synapse] Experiment assigned: ${n.entityTitle}
 

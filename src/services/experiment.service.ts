@@ -41,6 +41,10 @@ export interface ExperimentResponse {
   baseBranch: string | null;
   experimentBranch: string | null;
   commitSha: string | null;
+  resultDocument: {
+    uuid: string;
+    title: string;
+  } | null;
   liveStatus: string | null;
   liveMessage: string | null;
   liveUpdatedAt: string | null;
@@ -449,9 +453,9 @@ async function formatExperiment(
     formatCreatedBy(experiment.createdByUuid, experiment.createdByType === "agent" ? "agent" : "user"),
   ]);
 
-  const parentQuestionExperiments =
+  const [parentQuestionExperiments, resultDocument] = await Promise.all([
     experiment.researchQuestion?.parentQuestionUuid
-      ? await prisma.experiment.findMany({
+      ? prisma.experiment.findMany({
           where: {
             companyUuid,
             researchQuestionUuid: experiment.researchQuestion.parentQuestionUuid,
@@ -465,7 +469,22 @@ async function formatExperiment(
           },
           orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
         })
-      : [];
+      : Promise.resolve([]),
+    prisma.document.findFirst({
+      where: {
+        companyUuid,
+        researchProjectUuid: experiment.researchProjectUuid,
+        type: EXPERIMENT_RESULT_DOCUMENT_TYPE,
+        content: {
+          contains: buildExperimentDocumentMarker(experiment.uuid),
+        },
+      },
+      select: {
+        uuid: true,
+        title: true,
+      },
+    }),
+  ]);
 
   return {
     uuid: experiment.uuid,
@@ -483,6 +502,7 @@ async function formatExperiment(
     baseBranch: experiment.baseBranch,
     experimentBranch: experiment.experimentBranch,
     commitSha: experiment.commitSha,
+    resultDocument,
     liveStatus: experiment.liveStatus,
     liveMessage: experiment.liveMessage,
     liveUpdatedAt: experiment.liveUpdatedAt?.toISOString() ?? null,
