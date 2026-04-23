@@ -40,6 +40,7 @@ export const GET = withErrorHandler(async (request: NextRequest, context: RouteC
     name: researchProject.name,
     description: researchProject.description,
     autonomousLoopEnabled: researchProject.autonomousLoopEnabled ?? false,
+    autonomousLoopAgentUuid: researchProject.autonomousLoopAgentUuid ?? null,
     autonomousLoopMode: researchProject.autonomousLoopMode ?? null,
     createdAt: researchProject.createdAt.toISOString(),
     updatedAt: researchProject.updatedAt.toISOString(),

@@ -139,6 +139,7 @@ export async function getResearchProject(companyUuid: string, uuid: string) {
       datasets: true,
       evaluationMethods: true,
       autonomousLoopEnabled: true,
+      autonomousLoopAgentUuid: true,
       autonomousLoopMode: true,
       repoUrl: true,
       githubUsername: true,
