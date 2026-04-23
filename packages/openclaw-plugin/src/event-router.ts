@@ -89,8 +89,12 @@ export class SynapseEventRouter {
       return;
     }
 
-    // Fetch full notification details and route asynchronously
-    this.fetchAndRoute(event.notificationUuid).catch((err) => {
+    const notification = this.extractNotificationFromEvent(event);
+    const routePromise = notification
+      ? this.routeNotification(notification)
+      : this.fetchAndRoute(event.notificationUuid);
+
+    routePromise.catch((err) => {
       this.logger.error(`Failed to fetch/route notification ${event.notificationUuid}: ${err}`);
     });
   }
@@ -99,28 +103,69 @@ export class SynapseEventRouter {
   // Internal
   // ---------------------------------------------------------------------------
 
-  private async fetchAndRoute(notificationUuid: string): Promise<void> {
-    // Fetch notification details via MCP — use autoMarkRead=false so we don't
-    // consume all unread notifications, and status=unread since we just received it
+  private extractNotificationFromEvent(event: SseNotificationEvent): NotificationDetail | null {
+    if (
+      !event.notificationUuid ||
+      !event.entityType ||
+      !event.entityUuid ||
+      !event.entityTitle ||
+      !event.action ||
+      !event.message ||
+      !event.actorType ||
+      !event.actorUuid ||
+      !event.actorName
+    ) {
+      return null;
+    }
+
+    return {
+      uuid: event.notificationUuid,
+      researchProjectUuid: event.researchProjectUuid,
+      entityType: event.entityType,
+      entityUuid: event.entityUuid,
+      entityTitle: event.entityTitle,
+      action: event.action,
+      message: event.message,
+      actorType: event.actorType,
+      actorUuid: event.actorUuid,
+      actorName: event.actorName,
+    };
+  }
+
+  private async fetchNotificationList(status: "unread" | "all"): Promise<NotificationDetail[]> {
     const result = await this.mcpClient.callTool("synapse_get_notifications", {
-      status: "unread",
-      limit: 50,
+      status,
+      limit: 100,
       autoMarkRead: false,
     }) as { notifications?: NotificationDetail[] } | null;
 
     const notifications = result?.notifications;
     if (!notifications || !Array.isArray(notifications)) {
-      this.logger.warn(`Could not fetch notifications list`);
-      return;
+      this.logger.warn(`Could not fetch ${status} notifications list`);
+      return [];
     }
 
-    const notification = notifications.find((n) => n.uuid === notificationUuid);
+    return notifications;
+  }
+
+  private async fetchAndRoute(notificationUuid: string): Promise<void> {
+    const unreadNotifications = await this.fetchNotificationList("unread");
+    let notification = unreadNotifications.find((n) => n.uuid === notificationUuid);
+
     if (!notification) {
-      this.logger.warn(`Notification ${notificationUuid} not found in unread list`);
+      const allNotifications = await this.fetchNotificationList("all");
+      notification = allNotifications.find((n) => n.uuid === notificationUuid);
+    }
+
+    if (!notification) {
+      this.logger.warn(`Notification ${notificationUuid} not found in unread or recent notifications`);
       return;
     }
 
-    // Project filter: if projectUuids is configured, ignore events from other projects
+    await this.routeNotification(notification);
+  }
+
+  private async routeNotification(notification: NotificationDetail): Promise<void> {
     const projectUuid = notification.projectUuid ?? notification.researchProjectUuid ?? "";
 
     if (this.projectFilter.size > 0 && !this.projectFilter.has(projectUuid)) {
@@ -199,7 +244,6 @@ export class SynapseEventRouter {
 
   private async handleExperimentAssigned(n: NotificationDetail): Promise<void> {
     const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
-    const mentionGuidance = this.buildMentionGuidance(n, "experiment");
 
     let experiment: ExperimentDetail | null = null;
     let project: ResearchProjectDetail | null = null;
@@ -303,24 +347,24 @@ Base branch: ${repoAccess.baseBranch ?? "main"}`;
 
     steps.push(`${stepNum++}. Execute the experiment on the compute node according to the experiment description. For long-running jobs, prefer launching the workload inside tmux so the process survives disconnects and you can re-attach later. If the workload writes Python stdout/stderr to a log file, run Python in unbuffered mode so logs appear in real time for monitoring. Prefer python -u (or PYTHONUNBUFFERED=1). If helpful, combine it with tee/stdout piping so progress is visible immediately instead of being trapped in a full buffer.`);
 
-    steps.push(`${stepNum++}. For long-running experiments (training jobs, multi-hour evaluations), set up automated monitoring without cron:
-   a. Write a monitoring script on the compute node that reads the latest training/evaluation logs, extracts key metrics (loss, accuracy, eval scores, etc.), and outputs a concise summary.
-   b. Test the script to make sure it works correctly. Also verify the underlying experiment process is running in a durable session (prefer tmux for long jobs) and is writing unbuffered logs (for Python: python -u, PYTHONUNBUFFERED=1, flush=True where needed, or another effective approach) so your polling loop can actually see fresh output while the job is running.
-   c. Run a polling loop yourself using sleep between checks. Start aggressively (for example, sleep 60 seconds between checks), then gradually back off if the job is still running. Never let the sleep interval exceed 30 minutes.
-   d. On each polling pass, call synapse_report_experiment_progress with experimentUuid "${experimentUuid}" to report the latest metrics summary when there is a meaningful update, status transition, or enough time has passed that the human would want reassurance the run is still healthy.
-   e. The monitoring script or loop should also detect when the experiment finishes (e.g. training completes, final evaluation done). When completion is detected, stop the polling loop immediately.
-   f. Once completion is detected, you are responsible for the remaining steps: ${hasRepo ? "handle code changes per project description, " : ""}submit results, and clean up.
-   For short experiments that you can monitor directly, skip the extended polling loop and proceed to the next steps manually.`);
+    steps.push(`${stepNum++}. For long-running experiments (training jobs, multi-hour evaluations), set up a self-contained cron monitoring script on the compute node. The script must handle EVERYTHING autonomously — you (the agent) will NOT be available after this step. The cron script must:
+   a. Read the latest training/evaluation logs, extract key metrics (loss, accuracy, eval scores, etc.), and produce a concise summary.
+   b. Call synapse_report_experiment_progress with experimentUuid "${experimentUuid}" to report the latest metrics and deliver updates to the latest channel.
+   c. Detect when the experiment finishes (e.g. training completes, final evaluation done, process exits).
+   d. On completion, the script itself must execute ALL of the following finalization steps:
+      ${hasRepo ? `- Git commit and push: follow the project description's branch strategy (e.g. single persistent branch, per-experiment branches, keep/discard workflow). If not specified, create a new branch or commit on the current branch.\n      ` : ""}- Call synapse_submit_experiment_results with experimentUuid "${experimentUuid}"${hasRepo ? ", experimentBranch, and commitSha" : ""} to mark the experiment as completed and release reserved GPUs.
+      - Remove the cron job itself (crontab cleanup).
+   e. IMPORTANT: The script must be fully self-contained. It must be able to call Synapse MCP tools (use curl against the Synapse API with the agent's API key). Do NOT rely on the agent being available to handle completion — the agent's turn ends after setting up the cron job.
+   f. Before finishing your turn, test the monitoring script manually to verify it works, install it as a cron job (every 30 minutes), and confirm the cron entry is active.
+   For short experiments that you can monitor directly, skip the cron setup and proceed to the next steps manually.`);
 
-    steps.push(`${stepNum++}. If you are monitoring the experiment directly, call synapse_report_experiment_progress with experimentUuid "${experimentUuid}" at each major step (data download, training start, each evaluation checkpoint, major metric change, etc.).`);
+    steps.push(`${stepNum++}. If you are monitoring the experiment directly (no cron), call synapse_report_experiment_progress with experimentUuid "${experimentUuid}" at each major step (data download, training start, each evaluation checkpoint, major metric change, etc.).`);
 
     if (hasRepo) {
-      steps.push(`${stepNum++}. After the experiment completes, commit your changes and push. The project description may specify a branch strategy (e.g. single persistent branch, per-experiment branches, keep/discard workflow). Follow it. If not specified, decide: create a new branch for this experiment, or commit on the current branch — based on how the project organizes its code.`);
+      steps.push(`${stepNum++}. After the experiment completes (direct monitoring only), commit your changes and push. The project description may specify a branch strategy (e.g. single persistent branch, per-experiment branches, keep/discard workflow). Follow it. If not specified, decide: create a new branch for this experiment, or commit on the current branch — based on how the project organizes its code.`);
     }
 
-    steps.push(`${stepNum++}. Call synapse_submit_experiment_results with experimentUuid "${experimentUuid}"${hasRepo ? ". Include experimentBranch and commitSha if you pushed code" : ""} to complete the experiment. This also releases the reserved GPUs.`);
-
-    steps.push(mentionGuidance);
+    steps.push(`${stepNum++}. Call synapse_submit_experiment_results with experimentUuid "${experimentUuid}"${hasRepo ? ". Include experimentBranch and commitSha if you pushed code" : ""} to complete the experiment. This also releases the reserved GPUs. (Skip this step if a cron script was set up — the cron handles submission.)`);
 
     const prompt = `[Synapse] Experiment assigned: ${n.entityTitle}
 
@@ -507,20 +551,22 @@ Steps:
 
 Your task is to flesh out this experiment into a detailed plan. Follow these steps:
 
-1. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to understand the research context, existing experiments, and research questions
-2. Based on the one-line idea and the project context, draft a detailed experiment plan that includes:
+1. Immediately call synapse_update_experiment_status with experimentUuid "${n.entityUuid}", status "draft", liveStatus "writing", and a short liveMessage like "Drafting experiment plan"
+2. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to understand the research context, existing experiments, and research questions
+3. Based on the one-line idea and the project context, draft a detailed experiment plan that includes:
    - Clear objective
    - Methodology and approach
    - Expected outcomes and evaluation criteria
    - Implementation steps
    - Any relevant compute or resource requirements
-3. If the idea clearly relates to an existing research question, link it
-4. Use synapse_update_experiment_plan with experimentUuid "${n.entityUuid}" to update the experiment with:
+4. If the idea clearly relates to an existing research question, link it
+5. Use synapse_update_experiment_plan with experimentUuid "${n.entityUuid}" to update the experiment with:
    - A refined title (concise but descriptive)
    - A detailed description (the full experiment plan)
    - researchQuestionUuid (if applicable)
    - priority (based on the project context)
-5. Write the plan in the same language as the project description.
+6. When the plan is ready, call synapse_update_experiment_status with experimentUuid "${n.entityUuid}" and status "pending_review" so the experiment moves into the review queue.
+7. Write the plan in the same language as the project description.
 
 Keep the plan actionable and specific enough that another agent could execute it.`,
       { notificationUuid: n.uuid, action: "experiment_plan_requested", entityUuid: n.entityUuid, projectUuid }
@@ -565,7 +611,7 @@ Write a detailed experiment report document for this experiment. Follow these st
    - Analysis and interpretation
    - Conclusions and next steps
 4. Write the report in the same language as the project description.
-5. Use synapse_add_comment to post the report as a comment on the experiment (targetType: "experiment", targetUuid: "${n.entityUuid}")
+5. Use synapse_save_experiment_report with experimentUuid "${n.entityUuid}" and the full Markdown content to create or update the dedicated experiment result document for this experiment. Do NOT post the report as an experiment comment.
 
 Keep the report focused on THIS experiment only — do not summarize the entire project.`,
       { notificationUuid: n.uuid, action: "experiment_report_requested", entityUuid: n.entityUuid, projectUuid }

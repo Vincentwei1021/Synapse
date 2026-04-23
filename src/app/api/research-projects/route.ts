@@ -47,6 +47,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     uuid: p.uuid,
     name: p.name,
     description: p.description,
+    autonomousLoopEnabled: p.autonomousLoopEnabled ?? false,
     goal: p.goal,
     datasets: p.datasets,
     evaluationMethods: p.evaluationMethods,

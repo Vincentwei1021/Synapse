@@ -90,7 +90,15 @@ describe("create", () => {
     expect(result.createdAt).toBe(now.toISOString());
     expect(mockEventBus.emit).toHaveBeenCalledWith(
       `notification:user:${recipientUuid}`,
-      expect.objectContaining({ type: "new_notification", unreadCount: 5 })
+      expect.objectContaining({
+        type: "new_notification",
+        notificationUuid: notifUuid,
+        researchProjectUuid: "project-0000-0000-0000-000000000001",
+        entityType: "experiment_run",
+        entityUuid: "task-0000-0000-0000-000000000001",
+        actorUuid: "agent-0000-0000-0000-000000000001",
+        unreadCount: 5,
+      })
     );
   });
 });
@@ -115,6 +123,26 @@ describe("createBatch", () => {
     expect(result).toHaveLength(2);
     // Two distinct recipients should trigger two emit calls
     expect(mockEventBus.emit).toHaveBeenCalledTimes(2);
+    expect(mockEventBus.emit).toHaveBeenNthCalledWith(
+      1,
+      `notification:user:${recipientUuid}`,
+      expect.objectContaining({
+        type: "new_notification",
+        notificationUuid: notifUuid,
+        recipientUuid,
+        entityUuid: "task-0000-0000-0000-000000000001",
+      })
+    );
+    expect(mockEventBus.emit).toHaveBeenNthCalledWith(
+      2,
+      `notification:user:${recipient2}`,
+      expect.objectContaining({
+        type: "new_notification",
+        notificationUuid: "notif-0000-0000-0000-000000000002",
+        recipientUuid: recipient2,
+        entityUuid: "task-0000-0000-0000-000000000001",
+      })
+    );
   });
 
   it("should deduplicate recipients and emit once per recipient", async () => {

@@ -51,7 +51,10 @@ vi.mock("@/lib/uuid-resolver", () => ({
 
 import {
   resetExperimentToPendingStart,
+  requestExperimentPlan,
   reviewExperiment,
+  startExperiment,
+  updateExperiment,
   updateExperimentWorkflowStatus,
 } from "@/services/experiment.service";
 
@@ -95,6 +98,20 @@ function makeExperiment(overrides: Record<string, unknown> = {}) {
     researchProject: { name: "P1" },
     ...overrides,
   };
+}
+
+function enableAutonomousLoop(
+  counts: Array<{ status: string; _count: number }> = [],
+  mode: "human_review" | "full_auto" = "human_review",
+) {
+  mockPrisma.researchProject.findFirst.mockResolvedValue({
+    uuid: "proj-1",
+    name: "P1",
+    autonomousLoopEnabled: true,
+    autonomousLoopAgentUuid: "loop-agent-1",
+    autonomousLoopMode: mode,
+  });
+  mockPrisma.experiment.groupBy.mockResolvedValue(counts);
 }
 
 beforeEach(() => {
@@ -239,6 +256,7 @@ describe("reviewExperiment revert paths", () => {
 
   it("approval path is unchanged: auto-assigns back to creator and emits task_assigned", async () => {
     const existing = makeExperiment({ assigneeUuid: null, assigneeType: null });
+    enableAutonomousLoop([{ status: "pending_start", _count: 1 }]);
     mockPrisma.experiment.findFirst.mockResolvedValue(existing);
     mockPrisma.experiment.update.mockResolvedValue({
       ...existing,
@@ -269,6 +287,14 @@ describe("reviewExperiment revert paths", () => {
         action: "task_assigned",
         recipientUuid: "a-1",
       })
+    );
+    expect(mockPrisma.experiment.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          companyUuid: COMPANY,
+          researchProjectUuid: "proj-1",
+        }),
+      }),
     );
     expect(mockPrisma.comment.create).not.toHaveBeenCalled();
   });
@@ -309,6 +335,75 @@ describe("reviewExperiment revert paths", () => {
         recipientType: "agent",
         recipientUuid: "a-1",
       })
+    );
+  });
+});
+
+describe("requestExperimentPlan", () => {
+  it("assigns the draft to the requested agent, marks it sent, and emits a planning notification", async () => {
+    const existing = makeExperiment({
+      status: "draft",
+      assigneeType: null,
+      assigneeUuid: null,
+      assignedAt: null,
+      assignedByUuid: null,
+      researchProject: { name: "Project Plan" },
+    });
+    const now = new Date();
+
+    mockPrisma.experiment.findFirst.mockResolvedValue(existing);
+    mockPrisma.experiment.update.mockResolvedValue({
+      ...existing,
+      assigneeType: "agent",
+      assigneeUuid: "agent-plan-1",
+      assignedAt: now,
+      assignedByUuid: "user-1",
+      liveStatus: "sent",
+      liveMessage: null,
+      liveUpdatedAt: now,
+    });
+
+    await requestExperimentPlan({
+      companyUuid: COMPANY,
+      experimentUuid: "exp-1",
+      agentUuid: "agent-plan-1",
+      requestedByUuid: "user-1",
+    });
+
+    expect(mockPrisma.experiment.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { uuid: "exp-1" },
+        data: expect.objectContaining({
+          assigneeType: "agent",
+          assigneeUuid: "agent-plan-1",
+          assignedByUuid: "user-1",
+          liveStatus: "sent",
+          liveMessage: null,
+        }),
+      }),
+    );
+
+    expect(mockCreateActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "assigned",
+        actorUuid: "user-1",
+        value: expect.objectContaining({
+          assigneeType: "agent",
+          assigneeUuid: "agent-plan-1",
+          mode: "plan_request",
+        }),
+      }),
+    );
+
+    expect(mockNotificationCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "experiment_plan_requested",
+        recipientType: "agent",
+        recipientUuid: "agent-plan-1",
+        entityType: "experiment",
+        entityUuid: "exp-1",
+        projectName: "Project Plan",
+      }),
     );
   });
 });
@@ -354,6 +449,7 @@ describe("updateExperimentWorkflowStatus", () => {
 
   it("clears live status when the assigned agent sends the revision back to pending_review", async () => {
     const existing = makeExperiment({ status: "draft", liveStatus: "running" });
+    enableAutonomousLoop([{ status: "pending_review", _count: 1 }]);
     mockPrisma.experiment.findFirst.mockResolvedValue(existing);
     mockPrisma.experiment.update.mockResolvedValue({
       ...existing,
@@ -380,12 +476,21 @@ describe("updateExperimentWorkflowStatus", () => {
         }),
       })
     );
+    expect(mockPrisma.experiment.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          companyUuid: COMPANY,
+          researchProjectUuid: "proj-1",
+        }),
+      }),
+    );
   });
 });
 
 describe("resetExperimentToPendingStart", () => {
   it("moves a stuck experiment back to pending_start and clears live state", async () => {
     const existing = makeExperiment({ status: "in_progress", liveStatus: "running", startedAt: new Date() });
+    enableAutonomousLoop([{ status: "pending_start", _count: 1 }]);
     mockPrisma.experiment.findFirst.mockResolvedValue(existing);
     mockPrisma.experiment.update.mockResolvedValue({
       ...existing,
@@ -419,6 +524,14 @@ describe("resetExperimentToPendingStart", () => {
         value: { status: "pending_start", reset: true },
       }),
     );
+    expect(mockPrisma.experiment.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          companyUuid: COMPANY,
+          researchProjectUuid: "proj-1",
+        }),
+      }),
+    );
   });
 
   it("rejects resetting experiments that are not in progress", async () => {
@@ -432,5 +545,56 @@ describe("resetExperimentToPendingStart", () => {
       }),
     ).rejects.toThrow("Invalid experiment status transition: pending_start -> pending_start");
     expect(mockPrisma.experiment.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("other experiment status changes", () => {
+  it("checks autonomous loop after a direct experiment status update", async () => {
+    enableAutonomousLoop([{ status: "pending_start", _count: 1 }]);
+    mockPrisma.experiment.findFirst.mockResolvedValue({
+      status: "pending_review",
+      researchProjectUuid: "proj-1",
+      researchProject: { name: "P1" },
+    });
+    mockPrisma.experiment.update.mockResolvedValue(makeExperiment({ status: "pending_start" }));
+
+    await updateExperiment(
+      COMPANY,
+      "exp-1",
+      { status: "pending_start" },
+      { actorType: "user", actorUuid: "user-1" },
+    );
+
+    expect(mockPrisma.experiment.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          companyUuid: COMPANY,
+          researchProjectUuid: "proj-1",
+        }),
+      }),
+    );
+  });
+
+  it("checks autonomous loop after starting an experiment", async () => {
+    enableAutonomousLoop([{ status: "in_progress", _count: 1 }]);
+    const existing = makeExperiment({ status: "pending_start" });
+    mockPrisma.experiment.findFirst.mockResolvedValue(existing);
+    mockPrisma.experiment.update.mockResolvedValue(makeExperiment({ status: "in_progress", liveStatus: "running" }));
+
+    await startExperiment({
+      companyUuid: COMPANY,
+      experimentUuid: "exp-1",
+      actorType: "agent",
+      actorUuid: "a-1",
+    });
+
+    expect(mockPrisma.experiment.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          companyUuid: COMPANY,
+          researchProjectUuid: "proj-1",
+        }),
+      }),
+    );
   });
 });

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 const LIVE_EXPERIMENT_STATES = [
   "sent",
   "ack",
+  "writing",
   "checking_resources",
   "queuing",
   "running",
@@ -55,6 +56,7 @@ export async function getProjectAgentActivity({
       uuid: true,
       autoSearchActiveAgentUuid: true,
       deepResearchActiveAgentUuid: true,
+      synthesisActiveAgentUuid: true,
     },
   });
   if (!project) {
@@ -88,8 +90,14 @@ export async function getProjectAgentActivity({
     relatedWorksAgentUuids.push(project.deepResearchActiveAgentUuid);
   }
 
+  // Insights / documents: active synthesis agent
+  const synthesisAgentUuids: string[] = [];
+  if (project.synthesisActiveAgentUuid) {
+    synthesisAgentUuids.push(project.synthesisActiveAgentUuid);
+  }
+
   const allAgentUuids = Array.from(
-    new Set([...experimentAgentUuids, ...relatedWorksAgentUuids])
+    new Set([...experimentAgentUuids, ...relatedWorksAgentUuids, ...synthesisAgentUuids])
   );
   if (allAgentUuids.length === 0) {
     return { ...EMPTY_ACTIVITY };
@@ -116,5 +124,7 @@ export async function getProjectAgentActivity({
     ...EMPTY_ACTIVITY,
     experiments: pick(experimentAgentUuids),
     relatedWorks: pick(relatedWorksAgentUuids),
+    insights: pick(synthesisAgentUuids),
+    documents: pick(synthesisAgentUuids),
   };
 }

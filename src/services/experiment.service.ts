@@ -41,6 +41,10 @@ export interface ExperimentResponse {
   baseBranch: string | null;
   experimentBranch: string | null;
   commitSha: string | null;
+  resultDocument: {
+    uuid: string;
+    title: string;
+  } | null;
   liveStatus: string | null;
   liveMessage: string | null;
   liveUpdatedAt: string | null;
@@ -156,6 +160,16 @@ function buildExperimentDocumentTitle(title: string) {
   return `Experiment Result · ${title}`;
 }
 
+function ensureExperimentDocumentMarker(content: string, experimentUuid: string) {
+  const marker = buildExperimentDocumentMarker(experimentUuid);
+  if (content.includes(marker)) {
+    return content;
+  }
+
+  const trimmed = content.trim();
+  return trimmed ? `${marker}\n\n${trimmed}` : marker;
+}
+
 function formatExperimentDocumentContent(experiment: {
   uuid: string;
   title: string;
@@ -249,10 +263,113 @@ async function syncExperimentResultDocument(input: {
   return document.uuid;
 }
 
+export async function saveExperimentReportDocument(input: {
+  companyUuid: string;
+  actorType: string;
+  actorUuid: string;
+  ownerUuid?: string | null;
+  experimentUuid: string;
+  title?: string | null;
+  content: string;
+}) {
+  const experiment = await prisma.experiment.findFirst({
+    where: { uuid: input.experimentUuid, companyUuid: input.companyUuid },
+    select: {
+      uuid: true,
+      title: true,
+      researchProjectUuid: true,
+      assigneeType: true,
+      assigneeUuid: true,
+    },
+  });
+
+  if (!experiment) {
+    throw new Error("Experiment not found");
+  }
+
+  assertAssignedActorAccess(experiment, input.actorType, input.actorUuid, "complete", input.ownerUuid);
+
+  const marker = buildExperimentDocumentMarker(experiment.uuid);
+  const documentTitle = input.title?.trim() || buildExperimentDocumentTitle(experiment.title);
+  const documentContent = ensureExperimentDocumentMarker(input.content, experiment.uuid);
+
+  const existing = await prisma.document.findFirst({
+    where: {
+      companyUuid: input.companyUuid,
+      researchProjectUuid: experiment.researchProjectUuid,
+      type: EXPERIMENT_RESULT_DOCUMENT_TYPE,
+      content: {
+        contains: marker,
+      },
+    },
+    select: { uuid: true, version: true },
+  });
+
+  if (existing) {
+    const updated = await updateDocument(existing.uuid, {
+      title: documentTitle,
+      content: documentContent,
+      incrementVersion: true,
+    });
+
+    return {
+      uuid: updated.uuid,
+      title: updated.title,
+      version: updated.version,
+      action: "updated" as const,
+    };
+  }
+
+  const created = await createDocument({
+    companyUuid: input.companyUuid,
+    researchProjectUuid: experiment.researchProjectUuid,
+    type: EXPERIMENT_RESULT_DOCUMENT_TYPE,
+    title: documentTitle,
+    content: documentContent,
+    createdByUuid: input.actorUuid,
+  });
+
+  return {
+    uuid: created.uuid,
+    title: created.title,
+    version: created.version,
+    action: "created" as const,
+  };
+}
+
 function assertTransition(from: ExperimentStatus, to: ExperimentStatus) {
+  if (from === to) return;
   if (!VALID_TRANSITIONS[from]?.includes(to)) {
     throw new Error(`Invalid experiment status transition: ${from} -> ${to}`);
   }
+}
+
+async function checkAutonomousLoopTriggerAfterStatusChange(input: {
+  companyUuid: string;
+  researchProjectUuid: string;
+  experimentUuid: string;
+  fromStatus: ExperimentStatus;
+  toStatus: ExperimentStatus;
+  context: string;
+  extra?: Record<string, unknown>;
+}) {
+  if (input.fromStatus === input.toStatus) {
+    return;
+  }
+
+  await checkAutonomousLoopTrigger(input.researchProjectUuid, input.companyUuid).catch(
+    (err) =>
+      log.error(
+        {
+          err,
+          experimentUuid: input.experimentUuid,
+          fromStatus: input.fromStatus,
+          toStatus: input.toStatus,
+          ...input.extra,
+        },
+        `autonomous loop trigger check failed after ${input.context}`
+      )
+  );
 }
 
 function canActOnAssignedExperiment(
@@ -336,9 +453,9 @@ async function formatExperiment(
     formatCreatedBy(experiment.createdByUuid, experiment.createdByType === "agent" ? "agent" : "user"),
   ]);
 
-  const parentQuestionExperiments =
+  const [parentQuestionExperiments, resultDocument] = await Promise.all([
     experiment.researchQuestion?.parentQuestionUuid
-      ? await prisma.experiment.findMany({
+      ? prisma.experiment.findMany({
           where: {
             companyUuid,
             researchQuestionUuid: experiment.researchQuestion.parentQuestionUuid,
@@ -352,7 +469,22 @@ async function formatExperiment(
           },
           orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
         })
-      : [];
+      : Promise.resolve([]),
+    prisma.document.findFirst({
+      where: {
+        companyUuid,
+        researchProjectUuid: experiment.researchProjectUuid,
+        type: EXPERIMENT_RESULT_DOCUMENT_TYPE,
+        content: {
+          contains: buildExperimentDocumentMarker(experiment.uuid),
+        },
+      },
+      select: {
+        uuid: true,
+        title: true,
+      },
+    }),
+  ]);
 
   return {
     uuid: experiment.uuid,
@@ -370,6 +502,7 @@ async function formatExperiment(
     baseBranch: experiment.baseBranch,
     experimentBranch: experiment.experimentBranch,
     commitSha: experiment.commitSha,
+    resultDocument,
     liveStatus: experiment.liveStatus,
     liveMessage: experiment.liveMessage,
     liveUpdatedAt: experiment.liveUpdatedAt?.toISOString() ?? null,
@@ -678,6 +811,17 @@ export async function updateExperiment(
     } catch {}
   }
 
+  if (data.status !== undefined && existing) {
+    await checkAutonomousLoopTriggerAfterStatusChange({
+      companyUuid,
+      researchProjectUuid: experiment.researchProjectUuid,
+      experimentUuid: experiment.uuid,
+      fromStatus: existing.status as ExperimentStatus,
+      toStatus: data.status,
+      context: "experiment status update",
+    });
+  }
+
   return formatExperiment(companyUuid, experiment);
 }
 
@@ -867,12 +1011,15 @@ export async function reviewExperiment(input: {
     }
   }
 
-  // Check autonomous loop when experiment is rejected (queue may become empty)
-  if (!input.approved) {
-    await checkAutonomousLoopTrigger(updated.researchProjectUuid, input.companyUuid).catch(
-      (err) => log.error({ err }, "autonomous loop trigger check failed")
-    );
-  }
+  await checkAutonomousLoopTriggerAfterStatusChange({
+    companyUuid: input.companyUuid,
+    researchProjectUuid: updated.researchProjectUuid,
+    experimentUuid: updated.uuid,
+    fromStatus: existing.status as ExperimentStatus,
+    toStatus: updated.status as ExperimentStatus,
+    context: "experiment review",
+    extra: { approved: input.approved },
+  });
 
   return formatExperiment(input.companyUuid, updated);
 }
@@ -973,6 +1120,15 @@ export async function updateExperimentWorkflowStatus(input: {
     });
   } catch {}
 
+  await checkAutonomousLoopTriggerAfterStatusChange({
+    companyUuid: input.companyUuid,
+    researchProjectUuid: updated.researchProjectUuid,
+    experimentUuid: updated.uuid,
+    fromStatus: existing.status as ExperimentStatus,
+    toStatus: input.status,
+    context: "workflow status update",
+  });
+
   return formatExperiment(input.companyUuid, updated);
 }
 
@@ -1052,6 +1208,87 @@ export async function assignExperiment(input: {
   return formatExperiment(input.companyUuid, updated);
 }
 
+export async function requestExperimentPlan(input: {
+  companyUuid: string;
+  experimentUuid: string;
+  agentUuid: string;
+  requestedByUuid: string;
+}) {
+  const existing = await prisma.experiment.findFirst({
+    where: { uuid: input.experimentUuid, companyUuid: input.companyUuid },
+    include: {
+      researchProject: { select: { name: true } },
+    },
+  });
+
+  if (!existing) {
+    throw new Error("Experiment not found");
+  }
+
+  const now = new Date();
+  const updated = await prisma.experiment.update({
+    where: { uuid: input.experimentUuid },
+    data: {
+      assigneeType: "agent",
+      assigneeUuid: input.agentUuid,
+      assignedAt: now,
+      assignedByUuid: input.requestedByUuid,
+      liveStatus: "sent",
+      liveMessage: null,
+      liveUpdatedAt: now,
+    },
+    include: {
+      researchQuestion: {
+        select: { uuid: true, title: true, parentQuestionUuid: true },
+      },
+    },
+  });
+
+  const actorName = await getActorName("user", input.requestedByUuid);
+
+  await activityService.createActivity({
+    companyUuid: input.companyUuid,
+    researchProjectUuid: updated.researchProjectUuid,
+    targetType: "experiment",
+    targetUuid: updated.uuid,
+    actorType: "user",
+    actorUuid: input.requestedByUuid,
+    action: "assigned",
+    value: {
+      assigneeType: "agent",
+      assigneeUuid: input.agentUuid,
+      mode: "plan_request",
+    },
+  });
+
+  await notificationService.create({
+    companyUuid: input.companyUuid,
+    researchProjectUuid: updated.researchProjectUuid,
+    recipientType: "agent",
+    recipientUuid: input.agentUuid,
+    entityType: "experiment",
+    entityUuid: updated.uuid,
+    entityTitle: updated.title,
+    projectName: existing.researchProject.name,
+    action: "experiment_plan_requested",
+    message: `Please flesh out the experiment plan for "${updated.title}". Read the project context using synapse_get_project_full_context, then update the experiment with a detailed plan using synapse_update_experiment_plan. Include: methodology, expected outcomes, evaluation criteria, and any relevant research question links.`,
+    actorType: "user",
+    actorUuid: input.requestedByUuid,
+    actorName: actorName || "Unknown",
+  });
+
+  eventBus.emitChange({
+    companyUuid: input.companyUuid,
+    researchProjectUuid: updated.researchProjectUuid,
+    entityType: "experiment",
+    entityUuid: updated.uuid,
+    action: "updated",
+    actorUuid: input.requestedByUuid,
+  });
+
+  return formatExperiment(input.companyUuid, updated);
+}
+
 export async function startExperiment(input: {
   companyUuid: string;
   experimentUuid: string;
@@ -1117,6 +1354,15 @@ export async function startExperiment(input: {
     actorUuid: input.actorUuid,
   });
 
+  await checkAutonomousLoopTriggerAfterStatusChange({
+    companyUuid: input.companyUuid,
+    researchProjectUuid: updated.researchProjectUuid,
+    experimentUuid: updated.uuid,
+    fromStatus: existing.status as ExperimentStatus,
+    toStatus: "in_progress",
+    context: "experiment start",
+  });
+
   return formatExperiment(input.companyUuid, updated);
 }
 
@@ -1176,6 +1422,15 @@ export async function resetExperimentToPendingStart(input: {
     entityUuid: updated.uuid,
     action: "updated",
     actorUuid: input.actorUuid,
+  });
+
+  await checkAutonomousLoopTriggerAfterStatusChange({
+    companyUuid: input.companyUuid,
+    researchProjectUuid: updated.researchProjectUuid,
+    experimentUuid: updated.uuid,
+    fromStatus: existing.status as ExperimentStatus,
+    toStatus: "pending_start",
+    context: "experiment reset",
   });
 
   return formatExperiment(input.companyUuid, updated);
@@ -1423,10 +1678,14 @@ export async function completeExperiment(input: {
     log.error({ err }, "failed to refresh project synthesis after experiment completion");
   }
 
-  // Check autonomous loop trigger
-  await checkAutonomousLoopTrigger(updated.researchProjectUuid, input.companyUuid).catch(
-    (err) => log.error({ err }, "autonomous loop trigger check failed")
-  );
+  await checkAutonomousLoopTriggerAfterStatusChange({
+    companyUuid: input.companyUuid,
+    researchProjectUuid: updated.researchProjectUuid,
+    experimentUuid: updated.uuid,
+    fromStatus: existing.status as ExperimentStatus,
+    toStatus: "completed",
+    context: "experiment completion",
+  });
 
   return formatExperiment(input.companyUuid, updated);
 }

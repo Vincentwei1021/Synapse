@@ -146,6 +146,8 @@ model ResearchProject {
   deepResearchDocUuid      String?
   deepResearchActiveAgentUuid String?
   deepResearchStartedAt    DateTime?
+  synthesisActiveAgentUuid String?
+  synthesisStartedAt       DateTime?
   repoUrl              String?
   githubUsername        String?
   githubToken          String?

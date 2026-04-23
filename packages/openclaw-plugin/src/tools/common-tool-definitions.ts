@@ -250,7 +250,7 @@ export const commonToolDefinitions = defineOpenClawTools([
   createPassthroughTool<{
     experimentUuid: string;
     status: "draft" | "pending_review" | "pending_start";
-    liveStatus?: "sent" | "ack" | "checking_resources" | "queuing" | "running" | null;
+    liveStatus?: "sent" | "ack" | "writing" | "checking_resources" | "queuing" | "running" | null;
     liveMessage?: string | null;
   }>({
     name: "synapse_update_experiment_status",
@@ -441,6 +441,21 @@ export const commonToolDefinitions = defineOpenClawTools([
       additionalProperties: false,
     },
     targetToolName: "synapse_get_document",
+  }),
+  createPassthroughTool<{ experimentUuid: string; title?: string; content: string }>({
+    name: "synapse_save_experiment_report",
+    description: "Create or update the dedicated experiment result document for a completed experiment.",
+    parameters: {
+      type: "object",
+      properties: {
+        experimentUuid: { type: "string", description: "Experiment UUID" },
+        title: { type: "string", description: "Optional report title" },
+        content: { type: "string", description: "Full experiment report content (Markdown)" },
+      },
+      required: ["experimentUuid", "content"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_save_experiment_report",
   }),
 
   // =========================================================================

@@ -122,10 +122,26 @@ const plugin = {
               const result = (await mcpClient.callTool("synapse_get_notifications", {
                 status: "unread",
                 autoMarkRead: false,
-              })) as { notifications?: Array<{ uuid: string }> } | null;
-              const count = result?.notifications?.length ?? 0;
+              })) as { notifications?: Array<Record<string, unknown> & { uuid: string }> } | null;
+              const notifications = result?.notifications ?? [];
+              const count = notifications.length;
               if (count > 0) {
                 logger.info(`SSE reconnect: ${count} unread notifications to process`);
+                for (const notification of notifications) {
+                  eventRouter.dispatch({
+                    type: "new_notification",
+                    notificationUuid: notification.uuid,
+                    researchProjectUuid: typeof notification.researchProjectUuid === "string" ? notification.researchProjectUuid : undefined,
+                    entityType: typeof notification.entityType === "string" ? notification.entityType : undefined,
+                    entityUuid: typeof notification.entityUuid === "string" ? notification.entityUuid : undefined,
+                    entityTitle: typeof notification.entityTitle === "string" ? notification.entityTitle : undefined,
+                    action: typeof notification.action === "string" ? notification.action : undefined,
+                    message: typeof notification.message === "string" ? notification.message : undefined,
+                    actorType: typeof notification.actorType === "string" ? notification.actorType : undefined,
+                    actorUuid: typeof notification.actorUuid === "string" ? notification.actorUuid : undefined,
+                    actorName: typeof notification.actorName === "string" ? notification.actorName : undefined,
+                  });
+                }
               }
             } catch (err) {
               logger.warn(`Failed to back-fill notifications: ${err}`);

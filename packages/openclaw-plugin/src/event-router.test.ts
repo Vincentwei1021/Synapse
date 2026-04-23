@@ -76,18 +76,18 @@ describe("SynapseEventRouter", () => {
     const [prompt, metadata] = triggerAgent.mock.calls[0];
     expect(prompt).toContain("Experiment assigned: Train the baseline");
     expect(prompt).toContain("Time limit: Unlimited");
-    expect(prompt).toContain("post a comment on this experiment");
-    expect(prompt).toContain("@[Alice](user:user-1)");
+    expect(prompt).not.toContain("post a comment on this experiment");
+    expect(prompt).not.toContain("@[Alice](user:user-1)");
     expect(prompt).toContain("synapse_report_experiment_progress");
-    expect(prompt).toContain("set up automated monitoring without cron");
-    expect(prompt).toContain("sleep 60 seconds between checks");
-    expect(prompt).toContain("Never let the sleep interval exceed 30 minutes");
+    expect(prompt).toContain("self-contained cron monitoring script");
+    expect(prompt).toContain("cron job (every 30 minutes)");
+    expect(prompt).toContain("Detect when the experiment finishes");
+    expect(prompt).toContain("Remove the cron job itself");
+    expect(prompt).toContain("must be fully self-contained");
     expect(prompt).toContain("run Python in unbuffered mode");
     expect(prompt).toContain("python -u");
     expect(prompt).toContain("PYTHONUNBUFFERED=1");
     expect(prompt).toContain("prefer launching the workload inside tmux");
-    expect(prompt).toContain("prefer tmux for long jobs");
-    expect(prompt).not.toContain("Create a cron job");
     expect(metadata).toMatchObject({
       action: "task_assigned",
       entityType: "experiment",
@@ -210,7 +210,52 @@ describe("SynapseEventRouter", () => {
     expect(triggerAgent).toHaveBeenCalledTimes(1);
     const [prompt] = triggerAgent.mock.calls[0];
     expect(prompt).toContain("Baseline experiment");
-    expect(prompt).toContain("synapse_add_comment");
+    expect(prompt).toContain("synapse_save_experiment_report");
+    expect(prompt).toContain("Do NOT post the report as an experiment comment");
+  });
+
+  it("routes experiment plan requested events with writing live status and review handoff", async () => {
+    callTool.mockResolvedValueOnce({
+      notifications: [
+        {
+          uuid: "notification-plan-1",
+          researchProjectUuid: "project-1",
+          entityType: "experiment",
+          entityUuid: "experiment-1",
+          entityTitle: "Try LoRA on the baseline",
+          action: "experiment_plan_requested",
+          message: "Draft plan",
+          actorType: "user",
+          actorUuid: "user-1",
+          actorName: "Alice",
+        },
+      ],
+    });
+
+    const router = new SynapseEventRouter({
+      mcpClient: { callTool } as never,
+      config: {
+        synapseUrl: "http://synapse.local",
+        apiKey: "syn_key",
+        autoStart: true,
+        projectUuids: [],
+      },
+      triggerAgent,
+      logger,
+    });
+
+    await (router as unknown as { fetchAndRoute: (notificationUuid: string) => Promise<void> }).fetchAndRoute("notification-plan-1");
+
+    expect(triggerAgent).toHaveBeenCalledTimes(1);
+    const [prompt, metadata] = triggerAgent.mock.calls[0];
+    expect(prompt).toContain('liveStatus "writing"');
+    expect(prompt).toContain('status "pending_review"');
+    expect(prompt).toContain("synapse_update_experiment_plan");
+    expect(metadata).toMatchObject({
+      action: "experiment_plan_requested",
+      entityUuid: "experiment-1",
+      projectUuid: "project-1",
+    });
   });
 
   it("routes @mention events with entity context", async () => {
@@ -251,6 +296,96 @@ describe("SynapseEventRouter", () => {
     expect(prompt).toContain("synapse_get_comments");
     expect(prompt).toContain("synapse_update_experiment_status");
     expect(prompt).toContain("@[Alice](user:user-1)");
+  });
+
+  it("routes @mention events directly from SSE payload without notification re-fetch", async () => {
+    const router = new SynapseEventRouter({
+      mcpClient: { callTool } as never,
+      config: {
+        synapseUrl: "http://synapse.local",
+        apiKey: "syn_key",
+        autoStart: true,
+        projectUuids: [],
+      },
+      triggerAgent,
+      logger,
+    });
+
+    router.dispatch({
+      type: "new_notification",
+      notificationUuid: "notification-sse-1",
+      researchProjectUuid: "project-1",
+      entityType: "experiment",
+      entityUuid: "experiment-1",
+      entityTitle: "Recall test",
+      action: "mentioned",
+      message: "@Agent please review",
+      actorType: "user",
+      actorUuid: "user-1",
+      actorName: "Alice",
+    });
+
+    await Promise.resolve();
+
+    expect(callTool).not.toHaveBeenCalled();
+    expect(triggerAgent).toHaveBeenCalledTimes(1);
+    const [prompt, metadata] = triggerAgent.mock.calls[0];
+    expect(prompt).toContain("@mentioned");
+    expect(metadata).toMatchObject({
+      notificationUuid: "notification-sse-1",
+      action: "mentioned",
+      entityUuid: "experiment-1",
+      projectUuid: "project-1",
+    });
+  });
+
+  it("falls back to recent notifications when a fresh event is missing from the unread list", async () => {
+    callTool
+      .mockResolvedValueOnce({
+        notifications: [],
+      })
+      .mockResolvedValueOnce({
+        notifications: [
+          {
+            uuid: "notification-6",
+            researchProjectUuid: "project-1",
+            entityType: "experiment",
+            entityUuid: "experiment-1",
+            entityTitle: "Recall test",
+            action: "mentioned",
+            message: "@Agent please review",
+            actorType: "user",
+            actorUuid: "user-1",
+            actorName: "Alice",
+          },
+        ],
+      });
+
+    const router = new SynapseEventRouter({
+      mcpClient: { callTool } as never,
+      config: {
+        synapseUrl: "http://synapse.local",
+        apiKey: "syn_key",
+        autoStart: true,
+        projectUuids: [],
+      },
+      triggerAgent,
+      logger,
+    });
+
+    await (router as unknown as { fetchAndRoute: (notificationUuid: string) => Promise<void> }).fetchAndRoute("notification-6");
+
+    expect(callTool).toHaveBeenNthCalledWith(1, "synapse_get_notifications", {
+      status: "unread",
+      limit: 100,
+      autoMarkRead: false,
+    });
+    expect(callTool).toHaveBeenNthCalledWith(2, "synapse_get_notifications", {
+      status: "all",
+      limit: 100,
+      autoMarkRead: false,
+    });
+    expect(triggerAgent).toHaveBeenCalledTimes(1);
   });
 
   it("ignores non-new_notification event types", () => {

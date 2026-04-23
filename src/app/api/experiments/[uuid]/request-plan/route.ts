@@ -2,9 +2,8 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { errors, success } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
-import { getExperiment } from "@/services/experiment.service";
-import * as notificationService from "@/services/notification.service";
-import { prisma } from "@/lib/prisma";
+import { getAgentByUuid } from "@/services/agent.service";
+import { requestExperimentPlan } from "@/services/experiment.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
@@ -32,41 +31,17 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return errors.validationError(parsed.error.flatten().fieldErrors);
   }
 
-  const experiment = await getExperiment(auth.companyUuid, uuid);
-  if (!experiment) {
-    return errors.notFound("Experiment");
-  }
-
-  const [project, agent] = await Promise.all([
-    prisma.researchProject.findFirst({
-      where: { uuid: experiment.researchProjectUuid, companyUuid: auth.companyUuid },
-      select: { name: true },
-    }),
-    prisma.agent.findUnique({
-      where: { uuid: parsed.data.agentUuid },
-      select: { uuid: true, name: true, companyUuid: true },
-    }),
-  ]);
-
-  if (!agent || agent.companyUuid !== auth.companyUuid) {
+  const agent = await getAgentByUuid(auth.companyUuid, parsed.data.agentUuid, auth.actorUuid);
+  if (!agent) {
     return errors.notFound("Agent");
   }
 
-  await notificationService.create({
+  const experiment = await requestExperimentPlan({
     companyUuid: auth.companyUuid,
-    researchProjectUuid: experiment.researchProjectUuid,
-    recipientType: "agent",
-    recipientUuid: agent.uuid,
-    entityType: "experiment",
-    entityUuid: experiment.uuid,
-    entityTitle: experiment.title,
-    projectName: project?.name ?? "",
-    action: "experiment_plan_requested",
-    message: `Please flesh out the experiment plan for "${experiment.title}". Read the project context using synapse_get_project_full_context, then update the experiment with a detailed plan using synapse_update_experiment_plan. Include: methodology, expected outcomes, evaluation criteria, and any relevant research question links.`,
-    actorType: "user",
-    actorUuid: auth.actorUuid,
-    actorName: "User",
+    experimentUuid: uuid,
+    agentUuid: agent.uuid,
+    requestedByUuid: auth.actorUuid,
   });
 
-  return success({ requested: true });
+  return success({ requested: true, experiment });
 }

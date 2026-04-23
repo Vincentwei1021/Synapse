@@ -4,6 +4,18 @@ export interface SseNotificationEvent {
   type: string; // "new_notification"
   notificationUuid?: string;
   notificationType?: string; // "task_assigned", "mentioned", etc.
+  researchProjectUuid?: string;
+  recipientType?: string;
+  recipientUuid?: string;
+  entityType?: string;
+  entityUuid?: string;
+  entityTitle?: string;
+  projectName?: string;
+  action?: string;
+  message?: string;
+  actorType?: string;
+  actorUuid?: string;
+  actorName?: string;
   unreadCount?: number;
   [key: string]: unknown;
 }
