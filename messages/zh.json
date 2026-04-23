@@ -1421,6 +1421,7 @@
     "liveStatus": {
       "sent": "已发送",
       "ack": "已接收",
+      "writing": "起草中",
       "checking_resources": "检查资源中",
       "queuing": "排队中",
       "running": "运行中"

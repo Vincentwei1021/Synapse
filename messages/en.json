@@ -1421,6 +1421,7 @@
     "liveStatus": {
       "sent": "Sent",
       "ack": "Received",
+      "writing": "Writing",
       "checking_resources": "Checking Resources",
       "queuing": "Queuing",
       "running": "Running"

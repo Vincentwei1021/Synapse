@@ -65,6 +65,7 @@ function liveStatusBadge(t: ReturnType<typeof useTranslations>, status: string |
   const colors: Record<string, string> = {
     sent: "bg-gray-100 text-gray-600 dark:bg-gray-500/15 dark:text-gray-300",
     ack: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
+    writing: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300",
     checking_resources: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300",
     queuing: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
     running: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300",

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 const LIVE_EXPERIMENT_STATES = [
   "sent",
   "ack",
+  "writing",
   "checking_resources",
   "queuing",
   "running",

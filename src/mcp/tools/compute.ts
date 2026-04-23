@@ -829,10 +829,10 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
         experimentUuid: z.string(),
         status: z.enum(["draft", "pending_review", "pending_start"]),
         liveStatus: z
-          .enum(["sent", "ack", "checking_resources", "queuing", "running"])
+          .enum(["sent", "ack", "writing", "checking_resources", "queuing", "running"])
           .nullable()
           .optional()
-          .describe("Optional live badge override. Draft defaults to running; pending_review/pending_start default to cleared."),
+          .describe("Optional live badge override. Draft defaults to running; pending_review/pending_start default to cleared. Use 'writing' while drafting a plan."),
         liveMessage: z
           .string()
           .nullable()

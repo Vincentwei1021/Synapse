@@ -79,15 +79,15 @@ describe("SynapseEventRouter", () => {
     expect(prompt).toContain("post a comment on this experiment");
     expect(prompt).toContain("@[Alice](user:user-1)");
     expect(prompt).toContain("synapse_report_experiment_progress");
-    expect(prompt).toContain("set up automated monitoring");
-    expect(prompt).toContain("Create a cron job that runs every 30 minutes");
-    expect(prompt).toContain("detect when the experiment finishes");
-    expect(prompt).toContain("Remove the cron job after you have completed everything");
+    expect(prompt).toContain("self-contained cron monitoring script");
+    expect(prompt).toContain("cron job (every 30 minutes)");
+    expect(prompt).toContain("Detect when the experiment finishes");
+    expect(prompt).toContain("Remove the cron job itself");
+    expect(prompt).toContain("must be fully self-contained");
     expect(prompt).toContain("run Python in unbuffered mode");
     expect(prompt).toContain("python -u");
     expect(prompt).toContain("PYTHONUNBUFFERED=1");
     expect(prompt).toContain("prefer launching the workload inside tmux");
-    expect(prompt).toContain("prefer tmux for long jobs");
     expect(metadata).toMatchObject({
       action: "task_assigned",
       entityType: "experiment",
@@ -212,6 +212,50 @@ describe("SynapseEventRouter", () => {
     expect(prompt).toContain("Baseline experiment");
     expect(prompt).toContain("synapse_save_experiment_report");
     expect(prompt).toContain("Do NOT post the report as an experiment comment");
+  });
+
+  it("routes experiment plan requested events with writing live status and review handoff", async () => {
+    callTool.mockResolvedValueOnce({
+      notifications: [
+        {
+          uuid: "notification-plan-1",
+          researchProjectUuid: "project-1",
+          entityType: "experiment",
+          entityUuid: "experiment-1",
+          entityTitle: "Try LoRA on the baseline",
+          action: "experiment_plan_requested",
+          message: "Draft plan",
+          actorType: "user",
+          actorUuid: "user-1",
+          actorName: "Alice",
+        },
+      ],
+    });
+
+    const router = new SynapseEventRouter({
+      mcpClient: { callTool } as never,
+      config: {
+        synapseUrl: "http://synapse.local",
+        apiKey: "syn_key",
+        autoStart: true,
+        projectUuids: [],
+      },
+      triggerAgent,
+      logger,
+    });
+
+    await (router as unknown as { fetchAndRoute: (notificationUuid: string) => Promise<void> }).fetchAndRoute("notification-plan-1");
+
+    expect(triggerAgent).toHaveBeenCalledTimes(1);
+    const [prompt, metadata] = triggerAgent.mock.calls[0];
+    expect(prompt).toContain('liveStatus "writing"');
+    expect(prompt).toContain('status "pending_review"');
+    expect(prompt).toContain("synapse_update_experiment_plan");
+    expect(metadata).toMatchObject({
+      action: "experiment_plan_requested",
+      entityUuid: "experiment-1",
+      projectUuid: "project-1",
+    });
   });
 
   it("routes @mention events with entity context", async () => {

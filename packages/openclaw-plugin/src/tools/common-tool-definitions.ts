@@ -250,7 +250,7 @@ export const commonToolDefinitions = defineOpenClawTools([
   createPassthroughTool<{
     experimentUuid: string;
     status: "draft" | "pending_review" | "pending_start";
-    liveStatus?: "sent" | "ack" | "checking_resources" | "queuing" | "running" | null;
+    liveStatus?: "sent" | "ack" | "writing" | "checking_resources" | "queuing" | "running" | null;
     liveMessage?: string | null;
   }>({
     name: "synapse_update_experiment_status",

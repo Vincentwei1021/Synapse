@@ -303,21 +303,24 @@ Base branch: ${repoAccess.baseBranch ?? "main"}`;
 
     steps.push(`${stepNum++}. Execute the experiment on the compute node according to the experiment description. For long-running jobs, prefer launching the workload inside tmux so the process survives disconnects and you can re-attach later. If the workload writes Python stdout/stderr to a log file, run Python in unbuffered mode so logs appear in real time for monitoring. Prefer python -u (or PYTHONUNBUFFERED=1). If helpful, combine it with tee/stdout piping so progress is visible immediately instead of being trapped in a full buffer.`);
 
-    steps.push(`${stepNum++}. For long-running experiments (training jobs, multi-hour evaluations), set up automated monitoring:
-   a. Write a monitoring script on the compute node that reads the latest training/evaluation logs, extracts key metrics (loss, accuracy, eval scores, etc.), and outputs a concise summary.
-   b. Test the script to make sure it works correctly. Also verify the underlying experiment process is running in a durable session (prefer tmux for long jobs) and is writing unbuffered logs (for Python: python -u, PYTHONUNBUFFERED=1, flush=True where needed, or another effective approach) so the monitoring script can see fresh output.
-   c. Create a cron job that runs every 30 minutes: the script calls synapse_report_experiment_progress with experimentUuid "${experimentUuid}" to report the latest metrics summary, and delivers updates to the latest channel.
-   d. The monitoring script should also detect when the experiment finishes (e.g. training completes, final evaluation done). When completion is detected, the script should send a message notifying you (the agent) that the experiment has finished.
-   e. Once you receive the completion notification, you are responsible for the remaining steps: ${hasRepo ? "handle code changes per project description, " : ""}submit results, and clean up. Remove the cron job after you have completed everything.
+    steps.push(`${stepNum++}. For long-running experiments (training jobs, multi-hour evaluations), set up a self-contained cron monitoring script on the compute node. The script must handle EVERYTHING autonomously — you (the agent) will NOT be available after this step. The cron script must:
+   a. Read the latest training/evaluation logs, extract key metrics (loss, accuracy, eval scores, etc.), and produce a concise summary.
+   b. Call synapse_report_experiment_progress with experimentUuid "${experimentUuid}" to report the latest metrics and deliver updates to the latest channel.
+   c. Detect when the experiment finishes (e.g. training completes, final evaluation done, process exits).
+   d. On completion, the script itself must execute ALL of the following finalization steps:
+      ${hasRepo ? `- Git commit and push: follow the project description's branch strategy (e.g. single persistent branch, per-experiment branches, keep/discard workflow). If not specified, create a new branch or commit on the current branch.\n      ` : ""}- Call synapse_submit_experiment_results with experimentUuid "${experimentUuid}"${hasRepo ? ", experimentBranch, and commitSha" : ""} to mark the experiment as completed and release reserved GPUs.
+      - Remove the cron job itself (crontab cleanup).
+   e. IMPORTANT: The script must be fully self-contained. It must be able to call Synapse MCP tools (use curl against the Synapse API with the agent's API key). Do NOT rely on the agent being available to handle completion — the agent's turn ends after setting up the cron job.
+   f. Before finishing your turn, test the monitoring script manually to verify it works, install it as a cron job (every 30 minutes), and confirm the cron entry is active.
    For short experiments that you can monitor directly, skip the cron setup and proceed to the next steps manually.`);
 
     steps.push(`${stepNum++}. If you are monitoring the experiment directly (no cron), call synapse_report_experiment_progress with experimentUuid "${experimentUuid}" at each major step (data download, training start, each evaluation checkpoint, major metric change, etc.).`);
 
     if (hasRepo) {
-      steps.push(`${stepNum++}. After the experiment completes, commit your changes and push. The project description may specify a branch strategy (e.g. single persistent branch, per-experiment branches, keep/discard workflow). Follow it. If not specified, decide: create a new branch for this experiment, or commit on the current branch — based on how the project organizes its code.`);
+      steps.push(`${stepNum++}. After the experiment completes (direct monitoring only), commit your changes and push. The project description may specify a branch strategy (e.g. single persistent branch, per-experiment branches, keep/discard workflow). Follow it. If not specified, decide: create a new branch for this experiment, or commit on the current branch — based on how the project organizes its code.`);
     }
 
-    steps.push(`${stepNum++}. Call synapse_submit_experiment_results with experimentUuid "${experimentUuid}"${hasRepo ? ". Include experimentBranch and commitSha if you pushed code" : ""} to complete the experiment. This also releases the reserved GPUs.`);
+    steps.push(`${stepNum++}. Call synapse_submit_experiment_results with experimentUuid "${experimentUuid}"${hasRepo ? ". Include experimentBranch and commitSha if you pushed code" : ""} to complete the experiment. This also releases the reserved GPUs. (Skip this step if a cron script was set up — the cron handles submission.)`);
 
     steps.push(mentionGuidance);
 
@@ -506,20 +509,22 @@ Steps:
 
 Your task is to flesh out this experiment into a detailed plan. Follow these steps:
 
-1. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to understand the research context, existing experiments, and research questions
-2. Based on the one-line idea and the project context, draft a detailed experiment plan that includes:
+1. Immediately call synapse_update_experiment_status with experimentUuid "${n.entityUuid}", status "draft", liveStatus "writing", and a short liveMessage like "Drafting experiment plan"
+2. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to understand the research context, existing experiments, and research questions
+3. Based on the one-line idea and the project context, draft a detailed experiment plan that includes:
    - Clear objective
    - Methodology and approach
    - Expected outcomes and evaluation criteria
    - Implementation steps
    - Any relevant compute or resource requirements
-3. If the idea clearly relates to an existing research question, link it
-4. Use synapse_update_experiment_plan with experimentUuid "${n.entityUuid}" to update the experiment with:
+4. If the idea clearly relates to an existing research question, link it
+5. Use synapse_update_experiment_plan with experimentUuid "${n.entityUuid}" to update the experiment with:
    - A refined title (concise but descriptive)
    - A detailed description (the full experiment plan)
    - researchQuestionUuid (if applicable)
    - priority (based on the project context)
-5. Write the plan in the same language as the project description.
+6. When the plan is ready, call synapse_update_experiment_status with experimentUuid "${n.entityUuid}" and status "pending_review" so the experiment moves into the review queue.
+7. Write the plan in the same language as the project description.
 
 Keep the plan actionable and specific enough that another agent could execute it.`,
       { notificationUuid: n.uuid, action: "experiment_plan_requested", entityUuid: n.entityUuid, projectUuid }
