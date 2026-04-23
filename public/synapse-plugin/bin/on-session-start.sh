@@ -169,6 +169,7 @@ Tool availability depends on the agent's Synapse roles. Public read/comment/noti
   - Claim / status-update tools are available only when the agent has the matching research-oriented role
 
 **Experiment Planning / Revision:**
+  - \`synapse_create_experiment({ researchProjectUuid, title, description, researchQuestionUuid?, priority?, status? })\` — create a brand-new experiment outside autonomous loop (defaults to \`pending_review\`)
   - \`synapse_get_experiment({ experimentUuid })\` — inspect the current experiment
   - \`synapse_get_comments({ targetType: \"experiment\", targetUuid })\` — read review feedback or @mention threads
   - \`synapse_update_experiment_status({ experimentUuid, status: \"draft\", liveStatus: \"writing\", liveMessage })\` — mark that you are drafting or revising the plan

@@ -77,6 +77,31 @@ synapse_get_comments({
 })
 ```
 
+## Creating A New Experiment
+
+When the user asks you to author a brand-new experiment outside autonomous loop, create it directly:
+
+```text
+synapse_create_experiment({
+  researchProjectUuid: "...",
+  title: "Baseline reproduction with revised tokenizer",
+  description: "## Objective\n\nReproduce the baseline with the new tokenizer setup...",
+  researchQuestionUuid: "...",
+  priority: "high"
+})
+```
+
+Defaults:
+- `status = pending_review` for the normal agent-created path
+- use `status: "draft"` if you want to keep refining before sending it to review
+
+Typical follow-up after creating a draft:
+
+```text
+synapse_update_experiment_plan({ experimentUuid: "...", description: "## Objective\n\n..." })
+synapse_update_experiment_status({ experimentUuid: "...", status: "pending_review" })
+```
+
 ---
 
 ## Starting An Experiment
@@ -211,12 +236,13 @@ Use this for the dedicated result document. Do not replace it with a comment thr
 
 1. `synapse_checkin()` to see assigned experiments
 2. `synapse_get_experiment()` to understand the task or review feedback
-3. If you are drafting or revising, use `synapse_update_experiment_status()` plus `synapse_update_experiment_plan()`
-4. `synapse_list_compute_nodes()` if GPUs are needed
-5. `synapse_start_experiment()` with optional `synapse_reserve_gpus()`
-6. `synapse_get_node_access_bundle()` if remote execution is needed
-7. Run the workload
-8. `synapse_report_experiment_progress()` at major milestones
-9. `synapse_submit_experiment_results()` when done
-10. `synapse_save_experiment_report()` if the flow asks for a dedicated report doc
-11. `synapse_add_comment()` for durable findings or decisions
+3. If you are creating a new experiment, use `synapse_create_experiment()`
+4. If you are drafting or revising, use `synapse_update_experiment_status()` plus `synapse_update_experiment_plan()`
+5. `synapse_list_compute_nodes()` if GPUs are needed
+6. `synapse_start_experiment()` with optional `synapse_reserve_gpus()`
+7. `synapse_get_node_access_bundle()` if remote execution is needed
+8. Run the workload
+9. `synapse_report_experiment_progress()` at major milestones
+10. `synapse_submit_experiment_results()` when done
+11. `synapse_save_experiment_report()` if the flow asks for a dedicated report doc
+12. `synapse_add_comment()` for durable findings or decisions

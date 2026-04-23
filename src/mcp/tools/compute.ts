@@ -720,6 +720,98 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
   );
 
   server.registerTool(
+    "synapse_create_experiment",
+    {
+      description: "Create a new experiment outside the autonomous loop. This is the standard agent-side creation path for user-directed work and defaults to pending_review so a human can inspect it before execution.",
+      inputSchema: z.object({
+        researchProjectUuid: z.string(),
+        title: z.string(),
+        description: z.string(),
+        researchQuestionUuid: z.string().optional(),
+        priority: z.enum(["low", "medium", "high", "immediate"]).default("medium"),
+        status: z.enum(["draft", "pending_review"]).default("pending_review"),
+      }),
+    },
+    async ({ researchProjectUuid, title, description, researchQuestionUuid, priority, status }) => {
+      const project = await prisma.researchProject.findFirst({
+        where: {
+          uuid: researchProjectUuid,
+          companyUuid: auth.companyUuid,
+        },
+        select: { uuid: true, name: true },
+      });
+      if (!project) {
+        return { content: [{ type: "text", text: "Research project not found" }], isError: true };
+      }
+
+      if (researchQuestionUuid) {
+        const question = await prisma.researchQuestion.findFirst({
+          where: {
+            uuid: researchQuestionUuid,
+            companyUuid: auth.companyUuid,
+            researchProjectUuid,
+          },
+          select: { uuid: true },
+        });
+        if (!question) {
+          return {
+            content: [{ type: "text", text: "Research question not found in this project" }],
+            isError: true,
+          };
+        }
+      }
+
+      const experiment = await experimentService.createExperiment({
+        companyUuid: auth.companyUuid,
+        researchProjectUuid,
+        title,
+        description,
+        researchQuestionUuid: researchQuestionUuid || null,
+        priority,
+        status,
+        createdByUuid: auth.actorUuid,
+        createdByType: "agent",
+      });
+
+      try {
+        const agent = await prisma.agent.findUnique({
+          where: { uuid: auth.actorUuid },
+          select: { ownerUuid: true, name: true },
+        });
+        if (agent?.ownerUuid) {
+          await notificationService.create({
+            companyUuid: auth.companyUuid,
+            researchProjectUuid,
+            recipientType: "user",
+            recipientUuid: agent.ownerUuid,
+            entityType: "experiment",
+            entityUuid: experiment.uuid,
+            entityTitle: experiment.title,
+            projectName: project.name,
+            action: "experiment_created",
+            message:
+              status === "draft"
+                ? `Agent created draft experiment "${title}".`
+                : `Agent created experiment "${title}" for review.`,
+            actorType: "agent",
+            actorUuid: auth.actorUuid,
+            actorName: agent.name ?? "Agent",
+          });
+        }
+      } catch { /* ignore notification errors */ }
+
+      const note =
+        status === "draft"
+          ? "Experiment created in draft. Continue refining it or move it to pending_review when ready."
+          : "Experiment created in pending_review. Human review is required before execution.";
+
+      return {
+        content: [{ type: "text", text: JSON.stringify({ experiment, note }, null, 2) }],
+      };
+    }
+  );
+
+  server.registerTool(
     "synapse_propose_experiment",
     {
       description: "Propose a new experiment. In Human Review mode, created as 'pending_review' for human approval. In Full Auto mode, created as 'pending_start' and assigned to you for immediate execution. Only usable when autonomous loop is active and you are the assigned agent.",

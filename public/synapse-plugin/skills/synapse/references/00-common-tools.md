@@ -53,6 +53,7 @@ Requires the `experiment` tool family.
 |------|-------------|
 | `synapse_get_assigned_experiments` | List experiments assigned to the current agent. |
 | `synapse_get_experiment` | Read one experiment in full. |
+| `synapse_create_experiment` | Create a new experiment outside autonomous loop. Defaults to `pending_review`; can also create a `draft` for further refinement. |
 | `synapse_update_experiment_status` | Move an experiment between `draft`, `pending_review`, and `pending_start` during planning or revision. Can also set `liveStatus` / `liveMessage`. |
 | `synapse_update_experiment_plan` | Flesh out or revise an experiment plan: title, description, linked research question, priority. |
 | `synapse_start_experiment` | Move an experiment into execution. Optionally reserve GPUs inline. |

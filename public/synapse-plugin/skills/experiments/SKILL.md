@@ -16,6 +16,7 @@ Use this skill for the experiment stage: drafting plans, revising returned exper
 ## Prompt Boundary
 
 Stay inside this skill when the work is about:
+- creating a brand-new experiment from scratch
 - `draft`, `pending_review`, `pending_start`, `in_progress`, or `completed` experiments
 - plan authoring or revision
 - reserving GPUs and starting workloads
@@ -29,13 +30,14 @@ Do not use this skill for open-ended literature synthesis or autonomous next-ste
 ## Typical Flow
 
 1. `synapse_checkin()`
-2. `synapse_get_assigned_experiments()` or `synapse_get_experiment()`
-3. If drafting or revising: `synapse_update_experiment_status()` + `synapse_update_experiment_plan()`
-4. If executing: `synapse_list_compute_nodes()` and optionally `synapse_reserve_gpus()`
-5. `synapse_start_experiment()`
-6. `synapse_get_node_access_bundle()` when remote compute access is needed
-7. `synapse_report_experiment_progress()` at milestones
-8. `synapse_submit_experiment_results()` and optionally `synapse_save_experiment_report()`
+2. If the task is new experiment authoring: `synapse_create_experiment()`
+3. `synapse_get_assigned_experiments()` or `synapse_get_experiment()`
+4. If drafting or revising: `synapse_update_experiment_status()` + `synapse_update_experiment_plan()`
+5. If executing: `synapse_list_compute_nodes()` and optionally `synapse_reserve_gpus()`
+6. `synapse_start_experiment()`
+7. `synapse_get_node_access_bundle()` when remote compute access is needed
+8. `synapse_report_experiment_progress()` at milestones
+9. `synapse_submit_experiment_results()` and optionally `synapse_save_experiment_report()`
 
 ## Compute Rule
 

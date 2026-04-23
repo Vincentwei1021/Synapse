@@ -274,6 +274,31 @@ export const commonToolDefinitions = defineOpenClawTools([
     description: string;
     researchQuestionUuid?: string;
     priority?: string;
+    status?: "draft" | "pending_review";
+  }>({
+    name: "synapse_create_experiment",
+    description: "Create a new experiment outside the autonomous loop. Defaults to pending_review so a human can review it before execution.",
+    parameters: {
+      type: "object",
+      properties: {
+        researchProjectUuid: { type: "string", description: "Research Project UUID" },
+        title: { type: "string", description: "Experiment title" },
+        description: { type: "string", description: "Experiment description or plan" },
+        researchQuestionUuid: { type: "string", description: "Optional linked research question UUID" },
+        priority: { type: "string", description: "Priority: low | medium | high | immediate (default: medium)" },
+        status: { type: "string", description: "Optional initial status: draft | pending_review (default: pending_review)" },
+      },
+      required: ["researchProjectUuid", "title", "description"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_create_experiment",
+  }),
+  createPassthroughTool<{
+    researchProjectUuid: string;
+    title: string;
+    description: string;
+    researchQuestionUuid?: string;
+    priority?: string;
   }>({
     name: "synapse_propose_experiment",
     description: "Propose a new experiment for human review (created in pending_review status). Only usable when autonomous loop is active.",
