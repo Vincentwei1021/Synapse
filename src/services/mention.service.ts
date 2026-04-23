@@ -1,6 +1,7 @@
 // src/services/mention.service.ts
 // Mention Service Layer — parse @mentions, create Mention records, trigger notifications
-// Content format: @[DisplayName](user:uuid) or @[DisplayName](agent:uuid)
+// Users can only autocomplete agents, while agents can autocomplete both users and
+// agents. Stored content still uses @[DisplayName](user|agent:uuid).
 
 import { prisma } from "@/lib/prisma";
 import { getActorName } from "@/lib/uuid-resolver";
@@ -205,9 +206,9 @@ export async function createMentions(params: CreateMentionsParams): Promise<void
 const DEFAULT_EMPTY_QUERY_LIMIT = 5;
 
 /**
- * Search for mentionable users and agents within a company.
+ * Search for mentionable users/agents within a company.
  * Permission scoping:
- * - User caller: all company users + own agents (agents with ownerUuid = actorUuid)
+ * - User caller: own agents only (agents with ownerUuid = actorUuid)
  * - Agent caller: all company users + same-owner agents (agents with same ownerUuid)
  */
 export async function searchMentionables(params: SearchMentionablesParams): Promise<Mentionable[]> {
@@ -229,17 +230,19 @@ export async function searchMentionables(params: SearchMentionablesParams): Prom
   if (!query) {
     const starterLimit = Math.min(DEFAULT_EMPTY_QUERY_LIMIT, effectiveLimit);
     const [users, agents] = await Promise.all([
-      prisma.user.findMany({
-        where: { companyUuid },
-        select: {
-          uuid: true,
-          name: true,
-          email: true,
-          avatarUrl: true,
-        },
-        orderBy: [{ name: "asc" }],
-        take: starterLimit,
-      }),
+      actorType === "agent"
+        ? prisma.user.findMany({
+            where: { companyUuid },
+            select: {
+              uuid: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+            },
+            orderBy: [{ name: "asc" }],
+            take: starterLimit,
+          })
+        : Promise.resolve([]),
       agentOwnerUuid
         ? prisma.agent.findMany({
             where: {
@@ -278,32 +281,34 @@ export async function searchMentionables(params: SearchMentionablesParams): Prom
 
     return results.slice(0, starterLimit);
   }
-  // Search users (all company users are mentionable)
-  const users = await prisma.user.findMany({
-    where: {
-      companyUuid,
-      OR: [
-        { name: { contains: query, mode: "insensitive" } },
-        { email: { contains: query, mode: "insensitive" } },
-      ],
-    },
-    select: {
-      uuid: true,
-      name: true,
-      email: true,
-      avatarUrl: true,
-    },
-    take: effectiveLimit,
-  });
 
-  for (const user of users) {
-    results.push({
-      type: "user",
-      uuid: user.uuid,
-      name: user.name ?? user.email ?? "Unknown",
-      email: user.email,
-      avatarUrl: user.avatarUrl,
+  if (actorType === "agent") {
+    const users = await prisma.user.findMany({
+      where: {
+        companyUuid,
+        OR: [
+          { name: { contains: query, mode: "insensitive" } },
+          { email: { contains: query, mode: "insensitive" } },
+        ],
+      },
+      select: {
+        uuid: true,
+        name: true,
+        email: true,
+        avatarUrl: true,
+      },
+      take: effectiveLimit,
     });
+
+    for (const user of users) {
+      results.push({
+        type: "user",
+        uuid: user.uuid,
+        name: user.name ?? user.email ?? "Unknown",
+        email: user.email,
+        avatarUrl: user.avatarUrl,
+      });
+    }
   }
 
   // Search agents with permission scoping

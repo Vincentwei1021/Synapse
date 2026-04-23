@@ -163,20 +163,20 @@ describe("createComment", () => {
   });
 
   it("should process mentions when comment contains @mentions", async () => {
-    const record = makeCommentRecord({ content: "Hello @user(uuid-123,John)" });
+    const record = makeCommentRecord({ content: "Hello @[Bot](agent:uuid-123)" });
     const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
     mockPrisma.experimentRun.findUnique.mockResolvedValue({ researchProjectUuid, title: "Test Task" });
 
     (parseMentions as ReturnType<typeof vi.fn>).mockReturnValue([
-      { type: "user", uuid: "uuid-123", displayName: "John" },
+      { type: "agent", uuid: "uuid-123", displayName: "Bot" },
     ]);
 
     await createComment({
       companyUuid,
       targetType: "experiment_run",
       targetUuid,
-      content: "Hello @user(uuid-123,John)",
+      content: "Hello @[Bot](agent:uuid-123)",
       authorType: "user",
       authorUuid,
     });
@@ -184,12 +184,12 @@ describe("createComment", () => {
     // Give async fire-and-forget time to resolve
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(parseMentions).toHaveBeenCalledWith("Hello @user(uuid-123,John)");
+    expect(parseMentions).toHaveBeenCalledWith("Hello @[Bot](agent:uuid-123)");
     expect(createMentions).toHaveBeenCalledWith({
       companyUuid,
       sourceType: "comment",
       sourceUuid: commentUuid,
-      content: "Hello @user(uuid-123,John)",
+      content: "Hello @[Bot](agent:uuid-123)",
       actorType: "user",
       actorUuid: authorUuid,
       researchProjectUuid,
@@ -204,9 +204,9 @@ describe("createComment", () => {
       actorUuid: authorUuid,
       action: "mentioned",
       value: {
-        mentionedType: "user",
+        mentionedType: "agent",
         mentionedUuid: "uuid-123",
-        mentionedName: "John",
+        mentionedName: "Bot",
         sourceType: "comment",
         sourceUuid: commentUuid,
       },
@@ -214,16 +214,16 @@ describe("createComment", () => {
   });
 
   it("waits for mention processing before resolving createComment", async () => {
-    const record = makeCommentRecord({ content: "Hello @user(uuid-123,John)" });
+    const record = makeCommentRecord({ content: "Hello @[Bot](agent:uuid-123)" });
     const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
     mockPrisma.experimentRun.findUnique.mockResolvedValue({ researchProjectUuid, title: "Test Task" });
 
     (parseMentions as ReturnType<typeof vi.fn>).mockReturnValue([
-      { type: "user", uuid: "uuid-123", displayName: "John" },
+      { type: "agent", uuid: "uuid-123", displayName: "Bot" },
     ]);
 
-    let releaseMentionProcessing: (() => void) | null = null;
+    let releaseMentionProcessing!: () => void;
     const mentionPromise = new Promise<void>((resolve) => {
       releaseMentionProcessing = resolve;
     });
@@ -234,7 +234,7 @@ describe("createComment", () => {
       companyUuid,
       targetType: "experiment_run",
       targetUuid,
-      content: "Hello @user(uuid-123,John)",
+      content: "Hello @[Bot](agent:uuid-123)",
       authorType: "user",
       authorUuid,
     }).then(() => {
@@ -244,28 +244,33 @@ describe("createComment", () => {
     await Promise.resolve();
     expect(resolved).toBe(false);
 
-    releaseMentionProcessing?.();
+    releaseMentionProcessing();
     await pending;
     expect(resolved).toBe(true);
   });
 
   it("should skip self-mentions when processing mentions", async () => {
-    const record = makeCommentRecord({ content: "Hello @user(user-0000-0000-0000-000000000001,Myself)" });
+    const agentAuthorUuid = "agent-0000-0000-0000-000000000001";
+    const record = makeCommentRecord({
+      content: "Hello @[MyBot](agent:agent-0000-0000-0000-000000000001)",
+      authorType: "agent",
+      authorUuid: agentAuthorUuid,
+    });
     const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
     mockPrisma.experimentRun.findUnique.mockResolvedValue({ researchProjectUuid, title: "Test Task" });
 
     (parseMentions as ReturnType<typeof vi.fn>).mockReturnValue([
-      { type: "user", uuid: authorUuid, displayName: "Myself" },
+      { type: "agent", uuid: agentAuthorUuid, displayName: "MyBot" },
     ]);
 
     await createComment({
       companyUuid,
       targetType: "experiment_run",
       targetUuid,
-      content: "Hello @user(user-0000-0000-0000-000000000001,Myself)",
-      authorType: "user",
-      authorUuid,
+      content: "Hello @[MyBot](agent:agent-0000-0000-0000-000000000001)",
+      authorType: "agent",
+      authorUuid: agentAuthorUuid,
     });
 
     // Give async fire-and-forget time to resolve
@@ -277,7 +282,7 @@ describe("createComment", () => {
   });
 
   it("should handle multiple mentions", async () => {
-    const record = makeCommentRecord({ content: "@user(uuid-1,John) @agent(uuid-2,Bot)" });
+    const record = makeCommentRecord({ content: "@[John](user:uuid-1) @[Bot](agent:uuid-2)" });
     const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
     mockPrisma.experimentRun.findUnique.mockResolvedValue({ researchProjectUuid, title: "Test Task" });
@@ -291,7 +296,7 @@ describe("createComment", () => {
       companyUuid,
       targetType: "experiment_run",
       targetUuid,
-      content: "@user(uuid-1,John) @agent(uuid-2,Bot)",
+      content: "@[John](user:uuid-1) @[Bot](agent:uuid-2)",
       authorType: "user",
       authorUuid,
     });
@@ -328,13 +333,13 @@ describe("createComment", () => {
   });
 
   it("should handle mention processing errors gracefully", async () => {
-    const record = makeCommentRecord({ content: "Hello @user(uuid-123,John)" });
+    const record = makeCommentRecord({ content: "Hello @[Bot](agent:uuid-123)" });
     const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
     mockPrisma.experimentRun.findUnique.mockResolvedValue({ researchProjectUuid, title: "Test Task" });
 
     (parseMentions as ReturnType<typeof vi.fn>).mockReturnValue([
-      { type: "user", uuid: "uuid-123", displayName: "John" },
+      { type: "agent", uuid: "uuid-123", displayName: "Bot" },
     ]);
     (createMentions as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("DB error"));
 
@@ -342,7 +347,7 @@ describe("createComment", () => {
       companyUuid,
       targetType: "experiment_run",
       targetUuid,
-      content: "Hello @user(uuid-123,John)",
+      content: "Hello @[Bot](agent:uuid-123)",
       authorType: "user",
       authorUuid,
     });
@@ -357,20 +362,20 @@ describe("createComment", () => {
 
   it("should process mentions for idea target type", async () => {
     const researchQuestionUuid = "idea-0000-0000-0000-000000000001";
-    const record = makeCommentRecord({ targetType: "research_question", targetUuid: researchQuestionUuid, content: "Hello @user(uuid-123,John)" });
+    const record = makeCommentRecord({ targetType: "research_question", targetUuid: researchQuestionUuid, content: "Hello @[Bot](agent:uuid-123)" });
     const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
     mockPrisma.researchQuestion.findUnique.mockResolvedValue({ researchProjectUuid, title: "Test Idea" });
 
     (parseMentions as ReturnType<typeof vi.fn>).mockReturnValue([
-      { type: "user", uuid: "uuid-123", displayName: "John" },
+      { type: "agent", uuid: "uuid-123", displayName: "Bot" },
     ]);
 
     await createComment({
       companyUuid,
       targetType: "research_question",
       targetUuid: researchQuestionUuid,
-      content: "Hello @user(uuid-123,John)",
+      content: "Hello @[Bot](agent:uuid-123)",
       authorType: "user",
       authorUuid,
     });
@@ -387,20 +392,20 @@ describe("createComment", () => {
 
   it("should process mentions for proposal target type", async () => {
     const experimentDesignUuid = "proposal-0000-0000-0000-000000000001";
-    const record = makeCommentRecord({ targetType: "experiment_design", targetUuid: experimentDesignUuid, content: "Hello @user(uuid-123,John)" });
+    const record = makeCommentRecord({ targetType: "experiment_design", targetUuid: experimentDesignUuid, content: "Hello @[Bot](agent:uuid-123)" });
     const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
     mockPrisma.experimentDesign.findUnique.mockResolvedValue({ researchProjectUuid, title: "Test Proposal" });
 
     (parseMentions as ReturnType<typeof vi.fn>).mockReturnValue([
-      { type: "user", uuid: "uuid-123", displayName: "John" },
+      { type: "agent", uuid: "uuid-123", displayName: "Bot" },
     ]);
 
     await createComment({
       companyUuid,
       targetType: "experiment_design",
       targetUuid: experimentDesignUuid,
-      content: "Hello @user(uuid-123,John)",
+      content: "Hello @[Bot](agent:uuid-123)",
       authorType: "user",
       authorUuid,
     });
@@ -417,20 +422,20 @@ describe("createComment", () => {
 
   it("should process mentions for document target type", async () => {
     const docUuid = "doc-0000-0000-0000-000000000001";
-    const record = makeCommentRecord({ targetType: "document", targetUuid: docUuid, content: "Hello @user(uuid-123,John)" });
+    const record = makeCommentRecord({ targetType: "document", targetUuid: docUuid, content: "Hello @[Bot](agent:uuid-123)" });
     const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
     mockPrisma.document.findUnique.mockResolvedValue({ researchProjectUuid, title: "Test Document" });
 
     (parseMentions as ReturnType<typeof vi.fn>).mockReturnValue([
-      { type: "user", uuid: "uuid-123", displayName: "John" },
+      { type: "agent", uuid: "uuid-123", displayName: "Bot" },
     ]);
 
     await createComment({
       companyUuid,
       targetType: "document",
       targetUuid: docUuid,
-      content: "Hello @user(uuid-123,John)",
+      content: "Hello @[Bot](agent:uuid-123)",
       authorType: "user",
       authorUuid,
     });
@@ -447,7 +452,7 @@ describe("createComment", () => {
 
   it("should handle unknown entity type in resolveEntityTitle", async () => {
     const unknownUuid = "unknown-0000-0000-0000-000000000001";
-    const record = makeCommentRecord({ targetType: "unknown", targetUuid: unknownUuid, content: "Hello @user(uuid-123,John)" });
+    const record = makeCommentRecord({ targetType: "unknown", targetUuid: unknownUuid, content: "Hello @[Bot](agent:uuid-123)" });
     const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
 
@@ -457,14 +462,14 @@ describe("createComment", () => {
     // So this test should verify that createMentions is NOT called
 
     (parseMentions as ReturnType<typeof vi.fn>).mockReturnValue([
-      { type: "user", uuid: "uuid-123", displayName: "John" },
+      { type: "agent", uuid: "uuid-123", displayName: "Bot" },
     ]);
 
     await createComment({
       companyUuid,
       targetType: "unknown" as "experiment_run",
       targetUuid: unknownUuid,
-      content: "Hello @user(uuid-123,John)",
+      content: "Hello @[Bot](agent:uuid-123)",
       authorType: "user",
       authorUuid,
     });
@@ -477,7 +482,7 @@ describe("createComment", () => {
   });
 
   it("should use fallback title when entity not found in resolveEntityTitle", async () => {
-    const record = makeCommentRecord({ content: "Hello @user(uuid-123,John)" });
+    const record = makeCommentRecord({ content: "Hello @[Bot](agent:uuid-123)" });
     const researchProjectUuid = "project-0000-0000-0000-000000000001";
     mockPrisma.comment.create.mockResolvedValue(record);
 
@@ -494,14 +499,14 @@ describe("createComment", () => {
     });
 
     (parseMentions as ReturnType<typeof vi.fn>).mockReturnValue([
-      { type: "user", uuid: "uuid-123", displayName: "John" },
+      { type: "agent", uuid: "uuid-123", displayName: "Bot" },
     ]);
 
     await createComment({
       companyUuid,
       targetType: "experiment_run",
       targetUuid,
-      content: "Hello @user(uuid-123,John)",
+      content: "Hello @[Bot](agent:uuid-123)",
       authorType: "user",
       authorUuid,
     });
