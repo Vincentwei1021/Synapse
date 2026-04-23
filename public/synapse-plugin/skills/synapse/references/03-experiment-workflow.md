@@ -1,26 +1,26 @@
 # Experiment Workflow
 
-This guide covers the experiment execution lifecycle: getting assignments, starting experiments, using compute resources, reporting progress, and submitting results.
+This guide covers the current experiment lifecycle: planning or revising experiment specs, executing approved experiments, reporting progress, and saving final reports.
 
 ---
 
 ## Experiment Lifecycle
 
-```
+```text
 draft --> pending_review --> pending_start --> in_progress --> completed
 ```
 
-- **draft**: Initial creation, not yet submitted
-- **pending_review**: Awaiting human review
-- **pending_start**: Approved and ready for execution
-- **in_progress**: Agent is actively running the experiment
-- **completed**: Results submitted
+- `draft`: being authored or revised
+- `pending_review`: waiting for human review
+- `pending_start`: approved and ready for execution
+- `in_progress`: actively running
+- `completed`: results submitted
 
 ---
 
 ## Getting Assigned Experiments
 
-```
+```text
 # Check all your assignments
 synapse_get_assigned_experiments()
 
@@ -33,123 +33,44 @@ synapse_get_assigned_experiments({ statuses: ["pending_start", "in_progress"] })
 
 For full experiment details:
 
-```
+```text
 synapse_get_experiment({ experimentUuid: "..." })
 ```
 
 ---
 
-## Starting an Experiment
+## Planning Or Revising An Experiment
 
-When ready to begin work on a `pending_start` experiment:
+When Synapse asks you to flesh out a quick experiment idea or revise a reviewer-returned experiment:
 
-```
-synapse_start_experiment({
+```text
+# Mark that you are drafting
+synapse_update_experiment_status({
   experimentUuid: "...",
-  workingNotes: "Starting with baseline configuration"
+  status: "draft",
+  liveStatus: "writing",
+  liveMessage: "Drafting experiment plan"
 })
-```
 
-This moves the experiment to `in_progress` and creates or updates the experiment result document.
-
-### With GPU Reservation
-
-If the experiment needs compute, reserve GPUs at start time:
-
-```
-# First, find available compute
-synapse_list_compute_nodes({ onlyAvailable: true })
-
-# Start with GPU reservation
-synapse_start_experiment({
+# Save the full plan
+synapse_update_experiment_plan({
   experimentUuid: "...",
-  gpuUuids: ["gpu-uuid-1", "gpu-uuid-2"],
-  workingNotes: "Using 2x L40S GPUs"
+  title: "Refined title",
+  description: "## Objective\n\n...",
+  researchQuestionUuid: "...",
+  priority: "high"
 })
-```
 
----
-
-## Reporting Progress
-
-Report progress updates during execution. These appear in real-time on the experiment card in the UI.
-
-```
-synapse_report_experiment_progress({
+# Hand it back for review
+synapse_update_experiment_status({
   experimentUuid: "...",
-  message: "Epoch 15/100, loss: 0.342, val_acc: 87.2%",
-  phase: "training"
+  status: "pending_review"
 })
 ```
 
-Use `phase` to categorize updates (e.g., `setup`, `training`, `evaluation`, `analysis`).
+If you are revising based on feedback, read the full thread first:
 
----
-
-## Using Compute Resources
-
-### Listing Available Compute
-
-```
-synapse_list_compute_nodes({ onlyAvailable: true })
-```
-
-Returns pools, nodes, GPUs, and whether managed SSH access is available.
-
-### Getting SSH Access
-
-Do not assume local key paths exist. Always use the access bundle:
-
-```
-synapse_get_node_access_bundle({
-  experimentUuid: "...",
-  nodeUuid: "..."
-})
-```
-
-Returns:
-- `host`, `port`, `user` -- SSH connection details
-- `privateKeyPemBase64` -- Base64-encoded PEM key
-
-To connect:
-1. Decode and write the PEM key to a local file
-2. `chmod 600` the PEM file
-3. SSH using the returned host/user/port with the PEM key
-
----
-
-## Submitting Results
-
-When the experiment is complete:
-
-```
-synapse_submit_experiment_results({
-  experimentUuid: "...",
-  outcome: "success",
-  experimentResults: "## Results\n\nAccuracy: 92.3%\nF1: 0.891\n\n## Analysis\n..."
-})
-```
-
-This:
-- Moves the experiment to `completed`
-- Updates the experiment result document
-- Triggers a refresh of the project-level synthesis document
-
-The `outcome` field is optional and can be `"success"`, `"failure"`, or `"inconclusive"`.
-
----
-
-## Commenting on Experiments
-
-Add comments to document decisions, ask questions, or discuss results:
-
-```
-synapse_add_comment({
-  targetType: "experiment",
-  targetUuid: "...",
-  content: "Switched to AdamW optimizer after initial results showed instability with SGD."
-})
-
+```text
 synapse_get_comments({
   targetType: "experiment",
   targetUuid: "..."
@@ -158,14 +79,144 @@ synapse_get_comments({
 
 ---
 
+## Starting An Experiment
+
+When ready to begin work on a `pending_start` experiment:
+
+```text
+synapse_start_experiment({
+  experimentUuid: "...",
+  workingNotes: "Starting with baseline configuration"
+})
+```
+
+This moves the experiment to `in_progress` and creates or updates the experiment result document.
+
+### With Explicit GPU Reservation
+
+If the experiment needs compute, inspect available GPUs first:
+
+```text
+synapse_list_compute_nodes({ onlyAvailable: true, researchProjectUuid: "..." })
+```
+
+Then either reserve inline with `start_experiment`:
+
+```text
+synapse_start_experiment({
+  experimentUuid: "...",
+  gpuUuids: ["gpu-uuid-1", "gpu-uuid-2"],
+  workingNotes: "Using 2x L40S GPUs"
+})
+```
+
+Or reserve explicitly before starting:
+
+```text
+synapse_reserve_gpus({
+  experimentUuid: "...",
+  gpuUuids: ["gpu-uuid-1", "gpu-uuid-2"]
+})
+
+synapse_start_experiment({ experimentUuid: "..." })
+```
+
+---
+
+## Reporting Progress
+
+Progress updates appear on the experiment card in real time and are stored in the progress timeline.
+
+```text
+synapse_report_experiment_progress({
+  experimentUuid: "...",
+  message: "Epoch 15/100, loss: 0.342, val_acc: 87.2%",
+  phase: "training",
+  liveStatus: "running"
+})
+```
+
+Useful `liveStatus` values:
+- `checking_resources` while probing compute
+- `queuing` while waiting for GPUs
+- `running` during active execution
+
+Use `phase` labels such as `setup`, `training`, `evaluation`, or `analysis`.
+
+---
+
+## Using Compute Resources
+
+### Getting SSH Access
+
+Do not assume local key paths exist. Always use the access bundle:
+
+```text
+synapse_get_node_access_bundle({
+  experimentUuid: "...",
+  nodeUuid: "..."
+})
+```
+
+Returns connection details plus `privateKeyPemBase64`.
+
+To connect:
+1. Decode and write the PEM key to a local file
+2. `chmod 600` the PEM file
+3. SSH using the returned host / user / port with the PEM key
+
+---
+
+## Submitting Results
+
+When the experiment is complete:
+
+```text
+synapse_submit_experiment_results({
+  experimentUuid: "...",
+  outcome: "success",
+  experimentResults: {
+    "accuracy": 0.923,
+    "summary": "Ablation outperformed baseline"
+  }
+})
+```
+
+This:
+- moves the experiment to `completed`
+- updates the experiment result document
+- refreshes the project-level synthesis
+
+`outcome` is optional and typically one of `success`, `failure`, or `inconclusive`.
+
+---
+
+## Saving The Dedicated Experiment Report
+
+Some flows ask for a fuller experiment report document after completion:
+
+```text
+synapse_save_experiment_report({
+  experimentUuid: "...",
+  title: "Experiment Report: Baseline vs Ablation",
+  content: "# Objective\n\n..."
+})
+```
+
+Use this for the dedicated result document. Do not replace it with a comment thread.
+
+---
+
 ## Typical Execution Flow
 
-1. **Check in**: `synapse_checkin()` to see assigned experiments
-2. **Review assignment**: `synapse_get_experiment()` to understand the task
-3. **Check compute**: `synapse_list_compute_nodes()` if GPUs are needed
-4. **Start**: `synapse_start_experiment()` with optional GPU reservation
-5. **Get SSH access**: `synapse_get_node_access_bundle()` if remote execution is needed
-6. **Execute**: Run the experiment (training, evaluation, etc.)
-7. **Report progress**: `synapse_report_experiment_progress()` periodically
-8. **Submit results**: `synapse_submit_experiment_results()` when done
-9. **Comment**: Document key findings and decisions
+1. `synapse_checkin()` to see assigned experiments
+2. `synapse_get_experiment()` to understand the task or review feedback
+3. If you are drafting or revising, use `synapse_update_experiment_status()` plus `synapse_update_experiment_plan()`
+4. `synapse_list_compute_nodes()` if GPUs are needed
+5. `synapse_start_experiment()` with optional `synapse_reserve_gpus()`
+6. `synapse_get_node_access_bundle()` if remote execution is needed
+7. Run the workload
+8. `synapse_report_experiment_progress()` at major milestones
+9. `synapse_submit_experiment_results()` when done
+10. `synapse_save_experiment_report()` if the flow asks for a dedicated report doc
+11. `synapse_add_comment()` for durable findings or decisions

@@ -1,17 +1,17 @@
 # Autonomous Loop
 
-This guide covers the autonomous experiment proposal flow -- how agents can independently propose new experiments when all current work is complete.
+This guide covers the autonomous experiment proposal flow: how agents propose the next experiment when the queue is empty and autonomous loop is enabled.
 
 ---
 
-## When to Use
+## When To Use
 
 The autonomous loop triggers when:
-- All assigned experiments are `completed`
-- No `pending_start` or `in_progress` experiments remain for the agent
-- The project still has open research questions or areas to explore
+- assigned experiments are no longer actively running
+- no `pending_start` or `in_progress` experiments remain for the agent
+- the project still has open questions or promising directions to explore
 
-This is the self-directed mode where the agent drives the research forward without waiting for human task assignment.
+This is the self-directed mode where the agent drives research forward without waiting for a new manual assignment.
 
 ---
 
@@ -19,17 +19,18 @@ This is the self-directed mode where the agent drives the research forward witho
 
 Before proposing anything, understand the complete project state:
 
-```
+```text
 synapse_get_project_full_context({ researchProjectUuid: "..." })
 ```
 
 This returns:
-- Project brief and objectives
-- All research questions and their statuses
-- All experiments and their outcomes
-- Existing results and synthesis
+- project brief and objectives
+- research questions and their statuses
+- experiment summaries and outcomes
+- synthesis hints and results-log context
+- compute availability and queue hints
 
-Review what has been tried, what succeeded, what failed, and what gaps remain.
+Review what has been tried, what worked, what failed, and what gaps remain.
 
 ---
 
@@ -37,24 +38,28 @@ Review what has been tried, what succeeded, what failed, and what gaps remain.
 
 Search for relevant papers that might inform the next experiment:
 
-```
+```text
 synapse_search_papers({ query: "..." })
 synapse_get_related_works({ researchProjectUuid: "..." })
 ```
 
-Compare existing related works against the project's current direction. Add any new relevant papers:
+Compare existing related works against the project's direction. Add any new relevant papers:
 
-```
-synapse_add_related_work({ researchProjectUuid: "...", title: "...", url: "..." })
+```text
+synapse_add_related_work({
+  researchProjectUuid: "...",
+  title: "...",
+  url: "..."
+})
 ```
 
 ---
 
-## Step 3: Propose an Experiment
+## Step 3: Propose An Experiment
 
 When you identify a promising direction:
 
-```
+```text
 synapse_propose_experiment({
   researchProjectUuid: "...",
   title: "Ablation study: attention head pruning impact on downstream tasks",
@@ -62,31 +67,34 @@ synapse_propose_experiment({
 })
 ```
 
-The proposed experiment is created in `draft` status. A human reviewer will move it to `pending_start` when approved.
+The resulting status depends on the project's autonomous-loop mode:
+- **Human Review mode**: the experiment is created in `pending_review`
+- **Full Auto mode**: the experiment is created in `pending_start` and auto-assigned back to the agent for execution
 
 ### Writing Good Proposals
 
 A proposal should include:
-- **Motivation**: Why this experiment? What gap does it fill?
-- **Hypothesis**: What do you expect to find?
-- **Method**: How will the experiment be conducted?
-- **Success criteria**: How will you judge the results?
-- **Relationship to prior work**: How does this build on completed experiments?
+- motivation: why this experiment matters now
+- hypothesis: what you expect to learn
+- method: how it will be executed
+- success criteria: how you will judge the result
+- relation to prior work: how it builds on completed experiments
+- compute fit: keep current compute availability in mind and avoid over-proposing concurrent work
 
 ---
 
-## Step 4: Report Generation
+## Step 4: Review Synthesis And Results
 
-After experiments complete, synthesis documents are updated automatically. You can also review and comment on the synthesis:
+After experiments complete, synthesis documents are updated automatically. You can also review and comment on them:
 
-```
+```text
 synapse_get_documents({ researchProjectUuid: "...", type: "project_synthesis" })
 synapse_get_document({ documentUuid: "..." })
 ```
 
-Add comments to the synthesis document if you notice gaps or have additional insights:
+Add comments if you notice gaps or additional insights:
 
-```
+```text
 synapse_add_comment({
   targetType: "document",
   targetUuid: "...",
@@ -98,41 +106,41 @@ synapse_add_comment({
 
 ## Full Autonomous Loop
 
-```
-# 1. Check in and confirm no active work
+```text
+# 1. Confirm no active work
 synapse_checkin()
 synapse_get_assigned_experiments({ statuses: ["pending_start", "in_progress"] })
 
-# 2. If no active work, gather full context
+# 2. Gather full context
 synapse_get_project_full_context({ researchProjectUuid: "..." })
 
 # 3. Search literature for new directions
 synapse_search_papers({ query: "..." })
 
-# 4. Propose next experiment
+# 4. Propose the next experiment
 synapse_propose_experiment({
   researchProjectUuid: "...",
   title: "...",
   description: "..."
 })
 
-# 5. Comment on reasoning
+# 5. Comment on the reasoning if helpful
 synapse_add_comment({
   targetType: "experiment",
   targetUuid: "<new-experiment-uuid>",
   content: "Proposed because..."
 })
 
-# 6. Wait for approval, then execute when assigned
-# (loops back to experiment workflow)
+# 6. If the project is in Human Review mode, wait for approval.
+#    If it is in Full Auto mode, expect the experiment to come back as a normal assignment in `pending_start`.
 ```
 
 ---
 
 ## Tips
 
-- **Do not propose redundant experiments** -- always check completed experiments first
-- **Build on failures** -- a failed experiment with good analysis is valuable; propose refined versions
-- **Stay focused** -- proposals should align with the project's research questions
-- **Be specific** -- vague proposals are harder to review and approve
-- **Reference prior results** -- cite specific findings from completed experiments in your motivation
+- Do not propose redundant experiments; check completed work first
+- Build on failures instead of ignoring them
+- Stay aligned with the project's research questions
+- Be specific enough that another agent could execute the plan
+- Use the compute availability summary to keep proposals realistic

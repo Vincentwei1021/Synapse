@@ -147,32 +147,46 @@ When the user selects a project:
 
 ### Tool Reference by Stage
 
+Tool availability depends on the agent's Synapse roles. Public read/comment/notification/session tools are broadly available, while literature tools usually require \`pre_research\`, experiment execution tools require \`experiment\`, and project / question mutation tools depend on \`research\` or \`admin\`.
+
 **Paper Search:**
   - \`synapse_search_papers({ query })\` — search for papers
   - \`synapse_read_paper_brief({ arxivId })\` — quick summary (~500 tokens)
   - \`synapse_read_paper_head({ arxivId })\` — section structure (~1-2k tokens)
-  - \`synapse_read_paper_section({ arxivId, sectionTitle })\` — full section
+  - \`synapse_read_paper_section({ arxivId, sectionName })\` — full section
   - \`synapse_add_related_work({ researchProjectUuid, ... })\` — add paper to project
   - \`synapse_get_related_works({ researchProjectUuid })\` — list collected papers
 
 **Deep Research:**
   - \`synapse_get_related_works\` — review collected papers
   - \`synapse_get_deep_research_report({ researchProjectUuid })\` — get existing report
-  - \`synapse_upsert_deep_research_report({ researchProjectUuid, content })\` — create/update report
+  - \`synapse_save_deep_research_report({ researchProjectUuid, title, content })\` — create/update report
+  - \`synapse_complete_task({ researchProjectUuid, taskType: \"deep_research\" })\` — clear the active task when you are fulfilling a Synapse-triggered deep research request
 
 **Research Questions:**
   - \`synapse_get_research_project({ researchProjectUuid })\` — project context
-  - Research question CRUD is available if agent has the research role
+  - \`synapse_get_research_questions({ researchProjectUuid })\` — inspect the current question set
+  - Claim / status-update tools are available only when the agent has the matching research-oriented role
 
-**Experiments:**
+**Experiment Planning / Revision:**
+  - \`synapse_get_experiment({ experimentUuid })\` — inspect the current experiment
+  - \`synapse_get_comments({ targetType: \"experiment\", targetUuid })\` — read review feedback or @mention threads
+  - \`synapse_update_experiment_status({ experimentUuid, status: \"draft\", liveStatus: \"writing\", liveMessage })\` — mark that you are drafting or revising the plan
+  - \`synapse_update_experiment_plan({ experimentUuid, title?, description?, researchQuestionUuid?, priority? })\` — save the fleshed-out plan
+  - \`synapse_update_experiment_status({ experimentUuid, status: \"pending_review\" })\` — hand the revised plan back for review
+
+**Experiment Execution:**
+  - \`synapse_list_compute_nodes({ onlyAvailable: true, researchProjectUuid? })\` — inspect available compute
+  - \`synapse_reserve_gpus({ experimentUuid, gpuUuids })\` — reserve GPUs before running
   - \`synapse_start_experiment({ experimentUuid })\` — begin execution
-  - \`synapse_report_experiment_progress({ experimentUuid, message })\` — report progress
-  - \`synapse_submit_experiment_results({ experimentUuid, results, outcome })\` — submit results
-  - \`synapse_get_experiment({ experimentUuid })\` — check experiment details
+  - \`synapse_report_experiment_progress({ experimentUuid, message, phase?, liveStatus? })\` — report progress or queueing state
+  - \`synapse_get_node_access_bundle({ experimentUuid, nodeUuid })\` — fetch managed SSH credentials
+  - \`synapse_submit_experiment_results({ experimentUuid, outcome?, experimentResults, experimentBranch?, commitSha? })\` — submit results and finish execution
+  - \`synapse_save_experiment_report({ experimentUuid, title?, content })\` — save the dedicated experiment report document when requested
 
 **Analysis:**
   - \`synapse_get_project_full_context({ researchProjectUuid })\` — reload full state
-  - Review experiment outcomes and propose next steps
+  - Review experiment outcomes, compute availability, and synthesis state before proposing next steps
 
 ### Language
 
@@ -215,7 +229,7 @@ When you or your sub-agents receive @mentions or other notifications:
 
 ## Project Groups
 
-Projects are organized into Project Groups. Before creating a new project, call \`synapse_get_project_groups()\` to see existing groups and pass the \`groupUuid\` to \`synapse_admin_create_project()\` to assign the project to the correct group. Creating a project without specifying a group puts it in Ungrouped."
+Projects are organized into Project Groups. If your agent has admin capabilities and needs to create a project, call \`synapse_get_project_groups()\` first so the new project lands in the correct group."
 
 # Check for existing state (resumed session)
 MAIN_SESSION=$("$API" state-get "main_session_uuid" 2>/dev/null) || true

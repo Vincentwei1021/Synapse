@@ -2,7 +2,7 @@
 
 ## Overview
 
-Claude Code Agent Teams (swarm mode) can be combined with Synapse for parallel experiment execution with full observability. A Team Lead agent orchestrates sub-agents, each working on separate experiments.
+Claude Code Agent Teams can be combined with Synapse for parallel experiment planning, execution, and reporting with full observability. A Team Lead agent orchestrates sub-agents, each working on separate experiments or experiment-plan revisions.
 
 ---
 
@@ -13,7 +13,7 @@ Claude Code Agent Teams (swarm mode) can be combined with Synapse for parallel e
 | Orchestration | Claude Code Agent Teams | Spawning sub-agents, task dispatch, messaging |
 | Work Tracking | Synapse | Experiment lifecycle, session observability, activity stream |
 
-```
+```text
 Team Lead (Claude Code)
   |-- spawn --> Sub-Agent A --> Synapse Session --> Experiment X
   |-- spawn --> Sub-Agent B --> Synapse Session --> Experiment Y
@@ -21,9 +21,11 @@ Team Lead (Claude Code)
 
 The Synapse Plugin handles session creation, heartbeats, and cleanup automatically.
 
+Tool availability still depends on the Synapse roles attached to the API key. Use an agent with the right roles for literature, experiment execution, or admin work.
+
 ---
 
-## MCP Access for Sub-Agents
+## MCP Access For Sub-Agents
 
 Sub-agents can access Synapse MCP tools if the server is configured at project level. Place the config in `.mcp.json` at the project root:
 
@@ -41,15 +43,15 @@ Sub-agents can access Synapse MCP tools if the server is configured at project l
 }
 ```
 
-If MCP is configured only at user level (`~/.claude/settings.json`), sub-agents may not have access.
+If MCP is configured only at user level, sub-agents may not inherit access.
 
 ---
 
 ## Workflow
 
-### Team Lead: Plan and Dispatch
+### Team Lead: Plan And Dispatch
 
-```
+```text
 # 1. Check in and review assigned experiments
 synapse_checkin()
 synapse_get_assigned_experiments({ statuses: ["pending_start"] })
@@ -64,15 +66,15 @@ Task({
 })
 ```
 
-The Team Lead only passes experiment UUIDs. The plugin injects session context automatically.
+The Team Lead only needs to pass experiment UUIDs. The plugin injects session context automatically.
 
 ### Sub-Agent: Execute
 
-```
+```text
 # 1. Start the experiment
 synapse_start_experiment({ experimentUuid: "..." })
 
-# 2. Do the work (training, evaluation, etc.)
+# 2. Do the work
 # ...
 
 # 3. Report progress periodically
@@ -88,13 +90,31 @@ synapse_submit_experiment_results({
   experimentResults: "..."
 })
 
-# 5. Notify team lead
+# 5. Save the dedicated report if requested
+synapse_save_experiment_report({
+  experimentUuid: "...",
+  content: "# Experiment Report\n\n..."
+})
+
+# 6. Notify the team lead
 SendMessage({ recipient: "team-lead", content: "Experiment complete" })
 ```
 
-### Team Lead: Monitor and Continue
+### Planning / Revision Worker
 
+If a sub-agent is asked to flesh out a quick experiment or address reviewer feedback:
+
+```text
+synapse_get_experiment({ experimentUuid: "..." })
+synapse_get_comments({ targetType: "experiment", targetUuid: "..." })
+synapse_update_experiment_status({ experimentUuid: "...", status: "draft", liveStatus: "writing" })
+synapse_update_experiment_plan({ experimentUuid: "...", description: "## Objective\n\n..." })
+synapse_update_experiment_status({ experimentUuid: "...", status: "pending_review" })
 ```
+
+### Team Lead: Monitor And Continue
+
+```text
 # Check experiment statuses
 synapse_get_assigned_experiments({ statuses: ["completed"] })
 
@@ -111,7 +131,7 @@ synapse_propose_experiment({ researchProjectUuid: "...", title: "...", descripti
 
 A sub-agent can handle multiple experiments sequentially:
 
-```
+```text
 Task({
   name: "sequential-worker",
   prompt: """
@@ -131,5 +151,5 @@ Task({
 | Issue | Fix |
 |-------|-----|
 | Sub-agent cannot access MCP tools | Move MCP config to project-level `.mcp.json` |
-| Session shows inactive | Sub-agent may have crashed; respawn with same name to reuse session |
-| Experiment stuck in in_progress | Spawn new sub-agent for the experiment, or manually submit results |
+| Session shows inactive | The sub-agent may have crashed; respawn with the same name to reuse the session |
+| Experiment stuck in `in_progress` | Re-open the experiment context, report progress, and either submit results or save a revision plan |
