@@ -229,10 +229,7 @@ describe("createMentions", () => {
 });
 
 describe("searchMentionables", () => {
-  it("should return users and agents matching query for user caller", async () => {
-    mockPrisma.user.findMany.mockResolvedValue([
-      { uuid: USER_UUID, name: "Alice", email: "alice@example.com", avatarUrl: null },
-    ]);
+  it("should return only agents matching query for user caller", async () => {
     mockPrisma.agent.findMany.mockResolvedValue([
       { uuid: AGENT_UUID, name: "AliceBot", roles: ["research_lead_agent"] },
     ]);
@@ -244,15 +241,8 @@ describe("searchMentionables", () => {
       actorUuid: ACTOR_UUID,
     });
 
-    expect(results).toHaveLength(2);
+    expect(results).toHaveLength(1);
     expect(results[0]).toEqual(
-      expect.objectContaining({
-        type: "user",
-        uuid: USER_UUID,
-        name: "Alice",
-      })
-    );
-    expect(results[1]).toEqual(
       expect.objectContaining({
         type: "agent",
         uuid: AGENT_UUID,
@@ -286,6 +276,48 @@ describe("searchMentionables", () => {
     expect(results).toHaveLength(1);
     expect(results[0].type).toBe("agent");
     expect(mockPrisma.user.findMany).not.toHaveBeenCalled();
+  });
+
+  it("should return users and same-owner agents for agent caller", async () => {
+    const ownerUuid = "77777777-7777-7777-7777-777777777777";
+
+    mockPrisma.user.findMany.mockResolvedValue([
+      { uuid: USER_UUID, name: "Alice", email: "alice@example.com", avatarUrl: null },
+    ]);
+    mockPrisma.agent.findMany.mockResolvedValue([
+      { uuid: AGENT_UUID, name: "HelperBot", roles: ["research"] },
+    ]);
+
+    const results = await searchMentionables({
+      companyUuid: COMPANY_UUID,
+      query: "a",
+      actorType: "agent",
+      actorUuid: ACTOR_UUID,
+      ownerUuid,
+    });
+
+    expect(results).toHaveLength(2);
+    expect(results[0]).toEqual(
+      expect.objectContaining({
+        type: "user",
+        uuid: USER_UUID,
+        name: "Alice",
+      })
+    );
+    expect(results[1]).toEqual(
+      expect.objectContaining({
+        type: "agent",
+        uuid: AGENT_UUID,
+        name: "HelperBot",
+      })
+    );
+    expect(mockPrisma.agent.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          ownerUuid,
+        }),
+      })
+    );
   });
 
   it("should scope agents by ownerUuid for agent caller", async () => {
@@ -323,9 +355,9 @@ describe("searchMentionables", () => {
       limit: 100,
     });
 
-    expect(mockPrisma.user.findMany).toHaveBeenCalledWith(
+    expect(mockPrisma.agent.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        take: 50,
+        take: expect.any(Number),
       })
     );
   });

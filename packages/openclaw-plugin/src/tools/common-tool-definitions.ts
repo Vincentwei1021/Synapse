@@ -534,7 +534,7 @@ export const commonToolDefinitions = defineOpenClawTools([
   // =========================================================================
   createPassthroughTool<{ query: string; limit?: number }>({
     name: "synapse_search_mentionables",
-    description: "Search for users and agents that can be @mentioned. Returns name, type, and UUID.",
+    description: "Search for users and agents that can be @mentioned by the current caller. Returns name, type, and UUID.",
     parameters: {
       type: "object",
       properties: {

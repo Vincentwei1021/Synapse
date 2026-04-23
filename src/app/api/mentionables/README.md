@@ -1,6 +1,6 @@
 # @Mention System
 
-@mention support for Synapse — users and AI agents can mention each other in comments and entity descriptions, triggering targeted notifications.
+@mention support for Synapse — user-authored flows only autocomplete AI agents, while agent-authored flows can mention both users and agents.
 
 ## Architecture
 
@@ -9,7 +9,6 @@ User types "@" in MentionEditor        Agent calls synapse_search_mentionables
   │                                       │
   ▼                                       ▼
 GET /api/mentionables?q=keyword     mentionService.searchMentionables()
-  │  • Searches users (name/email)        │
   │  • Searches agents (name, permission-scoped)
   ▼                                       ▼
 Autocomplete dropdown               Returns [{type, uuid, name}]
@@ -38,7 +37,7 @@ Mention table (fact record)  +  Notification (action="mentioned")
 
 | Actor | Can mention Users | Can mention Agents |
 |-------|-------------------|--------------------|
-| **User** | All users in same company | Only agents they own (`ownerUuid = actorUuid`) |
+| **User** | Not via autocomplete/search | Only agents they own (`ownerUuid = actorUuid`) |
 | **Agent** | All users in same company | Agents under same owner (`ownerUuid = agent.ownerUuid`) |
 
 ## Content Encoding
@@ -67,7 +66,7 @@ Fact record tracking who was mentioned where. Decoupled from Notification (notif
 | sourceType | "comment" \| "task" \| "idea" | Where the mention occurred |
 | sourceUuid | string | UUID of the source entity |
 | mentionedType | "user" \| "agent" | Who was mentioned |
-| mentionedUuid | string | Mentioned user/agent UUID |
+| mentionedUuid | string | Mentioned target UUID |
 | actorType | "user" \| "agent" | Who wrote the mention |
 | actorUuid | string | Actor UUID |
 | createdAt | datetime | Creation timestamp |
@@ -115,7 +114,7 @@ Search for users and agents that can be @mentioned by the authenticated caller.
 }
 ```
 
-Results are permission-scoped: users see all company users + own agents; agents see all company users + same-owner agents.
+Results are permission-scoped: users see own agents only; agents see all company users plus same-owner agents.
 
 ## MCP Tool
 
@@ -125,7 +124,7 @@ Public tool available to all agent roles.
 
 ```
 Input:  { query: string, limit?: number }
-Output: [{ type, uuid, name, email?, roles? }]
+Output: [{ type, uuid, name, roles? }]
 ```
 
 Agents use this to find the correct UUID before writing `@[Name](type:uuid)` in comment/description text.
@@ -159,4 +158,4 @@ Agents use this to find the correct UUID before writing `@[Name](type:uuid)` in 
 3. **Self-mention exclusion**: Actors never receive notifications for mentioning themselves.
 4. **Preference-aware**: Mention notifications respect the `mentioned` toggle in NotificationPreference.
 5. **Append-only on edit**: Editing a Task/Idea description only creates Mention records for new mentions. Old records are preserved, sent notifications are not revoked.
-6. **Agent-first MCP design**: `synapse_search_mentionables` lets agents find exact UUIDs before writing mentions, avoiding ambiguous name resolution.
+6. **Agent-first MCP design**: `synapse_search_mentionables` lets callers find exact UUIDs before writing mentions, while still respecting whether the caller is a user or an agent.

@@ -605,11 +605,11 @@ Work style: rigorous, efficient, quality-focused`,
     }
   );
 
-  // synapse_search_mentionables - Search for @mentionable users and agents
+  // synapse_search_mentionables - Search for @mentionable users/agents
   server.registerTool(
     "synapse_search_mentionables",
     {
-      description: "Search for users and agents that can be @mentioned. Returns name, type, and UUID. Use the UUID to write mentions as @[Name](type:uuid) in comment/description text.",
+      description: "Search for users and agents that can be @mentioned by the current caller. Users only see agents they own; agents see company users plus same-owner agents. Returns name, type, and UUID.",
       inputSchema: z.object({
         query: z.string().describe("Name or keyword to search"),
         limit: z.number().optional().default(10).describe("Max results to return (default 10)"),

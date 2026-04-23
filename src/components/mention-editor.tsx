@@ -13,17 +13,18 @@ import StarterKit from "@tiptap/starter-kit";
 import Mention from "@tiptap/extension-mention";
 import { cn } from "@/lib/utils";
 
-// Extend Mention to support custom `mentionType` attribute (user | agent)
+// Extend Mention to support custom `mentionType` attribute.
+// New mentions should be agent-only, but we keep legacy user mentions renderable.
 const CustomMention = Mention.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
       mentionType: {
-        default: "user",
+        default: "agent",
         parseHTML: (element: HTMLElement) =>
-          element.getAttribute("data-mention-type") || "user",
+          element.getAttribute("data-mention-type") || "agent",
         renderHTML: (attributes: Record<string, unknown>) => ({
-          "data-mention-type": attributes.mentionType || "user",
+          "data-mention-type": attributes.mentionType || "agent",
         }),
       },
     };
