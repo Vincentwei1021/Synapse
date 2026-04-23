@@ -27,7 +27,7 @@ Tool availability still depends on the Synapse roles attached to the API key. Us
 
 ## MCP Access For Sub-Agents
 
-Sub-agents can access Synapse MCP tools if the server is configured at project level. Place the config in `.mcp.json` at the project root:
+Sub-agents can access Synapse MCP tools if the server is configured at project level. Place the config in `.mcp.json` at the project root. The plugin bundle includes the same template at `public/synapse-plugin/.mcp.json`:
 
 ```json
 {

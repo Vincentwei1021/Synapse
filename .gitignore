@@ -47,6 +47,7 @@ next-env.d.ts
 .playwright-mcp/
 .claude/settings.local.json
 .mcp.json
+!public/synapse-plugin/.mcp.json
 .testdata/
 
 # CDK

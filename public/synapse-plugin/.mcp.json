@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "synapse": {
+      "type": "http",
+      "url": "${SYNAPSE_URL}/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SYNAPSE_API_KEY}"
+      }
+    }
+  }
+}

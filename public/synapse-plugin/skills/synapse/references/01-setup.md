@@ -30,6 +30,8 @@ If you do not have an API key yet:
 
 Synapse MCP uses the HTTP Streamable transport. Place this in `.mcp.json` at the project root or globally at `~/.claude/.mcp.json`.
 
+The plugin bundle also ships the same template at `public/synapse-plugin/.mcp.json` so teams can copy a project-level config into place instead of rewriting it from scratch.
+
 Replace `<BASE_URL>` with the Synapse address (for example `https://synapse.example.com` or `http://localhost:3000`).
 
 ```json
