@@ -199,6 +199,43 @@ function formatPreference(pref: {
   };
 }
 
+function buildRealtimeNotificationEvent(
+  notification: {
+    uuid: string;
+    researchProjectUuid: string;
+    recipientType: string;
+    recipientUuid: string;
+    entityType: string;
+    entityUuid: string;
+    entityTitle: string;
+    projectName: string;
+    action: string;
+    message: string;
+    actorType: string;
+    actorUuid: string;
+    actorName: string;
+  },
+  unreadCount: number
+) {
+  return {
+    type: "new_notification" as const,
+    notificationUuid: notification.uuid,
+    researchProjectUuid: notification.researchProjectUuid,
+    recipientType: notification.recipientType,
+    recipientUuid: notification.recipientUuid,
+    entityType: notification.entityType,
+    entityUuid: notification.entityUuid,
+    entityTitle: notification.entityTitle,
+    projectName: notification.projectName,
+    action: notification.action,
+    message: notification.message,
+    actorType: notification.actorType,
+    actorUuid: notification.actorUuid,
+    actorName: notification.actorName,
+    unreadCount,
+  };
+}
+
 // ===== Service Methods =====
 
 /**
@@ -237,15 +274,10 @@ export async function create(
   });
 
   // Emit SSE event for real-time notification delivery
-  eventBus.emit(`notification:${params.recipientType}:${params.recipientUuid}`, {
-    type: "new_notification",
-    notificationUuid: notification.uuid,
-    action: params.action,
-    message: params.message,
-    projectName: params.projectName,
-    entityTitle: params.entityTitle,
-    unreadCount,
-  });
+  eventBus.emit(
+    `notification:${params.recipientType}:${params.recipientUuid}`,
+    buildRealtimeNotificationEvent(notification, unreadCount)
+  );
 
   return formatNotification(notification);
 }
@@ -304,17 +336,18 @@ export async function createBatch(
         (n) => n.recipientType === recipientType && n.recipientUuid === recipientUuid
       );
 
-      eventBus.emit(`notification:${recipientType}:${recipientUuid}`, {
-        type: "new_notification",
-        notificationUuid: created.find(
-          (n) => n.recipientType === recipientType && n.recipientUuid === recipientUuid
-        )?.uuid,
-        action: recipientNotification?.action,
-        message: recipientNotification?.message,
-        projectName: recipientNotification?.projectName,
-        entityTitle: recipientNotification?.entityTitle,
-        unreadCount,
-      });
+      const createdNotification = created.find(
+        (n) => n.recipientType === recipientType && n.recipientUuid === recipientUuid
+      );
+
+      if (!createdNotification || !recipientNotification) {
+        return;
+      }
+
+      eventBus.emit(
+        `notification:${recipientType}:${recipientUuid}`,
+        buildRealtimeNotificationEvent(createdNotification, unreadCount)
+      );
     })
   );
 

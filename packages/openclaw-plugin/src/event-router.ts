@@ -89,8 +89,12 @@ export class SynapseEventRouter {
       return;
     }
 
-    // Fetch full notification details and route asynchronously
-    this.fetchAndRoute(event.notificationUuid).catch((err) => {
+    const notification = this.extractNotificationFromEvent(event);
+    const routePromise = notification
+      ? this.routeNotification(notification)
+      : this.fetchAndRoute(event.notificationUuid);
+
+    routePromise.catch((err) => {
       this.logger.error(`Failed to fetch/route notification ${event.notificationUuid}: ${err}`);
     });
   }
@@ -99,28 +103,69 @@ export class SynapseEventRouter {
   // Internal
   // ---------------------------------------------------------------------------
 
-  private async fetchAndRoute(notificationUuid: string): Promise<void> {
-    // Fetch notification details via MCP — use autoMarkRead=false so we don't
-    // consume all unread notifications, and status=unread since we just received it
+  private extractNotificationFromEvent(event: SseNotificationEvent): NotificationDetail | null {
+    if (
+      !event.notificationUuid ||
+      !event.entityType ||
+      !event.entityUuid ||
+      !event.entityTitle ||
+      !event.action ||
+      !event.message ||
+      !event.actorType ||
+      !event.actorUuid ||
+      !event.actorName
+    ) {
+      return null;
+    }
+
+    return {
+      uuid: event.notificationUuid,
+      researchProjectUuid: event.researchProjectUuid,
+      entityType: event.entityType,
+      entityUuid: event.entityUuid,
+      entityTitle: event.entityTitle,
+      action: event.action,
+      message: event.message,
+      actorType: event.actorType,
+      actorUuid: event.actorUuid,
+      actorName: event.actorName,
+    };
+  }
+
+  private async fetchNotificationList(status: "unread" | "all"): Promise<NotificationDetail[]> {
     const result = await this.mcpClient.callTool("synapse_get_notifications", {
-      status: "unread",
-      limit: 50,
+      status,
+      limit: 100,
       autoMarkRead: false,
     }) as { notifications?: NotificationDetail[] } | null;
 
     const notifications = result?.notifications;
     if (!notifications || !Array.isArray(notifications)) {
-      this.logger.warn(`Could not fetch notifications list`);
-      return;
+      this.logger.warn(`Could not fetch ${status} notifications list`);
+      return [];
     }
 
-    const notification = notifications.find((n) => n.uuid === notificationUuid);
+    return notifications;
+  }
+
+  private async fetchAndRoute(notificationUuid: string): Promise<void> {
+    const unreadNotifications = await this.fetchNotificationList("unread");
+    let notification = unreadNotifications.find((n) => n.uuid === notificationUuid);
+
     if (!notification) {
-      this.logger.warn(`Notification ${notificationUuid} not found in unread list`);
+      const allNotifications = await this.fetchNotificationList("all");
+      notification = allNotifications.find((n) => n.uuid === notificationUuid);
+    }
+
+    if (!notification) {
+      this.logger.warn(`Notification ${notificationUuid} not found in unread or recent notifications`);
       return;
     }
 
-    // Project filter: if projectUuids is configured, ignore events from other projects
+    await this.routeNotification(notification);
+  }
+
+  private async routeNotification(notification: NotificationDetail): Promise<void> {
     const projectUuid = notification.projectUuid ?? notification.researchProjectUuid ?? "";
 
     if (this.projectFilter.size > 0 && !this.projectFilter.has(projectUuid)) {
