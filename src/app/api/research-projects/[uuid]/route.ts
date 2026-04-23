@@ -9,7 +9,6 @@ import { getAuthContext, isUser } from "@/lib/auth";
 import {
   deleteResearchProject,
   getResearchProject,
-  getResearchProjectByUuid,
   getResearchProjectDetailRef,
   updateResearchProject,
 } from "@/services/research-project.service";
@@ -27,10 +26,9 @@ export const GET = withErrorHandler(async (request: NextRequest, context: RouteC
 
   const { uuid } = await context.params;
 
-  const [researchProject, metrics, projectGithub] = await Promise.all([
+  const [researchProject, metrics] = await Promise.all([
     getResearchProject(auth.companyUuid, uuid),
     getProjectMetricsSnapshot(auth.companyUuid, uuid),
-    getResearchProjectByUuid(auth.companyUuid, uuid),
   ]);
 
   if (!researchProject) {
@@ -41,13 +39,13 @@ export const GET = withErrorHandler(async (request: NextRequest, context: RouteC
     uuid: researchProject.uuid,
     name: researchProject.name,
     description: researchProject.description,
-    autonomousLoopEnabled: projectGithub?.autonomousLoopEnabled ?? false,
-    autonomousLoopMode: projectGithub?.autonomousLoopMode ?? null,
+    autonomousLoopEnabled: researchProject.autonomousLoopEnabled ?? false,
+    autonomousLoopMode: researchProject.autonomousLoopMode ?? null,
     createdAt: researchProject.createdAt.toISOString(),
     updatedAt: researchProject.updatedAt.toISOString(),
-    repoUrl: projectGithub?.repoUrl ?? null,
-    githubUsername: projectGithub?.githubUsername ?? null,
-    githubConfigured: !!(projectGithub?.githubToken),
+    repoUrl: researchProject.repoUrl ?? null,
+    githubUsername: researchProject.githubUsername ?? null,
+    githubConfigured: !!researchProject.githubToken,
     counts: {
       ...toProjectCompatibilityCounts(metrics),
       activities: researchProject._count.activities,
