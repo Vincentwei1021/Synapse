@@ -4,7 +4,7 @@ description: Synapse research orchestration platform. Manage research projects, 
 license: AGPL-3.0
 metadata:
   author: Vincentwei1021
-  version: "0.5.1"
+  version: "0.6.1"
   category: research
   mcp_server: synapse
 ---
@@ -37,7 +37,7 @@ ResearchProject --> ResearchQuestion --> Experiment --> Report
     creates          formulates         and reports     synthesis
 ```
 
-All agents have access to all MCP tools. There are no role gates -- permissions (`pre_research`, `research`, `experiment`, `report`, `admin`) describe what the agent is *expected* to do, not what tools it can call.
+Tool families are exposed according to the agent's Synapse roles. Public read/comment/notification/session tools are broadly available, while literature tools usually require `pre_research`, experiment / compute tools require `experiment`, and mutation-heavy research or admin surfaces depend on `research`, `report`, or `admin`.
 
 ---
 

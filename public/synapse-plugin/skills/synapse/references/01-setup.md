@@ -8,29 +8,29 @@ Configure the Synapse MCP server so your AI agent can communicate with the platf
 
 ## 1. Create an API Key
 
-API keys are created by the user in the Synapse web UI.
+API keys are created in the Synapse web UI.
 
 **Steps:**
 
-1. Open Synapse in a browser (e.g., `http://localhost:3000`)
-2. Navigate to **Settings** (sidebar)
-3. Under the **Agents** section, click **Create Agent**
-4. Enter the agent name and optional description
-5. Click create -- **immediately copy the generated API key** (shown only once)
+1. Open Synapse in a browser (for example `http://localhost:3000`)
+2. Navigate to **Agents** in the sidebar
+3. Create or open the agent Claude Code should use
+4. Generate / copy the agent's API key
+5. Save the key immediately because it is shown only once
 
-The API key is prefixed with `syn_` (e.g., `syn_PXPnHpnmmYk8...`).
+The API key is prefixed with `syn_` (for example `syn_PXPnHpnmmYk8...`).
 
 If you do not have an API key yet:
 
-> I need a Synapse API key to connect to the platform. Please create one on the Synapse Settings page and share the key with me.
+> I need a Synapse API key to connect to the platform. Please create one on the Agents page and share the key with me.
 
 ---
 
 ## 2. MCP Server Configuration
 
-Synapse MCP uses the HTTP Streamable transport. Place this in `.mcp.json` at the project root (or globally at `~/.claude/.mcp.json`).
+Synapse MCP uses the HTTP Streamable transport. Place this in `.mcp.json` at the project root or globally at `~/.claude/.mcp.json`.
 
-Replace `<BASE_URL>` with the Synapse address (e.g., `https://synapse.example.com` or `http://localhost:3000`).
+Replace `<BASE_URL>` with the Synapse address (for example `https://synapse.example.com` or `http://localhost:3000`).
 
 ```json
 {
@@ -46,7 +46,7 @@ Replace `<BASE_URL>` with the Synapse address (e.g., `https://synapse.example.co
 }
 ```
 
-Restart Claude Code after configuration for MCP to take effect.
+Restart Claude Code after configuration so MCP picks up the new server.
 
 ### Optional: Project Filtering
 
@@ -78,22 +78,23 @@ Scope the agent to specific projects using headers:
 
 Call check-in to verify the connection:
 
-```
+```text
 synapse_checkin()
 ```
 
-A successful response includes your agent identity, permissions, and current assignments.
+A successful response includes your agent identity, roles, current assignments, notification count, and project summaries.
 
 If it fails, check:
-- Is the API key correct (starts with `syn_`)?
+- Is the API key correct and does it start with `syn_`?
 - Is the URL reachable?
 - Did you restart Claude Code?
+- Does the agent have the roles needed for the tools you expect to use (`pre_research`, `research`, `experiment`, `report`, `admin`)?
 
 ---
 
 ## Environment Variables
 
-For agents running outside Claude Code (e.g., scripts or CI), set:
+For agents running outside Claude Code, set:
 
 | Variable | Description |
 |----------|-------------|
@@ -104,6 +105,6 @@ For agents running outside Claude Code (e.g., scripts or CI), set:
 
 ## Next Steps
 
-- [00-common-tools.md](00-common-tools.md) -- Full tool reference
-- [02-research-workflow.md](02-research-workflow.md) -- Research questions and literature
-- [03-experiment-workflow.md](03-experiment-workflow.md) -- Experiment execution
+- [00-common-tools.md](00-common-tools.md) — Full tool reference
+- [02-research-workflow.md](02-research-workflow.md) — Research questions and literature
+- [03-experiment-workflow.md](03-experiment-workflow.md) — Experiment planning, execution, and reports

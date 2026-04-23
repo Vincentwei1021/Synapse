@@ -1,6 +1,6 @@
 {
   "name": "synapse",
-  "version": "0.5.1",
+  "version": "0.6.1",
   "description": "Synapse research orchestration platform skill for Claude Code. Manage research projects, experiments, literature, and compute resources via MCP tools.",
   "author": "Vincentwei1021",
   "license": "AGPL-3.0",

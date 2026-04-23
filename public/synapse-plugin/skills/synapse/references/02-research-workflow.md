@@ -1,6 +1,6 @@
 # Research Workflow
 
-This guide covers the pre-experiment research phase: creating research questions, formulating hypotheses, and managing literature.
+This guide covers the pre-experiment research phase: understanding project context, working with research questions, and managing literature / deep research outputs.
 
 ---
 
@@ -10,14 +10,14 @@ Research questions are the starting point of every project. They define what the
 
 ### Viewing Questions
 
-```
+```text
 synapse_get_research_questions({ researchProjectUuid: "..." })
 synapse_get_research_question({ researchQuestionUuid: "..." })
 ```
 
-### Claiming and Working on Questions
+### Claiming And Working On Questions
 
-```
+```text
 # Find open questions
 synapse_get_available_research_questions({ researchProjectUuid: "..." })
 
@@ -30,52 +30,52 @@ synapse_update_research_question_status({ researchQuestionUuid: "...", status: "
 
 ### Status Flow
 
-```
+```text
 open --> elaborating --> proposal_created --> completed
   \                                            /
    \--> closed <------------------------------/
 ```
 
-- **open**: Available for agents to claim
-- **elaborating**: Agent is investigating and formulating hypotheses
-- **proposal_created**: Experiments have been proposed based on this question
-- **completed**: Research question fully addressed
+- `open`: available for agents to claim
+- `elaborating`: agent is investigating and formulating next steps
+- `proposal_created`: follow-up experiments were created from this question
+- `completed`: the question has been answered well enough for the current project scope
 
 ---
 
-## Literature and Related Works
+## Literature And Related Works
 
-Use literature search to ground research questions in existing work.
+Use literature search to ground research questions in existing work. These tools usually require a `pre_research`-capable agent.
 
 ### Search Papers
 
-```
+```text
 synapse_search_papers({ query: "transformer attention mechanisms", limit: 10 })
 ```
 
-Uses DeepXiv hybrid search (BM25 + vector) over arXiv, with arXiv API as fallback. Returns paper metadata (title, authors, year, abstract, citation count, URLs).
+Uses DeepXiv hybrid search over arXiv with API fallback. Results include title, authors, abstract, URLs, and other metadata.
 
 ### Progressive Paper Reading
 
 Read papers at different levels of detail to manage token budget:
 
-```
-# Quick summary: TLDR, keywords, citations (~500 tokens)
+```text
+# Quick summary
 synapse_read_paper_brief({ arxivId: "2401.12345" })
 
-# Paper structure with per-section TLDRs (~1-2k tokens)
+# Paper structure with section TLDRs
 synapse_read_paper_head({ arxivId: "2401.12345" })
 
-# Read one section in full (~1-5k tokens)
+# One section in full
 synapse_read_paper_section({ arxivId: "2401.12345", sectionName: "Experiments" })
 
-# Read complete paper (~10-50k tokens) — use sparingly
+# Complete paper markdown
 synapse_read_paper_full({ arxivId: "2401.12345" })
 ```
 
-### Add Related Work to a Project
+### Add Related Work To A Project
 
-```
+```text
 synapse_add_related_work({
   researchProjectUuid: "...",
   title: "Attention Is All You Need",
@@ -87,15 +87,17 @@ synapse_add_related_work({
 
 ### View Project Related Works
 
-```
+```text
 synapse_get_related_works({ researchProjectUuid: "..." })
 ```
 
-### Deep Research Reports
+---
 
-Generate or retrieve literature review documents for a project:
+## Deep Research Reports
 
-```
+Generate or retrieve literature-review documents for a project:
+
+```text
 # Get existing report
 synapse_get_deep_research_report({ researchProjectUuid: "..." })
 
@@ -107,20 +109,27 @@ synapse_save_deep_research_report({
 })
 ```
 
+If the work was triggered by Synapse's Deep Research or Auto Search UI, finish by clearing the active task:
+
+```text
+synapse_complete_task({ researchProjectUuid: "...", taskType: "deep_research" })
+```
+
 ---
 
 ## Typical Research Flow
 
-1. **Check in**: `synapse_checkin()` to see assignments and pending questions
-2. **Review project context**: `synapse_get_research_project()` or `synapse_get_project_full_context()`
-3. **Claim a question**: `synapse_claim_research_question()`
-4. **Search literature**: `synapse_search_papers()` to find relevant prior work
-5. **Read papers**: Use progressive reading tools (`brief` → `head` → `section`) to efficiently review
-6. **Add related works**: `synapse_add_related_work()` for papers that inform the research
-7. **Write deep research report**: `synapse_save_deep_research_report()` to synthesize findings
-8. **Update status**: Move question to `elaborating` or `proposal_created`
-9. **Comment**: `synapse_add_comment({ targetType: "research_question", ... })` to document reasoning
-10. **Propose experiments**: See [03-experiment-workflow.md](03-experiment-workflow.md) for next steps
+1. `synapse_checkin()` to see assignments and available projects
+2. `synapse_get_research_project()` or `synapse_get_project_full_context()` to understand the project
+3. `synapse_claim_research_question()` if you are taking ownership of a question
+4. `synapse_search_papers()` to find relevant prior work
+5. `synapse_read_paper_brief()` / `head()` / `section()` to inspect papers progressively
+6. `synapse_add_related_work()` for papers worth keeping in project context
+7. `synapse_save_deep_research_report()` to synthesize findings into a durable document
+8. `synapse_update_research_question_status()` to reflect progress
+9. `synapse_add_comment({ targetType: "research_question", ... })` to document reasoning
+10. `synapse_complete_task()` if this was a Synapse-triggered deep research / auto-search task
+11. Move on to experiment planning or execution
 
 ---
 
@@ -128,7 +137,7 @@ synapse_save_deep_research_report({
 
 Projects accumulate documents as research progresses:
 
-```
+```text
 synapse_get_documents({ researchProjectUuid: "...", type: "project_synthesis" })
 synapse_get_document({ documentUuid: "..." })
 ```
