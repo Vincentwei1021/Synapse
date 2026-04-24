@@ -121,7 +121,7 @@ const plugin = {
             try {
               const result = (await mcpClient.callTool("synapse_get_notifications", {
                 status: "unread",
-                autoMarkRead: false,
+                autoMarkRead: true,
               })) as { notifications?: Array<Record<string, unknown> & { uuid: string }> } | null;
               const notifications = result?.notifications ?? [];
               const count = notifications.length;

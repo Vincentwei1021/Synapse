@@ -94,9 +94,13 @@ export class SynapseEventRouter {
       ? this.routeNotification(notification)
       : this.fetchAndRoute(event.notificationUuid);
 
-    routePromise.catch((err) => {
-      this.logger.error(`Failed to fetch/route notification ${event.notificationUuid}: ${err}`);
-    });
+    routePromise
+      .catch((err) => {
+        this.logger.error(`Failed to fetch/route notification ${event.notificationUuid}: ${err}`);
+      })
+      .finally(() => {
+        void this.markNotificationRead(event.notificationUuid!);
+      });
   }
 
   // ---------------------------------------------------------------------------
@@ -213,6 +217,16 @@ export class SynapseEventRouter {
       }
     } catch (err) {
       this.logger.error(`Error handling ${notification.action} notification: ${err}`);
+    }
+  }
+
+  private async markNotificationRead(notificationUuid: string): Promise<void> {
+    try {
+      await this.mcpClient.callTool("synapse_mark_notification_read", {
+        notificationUuid,
+      });
+    } catch (err) {
+      this.logger.warn(`Failed to mark notification ${notificationUuid} as read: ${err}`);
     }
   }
 

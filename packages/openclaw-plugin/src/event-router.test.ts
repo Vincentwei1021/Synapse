@@ -299,6 +299,8 @@ describe("SynapseEventRouter", () => {
   });
 
   it("routes @mention events directly from SSE payload without notification re-fetch", async () => {
+    callTool.mockResolvedValueOnce({ success: true });
+
     const router = new SynapseEventRouter({
       mcpClient: { callTool } as never,
       config: {
@@ -326,8 +328,12 @@ describe("SynapseEventRouter", () => {
     });
 
     await Promise.resolve();
+    await Promise.resolve();
 
-    expect(callTool).not.toHaveBeenCalled();
+    expect(callTool).toHaveBeenCalledTimes(1);
+    expect(callTool).toHaveBeenCalledWith("synapse_mark_notification_read", {
+      notificationUuid: "notification-sse-1",
+    });
     expect(triggerAgent).toHaveBeenCalledTimes(1);
     const [prompt, metadata] = triggerAgent.mock.calls[0];
     expect(prompt).toContain("@mentioned");
