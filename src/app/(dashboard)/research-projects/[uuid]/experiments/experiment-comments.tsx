@@ -12,6 +12,8 @@ import { ContentWithMentions } from "@/components/mention-renderer";
 import { useRealtimeEntityEvent } from "@/contexts/realtime-context";
 import type { CommentResponse } from "@/services/comment.service";
 
+const COMMENT_REFRESH_INTERVAL_MS = 10_000;
+
 function formatRelativeTime(dateString: string, t: ReturnType<typeof useTranslations>) {
   const date = new Date(dateString);
   const now = new Date();
@@ -41,8 +43,10 @@ export function ExperimentComments({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const editorRef = useRef<MentionEditorRef>(null);
 
-  const loadComments = useCallback(async () => {
-    setIsLoading(true);
+  const loadComments = useCallback(async (options?: { showLoading?: boolean }) => {
+    if (options?.showLoading) {
+      setIsLoading(true);
+    }
     try {
       const response = await fetch(
         `/api/comments?targetType=experiment&targetUuid=${encodeURIComponent(experimentUuid)}&pageSize=100`
@@ -56,17 +60,35 @@ export function ExperimentComments({
     } catch {
       setComments([]);
     } finally {
-      setIsLoading(false);
+      if (options?.showLoading) {
+        setIsLoading(false);
+      }
     }
   }, [experimentUuid]);
 
   useEffect(() => {
-    void loadComments();
+    void loadComments({ showLoading: true });
   }, [loadComments]);
 
   useRealtimeEntityEvent("experiment", experimentUuid, () => {
     void loadComments();
   });
+
+  useEffect(() => {
+    const refreshIfVisible = () => {
+      if (document.visibilityState === "visible") {
+        void loadComments();
+      }
+    };
+
+    const interval = window.setInterval(refreshIfVisible, COMMENT_REFRESH_INTERVAL_MS);
+    document.addEventListener("visibilitychange", refreshIfVisible);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshIfVisible);
+    };
+  }, [loadComments]);
 
   async function handleSubmit() {
     if (!comment.trim() || isSubmitting) return;

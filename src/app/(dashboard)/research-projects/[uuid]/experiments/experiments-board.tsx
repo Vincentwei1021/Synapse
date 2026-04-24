@@ -118,6 +118,7 @@ const PLAN_PANEL_DEFAULT_WIDTH = 560;
 const PLAN_PANEL_MIN_WIDTH = 420;
 const PANEL_VIEWPORT_GAP = 80;
 const PROGRESS_LOG_PREVIEW_COUNT = 10;
+const PROGRESS_LOG_REFRESH_INTERVAL_MS = 5_000;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -337,6 +338,24 @@ export function ExperimentsBoard({
     if (!selectedExperimentUuid) return;
     void loadProgressLogs(selectedExperimentUuid);
   });
+
+  useEffect(() => {
+    if (!selectedExperimentUuid) return;
+
+    const refreshIfVisible = () => {
+      if (document.visibilityState === "visible") {
+        void loadProgressLogs(selectedExperimentUuid);
+      }
+    };
+
+    const interval = window.setInterval(refreshIfVisible, PROGRESS_LOG_REFRESH_INTERVAL_MS);
+    document.addEventListener("visibilitychange", refreshIfVisible);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshIfVisible);
+    };
+  }, [loadProgressLogs, selectedExperimentUuid]);
 
   // Derive autonomous loop phase from experiment board state
   const autonomousPhase = useMemo(() => {
