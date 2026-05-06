@@ -372,6 +372,24 @@ async function checkAutonomousLoopTriggerAfterStatusChange(input: {
   );
 }
 
+async function checkAutonomousLoopTriggerAfterExperimentChange(input: {
+  companyUuid: string;
+  researchProjectUuid: string;
+  experimentUuid: string;
+  context: string;
+}) {
+  await checkAutonomousLoopTrigger(input.researchProjectUuid, input.companyUuid).catch(
+    (err) =>
+      log.error(
+        {
+          err,
+          experimentUuid: input.experimentUuid,
+        },
+        `autonomous loop trigger check failed after ${input.context}`
+      )
+  );
+}
+
 function canActOnAssignedExperiment(
   experiment: { assigneeType: string | null; assigneeUuid: string | null },
   actorType: string,
@@ -820,6 +838,13 @@ export async function updateExperiment(
       toStatus: data.status,
       context: "experiment status update",
     });
+  } else {
+    await checkAutonomousLoopTriggerAfterExperimentChange({
+      companyUuid,
+      researchProjectUuid: experiment.researchProjectUuid,
+      experimentUuid: experiment.uuid,
+      context: "experiment metadata update",
+    });
   }
 
   return formatExperiment(companyUuid, experiment);
@@ -844,16 +869,9 @@ export async function reviewExperiment(input: {
 
   assertTransition(existing.status as ExperimentStatus, input.approved ? "pending_start" : "draft");
 
-  // When approving an agent-created experiment, auto-assign it back to the
-  // creating agent so it receives a task_assigned notification and can execute.
-  const shouldAutoAssign =
-    input.approved &&
-    existing.createdByType === "agent" &&
-    existing.createdByUuid &&
-    !existing.assigneeUuid;
-
-  // For revert: if the caller provided `assignedAgentUuid` (even as null),
-  // honor it as an explicit assignment change.
+  // If the caller provided `assignedAgentUuid` (even as null), honor it as an
+  // explicit assignment change. Approval no longer auto-assigns an agent-created
+  // draft back to its creator; humans choose the executor explicitly.
   const callerSetAssignment = Object.prototype.hasOwnProperty.call(input, "assignedAgentUuid");
   const nextAssigneeUuid = callerSetAssignment
     ? (input.assignedAgentUuid ?? null)
@@ -867,21 +885,13 @@ export async function reviewExperiment(input: {
       reviewedByUuid: input.actorUuid,
       reviewNote: input.reviewNote ?? null,
       reviewedAt: new Date(),
-      ...(shouldAutoAssign
-        ? {
-            assigneeType: "agent",
-            assigneeUuid: existing.createdByUuid,
-            assignedAt: new Date(),
-            assignedByUuid: input.actorUuid,
-          }
-        : {}),
-      ...(!input.approved && callerSetAssignment
+      ...(callerSetAssignment
         ? {
             assigneeType: nextAssigneeType,
             assigneeUuid: nextAssigneeUuid,
             assignedAt: nextAssigneeUuid ? new Date() : null,
             assignedByUuid: nextAssigneeUuid ? input.actorUuid : null,
-            liveStatus: nextAssigneeUuid ? "sent" : null,
+            liveStatus: !input.approved && nextAssigneeUuid ? "sent" : null,
             liveMessage: null,
             liveUpdatedAt: new Date(),
           }
@@ -915,7 +925,6 @@ export async function reviewExperiment(input: {
   });
 
   try {
-    const statusLabel = input.approved ? "pending start" : "draft";
     await notificationService.create({
       companyUuid: input.companyUuid,
       researchProjectUuid: updated.researchProjectUuid,
@@ -938,7 +947,7 @@ export async function reviewExperiment(input: {
       ? updated.assigneeUuid
       : null;
 
-  // When an approved experiment is already assigned to an agent, re-emit
+  // When an approved experiment is explicitly assigned to an agent, re-emit
   // task_assigned so the plugin wakes the agent to start execution.
   if (approvedAgentAssigneeUuid) {
     try {
@@ -1439,7 +1448,7 @@ export async function resetExperimentToPendingStart(input: {
 /**
  * Check if the autonomous loop should trigger and send notification to the loop agent.
  * Mode 1 (human_review): trigger when draft=0, pending_review=0, pending_start=0
- * Mode 2 (full_auto): trigger when in_progress=0
+ * Mode 2 (full_auto): trigger when pending_start=0 so the agent can keep the queue filled
  */
 export async function checkAutonomousLoopTrigger(
   projectUuid: string,
@@ -1479,7 +1488,7 @@ export async function checkAutonomousLoopTrigger(
       countByStatus("pending_review") === 0 &&
       countByStatus("pending_start") === 0;
   } else if (mode === "full_auto") {
-    shouldTrigger = countByStatus("in_progress") === 0;
+    shouldTrigger = countByStatus("pending_start") === 0;
   }
 
   if (shouldTrigger) {
@@ -1495,7 +1504,7 @@ export async function checkAutonomousLoopTrigger(
       action: "autonomous_loop_triggered",
       message:
         mode === "full_auto"
-          ? "No experiments running. Call synapse_get_project_full_context to review results and available compute, then propose experiments (one per available GPU). Update the project synthesis before proposing."
+          ? "No experiments are waiting to start. Call synapse_get_project_full_context to review results and available compute, then propose experiments (one independent run per experiment card, up to available GPU capacity). Update the project synthesis before proposing."
           : "Experiment queue is empty. Call synapse_get_project_full_context to review results and available compute, then propose experiments (one per available GPU).",
       actorType: "user",
       actorUuid: "system",
@@ -1691,9 +1700,23 @@ export async function completeExperiment(input: {
 }
 
 export async function deleteExperiment(companyUuid: string, experimentUuid: string) {
+  const existing = await prisma.experiment.findFirst({
+    where: { uuid: experimentUuid, companyUuid },
+    select: { researchProjectUuid: true },
+  });
+
   await prisma.experiment.deleteMany({
     where: { uuid: experimentUuid, companyUuid },
   });
+
+  if (existing) {
+    await checkAutonomousLoopTriggerAfterExperimentChange({
+      companyUuid,
+      researchProjectUuid: existing.researchProjectUuid,
+      experimentUuid,
+      context: "experiment deletion",
+    });
+  }
 }
 
 export async function getExperimentStats(companyUuid: string, researchProjectUuid: string) {

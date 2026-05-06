@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Globe, Bell, Moon, Sun, Monitor, Key, Check, Loader2 } from "lucide-react";
+import { Globe, Bell, Moon, Sun, Monitor, Key, Check, Loader2, Wand2 } from "lucide-react";
 import { useLocale } from "@/contexts/locale-context";
 import { useTheme } from "@/contexts/theme-context";
 import { locales, localeNames, type Locale } from "@/i18n/config";
@@ -93,6 +94,23 @@ export default function SettingsPage() {
       </div>
 
       <div className="mb-8 border-t border-border" />
+
+      <Card className="mb-8">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Wand2 className="h-5 w-5 text-muted-foreground" />
+            <CardTitle>{t("settings.setupWizard")}</CardTitle>
+          </div>
+          <CardDescription>
+            {t("settings.setupWizardDesc")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild variant="outline">
+            <Link href="/onboarding">{t("settings.openSetupWizard")}</Link>
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Integrations Section */}
       <Card className="mb-8">

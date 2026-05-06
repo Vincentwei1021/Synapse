@@ -229,26 +229,74 @@ export function ProjectsPageHeader({
   );
 }
 
-export function ProjectsEmptyState() {
+export function ProjectsEmptyState({ onCreateGroup }: { onCreateGroup: () => void }) {
   const t = useTranslations();
 
   return (
-    <Card className="flex flex-col items-center justify-center border-border bg-card p-12 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary">
-        <FolderOpen className="h-8 w-8 text-primary" />
+    <section className="grid min-h-[520px] items-center gap-8 py-8 lg:grid-cols-[1.05fr_0.95fr]">
+      <div className="max-w-xl">
+        <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-secondary">
+          <FolderOpen className="h-6 w-6 text-primary" />
+        </div>
+        <h2 className="text-3xl font-semibold tracking-normal text-foreground">
+          {t("projects.emptyLandingTitle")}
+        </h2>
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+          {t("projects.emptyLandingDesc")}
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+            onClick={onCreateGroup}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            {t("projectGroups.newProjectGroup")}
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/research-projects/new">
+              <ClipboardList className="mr-2 h-4 w-4" />
+              {t("projects.createFirst")}
+            </Link>
+          </Button>
+        </div>
       </div>
-      <h3 className="mb-2 text-lg font-medium text-foreground">
-        {t("projects.noProjects")}
-      </h3>
-      <p className="mb-6 max-w-sm text-sm text-muted-foreground">
-        {t("projects.noProjectsDesc")}
-      </p>
-      <Link href="/research-projects/new">
-        <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
-          {t("projects.createFirst")}
-        </Button>
-      </Link>
-    </Card>
+
+      <div className="grid gap-3">
+        <Card className="rounded-lg border-border bg-card p-5">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-secondary p-2">
+              <Folder className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">{t("projects.emptyLandingGroupTitle")}</h3>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">{t("projects.emptyLandingGroupDesc")}</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="rounded-lg border-border bg-card p-5">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-secondary p-2">
+              <Lightbulb className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">{t("projects.emptyLandingProjectTitle")}</h3>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">{t("projects.emptyLandingProjectDesc")}</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="rounded-lg border-border bg-card p-5">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-secondary p-2">
+              <FileText className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">{t("projects.emptyLandingNextTitle")}</h3>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">{t("projects.emptyLandingNextDesc")}</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </section>
   );
 }
 

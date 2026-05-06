@@ -7,15 +7,18 @@ import * as documentService from "@/services/document.service";
 import * as notificationService from "@/services/notification.service";
 import { updateResearchProject } from "@/services/research-project.service";
 import { eventBus } from "@/lib/event-bus";
+import { saveProjectSynthesisDocument } from "@/services/project-synthesis.service";
 
 const TASK_TYPE_FIELDS = {
   auto_search: { activeField: "autoSearchActiveAgentUuid", notificationAction: "auto_search_completed" },
   deep_research: { activeField: "deepResearchActiveAgentUuid", notificationAction: "deep_research_completed" },
+  synthesis: { activeField: "synthesisActiveAgentUuid", notificationAction: "synthesis_updated" },
 } as const;
 
 const TASK_COMPLETION_MESSAGES = {
   auto_search: "Auto-search for related papers has completed.",
   deep_research: "Deep research literature review has completed.",
+  synthesis: "Project synthesis has been updated.",
 } as const;
 
 export function registerLiteratureTools(server: McpServer, auth: AgentAuthContext) {
@@ -312,24 +315,69 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
   );
 
   server.registerTool(
-    "synapse_complete_task",
+    "synapse_save_project_synthesis",
     {
-      description: "Signal that an agent task (auto_search or deep_research) has finished. Clears the active indicator on the project and notifies the owner.",
+      description: "Create or update the project-level rolling synthesis document with agent-written analysis.",
       inputSchema: z.object({
         researchProjectUuid: z.string(),
-        taskType: z.enum(["auto_search", "deep_research"]),
+        title: z.string().optional(),
+        content: z.string().describe("Full Markdown synthesis content to save."),
+      }),
+    },
+    async ({ researchProjectUuid, title, content }) => {
+      try {
+        const document = await saveProjectSynthesisDocument({
+          companyUuid: auth.companyUuid,
+          researchProjectUuid,
+          actorUuid: auth.actorUuid,
+          title: title ?? null,
+          content,
+        });
+
+        eventBus.emitChange({
+          companyUuid: auth.companyUuid,
+          researchProjectUuid,
+          entityType: "research_project",
+          entityUuid: researchProjectUuid,
+          action: "updated",
+        });
+
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ document }, null, 2) }],
+        };
+      } catch (err) {
+        return {
+          content: [{ type: "text" as const, text: err instanceof Error ? err.message : "Failed to save synthesis" }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.registerTool(
+    "synapse_complete_task",
+    {
+      description: "Signal that an agent task (auto_search, deep_research, or synthesis) has finished. Clears the active indicator on the project and notifies the owner.",
+      inputSchema: z.object({
+        researchProjectUuid: z.string(),
+        taskType: z.enum(["auto_search", "deep_research", "synthesis"]),
       }),
     },
     async ({ researchProjectUuid, taskType }) => {
       const config = TASK_TYPE_FIELDS[taskType];
       const project = await prisma.researchProject.findFirst({
         where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid },
-        select: { uuid: true, name: true, autoSearchActiveAgentUuid: true, deepResearchActiveAgentUuid: true },
+        select: { uuid: true, name: true, autoSearchActiveAgentUuid: true, deepResearchActiveAgentUuid: true, synthesisActiveAgentUuid: true },
       });
       if (!project) {
         return { content: [{ type: "text" as const, text: "Research Project not found" }], isError: true };
       }
-      const activeAgentUuid = taskType === "auto_search" ? project.autoSearchActiveAgentUuid : project.deepResearchActiveAgentUuid;
+      const activeAgentUuid =
+        taskType === "auto_search"
+          ? project.autoSearchActiveAgentUuid
+          : taskType === "deep_research"
+            ? project.deepResearchActiveAgentUuid
+            : project.synthesisActiveAgentUuid;
       if (!activeAgentUuid) {
         return { content: [{ type: "text" as const, text: JSON.stringify({ cleared: false, reason: "no active task" }) }] };
       }

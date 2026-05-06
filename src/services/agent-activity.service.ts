@@ -125,6 +125,6 @@ export async function getProjectAgentActivity({
     experiments: pick(experimentAgentUuids),
     relatedWorks: pick(relatedWorksAgentUuids),
     insights: pick(synthesisAgentUuids),
-    documents: pick(synthesisAgentUuids),
+    documents: [],
   };
 }

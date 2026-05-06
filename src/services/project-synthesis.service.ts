@@ -243,3 +243,75 @@ export async function refreshProjectSynthesis(
     summary,
   };
 }
+
+function summarizeSynthesisContent(content: string) {
+  const firstParagraph = content
+    .split(/\n{2,}/)
+    .map((part) => part.replace(/^#+\s*/, "").trim())
+    .find((part) => part.length > 0);
+
+  if (!firstParagraph) return null;
+  return firstParagraph.length > 220 ? `${firstParagraph.slice(0, 217)}...` : firstParagraph;
+}
+
+export async function saveProjectSynthesisDocument(input: {
+  companyUuid: string;
+  researchProjectUuid: string;
+  actorUuid: string;
+  title?: string | null;
+  content: string;
+}) {
+  const project = await prisma.researchProject.findFirst({
+    where: { uuid: input.researchProjectUuid, companyUuid: input.companyUuid },
+    select: { name: true },
+  });
+
+  if (!project) {
+    throw new Error("Research Project not found");
+  }
+
+  const title = input.title?.trim() || `${project.name} Rolling Synthesis`;
+  const existing = await getLatestProjectSynthesisDocument(input.companyUuid, input.researchProjectUuid);
+
+  const document = existing
+    ? await prisma.document.update({
+        where: { uuid: existing.uuid },
+        data: {
+          title,
+          content: input.content,
+          version: { increment: 1 },
+        },
+        select: { uuid: true, title: true, version: true, updatedAt: true },
+      })
+    : await prisma.document.create({
+        data: {
+          companyUuid: input.companyUuid,
+          researchProjectUuid: input.researchProjectUuid,
+          type: "project_synthesis",
+          title,
+          content: input.content,
+          version: 1,
+          createdByUuid: input.actorUuid,
+        },
+        select: { uuid: true, title: true, version: true, updatedAt: true },
+      });
+
+  const completedExperimentCount = await prisma.experiment.count({
+    where: {
+      companyUuid: input.companyUuid,
+      researchProjectUuid: input.researchProjectUuid,
+      status: "completed",
+    },
+  });
+
+  await prisma.researchProject.update({
+    where: { uuid: input.researchProjectUuid },
+    data: {
+      latestSynthesisAt: document.updatedAt,
+      latestSynthesisIdeaCount: completedExperimentCount,
+      latestSynthesisSummary: summarizeSynthesisContent(input.content),
+    },
+  });
+
+  return document;
+}

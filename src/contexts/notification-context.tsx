@@ -36,9 +36,12 @@ const TOAST_MAP: Record<string, { category: string; color: string }> = {
   experiment_status_changed: { category: "Experiment", color: "#818cf8" },
   experiment_progress: { category: "Experiment", color: "#818cf8" },
   experiment_completed: { category: "Experiment", color: "#818cf8" },
+  comment_added: { category: "Comment", color: "#f97316" },
+  mentioned: { category: "Mention", color: "#2563eb" },
   autonomous_loop_triggered: { category: "Loop", color: "#f59e0b" },
   experiment_auto_proposed: { category: "Loop", color: "#22c55e" },
   synthesis_updated: { category: "Loop", color: "#06b6d4" },
+  synthesis_refresh_completed: { category: "Loop", color: "#06b6d4" },
 };
 
 export function NotificationProvider({ children }: NotificationProviderProps) {

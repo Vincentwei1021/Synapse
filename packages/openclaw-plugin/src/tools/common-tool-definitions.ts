@@ -301,7 +301,7 @@ export const commonToolDefinitions = defineOpenClawTools([
     priority?: string;
   }>({
     name: "synapse_propose_experiment",
-    description: "Propose a new experiment for human review (created in pending_review status). Only usable when autonomous loop is active.",
+    description: "Propose one independent experiment run for human review (created in pending_review status). Only usable when autonomous loop is active. Split comparisons, ablations, and repeated runs into separate experiment cards.",
     parameters: {
       type: "object",
       properties: {
@@ -724,12 +724,12 @@ export const commonToolDefinitions = defineOpenClawTools([
   // =========================================================================
   createPassthroughTool<{ researchProjectUuid: string; taskType: string }>({
     name: "synapse_complete_task",
-    description: "Signal that an agent task (auto_search or deep_research) has finished. Clears the active indicator and notifies the owner.",
+    description: "Signal that an agent task (auto_search, deep_research, or synthesis) has finished. Clears the active indicator and notifies the owner.",
     parameters: {
       type: "object",
       properties: {
         researchProjectUuid: { type: "string", description: "Research Project UUID" },
-        taskType: { type: "string", description: "Task type: auto_search | deep_research" },
+        taskType: { type: "string", description: "Task type: auto_search | deep_research | synthesis" },
       },
       required: ["researchProjectUuid", "taskType"],
       additionalProperties: false,
@@ -740,6 +740,21 @@ export const commonToolDefinitions = defineOpenClawTools([
   // =========================================================================
   // Deep Research Reports
   // =========================================================================
+  createPassthroughTool<{ researchProjectUuid: string; title?: string; content: string }>({
+    name: "synapse_save_project_synthesis",
+    description: "Create or update the project-level rolling synthesis / insights document for a project.",
+    parameters: {
+      type: "object",
+      properties: {
+        researchProjectUuid: { type: "string", description: "Research Project UUID" },
+        title: { type: "string", description: "Optional synthesis title" },
+        content: { type: "string", description: "Full synthesis content (Markdown)" },
+      },
+      required: ["researchProjectUuid", "content"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_save_project_synthesis",
+  }),
   createPassthroughTool<{ researchProjectUuid: string }>({
     name: "synapse_get_deep_research_report",
     description: "Get the deep research literature review document for a project. Returns null if none exists yet.",

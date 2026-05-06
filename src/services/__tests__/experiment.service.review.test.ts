@@ -17,6 +17,9 @@ const mockPrisma = vi.hoisted(() => ({
   comment: {
     create: vi.fn(),
   },
+  document: {
+    findFirst: vi.fn(),
+  },
   user: {
     findUnique: vi.fn(),
   },
@@ -116,6 +119,7 @@ function enableAutonomousLoop(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockPrisma.document.findFirst.mockResolvedValue(null);
   // Default: no autonomous loop project
   mockPrisma.researchProject.findFirst.mockResolvedValue(null);
   mockPrisma.experiment.groupBy.mockResolvedValue([]);
@@ -254,15 +258,15 @@ describe("reviewExperiment revert paths", () => {
     );
   });
 
-  it("approval path is unchanged: auto-assigns back to creator and emits task_assigned", async () => {
+  it("approval does not auto-assign agent-created experiments back to the creator", async () => {
     const existing = makeExperiment({ assigneeUuid: null, assigneeType: null });
     enableAutonomousLoop([{ status: "pending_start", _count: 1 }]);
     mockPrisma.experiment.findFirst.mockResolvedValue(existing);
     mockPrisma.experiment.update.mockResolvedValue({
       ...existing,
       status: "pending_start",
-      assigneeType: "agent",
-      assigneeUuid: "a-1",
+      assigneeType: null,
+      assigneeUuid: null,
     });
 
     await reviewExperiment({
@@ -274,19 +278,15 @@ describe("reviewExperiment revert paths", () => {
 
     expect(mockPrisma.experiment.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          status: "pending_start",
+        data: expect.not.objectContaining({
           assigneeType: "agent",
           assigneeUuid: "a-1",
         }),
       })
     );
 
-    expect(mockNotificationCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: "task_assigned",
-        recipientUuid: "a-1",
-      })
+    expect(mockNotificationCreate).not.toHaveBeenCalledWith(
+      expect.objectContaining({ action: "task_assigned" })
     );
     expect(mockPrisma.experiment.groupBy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -594,6 +594,28 @@ describe("other experiment status changes", () => {
           companyUuid: COMPANY,
           researchProjectUuid: "proj-1",
         }),
+      }),
+    );
+  });
+
+  it("full auto loop triggers when no experiments are waiting to start even if one is running", async () => {
+    enableAutonomousLoop([{ status: "in_progress", _count: 1 }], "full_auto");
+    const existing = makeExperiment({ status: "pending_start" });
+    mockPrisma.experiment.findFirst.mockResolvedValue(existing);
+    mockPrisma.experiment.update.mockResolvedValue(makeExperiment({ status: "in_progress", liveStatus: "running" }));
+
+    await startExperiment({
+      companyUuid: COMPANY,
+      experimentUuid: "exp-1",
+      actorType: "agent",
+      actorUuid: "a-1",
+    });
+
+    expect(mockNotificationCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientUuid: "loop-agent-1",
+        action: "autonomous_loop_triggered",
+        message: expect.stringContaining("No experiments are waiting to start"),
       }),
     );
   });

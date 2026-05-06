@@ -78,6 +78,8 @@ describe("SynapseEventRouter", () => {
     expect(prompt).toContain("Time limit: Unlimited");
     expect(prompt).not.toContain("post a comment on this experiment");
     expect(prompt).not.toContain("@[Alice](user:user-1)");
+    expect(prompt).toContain("Create and maintain a todo list");
+    expect(prompt).toContain("synapse_list_compute_nodes");
     expect(prompt).toContain("synapse_report_experiment_progress");
     expect(prompt).toContain("self-contained cron monitoring script");
     expect(prompt).toContain("cron job (every 30 minutes)");
@@ -169,8 +171,53 @@ describe("SynapseEventRouter", () => {
     const [prompt, metadata] = triggerAgent.mock.calls[0];
     expect(prompt).toContain("Autonomous research loop triggered");
     expect(prompt).toContain("synapse_propose_experiment");
+    expect(prompt).toContain("Create a todo list");
+    expect(prompt).toContain("once per independent run");
     expect(metadata).toMatchObject({
       action: "autonomous_loop_triggered",
+      projectUuid: "project-1",
+    });
+  });
+
+  it("routes synthesis refresh requested events to save project synthesis", async () => {
+    callTool.mockResolvedValueOnce({
+      notifications: [
+        {
+          uuid: "notification-synthesis-1",
+          researchProjectUuid: "project-1",
+          entityType: "research_project",
+          entityUuid: "project-1",
+          entityTitle: "My Project",
+          action: "synthesis_refresh_requested",
+          message: "Focus on failed experiments",
+          actorType: "user",
+          actorUuid: "user-1",
+          actorName: "Alice",
+        },
+      ],
+    });
+
+    const router = new SynapseEventRouter({
+      mcpClient: { callTool } as never,
+      config: {
+        synapseUrl: "http://synapse.local",
+        apiKey: "syn_key",
+        autoStart: true,
+        projectUuids: [],
+      },
+      triggerAgent,
+      logger,
+    });
+
+    await (router as unknown as { fetchAndRoute: (notificationUuid: string) => Promise<void> }).fetchAndRoute("notification-synthesis-1");
+
+    expect(triggerAgent).toHaveBeenCalledTimes(1);
+    const [prompt, metadata] = triggerAgent.mock.calls[0];
+    expect(prompt).toContain("Project insights synthesis requested");
+    expect(prompt).toContain("synapse_save_project_synthesis");
+    expect(prompt).toContain('taskType "synthesis"');
+    expect(metadata).toMatchObject({
+      action: "synthesis_refresh_requested",
       projectUuid: "project-1",
     });
   });

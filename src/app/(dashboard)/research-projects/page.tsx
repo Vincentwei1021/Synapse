@@ -100,7 +100,7 @@ export default function ProjectsPage() {
           />
 
           {projects.length === 0 && groups.length === 0 ? (
-            <ProjectsEmptyState />
+            <ProjectsEmptyState onCreateGroup={() => setShowCreateGroup(true)} />
           ) : (
             <div className="space-y-5">
               {groups.map((group) => {

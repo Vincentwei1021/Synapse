@@ -389,6 +389,8 @@ export const MentionEditor = forwardRef<MentionEditorRef, MentionEditorProps>(
           suggestion: {
             char: "@",
             allowSpaces: true,
+            allowedPrefixes: null,
+            allow: () => true,
             items: ({ query }: { query: string }) => {
               requestMentionables(query);
               return suggestionItemsRef.current;

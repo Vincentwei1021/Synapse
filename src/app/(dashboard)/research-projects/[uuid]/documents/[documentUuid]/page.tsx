@@ -20,8 +20,14 @@ const docTypeConfig: Record<string, { labelKey: string; color: string; icon: Luc
   methodology: { labelKey: "documents.typeMethodology", color: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300", icon: FlaskConical },
   rdr: { labelKey: "documents.typeRdr", color: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300", icon: FileText },
   results_report: { labelKey: "documents.typeResultsReport", color: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300", icon: Beaker },
+  project_synthesis: { labelKey: "documents.typeProjectSynthesis", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300", icon: FlaskConical },
   other: { labelKey: "documents.typeOther", color: "bg-secondary text-muted-foreground", icon: FileText },
 };
+
+function extractExperimentUuid(content: string | null | undefined) {
+  const match = content?.match(/<!--\s*synapse:experiment:([0-9a-f-]+)\s*-->/i);
+  return match?.[1] ?? null;
+}
 
 interface PageProps {
   params: Promise<{ uuid: string; documentUuid: string }>;
@@ -54,6 +60,8 @@ export default async function DocumentDetailPage({ params }: PageProps) {
       </div>
     );
   }
+
+  const linkedExperimentUuid = extractExperimentUuid(document.content);
 
   return (
     <div className="flex h-full flex-col p-4 md:p-8">
@@ -118,6 +126,19 @@ export default async function DocumentDetailPage({ params }: PageProps) {
               >
                 <FileText className="h-4 w-4" />
                 {t("documents.viewProposal")}
+              </Link>
+            </Card>
+          )}
+
+          {linkedExperimentUuid && (
+            <Card className="border-border p-4">
+              <h3 className="mb-3 text-sm font-medium text-muted-foreground">{t("documents.linkedExperiment")}</h3>
+              <Link
+                href={`/research-projects/${projectUuid}/experiments?selected=${linkedExperimentUuid}`}
+                className="flex items-center gap-2 text-sm text-primary hover:underline"
+              >
+                <Beaker className="h-4 w-4" />
+                {t("documents.openExperimentDetail")}
               </Link>
             </Card>
           )}

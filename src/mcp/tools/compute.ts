@@ -582,6 +582,15 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
       }),
     },
     async ({ experimentUuid, message, phase, liveStatus }) => {
+      if (liveStatus === "queuing") {
+        await experimentService.updateExperimentLiveStatus(experimentUuid, "queuing", message);
+        return {
+          content: [
+            { type: "text", text: JSON.stringify({ success: true, statusOnly: true }) },
+          ],
+        };
+      }
+
       const log = await createProgressLog({
         companyUuid: auth.companyUuid,
         experimentUuid,
@@ -713,7 +722,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
           resultsLog: resultsLog ? { uuid: resultsLog.uuid, content: resultsLog.content, updatedAt: resultsLog.updatedAt } : null,
           computeAvailability,
           experimentQueue: { inProgress: inProgressCount, pendingStart: pendingStartCount },
-          _hint: "Use synapse_get_experiment for full details of a specific experiment. When proposing experiments, consider available compute resources — propose at most as many experiments as there are available GPUs, minus already queued/running experiments.",
+          _hint: "Use synapse_get_experiment for full details of a specific experiment. When proposing experiments, consider available compute resources — propose at most as many experiments as there are available GPUs, minus already queued/running experiments. Each experiment should represent one independent run; split comparisons, ablations, and parameter sweeps into multiple experiment cards.",
         }, null, 2) }],
       };
     }
@@ -814,7 +823,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
   server.registerTool(
     "synapse_propose_experiment",
     {
-      description: "Propose a new experiment. In Human Review mode, created as 'pending_review' for human approval. In Full Auto mode, created as 'pending_start' and assigned to you for immediate execution. Only usable when autonomous loop is active and you are the assigned agent.",
+      description: "Propose one independent experiment run. In Human Review mode, created as 'pending_review' for human approval. In Full Auto mode, created as 'pending_start' and assigned to you for immediate execution. Only usable when autonomous loop is active and you are the assigned agent. Split comparisons, ablations, and repeated runs into separate experiment cards.",
       inputSchema: z.object({
         researchProjectUuid: z.string(),
         title: z.string(),

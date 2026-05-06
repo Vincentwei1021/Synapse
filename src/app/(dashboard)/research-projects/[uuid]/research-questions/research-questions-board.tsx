@@ -54,6 +54,7 @@ type QuestionNodeData = {
   selected: boolean;
   activeAgentName: string | null;
   activeAgentUuid: string | null;
+  activeAgentColor: string | null;
 };
 
 type ExperimentNodeData = {
@@ -69,7 +70,7 @@ type CanvasNodeData = QuestionNodeData | ExperimentNodeData;
 
 function QuestionNode({ data }: NodeProps<Node<QuestionNodeData>>) {
   const hasActive = !!data.activeAgentUuid;
-  const colors = getAgentColor(data.activeAgentUuid ?? "");
+  const colors = getAgentColor(data.activeAgentUuid ?? "", data.activeAgentColor);
   return (
     <GlowBorder
       active={hasActive}
@@ -317,6 +318,7 @@ export function ResearchQuestionsBoard({
           selected: question.uuid === selectedQuestionUuid,
           activeAgentName: activeExp?.assignee?.name ?? null,
           activeAgentUuid: activeExp?.assignee?.uuid ?? null,
+          activeAgentColor: activeExp?.assignee?.color ?? null,
         },
       };
     });
@@ -357,7 +359,7 @@ export function ResearchQuestionsBoard({
     }
 
     return { nodes, edges };
-  }, [researchQuestions, selectedQuestionUuid, t]);
+  }, [experiments, researchQuestions, selectedQuestionUuid, t]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<CanvasNodeData>>(flow.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(flow.edges);
