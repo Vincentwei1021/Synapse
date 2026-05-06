@@ -254,6 +254,8 @@ For the current research workflow, the main tools are the experiment-oriented on
 - `synapse_read_paper_full` — read complete paper as Markdown (~10-50k tokens)
 - `synapse_add_related_work` — add a paper to project's related works
 - `synapse_get_related_works` — list all related works for a project
+- `synapse_save_project_synthesis` — save/update the rolling project synthesis document from an insights refresh
+- `synapse_complete_task` — complete long-running agent tasks (`auto_search`, `deep_research`, `synthesis`)
 
 Default to these tools for new work. Do not prefer legacy `experiment_run` tools unless the task is explicitly about that older flow.
 
@@ -280,6 +282,15 @@ Web UI task dispatch features (auto-search, deep research, autonomous loop) only
 
 The mapping from type to transport is in `src/lib/agent-transport.ts`. When adding new agent types, add an entry there.
 
+### Agent execution discipline
+
+OpenClaw prompts should make complex work explicit and trackable:
+
+- Ask the agent to create and maintain a todo list before implementation or experiment execution work.
+- Before any execution decision, the agent must call `synapse_list_compute_nodes`; project text or memory is not enough.
+- If GPUs are unavailable, the agent should report `liveStatus: "queuing"` through `synapse_report_experiment_progress`. Queuing is status-only: it updates the live badge/message and should not create noisy progress-log entries.
+- Generated autonomous experiments should be one independent run per `Experiment` card. Comparisons, ablations, hyperparameter sweeps, and repeated runs should be split into multiple experiment cards instead of bundled into one card.
+
 ### Experiment live status
 
 Experiments now track real-time sub-status via `liveStatus`:
@@ -292,6 +303,7 @@ Experiments now track real-time sub-status via `liveStatus`:
 - `null` → cleared on completion
 
 Agents report progress via `synapse_report_experiment_progress`, which updates `liveMessage` on the experiment and creates an `ExperimentProgressLog` entry. The experiment card on the board shows the live status badge and latest message.
+Exception: `liveStatus = "queuing"` is status-only and does not create a progress-log entry.
 
 ### Compute pool binding
 
@@ -306,10 +318,24 @@ Research projects can optionally bind to a compute pool via `computePoolUuid`. W
 Research projects can enable an autonomous loop via `autonomousLoopEnabled` + `autonomousLoopAgentUuid`:
 
 - Toggle on the Experiments page header (three-state: OFF → ON waiting → Active)
-- When enabled and all experiment queues are empty (draft=0, pending_review=0, pending_start=0), completing an experiment triggers the assigned agent
+- Human Review mode triggers when the review/start queues are empty (`draft=0`, `pending_review=0`, `pending_start=0`)
+- Full Auto mode triggers whenever `pending_start=0`, even if experiments are still `in_progress`, so the agent can keep the start queue filled
+- Experiment card mutations should re-check the autonomous loop, not only completions: create/update/delete/status changes can all make the loop eligible
 - Agent receives full project context and can propose new experiments (as `draft`) via `synapse_propose_experiment`
 - Human reviews proposed experiments on the board before they execute
+- In Full Auto mode, `synapse_propose_experiment` creates `pending_start` experiments assigned to the loop agent
 - This creates a self-sustaining research cycle: execute → analyze → propose → review → execute
+
+Approving an agent-created experiment must not automatically assign it back to the creator. Only explicit `assignedAgentUuid` input, an already-assigned experiment, or Full Auto proposal behavior should determine the assignee.
+
+### Insights and project synthesis
+
+`Insights` is the project synthesis workflow, separate from ordinary document editing:
+
+- The OpenClaw plugin routes `synthesis_refresh_requested` notifications to an insights/synthesis prompt.
+- The agent must call `synapse_save_project_synthesis` with the analyzed result, then `synapse_complete_task` with `taskType: "synthesis"`.
+- Active synthesis work should mark the Insights surface as working, not the Documents left sidebar.
+- Completion emits synthesis notifications such as `synthesis_refresh_completed`.
 
 ### Related Works
 
@@ -375,14 +401,16 @@ Treat compute polling as background infrastructure, not page-load logic.
 Current relationship:
 
 - Documents are still project-scoped first
-- Experiment result docs are soft-linked to experiments via a marker in document content
+- Experiment result docs are soft-linked to experiments via a marker in document content: `<!-- synapse:experiment:<experimentUuid> -->`
 - Project synthesis docs are separate rolling documents of type `project_synthesis`
+- When viewing a soft-linked experiment result document, the document page should expose a link that opens the corresponding experiment detail panel in the Experiments view
 
 Agent-triggered document behavior:
 
 - `synapse_start_experiment` will create or update the experiment result document
 - `synapse_submit_experiment_results` updates the experiment and its result document
-- Completing experiments also refreshes the project-level synthesis document
+- Completing experiments refreshes the project-level synthesis document
+- Explicit Insights refreshes save synthesis through `synapse_save_project_synthesis`
 
 `Experiment.computeBudgetHours` is nullable:
 
@@ -405,6 +433,8 @@ So if an agent runs an experiment correctly, Synapse should update both:
 - `document`
 
 For current research work, prefer commenting directly on `experiment` instead of forcing everything through `experiment_run`.
+
+New `comment_added` and `mentioned` notifications should appear in the bottom-right toast stream. The mention editor should allow `@` mentions anywhere in text, not only at the beginning of a sentence or block.
 
 ## UI / Product Reality
 
@@ -429,7 +459,8 @@ Notes:
 
 - `Insights` is the project-level synthesis surface
 - `Research Questions` uses a canvas-style hierarchy view
-- `Related Works` collects papers (manual arXiv URL + auto-search via Semantic Scholar), supports deep research report generation
+- Research question cards should use the same active/working color derived from the active agent across canvas and card states
+- `Related Works` collects papers (manual arXiv URL + auto-search via DeepXiv), supports deep research report generation with full-text paper reading
 - `Experiments` is a five-column board with live status badges on cards:
   - `draft`
   - `pending_review`
@@ -442,6 +473,8 @@ Notes:
 - Project dashboard has an Edit button to modify project details (name, description, datasets, evaluation methods, compute pool)
 - Create experiment form includes a "Copy from existing experiment" dropdown
 - Project groups are editable (name, description) from the projects list page
+- Global Settings includes an entry point to the setup wizard at `/onboarding`
+- The empty Research Projects page should show a landing/empty state that guides users to create a project group and then a project
 
 Human-created experiments should normally land in `pending_start`, not sit in `draft`, unless explicitly created as drafts.
 
@@ -518,6 +551,7 @@ When `packages/openclaw-plugin/` has changes, the plugin must be published and d
 4. **Restart gateway**: `ssh openclaw '... && openclaw gateway restart'`
 
 The `openclaw` command requires nvm initialization (`. "$NVM_DIR/nvm.sh"`) before use.
+Publishing requires an npm account/token with package publish permission. If the npm account has 2FA enabled, use a granular automation token that can publish the package, or pass a current OTP to `npm publish`; never commit npm tokens to the repo or leave them in checked-in config.
 
 If only Synapse MCP server code changes (e.g. `src/mcp/tools/*.ts`, `src/services/*.ts`), the OpenClaw plugin does NOT need updating — only sync to synapse remote and restart the dev server.
 
@@ -528,7 +562,7 @@ After finishing work, verify all environments:
 ```bash
 git log --oneline -1                    # local
 ssh synapse 'cd /home/ubuntu/Synapse && git log --oneline -1'  # synapse
-ssh synapse-test 'cd /home/ubuntu/Synapse && ls src/app/api/ | wc -l'  # synapse-test (no git, just verify files)
+ssh synapse-test 'cd /home/ubuntu/Synapse && git log --oneline -1'  # synapse-test
 ssh openclaw 'cat /home/ubuntu/.openclaw/extensions/synapse-openclaw-plugin/package.json | grep version'  # openclaw plugin
 ```
 
@@ -658,6 +692,21 @@ Recent examples:
 
 22. Dispatching tasks to poll-transport agents
    Auto-search, deep research, and autonomous loop require realtime transport. Only agents with `type = "openclaw"` (or future realtime types) can receive these. The API validates this — UI dropdowns should also filter by `?transport=realtime`.
+
+23. Blocking Full Auto on running experiments
+   Full Auto autonomous loop is allowed to propose when `pending_start=0`, even while other experiments are `in_progress`. Do not reintroduce a requirement that no experiments are running.
+
+24. Auto-assigning approved agent drafts to their creator
+   Approval should not silently assign an agent-created experiment back to the creator. Preserve explicit assignments and wake already-assigned experiments, but otherwise leave assignment intentional.
+
+25. Bundling multiple runs into one experiment card
+   Each `Experiment` card should represent one independent run. Split comparisons, ablations, sweeps, and repeated runs into separate cards.
+
+26. Treating synthesis as document activity
+   Insights refresh uses project synthesis task/activity fields. Do not mark the Documents sidebar as working just because synthesis is running.
+
+27. Logging queue status as experiment progress
+   `liveStatus: "queuing"` is a transient live state. It should update card status/message without adding progress log noise.
 
 ## Release Conventions
 
