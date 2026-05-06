@@ -1,8 +1,8 @@
 // src/app/onboarding/page.tsx
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,17 @@ interface WizardState {
 const TOTAL_STEPS = 3;
 
 export default function OnboardingPage() {
+  return (
+    <Suspense fallback={null}>
+      <OnboardingPageInner />
+    </Suspense>
+  );
+}
+
+function OnboardingPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const force = searchParams.get("force") === "1";
   const t = useTranslations("onboarding");
   const [currentStep, setCurrentStep] = useState(1);
   const [status, setStatus] = useState<OnboardingStatus | null>(null);
@@ -56,9 +66,13 @@ export default function OnboardingPage() {
         if (json.success) {
           const s: OnboardingStatus = json.data;
           setStatus(s);
-          // Auto-advance to first incomplete step
+          // Auto-advance to first incomplete step. When opened explicitly
+          // from Settings (?force=1), never redirect away — the user is
+          // here on purpose to review or reconfigure the wizard.
           if (s.hasAgent && s.hasAgentConnected && s.hasComputeNode) {
-            router.replace("/research-projects");
+            if (!force) {
+              router.replace("/research-projects");
+            }
           } else if (s.hasAgent && s.hasAgentConnected) {
             setCurrentStep(3);
           } else if (s.hasAgent) {
@@ -67,7 +81,7 @@ export default function OnboardingPage() {
         }
       })
       .catch(() => {});
-  }, [router]);
+  }, [router, force]);
 
   const handleSkipAll = () => {
     localStorage.setItem("onboarding_skipped", "1");

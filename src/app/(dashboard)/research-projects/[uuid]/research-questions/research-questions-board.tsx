@@ -299,7 +299,10 @@ export function ResearchQuestionsBoard({
     const nodes: Node<CanvasNodeData>[] = researchQuestions.map((question) => {
       const position = positions.get(question.uuid) ?? { x: 0, y: 0 };
       const activeExp = experiments.find(
-        (e) => e.researchQuestionUuid === question.uuid && e.status === "in_progress" && e.assignee,
+        (e) =>
+          e.researchQuestionUuid === question.uuid &&
+          e.assignee &&
+          (e.status === "in_progress" || !!e.liveStatus),
       );
       return {
         id: `q-${question.uuid}`,

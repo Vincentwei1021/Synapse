@@ -107,7 +107,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
           <Button asChild variant="outline">
-            <Link href="/onboarding">{t("settings.openSetupWizard")}</Link>
+            <Link href="/onboarding?force=1">{t("settings.openSetupWizard")}</Link>
           </Button>
         </CardContent>
       </Card>
