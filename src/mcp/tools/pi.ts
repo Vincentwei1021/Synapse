@@ -19,19 +19,29 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
   server.registerTool(
     "synapse_create_research_project",
     {
-      description: "Create a new research project (PI exclusive, acts on behalf of humans). To assign to a project group, first call synapse_get_project_groups to list available groups, then pass the groupUuid.",
+      description: "Create a new research project (PI exclusive, acts on behalf of humans). To assign to a project group, first call synapse_get_project_groups to list available groups, then pass projectGroupUuid (or the alias groupUuid).",
       inputSchema: z.object({
         name: z.string().describe("Research Project name"),
         description: z.string().optional().describe("Research Project description"),
-        groupUuid: z.string().optional().describe("Optional project group UUID to assign this project to. Use synapse_get_project_groups to list available groups."),
+        projectGroupUuid: z
+          .string()
+          .optional()
+          .describe("Optional project group UUID to assign this project to. Use synapse_get_project_groups to list available groups."),
+        groupUuid: z
+          .string()
+          .optional()
+          .describe("Alias for projectGroupUuid (deprecated). If both are provided, projectGroupUuid wins."),
       }),
     },
-    async ({ name, description, groupUuid }) => {
+    async ({ name, description, projectGroupUuid, groupUuid }) => {
+      // F-031: accept `projectGroupUuid` as the canonical name; keep `groupUuid` as a deprecated alias.
+      // If both are provided, `projectGroupUuid` wins.
+      const resolvedGroupUuid = projectGroupUuid ?? groupUuid ?? null;
       const project = await researchProjectService.createResearchProject({
         companyUuid: auth.companyUuid,
         name,
         description: description || null,
-        groupUuid: groupUuid || null,
+        groupUuid: resolvedGroupUuid,
       });
 
       return {
@@ -222,20 +232,56 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
   server.registerTool(
     "synapse_delete_project_group",
     {
-      description: "Delete a project group (PI exclusive). Projects in the group become ungrouped.",
+      description: "Delete a project group (PI exclusive). By default refuses if the group contains projects. Pass force=true to cascade-delete all child projects.",
       inputSchema: z.object({
         groupUuid: z.string().describe("Project Group UUID"),
+        force: z
+          .boolean()
+          .optional()
+          .describe("If true, cascade-delete all child projects instead of refusing."),
       }),
     },
-    async ({ groupUuid }) => {
-      const deleted = await projectGroupService.deleteProjectGroup(auth.companyUuid, groupUuid);
+    async ({ groupUuid, force }) => {
+      const group = await projectGroupService.getProjectGroup(auth.companyUuid, groupUuid);
+      if (!group) {
+        return { content: [{ type: "text", text: "Project group not found" }], isError: true };
+      }
 
+      if (group.projectCount > 0 && !force) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Cannot delete project group with ${group.projectCount} project(s). Pass force=true to cascade-delete child projects, or move them first with synapse_move_research_project_to_group.`,
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      // If force=true, cascade-delete each child project through the project-delete service
+      // so that per-project cleanup semantics apply (e.g. unsetting parentQuestionUuid).
+      if (group.projectCount > 0 && force) {
+        for (const project of group.projects) {
+          await researchProjectService.deleteResearchProject(project.uuid);
+        }
+      }
+
+      const deleted = await projectGroupService.deleteProjectGroup(auth.companyUuid, groupUuid);
       if (!deleted) {
         return { content: [{ type: "text", text: "Project group not found" }], isError: true };
       }
 
       return {
-        content: [{ type: "text", text: `Project group ${groupUuid} deleted` }],
+        content: [
+          {
+            type: "text",
+            text:
+              group.projectCount > 0 && force
+                ? `Project group ${groupUuid} and ${group.projectCount} child project(s) deleted`
+                : `Project group ${groupUuid} deleted`,
+          },
+        ],
       };
     }
   );

@@ -21,15 +21,14 @@ function resolveNotificationType(action: string, targetType: string): string | n
     "experiment_run:submitted": "run_submitted_for_verify",
     "experiment_run:verified": "run_verified",
     "experiment_run:reopened": "run_reopened",
-    "experiment:comment_added": "comment_added",
     "research_question:assigned": "research_question_claimed",
     "experiment_design:approved": "design_approved",
     "experiment_design:rejected_to_draft": "design_rejected",
-    // comment_added is the same regardless of target type
-    "experiment_run:comment_added": "comment_added",
-    "research_question:comment_added": "comment_added",
-    "experiment_design:comment_added": "comment_added",
-    "document:comment_added": "comment_added",
+    // NOTE: `comment_added` notifications are dispatched directly from
+    // comment.service.ts (see dispatchCommentAddedNotifications). Keeping a
+    // mapping here would produce duplicate notifications. The activity row is
+    // still written (for the activity feed) but deliberately no-ops for
+    // notification delivery.
     // hypothesis formulation events (target type is always "research_question")
     "research_question:hypothesis_formulation_started": "hypothesis_formulation_requested",
     "research_question:hypothesis_formulation_answered": "hypothesis_formulation_answered",

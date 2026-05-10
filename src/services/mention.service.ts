@@ -40,6 +40,11 @@ export interface CreateMentionsParams {
   actorUuid: string;
   researchProjectUuid: string;
   entityTitle: string;
+  // Optional explicit mention references provided by the caller. When set,
+  // these take precedence over content-parsed mentions. Used by the REST
+  // `/api/comments` path where external callers can't always include the
+  // canonical `@[Name](type:uuid)` markup in the text. See F-028.
+  explicitMentions?: MentionRef[];
 }
 
 export interface SearchMentionablesParams {
@@ -101,9 +106,15 @@ export async function createMentions(params: CreateMentionsParams): Promise<void
     actorUuid,
     researchProjectUuid,
     entityTitle,
+    explicitMentions,
   } = params;
 
-  const mentions = parseMentions(content);
+  // Prefer the caller's merged/explicit list when supplied (comment.service
+  // has already unioned parsed-from-content with mentions[] and deduped).
+  // Fall back to parsing the content ourselves for other call sites.
+  const mentions = explicitMentions && explicitMentions.length > 0
+    ? explicitMentions.slice(0, MAX_MENTIONS_PER_CONTENT)
+    : parseMentions(content);
   if (mentions.length === 0) return;
 
   // Filter out self-mentions

@@ -1563,7 +1563,8 @@
       "inventoryHint": "后端或 agent 完成机器同步并开始回报遥测后，这里就会显示 GPU 清单。",
       "waitingProbe": "等待第一次探测",
       "pending": "待同步",
-      "noAccess": "未配置访问方式"
+      "noAccess": "未配置访问方式",
+      "managedKey": "托管密钥"
     },
     "table": {
       "gpu": "GPU",

@@ -120,11 +120,23 @@ export function registerResearchTools(server: McpServer, auth: AgentAuthContext)
   server.registerTool(
     "synapse_update_research_question_status",
     {
-      description: "Update Research Question status (only assignee can operate). Valid statuses: open, elaborating, proposal_created, completed, closed. Claiming auto-transitions to elaborating; use this tool for proposal_created (after Experiment Design submission) or completed (after approval).",
+      description: "Update Research Question status (only assignee can operate). Valid statuses match the platform vocabulary: open, in_progress, to_verify, done, closed. Legacy values elaborating, proposal_created, completed, pending_review are also accepted and mapped.",
       inputSchema: z.object({
         researchQuestionUuid: z.string().describe("Research Question UUID"),
         status: z
-          .enum(["elaborating", "proposal_created", "completed", "in_progress", "pending_review"])
+          .enum([
+            // Canonical platform statuses (F-035)
+            "open",
+            "in_progress",
+            "to_verify",
+            "done",
+            "closed",
+            // Legacy aliases preserved for backward compatibility
+            "elaborating",
+            "proposal_created",
+            "completed",
+            "pending_review",
+          ])
           .describe("New status"),
       }),
     },
@@ -143,12 +155,15 @@ export function registerResearchTools(server: McpServer, auth: AgentAuthContext)
         return { content: [{ type: "text", text: "Only the assignee can update the status" }], isError: true };
       }
 
+      // Map platform vocabulary and legacy aliases onto the internal lifecycle.
       const normalizedStatus =
         status === "in_progress"
           ? "elaborating"
-          : status === "pending_review"
+          : status === "pending_review" || status === "to_verify"
             ? "proposal_created"
-            : status;
+            : status === "done"
+              ? "completed"
+              : status;
 
       // Validate status transition
       if (!researchQuestionService.isValidResearchQuestionStatusTransition(researchQuestion.status, normalizedStatus)) {
@@ -380,27 +395,43 @@ export function registerResearchTools(server: McpServer, auth: AgentAuthContext)
     }),
     createMcpTool({
       name: "synapse_create_research_question",
-      description: "Create a Research Question (submits requirements on behalf of humans)",
+      description: "Create a Research Question (submits requirements on behalf of humans). Pass parentUuid to create a child question under an existing question.",
       inputSchema: z.object({
         researchProjectUuid: z.string().describe("Research Project UUID"),
         title: z.string().describe("Research Question title"),
         content: z.string().optional().describe("Research Question detailed description"),
+        parentUuid: z
+          .string()
+          .optional()
+          .describe("Optional parent Research Question UUID to create this as a child question."),
       }),
-      async execute({ researchProjectUuid, title, content }) {
+      async execute({ researchProjectUuid, title, content, parentUuid }) {
         const exists = await researchProjectExists(auth.companyUuid, researchProjectUuid);
         if (!exists) {
           return textResult("Research Project not found", true);
         }
 
-        const researchQuestion = await researchQuestionService.createResearchQuestion({
-          companyUuid: auth.companyUuid,
-          researchProjectUuid,
-          title,
-          content: content || null,
-          createdByUuid: auth.actorUuid,
-        });
+        try {
+          const researchQuestion = await researchQuestionService.createResearchQuestion({
+            companyUuid: auth.companyUuid,
+            researchProjectUuid,
+            title,
+            content: content || null,
+            parentQuestionUuid: parentUuid ?? null,
+            createdByUuid: auth.actorUuid,
+          });
 
-        return jsonTextResult({ uuid: researchQuestion.uuid, title: researchQuestion.title });
+          return jsonTextResult({
+            uuid: researchQuestion.uuid,
+            title: researchQuestion.title,
+            parentQuestionUuid: researchQuestion.parentQuestionUuid,
+          });
+        } catch (error) {
+          return textResult(
+            `Failed to create research question: ${error instanceof Error ? error.message : "Unknown error"}`,
+            true
+          );
+        }
       },
     }),
     createMcpTool({
@@ -450,15 +481,25 @@ export function registerResearchTools(server: McpServer, auth: AgentAuthContext)
     }),
     createMcpTool({
       name: "synapse_create_baseline",
-      description: "Register a baseline result for comparison in a research project",
+      description:
+        "Register a baseline result for comparison in a research project. Metrics accept numbers, strings (e.g. dataset tags), or nested records (e.g. { value, unit }) since baseline metrics are stored as JSON.",
       inputSchema: z.object({
         researchProjectUuid: z.string(),
         name: z.string(),
-        metrics: z.record(z.string(), z.number()),
+        // F-033: loosen metrics to accept numbers, strings, or nested objects.
+        metrics: z.record(
+          z.string(),
+          z.union([z.number(), z.string(), z.record(z.string(), z.any())])
+        ),
         experimentUuid: z.string().optional(),
       }),
       async execute(params) {
-        const result = await baselineService.createBaseline(auth.companyUuid, params);
+        const result = await baselineService.createBaseline(auth.companyUuid, {
+          researchProjectUuid: params.researchProjectUuid,
+          name: params.name,
+          metrics: params.metrics,
+          experimentUuid: params.experimentUuid,
+        });
         return jsonTextResult(result);
       },
     }),
@@ -469,16 +510,22 @@ export function registerResearchTools(server: McpServer, auth: AgentAuthContext)
         researchProjectUuid: z.string(),
       }),
       async execute({ researchProjectUuid }) {
-        const result = await baselineService.listBaselines(auth.companyUuid, researchProjectUuid);
-        return jsonTextResult(result);
+        const baselines = await baselineService.listBaselines(auth.companyUuid, researchProjectUuid);
+        // F-041: wrap in an object to match the other list-tool shapes.
+        return jsonTextResult({ baselines });
       },
     }),
     createMcpTool({
       name: "synapse_compare_results",
-      description: "Compare experiment run results against the active baseline",
+      description:
+        "Compare experiment results against the active baseline. Accepts either a flat per-experiment metric (Record<experimentUuid, number>) or per-metric results (Record<experimentUuid, Record<metricName, number>>).",
       inputSchema: z.object({
         researchProjectUuid: z.string(),
-        experimentResults: z.record(z.string(), z.number()),
+        // F-034: accept either a flat number or a nested per-metric record per experiment.
+        experimentResults: z.record(
+          z.string(),
+          z.union([z.number(), z.record(z.string(), z.number())])
+        ),
       }),
       async execute({ researchProjectUuid, experimentResults }) {
         const baseline = await baselineService.getActiveBaseline(auth.companyUuid, researchProjectUuid);
@@ -486,21 +533,60 @@ export function registerResearchTools(server: McpServer, auth: AgentAuthContext)
           return jsonTextResult({ error: "No active baseline found" });
         }
 
-        const comparison: Record<string, { baseline: number; experiment: number; delta: number; improved: boolean }> = {};
-        const baselineMetrics = baseline.metrics as Record<string, number>;
-        for (const [key, value] of Object.entries(experimentResults)) {
-          if (key in baselineMetrics) {
-            const baseVal = baselineMetrics[key];
-            comparison[key] = {
-              baseline: baseVal,
-              experiment: value,
-              delta: value - baseVal,
-              improved: value > baseVal,
-            };
+        const baselineMetricsRaw = (baseline.metrics ?? {}) as Record<string, unknown>;
+        // Baseline metrics may be numbers or nested objects; only numeric leaves are
+        // comparable. Flatten `{ value }` wrappers so callers can still diff them.
+        const baselineNumericMetrics: Record<string, number> = {};
+        for (const [key, value] of Object.entries(baselineMetricsRaw)) {
+          if (typeof value === "number") {
+            baselineNumericMetrics[key] = value;
+          } else if (value && typeof value === "object" && typeof (value as { value?: unknown }).value === "number") {
+            baselineNumericMetrics[key] = (value as { value: number }).value;
           }
         }
 
-        return jsonTextResult({ baseline: baseline.name, comparison });
+        type MetricComparison = {
+          baseline: number;
+          experiment: number;
+          delta: number;
+          improved: boolean;
+        };
+
+        const byExperiment: Record<string, Record<string, MetricComparison>> = {};
+        for (const [experimentKey, value] of Object.entries(experimentResults)) {
+          // Normalise to Record<metricName, number>. Flat numbers are wrapped as { default }.
+          const perMetric: Record<string, number> =
+            typeof value === "number" ? { default: value } : value;
+
+          const comparison: Record<string, MetricComparison> = {};
+          for (const [metricName, metricValue] of Object.entries(perMetric)) {
+            // For the `default` wrapping, fall back to the sole baseline metric if
+            // the baseline only has one numeric entry. Otherwise require an exact key match.
+            let baseVal: number | undefined;
+            if (metricName === "default") {
+              const keys = Object.keys(baselineNumericMetrics);
+              if (keys.length === 1) {
+                baseVal = baselineNumericMetrics[keys[0]];
+              } else if (metricName in baselineNumericMetrics) {
+                baseVal = baselineNumericMetrics[metricName];
+              }
+            } else if (metricName in baselineNumericMetrics) {
+              baseVal = baselineNumericMetrics[metricName];
+            }
+
+            if (baseVal !== undefined) {
+              comparison[metricName] = {
+                baseline: baseVal,
+                experiment: metricValue,
+                delta: metricValue - baseVal,
+                improved: metricValue > baseVal,
+              };
+            }
+          }
+          byExperiment[experimentKey] = comparison;
+        }
+
+        return jsonTextResult({ baseline: baseline.name, comparisons: byExperiment });
       },
     }),
     createMcpTool({

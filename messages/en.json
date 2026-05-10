@@ -1563,7 +1563,8 @@
       "inventoryHint": "GPU inventory will appear after the backend or an agent syncs the machine and starts reporting telemetry.",
       "waitingProbe": "Waiting for first probe",
       "pending": "Pending",
-      "noAccess": "No access method"
+      "noAccess": "No access method",
+      "managedKey": "Managed key"
     },
     "table": {
       "gpu": "GPU",

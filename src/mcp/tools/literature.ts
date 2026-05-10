@@ -265,11 +265,13 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
           incrementVersion: true,
         });
       } else {
-        // Create new
+        // Create new. F-038: save with the canonical `deep_research` document type
+        // (not `literature_review`) so downstream UI can distinguish agent-authored
+        // deep-research reports from general literature reviews.
         doc = await documentService.createDocument({
           companyUuid: auth.companyUuid,
           researchProjectUuid,
-          type: "literature_review",
+          type: "deep_research",
           title,
           content,
           experimentDesignUuid: null,

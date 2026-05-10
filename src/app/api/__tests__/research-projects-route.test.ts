@@ -140,6 +140,12 @@ describe("research projects routes", () => {
       uuid: projectUuid,
       name: "Test Project",
       description: "A test project",
+      repoUrl: "https://github.com/example/repo",
+      githubUsername: "example-user",
+      githubToken: "ghp_secret",
+      autonomousLoopEnabled: false,
+      autonomousLoopAgentUuid: null,
+      autonomousLoopMode: null,
       createdAt: now,
       updatedAt: now,
       _count: { activities: 12 },
@@ -238,9 +244,17 @@ describe("research projects routes", () => {
       uuid: projectUuid,
       name: "Renamed Project",
       description: "Updated description",
+      autonomousLoopEnabled: false,
+      autonomousLoopAgentUuid: null,
+      autonomousLoopMode: null,
+      repoUrl: null,
+      githubUsername: null,
+      githubToken: null,
       createdAt: now,
       updatedAt: now,
+      _count: { activities: 0 },
     });
+    mockGetProjectMetricsSnapshot.mockResolvedValue({ researchProjectUuid: projectUuid });
 
     const response = await patchProjectDetail(
       new NextRequest(new URL(`/api/research-projects/${projectUuid}`, "http://localhost:3000"), {
@@ -255,10 +269,14 @@ describe("research projects routes", () => {
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
     expect(mockGetResearchProjectDetailRef).toHaveBeenCalledWith(companyUuid, projectUuid);
-    expect(mockUpdateResearchProject).toHaveBeenCalledWith(projectUuid, {
-      name: "Renamed Project",
-      description: "Updated description",
-    });
+    expect(mockUpdateResearchProject).toHaveBeenCalledWith(
+      projectUuid,
+      {
+        name: "Renamed Project",
+        description: "Updated description",
+      },
+      { companyUuid },
+    );
   });
 
   it("DELETE /api/research-projects/[uuid] deletes project through service layer", async () => {

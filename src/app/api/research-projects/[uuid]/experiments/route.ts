@@ -18,10 +18,17 @@ const optionalNumber = <T extends z.ZodTypeAny>(schema: T) =>
     return value;
   }, schema.optional());
 
+const optionalUuid = z.preprocess((value) => {
+  if (value === "" || value === null || value === undefined) {
+    return undefined;
+  }
+  return value;
+}, z.string().uuid().optional());
+
 const createExperimentSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
-  researchQuestionUuid: z.string().optional(),
+  researchQuestionUuid: optionalUuid,
   status: z.enum(["draft", "pending_review", "pending_start"]).default("pending_start"),
   priority: z.string().default("medium"),
   computeBudgetHours: optionalNumber(z.coerce.number().min(0)),

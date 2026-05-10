@@ -6,13 +6,15 @@ import type { Baseline } from "@/generated/prisma/client";
 
 // ===== Service Methods =====
 
-// Create a new baseline
+// Create a new baseline.
+// `metrics` is stored as JSON, so any JSON-serialisable value is accepted
+// (numbers, strings, nested objects) — see F-033.
 export async function createBaseline(
   companyUuid: string,
   params: {
     researchProjectUuid: string;
     name: string;
-    metrics: Record<string, number>;
+    metrics: Record<string, unknown>;
     experimentUuid?: string;
   }
 ): Promise<Baseline> {
@@ -21,7 +23,7 @@ export async function createBaseline(
       companyUuid,
       researchProjectUuid: params.researchProjectUuid,
       name: params.name,
-      metrics: params.metrics,
+      metrics: params.metrics as object,
       experimentUuid: params.experimentUuid,
     },
   });

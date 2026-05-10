@@ -194,6 +194,9 @@ describe("createComment", () => {
       actorUuid: authorUuid,
       researchProjectUuid,
       entityTitle: "Test Task",
+      explicitMentions: [
+        { type: "agent", uuid: "uuid-123", displayName: "Bot" },
+      ],
     });
     expect(createActivity).toHaveBeenCalledWith({
       companyUuid,

@@ -855,10 +855,22 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
         description,
         researchQuestionUuid: researchQuestionUuid || null,
         priority,
+        // F-023: persist the agent actor as creator so the experiment is
+        // attributable back to the proposing agent.
         createdByUuid: auth.actorUuid,
         createdByType: "agent",
-        // Mode 2: skip review, go straight to pending_start with agent assigned
-        ...(isFullAuto ? { status: "pending_start" as const, assigneeUuid: auth.actorUuid, assigneeType: "agent" as const } : {}),
+        // Mode 2: skip review, go straight to pending_start with agent assigned.
+        // F-024: also stamp assignedBy/assignedAt so the assignment appears
+        // complete in the queue and activity streams.
+        ...(isFullAuto
+          ? {
+              status: "pending_start" as const,
+              assigneeUuid: auth.actorUuid,
+              assigneeType: "agent" as const,
+              assignedByUuid: auth.actorUuid,
+              assignedAt: new Date(),
+            }
+          : {}),
       });
 
       // Notify the agent's owner that a new experiment was auto-proposed
@@ -971,29 +983,34 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
   server.registerTool(
     "synapse_update_experiment_plan",
     {
-      description: "Update an experiment's plan/details. Use this when asked to flesh out an experiment plan from a brief description. You can update title, description, research question link, and priority.",
+      description: "Update an experiment's plan/details. Use this when asked to flesh out an experiment plan from a brief description. You can update title, description/plan, research question link, and priority. Either `description` or `plan` is accepted; if both are provided, `description` wins.",
       inputSchema: z.object({
         experimentUuid: z.string(),
         title: z.string().optional(),
         description: z.string().optional().describe("Detailed experiment plan/methodology"),
+        // F-036: accept `plan` as an alias for `description`.
+        plan: z.string().optional().describe("Alias for description."),
         researchQuestionUuid: z.string().optional().describe("Link to a research question"),
         priority: z.enum(["low", "medium", "high", "immediate"]).optional(),
       }),
     },
-    async ({ experimentUuid, title, description, researchQuestionUuid, priority }) => {
+    async ({ experimentUuid, title, description, plan, researchQuestionUuid, priority }) => {
       const experiment = await experimentService.getExperiment(auth.companyUuid, experimentUuid);
       if (!experiment) {
         return { content: [{ type: "text", text: "Experiment not found" }], isError: true };
       }
 
+      // F-036: `description` wins when both are provided.
+      const resolvedDescription = description ?? plan;
+
       const updateData: Record<string, unknown> = {};
       if (title !== undefined) updateData.title = title;
-      if (description !== undefined) updateData.description = description;
+      if (resolvedDescription !== undefined) updateData.description = resolvedDescription;
       if (researchQuestionUuid !== undefined) updateData.researchQuestionUuid = researchQuestionUuid || null;
       if (priority !== undefined) updateData.priority = priority;
 
       if (Object.keys(updateData).length === 0) {
-        return { content: [{ type: "text", text: "No fields to update" }], isError: true };
+        return { content: [{ type: "text", text: "No fields to update (provide at least one of title, description/plan, researchQuestionUuid, priority)" }], isError: true };
       }
 
       const updated = await experimentService.updateExperiment(

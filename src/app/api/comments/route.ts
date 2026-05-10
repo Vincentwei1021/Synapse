@@ -57,6 +57,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     targetType: string;
     targetUuid: string;
     content: string;
+    mentions?: Array<{ type: string; uuid: string; displayName?: string }>;
   }>(request);
 
   // Validate required fields
@@ -76,6 +77,25 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     });
   }
 
+  // Sanitize optional explicit mentions[] array. Accept only user/agent refs
+  // with a uuid; silently drop anything else. Actual existence in the same
+  // company is validated inside mention.service.createMentions.
+  const explicitMentions = Array.isArray(body.mentions)
+    ? body.mentions
+        .filter(
+          (m): m is { type: "user" | "agent"; uuid: string; displayName?: string } =>
+            !!m &&
+            (m.type === "user" || m.type === "agent") &&
+            typeof m.uuid === "string" &&
+            m.uuid.length > 0,
+        )
+        .map((m) => ({
+          type: m.type,
+          uuid: m.uuid,
+          displayName: typeof m.displayName === "string" ? m.displayName : undefined,
+        }))
+    : undefined;
+
   try {
     const comment = await commentService.createComment({
       companyUuid: auth.companyUuid,
@@ -84,6 +104,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       content: body.content.trim(),
       authorType: isUser(auth) ? "user" : "agent",
       authorUuid: auth.actorUuid,
+      mentions: explicitMentions,
     });
 
     return success(comment);

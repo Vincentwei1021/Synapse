@@ -130,7 +130,8 @@ describe("experiment routes", () => {
     formData.set("description", "Needs review");
     formData.set("status", "pending_review");
     formData.set("priority", "high");
-    formData.set("researchQuestionUuid", "rq-1");
+    const rqUuid = "11111111-1111-4111-8111-111111111111";
+    formData.set("researchQuestionUuid", rqUuid);
 
     const response = await createExperimentRoute(
       new NextRequest(new URL(`/api/research-projects/${projectUuid}/experiments`, "http://localhost:3000"), {
@@ -146,7 +147,7 @@ describe("experiment routes", () => {
         companyUuid,
         researchProjectUuid: projectUuid,
         status: "pending_review",
-        researchQuestionUuid: "rq-1",
+        researchQuestionUuid: rqUuid,
       }),
     );
   });
@@ -332,7 +333,7 @@ describe("experiment routes", () => {
         body: JSON.stringify({
           title: "Ready to run",
           description: "Updated draft description",
-          researchQuestionUuid: "rq-updated",
+          researchQuestionUuid: "22222222-2222-4222-8222-222222222222",
           status: "pending_start",
           priority: "high",
           computeBudgetHours: 6,
@@ -349,7 +350,7 @@ describe("experiment routes", () => {
       expect.objectContaining({
         title: "Ready to run",
         description: "Updated draft description",
-        researchQuestionUuid: "rq-updated",
+        researchQuestionUuid: "22222222-2222-4222-8222-222222222222",
         status: "pending_start",
         priority: "high",
         computeBudgetHours: 6,
