@@ -11,6 +11,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import {
   locales,
@@ -42,6 +43,7 @@ interface LocaleProviderProps {
 }
 
 export function LocaleProvider({ children }: LocaleProviderProps) {
+  const router = useRouter();
   const [locale, setLocaleState] = useState<Locale>(defaultLocale);
   const [messages, setMessages] = useState<Record<string, unknown> | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -86,7 +88,9 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
     document.cookie = `synapse-locale=${newLocale};path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax`;
     // Update html lang attribute
     document.documentElement.lang = newLocale;
-  }, []);
+    // Invalidate RSC payload so Server Components re-render with the new cookie
+    router.refresh();
+  }, [router]);
 
   // Show nothing until initialized and messages loaded
   if (!isInitialized || !messages) {

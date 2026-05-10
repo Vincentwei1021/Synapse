@@ -7,7 +7,11 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { errors, success } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
-import { createComputeNode, deleteComputeNode } from "@/services/compute.service";
+import {
+  createComputeNode,
+  deleteComputeNode,
+  listComputeNodes,
+} from "@/services/compute.service";
 import { probeNodeNow, probeNodeOnce, startNodeTelemetry } from "@/services/gpu-telemetry.service";
 
 const optionalNumber = <T extends z.ZodTypeAny>(schema: T) =>
@@ -173,6 +177,22 @@ async function parsePayload(request: NextRequest, companyUuid: string) {
   }
 
   return request.json();
+}
+
+// Restricted to users only — agents must use MCP synapse_list_compute_nodes.
+// Reuses the same serializer as /api/compute-pools so sshKeyName masking
+// (applied in compute.service → serializeNode) is consistent everywhere.
+export async function GET(request: NextRequest) {
+  const auth = await getAuthContext(request);
+  if (!auth) {
+    return errors.unauthorized();
+  }
+  if (!isUser(auth)) {
+    return errors.forbidden("Agents must use MCP synapse_list_compute_nodes for compute access");
+  }
+
+  const nodes = await listComputeNodes(auth.companyUuid);
+  return success({ nodes });
 }
 
 export async function POST(request: NextRequest) {

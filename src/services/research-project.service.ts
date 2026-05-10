@@ -3,7 +3,10 @@
 // UUID-Based Architecture: All operations use UUIDs
 
 import { Prisma } from "@/generated/prisma/client";
+import { ApiError } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
+import { isRealtimeAgent } from "@/lib/agent-transport";
+import { getAgentByUuid } from "@/services/agent.service";
 import { getProjectMetricsSnapshot, getProjectMetricsSnapshots } from "@/services/project-metrics.service";
 
 export interface ResearchProjectListParams {
@@ -242,7 +245,37 @@ export async function createResearchProject({
   });
 }
 
-export async function updateResearchProject(uuid: string, data: ResearchProjectUpdateParams) {
+export async function updateResearchProject(
+  uuid: string,
+  data: ResearchProjectUpdateParams,
+  context?: { companyUuid?: string },
+) {
+  // Autonomous-loop dispatch requires realtime transport. Reject non-realtime
+  // (e.g. `claude_code` poll) agents so writes don't silently succeed.
+  // Null/empty agent uuid disables the loop binding and is allowed.
+  if (data.autonomousLoopAgentUuid && context?.companyUuid) {
+    const agent = await getAgentByUuid(context.companyUuid, data.autonomousLoopAgentUuid);
+    if (!agent) {
+      throw new ApiError(
+        "VALIDATION_ERROR",
+        "Autonomous loop agent not found",
+        400,
+        { autonomousLoopAgentUuid: "Agent does not exist in this company" },
+      );
+    }
+    if (!isRealtimeAgent(agent.type)) {
+      throw new ApiError(
+        "VALIDATION_ERROR",
+        "Autonomous loop requires a realtime (openclaw) agent",
+        400,
+        {
+          autonomousLoopAgentUuid:
+            `Agent type '${agent.type}' uses poll transport; autonomous loop dispatch requires a realtime agent`,
+        },
+      );
+    }
+  }
+
   const updateData: Record<string, unknown> = { ...data };
 
   if (data.datasets !== undefined) {
@@ -298,16 +331,26 @@ export async function updateResearchProject(uuid: string, data: ResearchProjectU
       computePoolUuid: true,
       autonomousLoopEnabled: true,
       autonomousLoopAgentUuid: true,
+      autonomousLoopMode: true,
       autoSearchEnabled: true,
       autoSearchAgentUuid: true,
       deepResearchDocUuid: true,
       repoUrl: true,
       githubUsername: true,
+      githubToken: true,
       latestSynthesisAt: true,
       latestSynthesisIdeaCount: true,
       latestSynthesisSummary: true,
       createdAt: true,
       updatedAt: true,
+      _count: {
+        select: {
+          researchQuestions: true,
+          documents: true,
+          experiments: true,
+          activities: true,
+        },
+      },
     },
   });
 }

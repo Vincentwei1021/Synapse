@@ -157,6 +157,16 @@ export async function refreshProjectSynthesis(
     .filter((idea): idea is NonNullable<typeof idea> => Boolean(idea));
 
   if (completedIdeas.length === 0) {
+    // F-021: do not clobber a previously-saved synthesis (agent-written via
+    // saveProjectSynthesisDocument, or a prior auto-generated one) just because
+    // no research-questions are currently linked to completed experiments.
+    // Only clear latestSynthesis* fields if there is truly no prior synthesis.
+    const existing = await getLatestProjectSynthesisDocument(companyUuid, researchProjectUuid);
+    if (existing && existing.content && existing.content.trim().length > 0) {
+      // Preserve existing synthesis document and summary fields untouched.
+      return null;
+    }
+
     await prisma.researchProject.update({
       where: { uuid: researchProjectUuid },
       data: {
@@ -173,6 +183,29 @@ export async function refreshProjectSynthesis(
   const now = new Date();
 
   const existing = await getLatestProjectSynthesisDocument(companyUuid, researchProjectUuid);
+
+  // F-046: debounce identical auto-regenerations. If the existing document
+  // already contains the exact markdown we would write, skip the update to
+  // avoid bumping version/updatedAt and spamming downstream activity/events.
+  // Note: buildMarkdown embeds `new Date().toISOString()` in the header, so
+  // byte-equal comparison won't match across calls; instead we compare the
+  // content with the timestamp line stripped.
+  const stripTimestampLine = (content: string) =>
+    content.replace(/^Updated: .*$/m, "Updated: <redacted>");
+  const contentUnchanged =
+    existing != null &&
+    existing.content != null &&
+    stripTimestampLine(existing.content) === stripTimestampLine(markdown);
+
+  if (contentUnchanged) {
+    // Nothing changed since the last auto-generation; skip both the document
+    // write and the project summary bump to avoid spamming version/activity.
+    return {
+      generatedAt: (existing!.updatedAt ?? now).toISOString(),
+      ideaCount: completedIdeas.length,
+      summary,
+    };
+  }
 
   if (existing) {
     await prisma.document.update({

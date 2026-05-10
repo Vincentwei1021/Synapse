@@ -170,19 +170,35 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Rout
     updateData.githubToken = body.githubToken.trim();
   }
 
-  const researchProject = await updateResearchProject(existing.uuid, updateData);
+  const researchProject = await updateResearchProject(existing.uuid, updateData, {
+    companyUuid: auth.companyUuid,
+  });
 
   // If autonomous loop was just enabled, check trigger immediately
   if (body.autonomousLoopEnabled === true && body.autonomousLoopAgentUuid) {
     checkAutonomousLoopTrigger(existing.uuid, auth.companyUuid).catch(() => {});
   }
 
+  // Return the full project record (same shape as GET) so callers can confirm
+  // which fields were actually written.
+  const metrics = await getProjectMetricsSnapshot(auth.companyUuid, existing.uuid);
+
   return success({
     uuid: researchProject.uuid,
     name: researchProject.name,
     description: researchProject.description,
+    autonomousLoopEnabled: researchProject.autonomousLoopEnabled ?? false,
+    autonomousLoopAgentUuid: researchProject.autonomousLoopAgentUuid ?? null,
+    autonomousLoopMode: researchProject.autonomousLoopMode ?? null,
     createdAt: researchProject.createdAt.toISOString(),
     updatedAt: researchProject.updatedAt.toISOString(),
+    repoUrl: researchProject.repoUrl ?? null,
+    githubUsername: researchProject.githubUsername ?? null,
+    githubConfigured: !!researchProject.githubToken,
+    counts: {
+      ...toProjectCompatibilityCounts(metrics),
+      activities: researchProject._count.activities,
+    },
   });
 });
 

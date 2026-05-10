@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { errors, success } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
+import { InvalidTransitionError } from "@/lib/errors";
 import { assignExperiment, deleteExperiment, getExperiment, updateExperiment } from "@/services/experiment.service";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
@@ -12,12 +13,12 @@ type RouteContext = { params: Promise<{ uuid: string }> };
 const patchSchema = z.object({
   title: z.string().optional(),
   description: z.string().nullable().optional(),
-  researchQuestionUuid: z.string().nullable().optional(),
+  researchQuestionUuid: z.string().uuid().nullable().optional(),
   status: z.enum(["draft", "pending_review", "pending_start", "in_progress", "completed"]).optional(),
   priority: z.string().optional(),
   computeBudgetHours: z.coerce.number().nullable().optional(),
   assigneeType: z.string().optional(),
-  assigneeUuid: z.string().optional(),
+  assigneeUuid: z.string().uuid().optional(),
 });
 
 export async function GET(request: NextRequest, context: RouteContext) {
@@ -77,20 +78,27 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 
   if (hasFieldUpdates) {
-    const experiment = await updateExperiment(
-      auth.companyUuid,
-      uuid,
-      {
-        title: parsed.data.title,
-        description: parsed.data.description,
-        researchQuestionUuid: parsed.data.researchQuestionUuid,
-        status: parsed.data.status,
-        priority: parsed.data.priority,
-        computeBudgetHours: parsed.data.computeBudgetHours,
-      },
-      { actorType: "user", actorUuid: auth.actorUuid },
-    );
-    return success({ experiment });
+    try {
+      const experiment = await updateExperiment(
+        auth.companyUuid,
+        uuid,
+        {
+          title: parsed.data.title,
+          description: parsed.data.description,
+          researchQuestionUuid: parsed.data.researchQuestionUuid,
+          status: parsed.data.status,
+          priority: parsed.data.priority,
+          computeBudgetHours: parsed.data.computeBudgetHours,
+        },
+        { actorType: "user", actorUuid: auth.actorUuid },
+      );
+      return success({ experiment });
+    } catch (err) {
+      if (err instanceof InvalidTransitionError) {
+        return errors.badRequest(err.message);
+      }
+      throw err;
+    }
   }
 
   // If only assignment was done, re-fetch to return the updated experiment

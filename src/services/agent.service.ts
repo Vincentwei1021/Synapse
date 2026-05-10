@@ -5,6 +5,19 @@
 import { prisma } from "@/lib/prisma";
 import { generateApiKey } from "@/lib/api-key";
 import { getTypesByTransport } from "@/lib/agent-transport";
+import { AGENT_COLOR_PALETTE, isValidAgentColorName } from "@/lib/agent-colors";
+
+// Pick a deterministic default palette color based on the agent's name so that
+// two agents with the same name never collide and distinct names fan out
+// across the palette. Used when the caller does not supply an explicit color.
+function defaultAgentColorFromName(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
+  }
+  const index = Math.abs(hash) % AGENT_COLOR_PALETTE.length;
+  return AGENT_COLOR_PALETTE[index].name;
+}
 
 export interface AgentListParams {
   companyUuid: string;
@@ -114,6 +127,11 @@ export async function createAgent({
   systemPrompt,
   color,
 }: AgentCreateParams) {
+  // F-006: when no color provided, default to a palette entry derived from the
+  // agent name so every new agent shows a consistent color pill on the board.
+  const resolvedColor = isValidAgentColorName(color)
+    ? color
+    : defaultAgentColorFromName(name);
   return prisma.agent.create({
     data: {
       companyUuid,
@@ -123,7 +141,7 @@ export async function createAgent({
       ownerUuid,
       persona,
       systemPrompt,
-      color: color ?? null,
+      color: resolvedColor,
     },
     select: {
       uuid: true,

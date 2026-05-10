@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -59,6 +60,11 @@ interface Project {
   githubConfigured: boolean;
   autoSearchActive: boolean;
   deepResearchActive: boolean;
+  autonomousLoopEnabled: boolean;
+  autonomousLoopAgentUuid: string | null;
+  autonomousLoopMode: "human_review" | "full_auto";
+  autoSearchEnabled: boolean;
+  autoSearchAgentUuid: string | null;
   experiments: Experiment[];
   documents: ProjectDocument[];
   researchQuestions: ResearchQuestion[];
@@ -69,9 +75,16 @@ interface Pool {
   name: string;
 }
 
+interface RealtimeAgent {
+  uuid: string;
+  name: string;
+  type: string;
+}
+
 interface ProjectSettingsClientProps {
   project: Project;
   pools: Pool[];
+  realtimeAgents: RealtimeAgent[];
 }
 
 function statusVariant(status: string): "default" | "secondary" | "success" | "outline" {
@@ -92,7 +105,7 @@ function statusLabel(status: string): string {
   return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function ProjectSettingsClient({ project, pools }: ProjectSettingsClientProps) {
+export function ProjectSettingsClient({ project, pools, realtimeAgents }: ProjectSettingsClientProps) {
   const t = useTranslations("projectSettings");
   const tc = useTranslations("common");
   const router = useRouter();
@@ -117,6 +130,19 @@ export function ProjectSettingsClient({ project, pools }: ProjectSettingsClientP
   const [githubToken, setGithubToken] = useState("");
   const [savingGithub, setSavingGithub] = useState(false);
   const [githubMessage, setGithubMessage] = useState<string | null>(null);
+
+  // Autonomous loop state
+  const [loopEnabled, setLoopEnabled] = useState(project.autonomousLoopEnabled);
+  const [loopAgentUuid, setLoopAgentUuid] = useState(project.autonomousLoopAgentUuid ?? "none");
+  const [loopMode, setLoopMode] = useState<"human_review" | "full_auto">(project.autonomousLoopMode);
+  const [savingLoop, setSavingLoop] = useState(false);
+  const [loopMessage, setLoopMessage] = useState<string | null>(null);
+
+  // Auto search state
+  const [autoSearchEnabled, setAutoSearchEnabled] = useState(project.autoSearchEnabled);
+  const [autoSearchAgentUuid, setAutoSearchAgentUuid] = useState(project.autoSearchAgentUuid ?? "none");
+  const [savingAutoSearch, setSavingAutoSearch] = useState(false);
+  const [autoSearchMessage, setAutoSearchMessage] = useState<string | null>(null);
 
   // Delete experiment state
   const [deleteExperimentTarget, setDeleteExperimentTarget] = useState<Experiment | null>(null);
@@ -206,6 +232,68 @@ export function ProjectSettingsClient({ project, pools }: ProjectSettingsClientP
       setGithubMessage(t("saveFailed"));
     }
     setSavingGithub(false);
+  }
+
+  async function handleSaveAutonomousLoop() {
+    setSavingLoop(true);
+    setLoopMessage(null);
+    try {
+      const resolvedAgentUuid = loopAgentUuid === "none" ? null : loopAgentUuid;
+      // Enabling the loop requires a realtime agent — coerce to disabled when none selected.
+      const effectiveEnabled = loopEnabled && !!resolvedAgentUuid;
+      const response = await fetch(`/api/research-projects/${project.uuid}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          autonomousLoopEnabled: effectiveEnabled,
+          autonomousLoopAgentUuid: resolvedAgentUuid,
+          autonomousLoopMode: loopMode,
+        }),
+      });
+      if (response.ok) {
+        setLoopEnabled(effectiveEnabled);
+        setLoopMessage(t("saved"));
+        startTransition(() => {
+          router.refresh();
+        });
+        setTimeout(() => setLoopMessage(null), 3000);
+      } else {
+        setLoopMessage(t("saveFailed"));
+      }
+    } catch {
+      setLoopMessage(t("saveFailed"));
+    }
+    setSavingLoop(false);
+  }
+
+  async function handleSaveAutoSearch() {
+    setSavingAutoSearch(true);
+    setAutoSearchMessage(null);
+    try {
+      const resolvedAgentUuid = autoSearchAgentUuid === "none" ? null : autoSearchAgentUuid;
+      const effectiveEnabled = autoSearchEnabled && !!resolvedAgentUuid;
+      const response = await fetch(`/api/research-projects/${project.uuid}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          autoSearchEnabled: effectiveEnabled,
+          autoSearchAgentUuid: resolvedAgentUuid,
+        }),
+      });
+      if (response.ok) {
+        setAutoSearchEnabled(effectiveEnabled);
+        setAutoSearchMessage(t("saved"));
+        startTransition(() => {
+          router.refresh();
+        });
+        setTimeout(() => setAutoSearchMessage(null), 3000);
+      } else {
+        setAutoSearchMessage(t("saveFailed"));
+      }
+    } catch {
+      setAutoSearchMessage(t("saveFailed"));
+    }
+    setSavingAutoSearch(false);
   }
 
   async function handleDeleteExperiment() {
@@ -432,6 +520,127 @@ export function ProjectSettingsClient({ project, pools }: ProjectSettingsClientP
             </Button>
             {githubMessage && (
               <span className="text-sm text-muted-foreground">{githubMessage}</span>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Autonomous Loop */}
+      <Card className="p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">{t("autonomousLoop")}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{t("autonomousLoopDesc")}</p>
+          </div>
+          <Switch
+            checked={loopEnabled}
+            onCheckedChange={setLoopEnabled}
+            aria-label={t("autonomousLoopEnable")}
+          />
+        </div>
+        <div className="mt-5 space-y-4">
+          <div className="space-y-2">
+            <Label>{t("autonomousLoopAgent")}</Label>
+            <Select value={loopAgentUuid} onValueChange={setLoopAgentUuid}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={t("autonomousLoopAgentPlaceholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{t("autonomousLoopNoAgent")}</SelectItem>
+                {realtimeAgents.map((agent) => (
+                  <SelectItem key={agent.uuid} value={agent.uuid}>
+                    {agent.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">{t("autonomousLoopRealtimeHint")}</p>
+          </div>
+          <div className="space-y-2">
+            <Label>{t("autonomousLoopMode")}</Label>
+            <Select value={loopMode} onValueChange={(v) => setLoopMode(v as "human_review" | "full_auto")}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="human_review">{t("autonomousLoopModeHumanReview")}</SelectItem>
+                <SelectItem value="full_auto">{t("autonomousLoopModeFullAuto")}</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {loopMode === "full_auto"
+                ? t("autonomousLoopModeFullAutoHint")
+                : t("autonomousLoopModeHumanReviewHint")}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => startTransition(() => { void handleSaveAutonomousLoop(); })}
+              disabled={isPending || savingLoop}
+            >
+              {savingLoop ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t("saving")}
+                </>
+              ) : (
+                t("saveChanges")
+              )}
+            </Button>
+            {loopMessage && (
+              <span className="text-sm text-muted-foreground">{loopMessage}</span>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Auto Search */}
+      <Card className="p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">{t("autoSearchSection")}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{t("autoSearchSectionDesc")}</p>
+          </div>
+          <Switch
+            checked={autoSearchEnabled}
+            onCheckedChange={setAutoSearchEnabled}
+            aria-label={t("autoSearchEnable")}
+          />
+        </div>
+        <div className="mt-5 space-y-4">
+          <div className="space-y-2">
+            <Label>{t("autoSearchAgent")}</Label>
+            <Select value={autoSearchAgentUuid} onValueChange={setAutoSearchAgentUuid}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={t("autoSearchAgentPlaceholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{t("autoSearchNoAgent")}</SelectItem>
+                {realtimeAgents.map((agent) => (
+                  <SelectItem key={agent.uuid} value={agent.uuid}>
+                    {agent.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">{t("autoSearchRealtimeHint")}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => startTransition(() => { void handleSaveAutoSearch(); })}
+              disabled={isPending || savingAutoSearch}
+            >
+              {savingAutoSearch ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t("saving")}
+                </>
+              ) : (
+                t("saveChanges")
+              )}
+            </Button>
+            {autoSearchMessage && (
+              <span className="text-sm text-muted-foreground">{autoSearchMessage}</span>
             )}
           </div>
         </div>

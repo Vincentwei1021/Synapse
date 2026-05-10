@@ -462,7 +462,11 @@ describe("notification-listener", () => {
       }
     });
 
-    it("should map comment_added for all entity types", async () => {
+    // NOTE: `comment_added` notifications are no longer dispatched from the
+    // activity→notification listener. comment.service.ts now fans them out
+    // directly (see F-022 fix). The listener is expected to ignore the
+    // activity so we don't get duplicate deliveries.
+    it("should NOT dispatch comment_added notifications (now handled by comment.service)", async () => {
       const types = ["experiment_run", "research_question", "experiment_design", "document"];
       for (const targetType of types) {
         vi.clearAllMocks();
@@ -490,8 +494,7 @@ describe("notification-listener", () => {
         }
         const event = makeEvent({ targetType, action: "comment_added", actorUuid: "other" });
         await handleActivity(event);
-        const call = mockNotificationService.createBatch.mock.calls[0][0];
-        expect(call[0].action).toBe("comment_added");
+        expect(mockNotificationService.createBatch).not.toHaveBeenCalled();
       }
     });
   });
@@ -534,7 +537,10 @@ describe("notification-listener", () => {
       expect(call[0].entityTitle).toBe("Unknown Experiment Design");
     });
 
-    it("should fallback to Unknown Document when not found", async () => {
+    it("should NOT produce listener-side document comment_added (handled by comment.service)", async () => {
+      // The document entity title fallback for comment_added is exercised by
+      // comment.service.ts tests (fallbackCommentEntityTitle). The listener
+      // no longer maps comment_added, so we assert it is a no-op here.
       mockPrisma.document.findUnique.mockResolvedValue({
         title: null,
         createdByUuid: "user-1",
@@ -542,8 +548,7 @@ describe("notification-listener", () => {
       mockPrisma.user.findUnique.mockResolvedValue({ uuid: "user-1" });
       const event = makeEvent({ targetType: "document", action: "comment_added", actorUuid: "other" });
       await handleActivity(event);
-      const call = mockNotificationService.createBatch.mock.calls[0][0];
-      expect(call[0].entityTitle).toBe("Unknown Document");
+      expect(mockNotificationService.createBatch).not.toHaveBeenCalled();
     });
   });
 
@@ -732,7 +737,7 @@ describe("notification-listener", () => {
   });
 
   describe("recipient resolution edge cases", () => {
-    it("should handle comment_added excluding comment author", async () => {
+    it("should be a no-op for comment_added (comment.service dispatches directly)", async () => {
       mockPrisma.experimentRun.findUnique.mockResolvedValue({
         assigneeType: "agent",
         assigneeUuid: "agent-2",
@@ -745,8 +750,7 @@ describe("notification-listener", () => {
         actorUuid: "user-commenter",
       });
       await handleActivity(event);
-      const call = mockNotificationService.createBatch.mock.calls[0][0];
-      expect(call.every((n: any) => n.recipientUuid !== "user-commenter")).toBe(true);
+      expect(mockNotificationService.createBatch).not.toHaveBeenCalled();
     });
 
     it("should handle run_status_changed with agent and user recipients", async () => {

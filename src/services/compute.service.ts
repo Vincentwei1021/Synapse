@@ -36,9 +36,13 @@ export interface ComputeNodeSnapshot {
   sshUser: string | null;
   sshPort: number | null;
   // sshKeyPath intentionally omitted — never expose server filesystem paths
+  // sshKeyName / sshKeySource are null when the server holds a managed key.
+  // Surfacing the bare filename would invite agents to `ssh -i <filename>`
+  // instead of fetching the managed bundle via synapse_get_node_access_bundle.
   sshKeyName: string | null;
   sshKeySource: string | null;
   managedKeyAvailable: boolean;
+  keyManagedByServer: boolean;
   ssmTarget: string | null;
   notes: string | null;
   lastReportedAt: string | null;
@@ -213,6 +217,10 @@ function serializeNode(node: {
     };
   });
 
+  const managedKeyAvailable = Boolean(
+    node.sshHost && node.sshKeyPath && node.sshKeySource && node.sshKeySource !== "manual_path",
+  );
+
   return {
     uuid: node.uuid,
     label: node.label,
@@ -223,10 +231,14 @@ function serializeNode(node: {
     sshHost: node.sshHost,
     sshUser: node.sshUser,
     sshPort: node.sshPort,
-    // sshKeyPath, sshKeyFingerprint intentionally excluded — server filesystem paths must not leak
-    sshKeyName: node.sshKeyName,
-    sshKeySource: node.sshKeySource,
-    managedKeyAvailable: Boolean(node.sshHost && node.sshKeyPath && node.sshKeySource && node.sshKeySource !== "manual_path"),
+    // sshKeyPath, sshKeyFingerprint intentionally excluded — server filesystem paths must not leak.
+    // When a managed key is available, also suppress the filename/source so agents cannot
+    // mistakenly try `ssh -i <filename>` against their own machine. Manual flows (no managed
+    // key) still receive the metadata so humans can wire up their own key.
+    sshKeyName: managedKeyAvailable ? null : node.sshKeyName,
+    sshKeySource: managedKeyAvailable ? null : node.sshKeySource,
+    managedKeyAvailable,
+    keyManagedByServer: managedKeyAvailable,
     ssmTarget: node.ssmTarget,
     notes: node.notes,
     lastReportedAt: node.lastReportedAt?.toISOString() ?? null,
@@ -257,6 +269,24 @@ export async function listComputePools(companyUuid: string): Promise<ComputePool
     name: pool.name,
     description: pool.description,
     nodes: pool.nodes.map((node) => serializeNode(node)),
+  }));
+}
+
+export async function listComputeNodes(
+  companyUuid: string,
+): Promise<Array<ComputeNodeSnapshot & { pool: { uuid: string; name: string } }>> {
+  const nodes = await prisma.computeNode.findMany({
+    where: { companyUuid },
+    orderBy: { label: "asc" },
+    include: {
+      ...computeNodeSnapshotInclude,
+      pool: { select: { uuid: true, name: true } },
+    },
+  });
+
+  return nodes.map((node) => ({
+    ...serializeNode(node),
+    pool: { uuid: node.pool.uuid, name: node.pool.name },
   }));
 }
 

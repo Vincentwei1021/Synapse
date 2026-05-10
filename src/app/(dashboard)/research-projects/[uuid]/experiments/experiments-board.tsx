@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { LayoutGroup, motion } from "framer-motion";
 import { CheckCircle2, ChevronRight, CornerUpLeft, FileText, GitBranch, Loader2, PenLine, Save, Send, Sparkles, Trash2, Zap } from "lucide-react";
@@ -153,9 +153,35 @@ export function ExperimentsBoard({
 }) {
   const t = useTranslations();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [assignments, setAssignments] = useState<Record<string, string>>({});
   const [selectedExperimentUuid, setSelectedExperimentUuid] = useState<string | null>(initialSelectedExperimentUuid);
   const [dismissed, setDismissed] = useState(false);
+
+  // F-010: keep `?selected=<uuid>` and the detail panel state in sync.
+  // When the URL carries `selected=` on mount/nav, open the matching experiment.
+  // When the panel is dismissed, strip `selected=` so deep-link → close →
+  // refresh doesn't re-open the panel.
+  useEffect(() => {
+    const urlSelected = searchParams?.get("selected") ?? null;
+    if (urlSelected && urlSelected !== selectedExperimentUuid) {
+      if (experiments.some((experiment) => experiment.uuid === urlSelected)) {
+        setSelectedExperimentUuid(urlSelected);
+        setDismissed(false);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  const clearSelectedFromUrl = useCallback(() => {
+    if (!searchParams || !pathname) return;
+    if (!searchParams.has("selected")) return;
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("selected");
+    const query = next.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
   const [isPending, startTransition] = useTransition();
   const [progressLogs, setProgressLogs] = useState<Array<{uuid: string; message: string; phase: string | null; createdAt: string}>>([]);
   const [loopEnabled, setLoopEnabled] = useState(autonomousLoopEnabled);
@@ -889,7 +915,7 @@ export function ExperimentsBoard({
         </LayoutGroup>
       </div>
 
-      <Sheet open={Boolean(selectedExperiment)} onOpenChange={(open) => { if (!open) { setSelectedExperimentUuid(null); setDismissed(true); } }}>
+      <Sheet open={Boolean(selectedExperiment)} onOpenChange={(open) => { if (!open) { setSelectedExperimentUuid(null); setDismissed(true); clearSelectedFromUrl(); } }}>
         <SheetContent
           side="right"
           className="w-full border-l border-border sm:max-w-none"

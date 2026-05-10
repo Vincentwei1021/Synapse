@@ -1,6 +1,7 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { eventBus } from "@/lib/event-bus";
+import { InvalidTransitionError } from "@/lib/errors";
 import { formatAssigneeComplete, formatCreatedBy } from "@/lib/uuid-resolver";
 import { getActorName } from "@/lib/uuid-resolver";
 import { logger } from "@/lib/logger";
@@ -101,6 +102,10 @@ export interface ExperimentCreateParams {
   createdByType?: "user" | "agent";
   assigneeUuid?: string;
   assigneeType?: "user" | "agent";
+  // F-024: allow callers to record who performed the assignment and when.
+  // If omitted but assigneeUuid is set, defaults to createdBy/now.
+  assignedByUuid?: string;
+  assignedAt?: Date;
 }
 
 export type ExperimentPriority = "low" | "medium" | "high" | "immediate";
@@ -340,7 +345,7 @@ export async function saveExperimentReportDocument(input: {
 function assertTransition(from: ExperimentStatus, to: ExperimentStatus) {
   if (from === to) return;
   if (!VALID_TRANSITIONS[from]?.includes(to)) {
-    throw new Error(`Invalid experiment status transition: ${from} -> ${to}`);
+    throw new InvalidTransitionError(from, to);
   }
 }
 
@@ -655,6 +660,17 @@ export async function createExperiment(params: ExperimentCreateParams) {
     params.status ??
     (params.createdByType === "agent" ? "pending_review" : "pending_start");
 
+  // F-024: when an assignee is supplied, stamp assignedAt and assignedByUuid so
+  // downstream consumers (queue ordering, activity feeds) see a proper assignment.
+  const assignmentFields = params.assigneeUuid
+    ? {
+        assigneeUuid: params.assigneeUuid,
+        assigneeType: params.assigneeType ?? "agent",
+        assignedAt: params.assignedAt ?? new Date(),
+        assignedByUuid: params.assignedByUuid ?? params.createdByUuid,
+      }
+    : {};
+
   const experiment = await prisma.experiment.create({
     data: {
       companyUuid: params.companyUuid,
@@ -667,9 +683,10 @@ export async function createExperiment(params: ExperimentCreateParams) {
       computeBudgetHours: params.computeBudgetHours ?? null,
       attachments: params.attachments ? (params.attachments as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
       baseBranch: params.baseBranch ?? null,
+      // F-023: createdByUuid & createdByType are persisted as passed.
       createdByUuid: params.createdByUuid,
       createdByType: params.createdByType ?? "user",
-      ...(params.assigneeUuid ? { assigneeUuid: params.assigneeUuid, assigneeType: params.assigneeType ?? "agent" } : {}),
+      ...assignmentFields,
     },
     include: {
       researchQuestion: {
@@ -1504,8 +1521,8 @@ export async function checkAutonomousLoopTrigger(
       action: "autonomous_loop_triggered",
       message:
         mode === "full_auto"
-          ? "No experiments are waiting to start. Call synapse_get_project_full_context to review results and available compute, then propose experiments (one independent run per experiment card, up to available GPU capacity). Update the project synthesis before proposing."
-          : "Experiment queue is empty. Call synapse_get_project_full_context to review results and available compute, then propose experiments (one per available GPU).",
+          ? "No experiments are waiting to start. Call synapse_get_project_full_context to review results and available compute, then propose experiments — one independent run per card, up to available GPU capacity. Split sweeps, ablations, repeated trials, and baseline-vs-variant comparisons into separate cards; do not pack multiple runs into one card. A multi-phase card is only acceptable when the phases are strictly sequential stages of a single run. Update the project synthesis before proposing."
+          : "Experiment queue is empty. Call synapse_get_project_full_context to review results and available compute, then propose experiments — one independent run per card, up to available GPU capacity. Split sweeps, ablations, repeated trials, and comparisons into separate cards.",
       actorType: "user",
       actorUuid: "system",
       actorName: "Synapse",

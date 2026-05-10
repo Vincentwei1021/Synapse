@@ -35,14 +35,18 @@ import { Switch } from "@/components/ui/switch";
 import { authFetch } from "@/lib/auth-client";
 import type { ComputePoolSnapshot } from "@/services/compute.service";
 
-function formatAccess(node: {
-  sshHost: string | null;
-  sshUser: string | null;
-  sshPort: number | null;
-  sshKeyName?: string | null;
-  sshKeySource?: string | null;
-  ssmTarget: string | null;
-}) {
+function formatAccess(
+  node: {
+    sshHost: string | null;
+    sshUser: string | null;
+    sshPort: number | null;
+    sshKeyName?: string | null;
+    sshKeySource?: string | null;
+    keyManagedByServer?: boolean;
+    ssmTarget: string | null;
+  },
+  labels: { managedKey: string },
+) {
   const parts: string[] = [];
   if (node.sshHost) {
     parts.push(`${node.sshUser ?? "ubuntu"}@${node.sshHost}:${node.sshPort ?? 22}`);
@@ -50,7 +54,12 @@ function formatAccess(node: {
   if (node.ssmTarget) {
     parts.push(`SSM ${node.ssmTarget}`);
   }
-  if (node.sshKeyName) {
+  // When the server holds a managed key, never surface the bare filename —
+  // agents must fetch a fresh bundle via synapse_get_node_access_bundle
+  // instead of guessing `ssh -i <filename>`.
+  if (node.keyManagedByServer) {
+    parts.push(labels.managedKey);
+  } else if (node.sshKeyName) {
     parts.push(node.sshKeyName);
   } else if (node.sshKeySource && node.sshKeySource !== "manual_path") {
     parts.push(node.sshKeySource);
@@ -281,7 +290,7 @@ export function ComputePageClient({
                               <p>{t("compute.machine.instanceType")}: {getInstanceTypeDisplay(node) ?? t("compute.machine.pending")}</p>
                               <p>{t("compute.machine.region")}: {getRegionDisplay(node) ?? t("compute.machine.pending")}</p>
                               <p>{t("compute.machine.lastProbe")}: {formatTimestamp(node.lastReportedAt, locale, t("compute.machine.waitingProbe"))}</p>
-                              <p>{t("compute.machine.connection")}: {formatAccess(node) || t("compute.machine.noAccess")}</p>
+                              <p>{t("compute.machine.connection")}: {formatAccess(node, { managedKey: t("compute.machine.managedKey") }) || t("compute.machine.noAccess")}</p>
                             </div>
                           </div>
                           <div className="rounded-2xl bg-background px-4 py-3 text-sm text-muted-foreground shadow-sm">

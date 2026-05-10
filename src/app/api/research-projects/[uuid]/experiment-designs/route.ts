@@ -78,11 +78,20 @@ export const POST = withErrorHandler<{ uuid: string }>(
     if (!body.title || body.title.trim() === "") {
       return errors.validationError({ title: "Title is required" });
     }
-    if (!body.inputType || !["research_question", "document"].includes(body.inputType)) {
-      return errors.validationError({ inputType: "Invalid input type" });
+    if (!body.inputType) {
+      return errors.validationError({
+        inputType: 'inputType is required (must be "research_question" or "document")',
+      });
+    }
+    if (!["research_question", "document"].includes(body.inputType)) {
+      return errors.validationError({
+        inputType: `inputType must be "research_question" or "document" (got "${body.inputType}")`,
+      });
     }
     if (!body.inputUuids || !Array.isArray(body.inputUuids) || body.inputUuids.length === 0) {
-      return errors.validationError({ inputUuids: "Input UUIDs are required" });
+      return errors.validationError({
+        inputUuids: "inputUuids is required (non-empty array of UUIDs)",
+      });
     }
 
     // Determine creator type

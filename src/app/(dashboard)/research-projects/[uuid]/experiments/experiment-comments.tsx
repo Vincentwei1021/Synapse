@@ -141,7 +141,7 @@ export function ExperimentComments({
                       <span className="text-[11px] text-muted-foreground">{formatRelativeTime(item.createdAt, t)}</span>
                     </div>
                     <div className="mt-1 text-sm leading-6 text-muted-foreground">
-                      <ContentWithMentions>{item.content}</ContentWithMentions>
+                      <ContentWithMentions mentions={item.mentions}>{item.content}</ContentWithMentions>
                     </div>
                   </div>
                 </div>

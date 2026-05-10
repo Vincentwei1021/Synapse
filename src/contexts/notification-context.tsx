@@ -76,9 +76,11 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   useEffect(() => {
     let es: EventSource | null = null;
     let debounceTimer: NodeJS.Timeout;
+    let isUnmounting = false;
 
     function connect() {
       disconnect();
+      if (isUnmounting) return;
       es = new EventSource("/api/events/notifications");
 
       es.onmessage = (event) => {
@@ -109,7 +111,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       };
 
       es.onerror = () => {
-        // Browser EventSource auto-reconnects on error
+        // Aborts during navigation/unmount are expected — readyState === CLOSED
+        // means we (or the browser) intentionally tore down the stream. The
+        // browser will auto-reconnect on transient errors; nothing to log.
       };
     }
 
@@ -136,6 +140,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
+      isUnmounting = true;
       disconnect();
       clearTimeout(debounceTimer);
       document.removeEventListener("visibilitychange", handleVisibility);
