@@ -722,7 +722,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
           resultsLog: resultsLog ? { uuid: resultsLog.uuid, content: resultsLog.content, updatedAt: resultsLog.updatedAt } : null,
           computeAvailability,
           experimentQueue: { inProgress: inProgressCount, pendingStart: pendingStartCount },
-          _hint: "Use synapse_get_experiment for full details of a specific experiment. When proposing experiments, consider available compute resources — propose at most as many experiments as there are available GPUs, minus already queued/running experiments. Each experiment should represent one independent run; split comparisons, ablations, and parameter sweeps into multiple experiment cards.",
+          _hint: "Use synapse_get_experiment for full details of a specific experiment. When proposing experiments, consider available compute resources — propose at most as many experiments as there are available GPUs, minus already queued/running experiments. Each experiment card must represent ONE independent run: split sweeps, ablations, repeated trials, and baseline-vs-variant comparisons into separate cards. Multi-phase cards are only acceptable when the phases are strictly sequential stages of a single run — never pack parallel or comparative runs together.",
         }, null, 2) }],
       };
     }

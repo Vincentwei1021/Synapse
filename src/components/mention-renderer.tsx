@@ -122,6 +122,65 @@ export function MentionRenderer({ children, className }: MentionRendererProps) {
 
 interface ContentWithMentionsProps {
   children: string;
+  // F-026: optional list of Mention DB rows associated with the content. When
+  // provided, plain-text `@handle` tokens in the body that match one of these
+  // mentions will be rewritten into `@[Name](type:uuid)` markup before render
+  // so they show as chips alongside structured mentions.
+  mentions?: Array<{ type: string; uuid: string; name: string }>;
+}
+
+// Convert plain-text `@handle` tokens into canonical `@[Name](type:uuid)`
+// markup using the metadata attached to the comment. Handles are matched
+// case-insensitively and can have spaces collapsed (so "@John Doe" and
+// "@john_doe" both resolve to a mention named "John Doe"). Only the first
+// occurrence of each handle alias is rewritten per run to avoid over-matching
+// a substring (e.g. "@admin" inside "@administrator").
+function injectPlainTextMentions(
+  content: string,
+  extras: Array<{ type: string; uuid: string; name: string }>,
+): string {
+  if (!extras.length) return content;
+
+  let out = content;
+  const alreadyMatched = new RegExp(MENTION_REGEX.source, "g");
+  // Keep the portion of content outside structured markup for plain matching.
+  // Rather than a full AST parse, we just avoid rewriting tokens whose
+  // surrounding text already looks like `@[...](...)` markup by splitting on
+  // the structured pattern.
+  const structuredParts: Array<{ start: number; end: number }> = [];
+  let m: RegExpExecArray | null;
+  while ((m = alreadyMatched.exec(out)) !== null) {
+    structuredParts.push({ start: m.index, end: m.index + m[0].length });
+  }
+
+  function isInsideStructured(idx: number): boolean {
+    return structuredParts.some((p) => idx >= p.start && idx < p.end);
+  }
+
+  for (const mention of extras) {
+    if (mention.type !== "user" && mention.type !== "agent") continue;
+    const handles = new Set<string>();
+    handles.add(mention.name);
+    handles.add(mention.name.replace(/\s+/g, "_"));
+    handles.add(mention.name.replace(/\s+/g, ""));
+    handles.add(mention.name.split(/\s+/)[0] ?? mention.name);
+
+    for (const handle of handles) {
+      if (!handle) continue;
+      // `@handle` must be a word-like token: preceded by start or whitespace
+      // (or punctuation) and followed by whitespace/punctuation/end.
+      const escaped = handle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const tokenRegex = new RegExp(`(^|[\\s(\\[{])@(${escaped})(?=[\\s.,:;!?)\\]}]|$)`, "gi");
+      out = out.replace(tokenRegex, (match, lead, captured, offset) => {
+        // Skip if this position is inside existing `@[...](...)` markup.
+        const atIndex = offset + lead.length;
+        if (isInsideStructured(atIndex)) return match;
+        return `${lead}@[${mention.name}](${mention.type}:${mention.uuid})`;
+      });
+    }
+  }
+
+  return out;
 }
 
 /**
@@ -131,23 +190,29 @@ interface ContentWithMentionsProps {
  *
  * Drop-in replacement for <Streamdown>{content}</Streamdown>.
  */
-export function ContentWithMentions({ children }: ContentWithMentionsProps) {
+export function ContentWithMentions({ children, mentions: extraMentions }: ContentWithMentionsProps) {
   if (!children || typeof children !== "string") {
     return null;
   }
 
+  // F-026: rewrite plain-text `@handle` tokens into canonical mention markup
+  // using the supplied mention metadata before the main parse.
+  const hydrated = extraMentions && extraMentions.length
+    ? injectPlainTextMentions(children, extraMentions)
+    : children;
+
   // Check if there are any mentions at all
-  const hasMentionPatterns = new RegExp(MENTION_REGEX.source).test(children);
+  const hasMentionPatterns = new RegExp(MENTION_REGEX.source).test(hydrated);
 
   if (!hasMentionPatterns) {
     return (
       <div className="overflow-hidden [&_pre]:overflow-x-auto">
-        <Streamdown plugins={{ code }}>{children}</Streamdown>
+        <Streamdown plugins={{ code }}>{hydrated}</Streamdown>
       </div>
     );
   }
 
-  const { processed, mentions } = preprocessMentions(children);
+  const { processed, mentions } = preprocessMentions(hydrated);
 
   return (
     <MentionPostProcessor mentions={mentions}>

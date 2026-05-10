@@ -8,6 +8,9 @@ const mockPrisma = vi.hoisted(() => ({
     count: vi.fn(),
     groupBy: vi.fn(),
   },
+  mention: {
+    findMany: vi.fn().mockResolvedValue([]),
+  },
   experimentRun: {
     findUnique: vi.fn(),
   },
@@ -78,6 +81,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockGetActorName.mockResolvedValue("Test User");
   mockValidateTargetExists.mockResolvedValue(true);
+  // F-026: comment.service now also reads Mention rows for each listed comment.
+  // Default to an empty list — individual tests can override.
+  mockPrisma.mention.findMany.mockResolvedValue([]);
 });
 
 // ===== createComment =====

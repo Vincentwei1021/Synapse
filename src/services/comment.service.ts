@@ -47,6 +47,12 @@ export interface CommentCreateParams {
 }
 
 // Comment response format (using UUIDs)
+export interface CommentMentionSummary {
+  type: string; // "user" | "agent"
+  uuid: string;
+  name: string;
+}
+
 export interface CommentResponse {
   uuid: string;
   targetType: string;
@@ -59,6 +65,10 @@ export interface CommentResponse {
   };
   createdAt: string;
   updatedAt: string;
+  // F-026: structured mention metadata (populated from the Mention DB rows)
+  // so the frontend can render `@handle` plain-text mentions as chips even
+  // when the comment body lacks `@[Name](type:uuid)` markup.
+  mentions: CommentMentionSummary[];
 }
 
 // List comments
@@ -97,6 +107,36 @@ export async function listComments({
     prisma.comment.count({ where }),
   ]);
 
+  // F-026: look up Mention rows for every listed comment so clients can
+  // render plain-text `@handle` tokens as chips without re-parsing the
+  // comment body.
+  const commentUuids = rawComments.map((c) => c.uuid);
+  const mentionRows = commentUuids.length
+    ? await prisma.mention.findMany({
+        where: {
+          companyUuid,
+          sourceType: "comment",
+          sourceUuid: { in: commentUuids },
+        },
+        select: {
+          sourceUuid: true,
+          mentionedType: true,
+          mentionedUuid: true,
+        },
+      })
+    : [];
+
+  const mentionsByComment = new Map<string, CommentMentionSummary[]>();
+  for (const row of mentionRows) {
+    const bucket = mentionsByComment.get(row.sourceUuid) ?? [];
+    const name = (await getActorName(row.mentionedType, row.mentionedUuid)) ?? row.mentionedType;
+    // Dedupe by {type,uuid} per comment
+    if (!bucket.some((m) => m.type === row.mentionedType && m.uuid === row.mentionedUuid)) {
+      bucket.push({ type: row.mentionedType, uuid: row.mentionedUuid, name });
+    }
+    mentionsByComment.set(row.sourceUuid, bucket);
+  }
+
   // Convert to response format
   const comments: CommentResponse[] = await Promise.all(
     rawComments.map(async (c) => {
@@ -113,6 +153,7 @@ export async function listComments({
         },
         createdAt: c.createdAt.toISOString(),
         updatedAt: c.updatedAt.toISOString(),
+        mentions: mentionsByComment.get(c.uuid) ?? [],
       };
     })
   );
@@ -243,6 +284,25 @@ export async function createComment({
     log.error({ err }, "failed to process mentions");
   }
 
+  // F-026: return the resolved mention list on the response so the client can
+  // render `@handle` plain-text tokens as chips immediately after POST.
+  const mentionSummaries: CommentMentionSummary[] = [];
+  try {
+    const freshRows = await prisma.mention.findMany({
+      where: { companyUuid, sourceType: "comment", sourceUuid: comment.uuid },
+      select: { mentionedType: true, mentionedUuid: true },
+    });
+    for (const row of freshRows) {
+      if (mentionSummaries.some((m) => m.type === row.mentionedType && m.uuid === row.mentionedUuid)) {
+        continue;
+      }
+      const name = (await getActorName(row.mentionedType, row.mentionedUuid)) ?? row.mentionedType;
+      mentionSummaries.push({ type: row.mentionedType, uuid: row.mentionedUuid, name });
+    }
+  } catch (err) {
+    log.error({ err }, "failed to reload mention summaries for comment response");
+  }
+
   return {
     uuid: comment.uuid,
     targetType: comment.targetType,
@@ -255,6 +315,7 @@ export async function createComment({
     },
     createdAt: comment.createdAt.toISOString(),
     updatedAt: comment.updatedAt.toISOString(),
+    mentions: mentionSummaries,
   };
 }
 

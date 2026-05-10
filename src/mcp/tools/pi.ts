@@ -11,11 +11,10 @@ import * as researchQuestionService from "@/services/research-question.service";
 import * as documentService from "@/services/document.service";
 import * as activityService from "@/services/activity.service";
 import * as projectGroupService from "@/services/project-group.service";
-import * as experimentRegistryService from "@/services/experiment-registry.service";
 import * as baselineService from "@/services/baseline.service";
 
 export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
-  // synapse_pi_create_research_project - Create a new research project
+  // synapse_create_research_project - Create a new research project
   server.registerTool(
     "synapse_create_research_project",
     {
@@ -91,7 +90,7 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // synapse_pi_delete_research_question - Delete a Research Question
+  // synapse_delete_research_question - Delete a Research Question
   server.registerTool(
     "synapse_delete_research_question",
     {
@@ -114,7 +113,7 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // synapse_pi_delete_document - Delete a Document
+  // synapse_delete_document - Delete a Document
   server.registerTool(
     "synapse_delete_document",
     {
@@ -137,7 +136,7 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // synapse_pi_close_research_question - Close a Research Question (any -> closed)
+  // synapse_close_research_question - Close a Research Question (any -> closed)
   server.registerTool(
     "synapse_close_research_question",
     {
@@ -176,7 +175,7 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
 
   // ===== Project Group PI Tools =====
 
-  // synapse_pi_create_project_group - Create a new project group
+  // synapse_create_project_group - Create a new project group
   server.registerTool(
     "synapse_create_project_group",
     {
@@ -193,13 +192,15 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
         description: description || null,
       });
 
+      // F-042: mirror the `get_project_group` shape so callers see a
+      // consistent record (always carries a `projects` array — empty on create).
       return {
-        content: [{ type: "text", text: JSON.stringify(group, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify({ ...group, projects: [] }, null, 2) }],
       };
     }
   );
 
-  // synapse_pi_update_project_group - Update a project group
+  // synapse_update_project_group - Update a project group
   server.registerTool(
     "synapse_update_project_group",
     {
@@ -211,24 +212,29 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
       }),
     },
     async ({ groupUuid, name, description }) => {
-      const group = await projectGroupService.updateProjectGroup({
+      const updated = await projectGroupService.updateProjectGroup({
         companyUuid: auth.companyUuid,
         groupUuid,
         name,
         description,
       });
 
-      if (!group) {
+      if (!updated) {
         return { content: [{ type: "text", text: "Project group not found" }], isError: true };
       }
 
+      // F-042: re-fetch with projects list so the response shape matches
+      // `synapse_create_project_group` and `synapse_get_project_group`.
+      const detail = await projectGroupService.getProjectGroup(auth.companyUuid, groupUuid);
+      const response = detail ?? { ...updated, projects: [] };
+
       return {
-        content: [{ type: "text", text: JSON.stringify(group, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(response, null, 2) }],
       };
     }
   );
 
-  // synapse_pi_delete_project_group - Delete a project group
+  // synapse_delete_project_group - Delete a project group
   server.registerTool(
     "synapse_delete_project_group",
     {
@@ -286,7 +292,7 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
     }
   );
 
-  // synapse_pi_move_research_project_to_group - Move a research project to a group or ungroup it
+  // synapse_move_research_project_to_group - Move a research project to a group or ungroup it
   server.registerTool(
     "synapse_move_research_project_to_group",
     {
@@ -314,21 +320,10 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
   );
 
   // ===== Research Verification Tools =====
-
-  // synapse_verify_reproducibility — Mark an experiment as reproducibility-verified
-  server.registerTool(
-    "synapse_verify_reproducibility",
-    {
-      description: "Mark an experiment as verified for reproducibility",
-      inputSchema: z.object({
-        registryUuid: z.string(),
-      }),
-    },
-    async (params) => {
-      const result = await experimentRegistryService.markReproducible(auth.companyUuid, params.registryUuid);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    }
-  );
+  // F-037: `synapse_verify_reproducibility` was removed. It was tied to the
+  // legacy ExperimentRegistry, which is not created for new Experiments.
+  // The underlying `experimentRegistryService.markReproducible` is still
+  // reachable via the legacy `/api/experiment-runs/[uuid]/registry` route.
 
   // synapse_set_active_baseline — Set which baseline is the current active one
   server.registerTool(

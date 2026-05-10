@@ -148,7 +148,7 @@ describe("listAgentSummaries", () => {
     ]);
     expect(mockPrisma.agent.findMany).toHaveBeenCalledWith({
       where: { companyUuid },
-      select: { uuid: true, name: true, roles: true, type: true, color: true },
+      select: { uuid: true, name: true, roles: true, type: true, color: true, lastActiveAt: true },
       orderBy: { createdAt: "asc" },
     });
   });
@@ -233,9 +233,11 @@ describe("createAgent", () => {
 
     expect(result.uuid).toBe(agentUuid);
     expect(result.name).toBe("Test Agent");
+    // F-006: when no color is provided, a palette color is deterministically
+    // chosen from the agent name so every new agent has a non-null color.
     expect(mockPrisma.agent.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: {
+        data: expect.objectContaining({
           companyUuid,
           name: "Test Agent",
           roles: ["researcher_agent"],
@@ -243,8 +245,29 @@ describe("createAgent", () => {
           ownerUuid,
           persona: undefined,
           systemPrompt: undefined,
-          color: null,
-        },
+        }),
+      })
+    );
+    const callArgs = mockPrisma.agent.create.mock.calls[0][0] as { data: { color: string } };
+    expect(typeof callArgs.data.color).toBe("string");
+    expect(callArgs.data.color.length).toBeGreaterThan(0);
+  });
+
+  it("should honor explicit color and skip default palette assignment", async () => {
+    const agent = makeAgent({ color: "violet" });
+    mockPrisma.agent.create.mockResolvedValue(agent);
+
+    await createAgent({
+      companyUuid,
+      name: "Painter",
+      roles: ["researcher_agent"],
+      ownerUuid,
+      color: "violet",
+    });
+
+    expect(mockPrisma.agent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ color: "violet" }),
       })
     );
   });

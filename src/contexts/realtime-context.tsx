@@ -71,6 +71,7 @@ export function RealtimeProvider({ projectUuid, children }: RealtimeProviderProp
   useEffect(() => {
     let es: EventSource | null = null;
     let debounceTimer: NodeJS.Timeout;
+    let isUnmounting = false;
 
     let lastNotifyTime = 0;
     const THROTTLE_MS = 3000;  // At most 1 refresh every 3 seconds
@@ -79,6 +80,7 @@ export function RealtimeProvider({ projectUuid, children }: RealtimeProviderProp
     function connect() {
       // Close any existing connection before opening a new one
       disconnect();
+      if (isUnmounting) return;
       es = new EventSource(`/api/events?researchProjectUuid=${projectUuid}`);
       es.onmessage = (msg) => {
         // Parse event data for entity-specific subscribers
@@ -129,7 +131,9 @@ export function RealtimeProvider({ projectUuid, children }: RealtimeProviderProp
         }
       });
       es.onerror = () => {
-        // Browser EventSource auto-reconnects on error
+        // Aborts during navigation/unmount are expected — readyState === CLOSED
+        // means we (or the browser) intentionally tore down the stream. The
+        // browser will auto-reconnect on transient errors; nothing to log.
       };
     }
 
@@ -153,6 +157,7 @@ export function RealtimeProvider({ projectUuid, children }: RealtimeProviderProp
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
+      isUnmounting = true;
       disconnect();
       clearTimeout(debounceTimer);
       document.removeEventListener("visibilitychange", handleVisibility);

@@ -1521,8 +1521,8 @@ export async function checkAutonomousLoopTrigger(
       action: "autonomous_loop_triggered",
       message:
         mode === "full_auto"
-          ? "No experiments are waiting to start. Call synapse_get_project_full_context to review results and available compute, then propose experiments (one independent run per experiment card, up to available GPU capacity). Update the project synthesis before proposing."
-          : "Experiment queue is empty. Call synapse_get_project_full_context to review results and available compute, then propose experiments (one per available GPU).",
+          ? "No experiments are waiting to start. Call synapse_get_project_full_context to review results and available compute, then propose experiments — one independent run per card, up to available GPU capacity. Split sweeps, ablations, repeated trials, and baseline-vs-variant comparisons into separate cards; do not pack multiple runs into one card. A multi-phase card is only acceptable when the phases are strictly sequential stages of a single run. Update the project synthesis before proposing."
+          : "Experiment queue is empty. Call synapse_get_project_full_context to review results and available compute, then propose experiments — one independent run per card, up to available GPU capacity. Split sweeps, ablations, repeated trials, and comparisons into separate cards.",
       actorType: "user",
       actorUuid: "system",
       actorName: "Synapse",

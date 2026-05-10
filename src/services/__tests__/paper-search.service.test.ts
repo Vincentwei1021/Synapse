@@ -188,6 +188,75 @@ describe("readPaperBrief", () => {
     const result = await readPaperBrief("2401.12345");
     expect(result).toBeNull();
   });
+
+  // F-025: fall back to public arXiv Atom when DeepXiv returns 404.
+  it("falls back to arXiv on DeepXiv 404", async () => {
+    const { readPaperBrief } = await import("@/services/paper-search.service");
+
+    // DeepXiv returns 404
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: "paper not found" }), { status: 404 }),
+    );
+    // arXiv Atom returns a single entry
+    const atom = `<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <entry>
+    <id>http://arxiv.org/abs/1910.08476v1</id>
+    <title>Connections between Constrained Optimization and RL</title>
+    <summary>Abstract text.</summary>
+    <author><name>Alice</name></author>
+    <published>2019-10-15T00:00:00Z</published>
+  </entry>
+</feed>`;
+    mockFetch.mockResolvedValueOnce(new Response(atom, { status: 200 }));
+
+    const result = await readPaperBrief("1910.08476");
+
+    expect(result).not.toBeNull();
+    expect(result!.arxivId).toBe("1910.08476");
+    expect(result!.title).toContain("Constrained Optimization");
+    expect(result!.abstract).toBe("Abstract text.");
+    expect(result!.year).toBe(2019);
+    expect(result!.tldr).toBeNull();
+    expect(result!.keywords).toEqual([]);
+  });
+
+  // F-025: auth failures must surface — no silent arXiv fallback.
+  it("does NOT fall back to arXiv on DeepXiv 401", async () => {
+    const { readPaperBrief } = await import("@/services/paper-search.service");
+
+    mockFetch.mockResolvedValueOnce(
+      new Response("unauthorized", { status: 401 }),
+    );
+
+    const result = await readPaperBrief("2401.12345");
+    expect(result).toBeNull();
+    // Should not have attempted arXiv
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  // F-025: also fall back when DeepXiv responds 200 with a "not found" error payload.
+  it("falls back to arXiv on DeepXiv 200 with not-found payload", async () => {
+    const { readPaperBrief } = await import("@/services/paper-search.service");
+
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: "Paper not found" }), { status: 200 }),
+    );
+    const atom = `<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <entry>
+    <id>http://arxiv.org/abs/1910.08476v1</id>
+    <title>Fallback Title</title>
+    <summary>Fallback abstract.</summary>
+    <author><name>Bob</name></author>
+  </entry>
+</feed>`;
+    mockFetch.mockResolvedValueOnce(new Response(atom, { status: 200 }));
+
+    const result = await readPaperBrief("1910.08476");
+    expect(result).not.toBeNull();
+    expect(result!.title).toBe("Fallback Title");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -231,6 +300,35 @@ describe("readPaperHead", () => {
         { name: "Methods", tldr: "Methods summary", tokenCount: 1200 },
       ],
     });
+  });
+
+  // F-025: synthesize a single-section head from the public arXiv abstract
+  // when DeepXiv returns 404.
+  it("falls back to arXiv on DeepXiv 404", async () => {
+    const { readPaperHead } = await import("@/services/paper-search.service");
+
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: "not found" }), { status: 404 }),
+    );
+    const atom = `<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <entry>
+    <id>http://arxiv.org/abs/1910.08476v1</id>
+    <title>Head Fallback Title</title>
+    <summary>Head fallback abstract.</summary>
+    <author><name>Carol</name></author>
+  </entry>
+</feed>`;
+    mockFetch.mockResolvedValueOnce(new Response(atom, { status: 200 }));
+
+    const result = await readPaperHead("1910.08476");
+
+    expect(result).not.toBeNull();
+    expect(result!.arxivId).toBe("1910.08476");
+    expect(result!.title).toBe("Head Fallback Title");
+    expect(result!.sections).toHaveLength(1);
+    expect(result!.sections[0].name).toBe("Abstract");
+    expect(result!.sections[0].tldr).toBe("Head fallback abstract.");
   });
 });
 

@@ -191,30 +191,144 @@ export async function searchDeepXiv(
 // DeepXiv paper reading functions
 // ---------------------------------------------------------------------------
 
+/**
+ * Issue a GET against DeepXiv and return the parsed JSON plus the raw status.
+ * Unlike `fetchWithRetry`, this preserves the final HTTP status so callers can
+ * distinguish 404 "paper not found" from transient failures. Retries 429/5xx.
+ */
+async function deepxivGet(url: string): Promise<{ status: number; json: unknown | null }> {
+  let lastStatus = 0;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const resp = await fetch(url, {
+        signal: AbortSignal.timeout(15_000),
+        headers: await deepxivHeaders(),
+      });
+      lastStatus = resp.status;
+      if (resp.ok) {
+        try {
+          return { status: resp.status, json: await resp.json() };
+        } catch {
+          return { status: resp.status, json: null };
+        }
+      }
+      const retryable = resp.status === 429 || (resp.status >= 500 && resp.status < 600);
+      if (!retryable || attempt === MAX_RETRIES) return { status: resp.status, json: null };
+
+      const retryAfter = resp.headers.get("Retry-After");
+      const delayMs = retryAfter
+        ? Number(retryAfter) * 1000
+        : BACKOFF_BASE_MS * Math.pow(2, attempt);
+      await new Promise((r) => setTimeout(r, delayMs));
+    } catch {
+      if (attempt === MAX_RETRIES) return { status: lastStatus, json: null };
+      await new Promise((r) => setTimeout(r, BACKOFF_BASE_MS * Math.pow(2, attempt)));
+    }
+  }
+  return { status: lastStatus, json: null };
+}
+
+/**
+ * Treat DeepXiv 404 responses (and explicit "paper not found" error payloads)
+ * as a signal to fall back to the public arXiv Atom API.
+ */
+function deepxivIsNotFound(status: number, json: unknown): boolean {
+  if (status === 404) return true;
+  if (json && typeof json === "object") {
+    const record = json as Record<string, unknown>;
+    const msg =
+      typeof record.error === "string"
+        ? record.error
+        : typeof record.message === "string"
+          ? record.message
+          : null;
+    if (msg && /not\s*found/i.test(msg)) return true;
+  }
+  return false;
+}
+
+/**
+ * Fetch a single paper from the public arXiv Atom API by ID.
+ * Used as a fallback when DeepXiv doesn't have the paper (F-025).
+ * Returns null only on network/API failure (not on "paper missing").
+ */
+async function fetchArxivById(arxivId: string): Promise<PaperResult | null> {
+  const params = new URLSearchParams({ id_list: arxivId });
+  const url = `https://export.arxiv.org/api/query?${params}`;
+  const resp = await fetchWithRetry(url);
+  if (!resp) return null;
+  const xml = await resp.text();
+  const entries = xml.split("<entry>").slice(1);
+  if (entries.length === 0) return null;
+  const entry = entries[0];
+  const title = (entry.match(/<title[^>]*>([\s\S]*?)<\/title>/) ?? [])[1]
+    ?.replace(/\s+/g, " ")
+    .trim() ?? "";
+  const summary = (entry.match(/<summary[^>]*>([\s\S]*?)<\/summary>/) ?? [])[1]
+    ?.replace(/\s+/g, " ")
+    .trim() ?? null;
+  const authors = [...entry.matchAll(/<name>([\s\S]*?)<\/name>/g)]
+    .map((m) => m[1].trim())
+    .join(", ");
+  const idRaw = (entry.match(/<id>([\s\S]*?)<\/id>/) ?? [])[1]?.trim() ?? "";
+  const resolvedArxivId =
+    idRaw.replace(/^https?:\/\/arxiv\.org\/abs\//, "").replace(/v\d+$/, "") || arxivId;
+  const doi = (entry.match(/<arxiv:doi[^>]*>([\s\S]*?)<\/arxiv:doi>/) ?? [])[1]?.trim() ?? null;
+  const published = (entry.match(/<published>([\s\S]*?)<\/published>/) ?? [])[1]?.trim() ?? null;
+  const year = published ? new Date(published).getFullYear() : null;
+  if (!title) return null;
+  return {
+    title,
+    abstract: summary,
+    authors,
+    url: `https://arxiv.org/abs/${resolvedArxivId}`,
+    arxivId: resolvedArxivId,
+    doi,
+    year: year && !isNaN(year) ? year : null,
+    citationCount: null,
+    source: "arxiv" as const,
+  };
+}
+
 /** Get brief summary: TLDR, keywords, citation count, GitHub URL. */
 export async function readPaperBrief(arxivId: string): Promise<DeepXivBrief | null> {
   const params = new URLSearchParams({ type: "brief", arxiv_id: arxivId });
   const url = `${DEEPXIV_BASE}?${params}`;
 
-  const resp = await fetchWithRetry(url, { headers: await deepxivHeaders() });
-  if (!resp) return null;
+  const { status, json } = await deepxivGet(url);
 
-  try {
-    const json = await resp.json();
+  // F-025: fall back to public arXiv only when DeepXiv says "not found" —
+  // auth/network/5xx errors must surface so callers see the real failure.
+  if (deepxivIsNotFound(status, json)) {
+    const arxivPaper = await fetchArxivById(arxivId);
+    if (!arxivPaper) return null;
     return {
-      arxivId: json.arxiv_id ?? arxivId,
-      title: json.title ?? "",
-      authors: json.authors ?? "",
-      abstract: json.abstract ?? null,
-      tldr: json.tldr ?? null,
-      keywords: Array.isArray(json.keywords) ? json.keywords : [],
-      citationCount: json.citation_count ?? null,
-      githubUrl: json.github_url ?? null,
-      year: json.year ?? null,
+      arxivId: arxivPaper.arxivId ?? arxivId,
+      title: arxivPaper.title,
+      authors: arxivPaper.authors,
+      abstract: arxivPaper.abstract,
+      tldr: null,
+      keywords: [],
+      citationCount: null,
+      githubUrl: null,
+      year: arxivPaper.year,
     };
-  } catch {
-    return null;
   }
+
+  if (json === null) return null;
+
+  const data = json as Record<string, unknown>;
+  return {
+    arxivId: (data.arxiv_id as string) ?? arxivId,
+    title: (data.title as string) ?? "",
+    authors: (data.authors as string) ?? "",
+    abstract: (data.abstract as string) ?? null,
+    tldr: (data.tldr as string) ?? null,
+    keywords: Array.isArray(data.keywords) ? (data.keywords as string[]) : [],
+    citationCount: (data.citation_count as number) ?? null,
+    githubUrl: (data.github_url as string) ?? null,
+    year: (data.year as number) ?? null,
+  };
 }
 
 /** Get paper structure with per-section TLDRs and token counts. */
@@ -222,26 +336,37 @@ export async function readPaperHead(arxivId: string): Promise<DeepXivHead | null
   const params = new URLSearchParams({ type: "head", arxiv_id: arxivId });
   const url = `${DEEPXIV_BASE}?${params}`;
 
-  const resp = await fetchWithRetry(url, { headers: await deepxivHeaders() });
-  if (!resp) return null;
+  const { status, json } = await deepxivGet(url);
 
-  try {
-    const json = await resp.json();
-    const sections = Array.isArray(json.sections)
-      ? json.sections.map((s: { name?: string; tldr?: string; token_count?: number }) => ({
-          name: s.name ?? "",
-          tldr: s.tldr ?? null,
-          tokenCount: s.token_count ?? null,
-        }))
-      : [];
+  // F-025: on "not found", synthesize a minimal head from the public arXiv
+  // abstract so agents can at least see the title + abstract.
+  if (deepxivIsNotFound(status, json)) {
+    const arxivPaper = await fetchArxivById(arxivId);
+    if (!arxivPaper) return null;
     return {
-      arxivId: json.arxiv_id ?? arxivId,
-      title: json.title ?? "",
-      sections,
+      arxivId: arxivPaper.arxivId ?? arxivId,
+      title: arxivPaper.title,
+      sections: arxivPaper.abstract
+        ? [{ name: "Abstract", tldr: arxivPaper.abstract, tokenCount: null }]
+        : [],
     };
-  } catch {
-    return null;
   }
+
+  if (json === null) return null;
+
+  const data = json as Record<string, unknown>;
+  const sections = Array.isArray(data.sections)
+    ? (data.sections as Array<{ name?: string; tldr?: string; token_count?: number }>).map((s) => ({
+        name: s.name ?? "",
+        tldr: s.tldr ?? null,
+        tokenCount: s.token_count ?? null,
+      }))
+    : [];
+  return {
+    arxivId: (data.arxiv_id as string) ?? arxivId,
+    title: (data.title as string) ?? "",
+    sections,
+  };
 }
 
 /** Get full text of one section. */

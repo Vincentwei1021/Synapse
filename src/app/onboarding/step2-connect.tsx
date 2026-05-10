@@ -94,6 +94,10 @@ export function OnboardingStep2({ agentUuid, agentName, agentType, onComplete, o
         // ignore
       }
     };
+    es.onerror = () => {
+      // Aborts during navigation/unmount are expected; polling fallback covers
+      // transient errors. Nothing to log.
+    };
 
     // Polling fallback
     pollRef.current = setInterval(async () => {
