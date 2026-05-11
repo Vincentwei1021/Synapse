@@ -100,25 +100,23 @@ if (!useExternalDb) {
   process.env.SYNAPSE_PGLITE = "1";
 }
 
-// --- Run migrations ---
-console.log("  Running migrations...");
+// --- Sync schema ---
+// Zero-dependency CLI syncs the bundled schema.prisma directly against the
+// local database via `prisma db push`. This is idempotent: new installs create
+// tables, upgrades add missing columns/tables. We deliberately do not use
+// `migrate deploy` because the repo's schema evolves via `db push` in dev and
+// committed migrations lag behind the canonical schema.
+console.log("  Syncing schema...");
 const origSchemaPath = join(DIST_DIR, "prisma", "schema.prisma");
-const migrationsDir = join(DIST_DIR, "prisma", "migrations");
-if (existsSync(migrationsDir) && existsSync(origSchemaPath)) {
-  // Prisma 7 requires datasource url in schema. Copy schema + migrations
-  // to a writable temp dir and inject the url there.
+if (existsSync(origSchemaPath)) {
+  // Prisma 7 requires datasource url in schema or config. Copy schema to a
+  // writable temp dir and provide a prisma.config.js that injects DATABASE_URL.
   const tmpPrisma = join(dataDir, "_prisma_tmp");
-  mkdirSync(join(tmpPrisma, "migrations"), { recursive: true });
+  mkdirSync(tmpPrisma, { recursive: true });
 
-  // Copy migrations
-  const { cpSync } = await import("node:fs");
-  cpSync(join(DIST_DIR, "prisma", "migrations"), join(tmpPrisma, "migrations"), { recursive: true });
-
-  // Copy schema as-is
   const { cpSync: cpFile } = await import("node:fs");
   cpFile(origSchemaPath, join(tmpPrisma, "schema.prisma"));
 
-  // Prisma 7 requires prisma.config.ts/js for the datasource URL
   writeFileSync(join(tmpPrisma, "prisma.config.js"), `
 module.exports = {
   schema: "./schema.prisma",
@@ -130,7 +128,7 @@ module.exports = {
 
   try {
     execSync(
-      `npx prisma migrate deploy --config ${join(tmpPrisma, "prisma.config.js")}`,
+      `npx prisma db push --accept-data-loss --config ${join(tmpPrisma, "prisma.config.js")}`,
       {
         cwd: tmpPrisma,
         stdio: "pipe",
@@ -139,11 +137,11 @@ module.exports = {
     );
   } catch (err) {
     const stderr = err.stderr ? err.stderr.toString() : err.message;
-    console.error("  Migration failed:", stderr);
+    console.error("  Schema sync failed:", stderr);
     process.exit(1);
   }
 } else {
-  console.warn("  No migrations directory found, skipping...");
+  console.warn("  No schema.prisma found, skipping...");
 }
 
 // --- Default auth (auto-provisions on first login) ---
