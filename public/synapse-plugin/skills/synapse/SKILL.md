@@ -21,8 +21,7 @@ Synapse is a research orchestration platform for human researchers and AI agents
 | **[research](../research/SKILL.md)** | Research questions, literature search, related works, deep research |
 | **[experiments](../experiments/SKILL.md)** | Experiment planning, revision, execution, compute, and result submission |
 | **[autonomy](../autonomy/SKILL.md)** | Autonomous loop and next-experiment proposal work |
-| **[sessions](../sessions/SKILL.md)** | Session lifecycle, observability, and sub-agent behavior |
-| **[agent-teams](../agent-teams/SKILL.md)** | Claude Code Agent Teams orchestration with Synapse |
+| **[sessions](../sessions/SKILL.md)** | Plugin hooks, session lifecycle, and multi-agent parallel execution |
 
 ## Core Workflow
 
@@ -59,7 +58,16 @@ When hook context mentions an active project, assignment, experiment, synthesis 
 4. Report durable progress with `synapse_report_experiment_progress` or `synapse_add_comment` when work spans more than a quick read-only lookup.
 5. Finish Synapse-triggered task state with the task-specific completion tool, such as `synapse_submit_experiment_results`, `synapse_save_project_synthesis`, or `synapse_complete_task` for task types that still require explicit completion.
 
-For OpenClaw realtime agents, the plugin also routes Synapse notifications from SSE into context-rich prompts. Handle those routed prompts before starting unrelated work.
+### Step 2b: Empty-project onboarding
+
+If `synapse_checkin()` returns no assignments and no notifications and the user's current project has no related works, no research questions, and no experiments, do not silently pick a direction. Ask the user which path to start with:
+
+1. **Literature-first** — search papers with `synapse_search_papers`, curate with `synapse_add_related_work`, then synthesize a deep research report via `synapse_save_deep_research_report`. Switch to **[research](../research/SKILL.md)**.
+2. **Question-first** — draft one or more `ResearchQuestion` records with `synapse_create_research_question` to frame the project. Switch to **[research](../research/SKILL.md)**.
+3. **Experiment-first** — skip ahead and create the foundational experiment (data preparation + baseline + evaluation script) with `synapse_create_experiment`. Switch to **[experiments](../experiments/SKILL.md)**.
+4. **Autonomous** — hand the project to the CC-client autonomous loop so the agent proposes and runs experiments on its own. Switch to **[autonomy](../autonomy/SKILL.md)**.
+
+Each stage skill repeats this onboarding prompt from its own perspective when entered with empty state.
 
 ### Step 3: Choose the right stage skill
 
@@ -68,9 +76,8 @@ For OpenClaw realtime agents, the plugin also routes Synapse notifications from 
 | Understanding project context and project state | Stay here, then call `synapse_get_project_full_context()` |
 | Research questions, literature, deep research | **[research](../research/SKILL.md)** |
 | Experiment drafting, revision, execution, compute, reporting | **[experiments](../experiments/SKILL.md)** |
-| Autonomous next-step proposal and queue-empty behavior | **[autonomy](../autonomy/SKILL.md)** |
-| Session tracking and observability concerns | **[sessions](../sessions/SKILL.md)** |
-| Multi-agent parallel dispatch in Claude Code | **[agent-teams](../agent-teams/SKILL.md)** |
+| Autonomous next-step proposal, queue-empty behavior, driving the CC-client autonomous loop | **[autonomy](../autonomy/SKILL.md)** |
+| Plugin hook behavior, session tracking, multi-agent parallel dispatch in Claude Code | **[sessions](../sessions/SKILL.md)** |
 
 ## Active Trigger Routing
 
@@ -84,9 +91,9 @@ For OpenClaw realtime agents, the plugin also routes Synapse notifications from 
 | Deep research requested | `synapse_get_project_full_context()`, `synapse_get_related_works()`, then existing report via `synapse_get_deep_research_report()` | **[research](../research/SKILL.md)**; call `synapse_complete_task({ taskType: "deep_research" })` when done |
 | Auto search triggered | `synapse_get_project_full_context()` and inspect existing related works | **[research](../research/SKILL.md)** to search, add related works, and complete the task if required |
 | Synthesis refresh requested | `synapse_get_project_full_context()`, `synapse_get_documents({ type: "project_synthesis" })`, then `synapse_get_document()` if one exists | Save only if new results need analysis; `synapse_save_project_synthesis()` clears the active synthesis task |
-| Autonomous loop or empty queue | `synapse_get_project_full_context()` and `synapse_list_compute_nodes({ researchProjectUuid })` | **[autonomy](../autonomy/SKILL.md)** to propose next experiments |
-| @mention or comment notification | `synapse_get_comments()` for the target when available | Reply with `synapse_add_comment()` |
-| Sub-agent start/session context | Use the injected experiment UUID, then `synapse_get_experiment()` | **[sessions](../sessions/SKILL.md)** for lifecycle behavior and **[experiments](../experiments/SKILL.md)** for work execution |
+| Autonomous loop or empty queue | `synapse_get_project_full_context()` and `synapse_list_compute_nodes({ researchProjectUuid })` | **[autonomy](../autonomy/SKILL.md)** to drive the CC-client loop |
+| @mention or comment notification | `synapse_get_comments()` for the target when available | Reply with `synapse_add_comment()` using the `@[name](actorType:uuid)` format |
+| Sub-agent start/session context | Use the injected experiment UUID, then `synapse_get_experiment()` | **[sessions](../sessions/SKILL.md)** for hook behavior and **[experiments](../experiments/SKILL.md)** for work execution |
 
 ## Minimum Tool Map
 
@@ -120,8 +127,7 @@ For OpenClaw realtime agents, the plugin also routes Synapse notifications from 
 - **[references/02-research-workflow.md](references/02-research-workflow.md)** -- research reference used by the `research` skill
 - **[references/03-experiment-workflow.md](references/03-experiment-workflow.md)** -- experiment reference used by the `experiments` skill
 - **[references/04-autonomous-loop.md](references/04-autonomous-loop.md)** -- autonomy reference used by the `autonomy` skill
-- **[references/05-session-sub-agent.md](references/05-session-sub-agent.md)** -- sessions reference used by the `sessions` skill
-- **[references/06-claude-code-agent-teams.md](references/06-claude-code-agent-teams.md)** -- agent teams reference used by the `agent-teams` skill
+- **[references/05-session-sub-agent.md](references/05-session-sub-agent.md)** -- plugin hooks, session lifecycle, and multi-agent parallel execution reference used by the `sessions` skill
 
 ## Status Lifecycles
 

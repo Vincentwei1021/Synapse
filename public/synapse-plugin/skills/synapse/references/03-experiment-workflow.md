@@ -2,6 +2,8 @@
 
 This guide covers the current experiment lifecycle: planning or revising experiment specs, executing approved experiments, reporting progress, and saving final reports.
 
+All execution happens through Synapse MCP tools plus Claude Code's own tools (Bash for remote shells, Task for sub-agent dispatch). The Synapse Claude Code plugin never requires a custom runtime on GPU nodes — remote work is driven over SSH using the access bundle.
+
 ---
 
 ## Experiment Lifecycle
@@ -10,32 +12,41 @@ This guide covers the current experiment lifecycle: planning or revising experim
 draft --> pending_review --> pending_start --> in_progress --> completed
 ```
 
-- `draft`: being authored or revised
-- `pending_review`: waiting for human review
-- `pending_start`: approved and ready for execution
-- `in_progress`: actively running
-- `completed`: results submitted
+- `draft` — being authored or revised
+- `pending_review` — waiting for human review
+- `pending_start` — approved and ready for execution
+- `in_progress` — actively running
+- `completed` — results submitted
+
+Each experiment card must represent **one independent run**. Do not bundle comparison runs, ablations, or parameter sweeps into a single card — create multiple cards instead.
 
 ---
 
 ## Getting Assigned Experiments
 
 ```text
-# Check all your assignments
 synapse_get_assigned_experiments()
-
-# Filter by project
 synapse_get_assigned_experiments({ researchProjectUuid: "..." })
-
-# Filter by status
 synapse_get_assigned_experiments({ statuses: ["pending_start", "in_progress"] })
 ```
 
-For full experiment details:
+For full details:
 
 ```text
 synapse_get_experiment({ experimentUuid: "..." })
 ```
+
+---
+
+## Foundational First Experiment
+
+If a project has no completed experiments yet, treat the first experiment as foundational infrastructure, not a normal research run. Bundle three deliverables:
+
+1. **Data preparation** — normalize the raw dataset into a single canonical format every future experiment will consume. Script lives under the project's repo (if `synapse_get_repo_access` shows one is configured).
+2. **Baseline** — the simplest reasonable approach, run end-to-end, with metrics recorded via `synapse_submit_experiment_results`. This becomes the reference all future experiments compare against.
+3. **Evaluation script** — a canonical eval harness that future experiments call. Committed alongside data prep.
+
+If the project has a repo, commit all three onto the base branch (or a per-experiment branch merged back into the base branch). Every subsequent experiment branches from that base so it inherits prep + eval.
 
 ---
 
@@ -68,7 +79,7 @@ synapse_update_experiment_status({
 })
 ```
 
-If you are revising based on feedback, read the full thread first:
+When revising based on reviewer feedback, read the full comment thread first — feedback is often scattered across multiple comments:
 
 ```text
 synapse_get_comments({
@@ -76,6 +87,19 @@ synapse_get_comments({
   targetUuid: "..."
 })
 ```
+
+Write the plan in the same language as the project description. After revising, reply to the reviewer with `synapse_add_comment` using the exact mention format `@[name](actorType:uuid)`.
+
+### Plan content
+
+A good experiment plan covers:
+- **Objective** — the one thing this experiment is trying to learn
+- **Methodology** — enough detail that another agent (or sub-agent) could execute it unattended
+- **Expected outcomes** — what success and failure look like against the project's evaluation method
+- **Implementation steps** — data prep, training/inference, evaluation, analysis
+- **Resource requirements** — expected GPU count, wall clock, dataset size
+
+---
 
 ## Creating A New Experiment
 
@@ -85,7 +109,7 @@ When the user asks you to author a brand-new experiment outside autonomous loop,
 synapse_create_experiment({
   researchProjectUuid: "...",
   title: "Baseline reproduction with revised tokenizer",
-  description: "## Objective\n\nReproduce the baseline with the new tokenizer setup...",
+  description: "## Objective\n\n...",
   researchQuestionUuid: "...",
   priority: "high"
 })
@@ -93,7 +117,7 @@ synapse_create_experiment({
 
 Defaults:
 - `status = pending_review` for the normal agent-created path
-- use `status: "draft"` if you want to keep refining before sending it to review
+- Use `status: "draft"` if you want to keep refining before sending it to review
 
 Typical follow-up after creating a draft:
 
@@ -104,145 +128,192 @@ synapse_update_experiment_status({ experimentUuid: "...", status: "pending_revie
 
 ---
 
-## Starting An Experiment
+## Execution Checklist
 
-When ready to begin work on a `pending_start` experiment:
+This is the detailed flow for moving an experiment through `in_progress` to `completed`. It assumes the experiment is already `pending_start`.
 
-```text
-synapse_start_experiment({
-  experimentUuid: "...",
-  workingNotes: "Starting with baseline configuration"
-})
-```
+1. **Build an internal todo list** covering: compute reservation, repo setup, data prep, run, monitoring, commit, submission. Keeps complex experiments honest.
 
-This moves the experiment to `in_progress` and creates or updates the experiment result document.
+2. **Inspect available compute**
 
-### With Explicit GPU Reservation
+   ```text
+   synapse_list_compute_nodes({
+     researchProjectUuid: "...",
+     onlyAvailable: true
+   })
+   ```
 
-If the experiment needs compute, inspect available GPUs first:
+   If the project has a `computePoolUuid`, your reservations must stay inside that pool.
 
-```text
-synapse_list_compute_nodes({ onlyAvailable: true, researchProjectUuid: "..." })
-```
+3. **Reserve GPUs** — either inline via `synapse_start_experiment({ gpuUuids: [...] })` or explicitly ahead of time:
 
-Then either reserve inline with `start_experiment`:
+   ```text
+   synapse_reserve_gpus({
+     experimentUuid: "...",
+     gpuUuids: ["gpu-uuid-1", "gpu-uuid-2"]
+   })
+   ```
 
-```text
-synapse_start_experiment({
-  experimentUuid: "...",
-  gpuUuids: ["gpu-uuid-1", "gpu-uuid-2"],
-  workingNotes: "Using 2x L40S GPUs"
-})
-```
+4. **Start the experiment** — moves it to `in_progress` and creates/updates the experiment result document:
 
-Or reserve explicitly before starting:
+   ```text
+   synapse_start_experiment({
+     experimentUuid: "...",
+     workingNotes: "Starting with baseline configuration"
+   })
+   ```
 
-```text
-synapse_reserve_gpus({
-  experimentUuid: "...",
-  gpuUuids: ["gpu-uuid-1", "gpu-uuid-2"]
-})
+5. **Fetch SSH access** — never assume a server-local key path exists:
 
-synapse_start_experiment({ experimentUuid: "..." })
-```
+   ```text
+   synapse_get_node_access_bundle({
+     experimentUuid: "...",
+     nodeUuid: "..."
+   })
+   ```
+
+   Returns host / user / port and `privateKeyPemBase64`. Decode, write to a local PEM, `chmod 600`, then SSH using the returned host/user/port and the PEM.
+
+6. **Check out the repo** — if the project is repo-backed:
+
+   ```text
+   synapse_get_repo_access({ experimentUuid: "..." })
+   ```
+
+   Clone on the remote node, then check out the experiment's base branch (or create a per-experiment branch off the base). Subsequent experiments must inherit the base branch's data prep + eval scripts.
+
+7. **Run the workload in a persistent remote shell** — use `tmux` (or `screen`) so the session survives disconnects, and run Python with unbuffered output so logs do not stall tool calls:
+
+   ```bash
+   tmux new -d -s exp-<short> 'cd ~/work && PYTHONUNBUFFERED=1 python -u train.py --config exp.yaml 2>&1 | tee run.log'
+   ```
+
+8. **Monitoring — long runs (>30 min)**: poll from the main agent on a cadence, or set up a cron / periodic job on the remote node that calls back with a progress update. Use `synapse_report_experiment_progress` to push each milestone:
+
+   ```text
+   synapse_report_experiment_progress({
+     experimentUuid: "...",
+     message: "Epoch 15/100, loss: 0.342, val_acc: 87.2%",
+     phase: "training",
+     liveStatus: "running"
+   })
+   ```
+
+   `liveStatus` values:
+   - `checking_resources` while probing compute
+   - `queuing` while waiting for GPUs (status-only, does not create a progress-log row)
+   - `running` during active execution
+
+   `phase` labels: `setup`, `training`, `evaluation`, `analysis`.
+
+9. **Monitoring — short runs** (a few minutes): skip the cron, report progress inline at setup / mid-training / evaluation / analysis transitions.
+
+10. **Commit code and artifacts** — commit configs, scripts, and meaningful artifacts to the experiment branch (or base branch) and capture the commit SHA to include in the submission.
+
+11. **Submit results**
+
+    ```text
+    synapse_submit_experiment_results({
+      experimentUuid: "...",
+      outcome: "success",
+      experimentResults: {
+        "accuracy": 0.923,
+        "summary": "Ablation outperformed baseline",
+        "branch": "exp-ablation-3",
+        "commit": "abc1234"
+      }
+    })
+    ```
+
+    `outcome` is optional, typically `success`, `failure`, or `inconclusive`. Submitting moves the experiment to `completed`, refreshes the experiment result document, and triggers the project synthesis refresh.
+
+12. **Save the dedicated experiment report** — when the flow asks for a full writeup:
+
+    ```text
+    synapse_save_experiment_report({
+      experimentUuid: "...",
+      title: "Experiment Report: Baseline vs Ablation",
+      content: "# Objective\n\n..."
+    })
+    ```
+
+    Use python + a plotting library to generate charts and embed them in the markdown where they help. Do **not** post the report as a comment — always use `synapse_save_experiment_report` so the dedicated result document exists.
+
+13. **Match the project description's language** — if the project brief is in Chinese, write plan, progress messages, and report in Chinese.
 
 ---
 
-## Reporting Progress
+## Handling Failures And Inconclusive Runs
 
-Progress updates appear on the experiment card in real time and are stored in the progress timeline.
-
-```text
-synapse_report_experiment_progress({
-  experimentUuid: "...",
-  message: "Epoch 15/100, loss: 0.342, val_acc: 87.2%",
-  phase: "training",
-  liveStatus: "running"
-})
-```
-
-Useful `liveStatus` values:
-- `checking_resources` while probing compute
-- `queuing` while waiting for GPUs
-- `running` during active execution
-
-Use `phase` labels such as `setup`, `training`, `evaluation`, or `analysis`.
-
----
-
-## Using Compute Resources
-
-### Getting SSH Access
-
-Do not assume local key paths exist. Always use the access bundle:
-
-```text
-synapse_get_node_access_bundle({
-  experimentUuid: "...",
-  nodeUuid: "..."
-})
-```
-
-Returns connection details plus `privateKeyPemBase64`.
-
-To connect:
-1. Decode and write the PEM key to a local file
-2. `chmod 600` the PEM file
-3. SSH using the returned host / user / port with the PEM key
-
----
-
-## Submitting Results
-
-When the experiment is complete:
+A failed or inconclusive experiment is still a valid submission — it is data. Do not leave it stuck in `in_progress`:
 
 ```text
 synapse_submit_experiment_results({
   experimentUuid: "...",
-  outcome: "success",
+  outcome: "failure",
   experimentResults: {
-    "accuracy": 0.923,
-    "summary": "Ablation outperformed baseline"
+    "error": "OOM at batch size 32 on 2x L40S",
+    "completedEpochs": 3,
+    "lastLoss": 1.82,
+    "nextSteps": "Retry with gradient accumulation or batch 16"
   }
 })
 ```
 
-This:
-- moves the experiment to `completed`
-- updates the experiment result document
-- refreshes the project-level synthesis
-
-`outcome` is optional and typically one of `success`, `failure`, or `inconclusive`.
-
----
-
-## Saving The Dedicated Experiment Report
-
-Some flows ask for a fuller experiment report document after completion:
+Follow up with a comment explaining the failure so the reviewer can decide whether to revise and retry:
 
 ```text
-synapse_save_experiment_report({
-  experimentUuid: "...",
-  title: "Experiment Report: Baseline vs Ablation",
-  content: "# Objective\n\n..."
+synapse_add_comment({
+  targetType: "experiment",
+  targetUuid: "...",
+  content: "Failed due to OOM. Proposing a revised plan..."
 })
 ```
 
-Use this for the dedicated result document. Do not replace it with a comment thread.
+---
+
+## Reviving A Stuck Experiment
+
+An experiment stuck in `in_progress` (sub-agent crashed, SSH died, user killed the run) can be unblocked in two ways:
+
+1. **Resume** — respawn a sub-agent with the same experiment UUID. The `SubagentStart` hook reuses the existing Synapse session if still active; otherwise it reopens the closed one. The sub-agent re-fetches node access and continues.
+2. **Close out** — if the run cannot be resumed, submit a failure:
+
+   ```text
+   synapse_submit_experiment_results({
+     experimentUuid: "...",
+     outcome: "failure",
+     experimentResults: { "error": "Sub-agent lost remote session, no checkpoint" }
+   })
+   ```
 
 ---
 
-## Typical Execution Flow
+## Handling Rejection During Review
 
-1. `synapse_checkin()` to see assigned experiments
-2. `synapse_get_experiment()` to understand the task or review feedback
-3. If you are creating a new experiment, use `synapse_create_experiment()`
-4. If you are drafting or revising, use `synapse_update_experiment_status()` plus `synapse_update_experiment_plan()`
-5. `synapse_list_compute_nodes()` if GPUs are needed
-6. `synapse_start_experiment()` with optional `synapse_reserve_gpus()`
-7. `synapse_get_node_access_bundle()` if remote execution is needed
-8. Run the workload
-9. `synapse_report_experiment_progress()` at major milestones
-10. `synapse_submit_experiment_results()` when done
-11. `synapse_save_experiment_report()` if the flow asks for a dedicated report doc
-12. `synapse_add_comment()` for durable findings or decisions
+When a reviewer sends `pending_review` back to `draft`:
+
+1. Read the full comment thread — feedback may span multiple comments and a re-read of the plan.
+2. Flip to `draft` with `liveStatus: "writing"`.
+3. Revise title / description / researchQuestionUuid / priority via `synapse_update_experiment_plan`.
+4. Move it back with `synapse_update_experiment_status({ status: "pending_review" })`.
+5. `synapse_add_comment` on the experiment with `@[reviewerName](actorType:uuid)` so the reviewer sees the update.
+
+---
+
+## Typical Execution Flow (Short Form)
+
+1. `synapse_checkin()` — see assigned experiments
+2. `synapse_get_experiment()` — understand the task
+3. `synapse_create_experiment()` — only if authoring new
+4. If drafting or revising: `synapse_update_experiment_status` + `synapse_update_experiment_plan`
+5. `synapse_list_compute_nodes()` — inspect availability
+6. `synapse_start_experiment()` with optional inline / explicit `synapse_reserve_gpus()`
+7. `synapse_get_node_access_bundle()` — write PEM locally, chmod 600, SSH
+8. Run workload in tmux + unbuffered python
+9. `synapse_report_experiment_progress()` at milestones
+10. `synapse_submit_experiment_results()` — success, failure, or inconclusive
+11. `synapse_save_experiment_report()` if a dedicated report is required
+12. `synapse_add_comment()` for durable findings and mention the reviewer
+
+For parallel multi-experiment dispatch (main agent orchestrates, sub-agents execute), see **[05-session-sub-agent.md](05-session-sub-agent.md)**.

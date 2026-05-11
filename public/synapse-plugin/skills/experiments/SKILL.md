@@ -18,32 +18,70 @@ Use this skill for the experiment stage: drafting plans, revising returned exper
 Stay inside this skill when the work is about:
 - creating a brand-new experiment from scratch
 - `draft`, `pending_review`, `pending_start`, `in_progress`, or `completed` experiments
-- plan authoring or revision
+- plan authoring or revision based on reviewer feedback
 - reserving GPUs and starting workloads
 - reporting progress and saving results
-- writing experiment reports
+- writing experiment result reports
 
-Do not use this skill for open-ended literature synthesis or autonomous next-step ideation. Hand off to:
+Hand off to:
 - **[research](../research/SKILL.md)** for literature and deep research
-- **[autonomy](../autonomy/SKILL.md)** for autonomous proposal of the next experiment
+- **[autonomy](../autonomy/SKILL.md)** to drive the CC-client autonomous loop when there is nothing to execute and you need to propose the next experiment
+- **[sessions](../sessions/SKILL.md)** when running multiple experiments in parallel via sub-agents
+
+## Empty-Assignment Onboarding
+
+If `synapse_get_assigned_experiments` returns empty, do not idle. Ask the user which path:
+
+1. **Execute an approved experiment** — list `pending_start` experiments in the project with `synapse_get_project_full_context` and ask which to start.
+2. **Flesh out a quick idea** — call `synapse_get_project_full_context`, then draft a plan with `synapse_create_experiment` (defaults to `pending_review`, or pass `status: "draft"` to keep refining).
+3. **Create the foundational experiment** — if the project has no completed experiments, offer the foundational template below.
+4. **Enter the autonomous loop** — hand off to **[autonomy](../autonomy/SKILL.md)** to propose and auto-dispatch the next experiment.
+
+## Foundational First Experiment
+
+If the project has no completed experiments yet, the first experiment is not a normal research run — it is the project's baseline infrastructure. Drive it through three bundled deliverables before any comparison work:
+
+1. **Data preparation** — normalize the raw dataset into a single canonical format every future experiment will consume. Keep the prep scripts under the project's repo (if one is configured via `synapse_get_repo_access`).
+2. **Baseline run** — execute the simplest reasonable approach end-to-end and record its metrics with `synapse_submit_experiment_results`, so subsequent experiments have something to beat.
+3. **Evaluation script** — implement the canonical eval harness future experiments will call. Commit alongside data prep.
+
+If the project has a repo, commit all three onto the base branch (or a per-experiment branch merged back). Every subsequent experiment branches from that base so it inherits prep + eval automatically.
 
 ## Typical Flow
 
-1. `synapse_checkin()`
-2. If the task is new experiment authoring: `synapse_create_experiment()`
-3. `synapse_get_assigned_experiments()` or `synapse_get_experiment()`
-4. If drafting or revising: `synapse_update_experiment_status()` + `synapse_update_experiment_plan()`
-5. If executing: `synapse_list_compute_nodes()` and optionally `synapse_reserve_gpus()`
-6. `synapse_start_experiment()`
-7. `synapse_get_node_access_bundle()` when remote compute access is needed
-8. `synapse_report_experiment_progress()` at milestones
-9. `synapse_submit_experiment_results()` and optionally `synapse_save_experiment_report()`
+1. `synapse_checkin()` — refresh identity and assignments
+2. Author or fetch the experiment
+   - New plan: `synapse_create_experiment(...)` (defaults to `pending_review`, or `status: "draft"` to keep editing)
+   - Existing assignment: `synapse_get_assigned_experiments()` then `synapse_get_experiment({ experimentUuid })`
+3. If drafting or revising: `synapse_update_experiment_status({ status: "draft", liveStatus: "writing" })` + `synapse_update_experiment_plan(...)`, then `synapse_update_experiment_status({ status: "pending_review" })`
+4. Before execution: `synapse_list_compute_nodes({ onlyAvailable: true, researchProjectUuid })`
+5. Reserve compute: optional `synapse_reserve_gpus(...)` or inline via `synapse_start_experiment({ gpuUuids })`
+6. `synapse_start_experiment({ experimentUuid, workingNotes })` — moves to `in_progress`
+7. If remote compute: `synapse_get_node_access_bundle({ experimentUuid, nodeUuid })`, write the returned `privateKeyPemBase64` to a local PEM, `chmod 600`, SSH with the returned host/user/port
+8. If repo-backed: `synapse_get_repo_access` → clone → branch from the experiment's base branch
+9. Run the workload in a persistent remote shell (`tmux`/`screen`) with unbuffered output (`python -u …` or `PYTHONUNBUFFERED=1`) so logs never stall a tool call
+10. Report progress with `synapse_report_experiment_progress` at milestones — `phase` ∈ `setup` | `training` | `evaluation` | `analysis`; `liveStatus` ∈ `checking_resources` | `queuing` | `running`
+11. For long runs (>30 min), schedule periodic progress updates (cron on the remote node, or the main agent polling and calling `synapse_report_experiment_progress` on a timer) so the card never looks dead
+12. Commit code/artifacts to the experiment branch or base branch; capture the commit SHA
+13. Finish with `synapse_submit_experiment_results({ outcome, experimentResults, branch, commitSha })` — `outcome` ∈ `success` | `failure` | `inconclusive`; on failure include the error and partial results
+14. If the flow asks for a dedicated report document: `synapse_save_experiment_report({ experimentUuid, title, content })` — do **not** post a full report as a comment
+15. If revising per reviewer feedback, read the full thread first with `synapse_get_comments({ targetType: "experiment", targetUuid })` before editing the plan
 
-## Compute Rule
+## Core Rules
 
-Never assume a server-local key path exists. Always use `synapse_get_node_access_bundle()` and write the returned PEM locally.
+- **Never assume a server-local SSH key path exists.** Always fetch the access bundle and write the PEM locally.
+- **One independent run per experiment card.** Do not bundle comparison runs, ablations, or parameter sweeps into a single experiment — create multiple cards.
+- **Match the project description's language.** If the project brief is in Chinese, write the plan, progress, and report in Chinese.
+- **Split plan / execution / report tools.** Use `synapse_update_experiment_plan` for plan edits, `synapse_report_experiment_progress` for live status, `synapse_submit_experiment_results` for completion, and `synapse_save_experiment_report` for the dedicated report. Do not substitute with comments.
+- **Revision stays durable.** When a reviewer sends an experiment back, flip to `draft`, revise, then move it back to `pending_review`; leave a reply via `synapse_add_comment` using `@[name](actorType:uuid)` format to notify the reviewer.
+- **Failures are data.** An experiment that crashes or shows a regression is still a valid submission: set `outcome: "failure"` (or `"inconclusive"`) and write up what happened in `experimentResults` and the report.
+
+## Running Multiple Experiments In Parallel
+
+When the user wants to execute several `pending_start` experiments at the same time, the main agent should monitor and dispatch rather than run workloads itself. Spawn one Task-tool sub-agent per experiment UUID — the plugin's `SubagentStart` hook auto-creates a Synapse session and injects the full execution workflow. The main agent then polls with `synapse_get_assigned_experiments({ statuses: ["in_progress", "completed"] })` and `synapse_get_experiment` to track progress. See **[sessions](../sessions/SKILL.md)** for the full pattern.
 
 ## Reference
 
 - **[Experiment workflow reference](../synapse/references/03-experiment-workflow.md)**
 - **[Common tools](../synapse/references/00-common-tools.md)**
+- **[Plugin hooks and parallel execution](../synapse/references/05-session-sub-agent.md)**

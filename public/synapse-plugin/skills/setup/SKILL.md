@@ -24,7 +24,8 @@ This skill covers:
 This skill does not cover day-to-day research or experiment execution. Hand off to:
 - **[research](../research/SKILL.md)** for literature and research-question work
 - **[experiments](../experiments/SKILL.md)** for experiment planning and execution
-- **[agent-teams](../agent-teams/SKILL.md)** for sub-agent orchestration
+- **[sessions](../sessions/SKILL.md)** for plugin hook behavior and multi-agent parallel execution
+- **[autonomy](../autonomy/SKILL.md)** to drive the CC-client autonomous research loop
 
 ## Recommended Flow
 

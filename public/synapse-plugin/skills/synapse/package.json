@@ -1,6 +1,6 @@
 {
   "name": "synapse",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "description": "Synapse research orchestration platform skill for Claude Code. Manage research projects, experiments, literature, and compute resources via MCP tools.",
   "author": "Vincentwei1021",
   "license": "AGPL-3.0",
@@ -25,8 +25,7 @@
       "references/02-research-workflow.md": "references/02-research-workflow.md",
       "references/03-experiment-workflow.md": "references/03-experiment-workflow.md",
       "references/04-autonomous-loop.md": "references/04-autonomous-loop.md",
-      "references/05-session-sub-agent.md": "references/05-session-sub-agent.md",
-      "references/06-claude-code-agent-teams.md": "references/06-claude-code-agent-teams.md"
+      "references/05-session-sub-agent.md": "references/05-session-sub-agent.md"
     },
     "requires": {
       "mcp": ["synapse"]
@@ -42,7 +41,7 @@
       "propose experiment",
       "session",
       "sub-agent",
-      "agent teams",
+      "plugin hook",
       "deep research",
       "autonomous loop"
     ]

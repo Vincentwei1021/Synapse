@@ -26,6 +26,7 @@ export function OnboardingStep2({ agentUuid, agentName, agentType, onComplete, o
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [keyCopied, setKeyCopied] = useState(false);
   const [endpointCopied, setEndpointCopied] = useState(false);
+  const [showManualConfig, setShowManualConfig] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
@@ -122,14 +123,30 @@ export function OnboardingStep2({ agentUuid, agentName, agentType, onComplete, o
   // Cleanup on unmount
   useEffect(() => cleanup, [cleanup]);
 
-  const claudeCodeConfig = apiKey
-    ? `claude mcp add synapse \\
-  --transport http \\
-  --url ${endpoint} \\
-  --header "Authorization: Bearer ${apiKey}"`
+  const synapseOrigin = typeof window !== "undefined" ? window.location.origin : "";
+
+  const claudeCodePluginInstall = `claude
+/plugin marketplace add Vincentwei1021/Synapse
+/plugin install synapse@synapse-plugins`;
+
+  const claudeCodeEnv = apiKey
+    ? `export SYNAPSE_URL="${synapseOrigin}"
+export SYNAPSE_API_KEY="${apiKey}"`
     : "";
 
-  const synapseOrigin = typeof window !== "undefined" ? window.location.origin : "";
+  const claudeCodeManualConfig = apiKey
+    ? `{
+  "mcpServers": {
+    "synapse": {
+      "type": "http",
+      "url": "${endpoint}",
+      "headers": {
+        "Authorization": "Bearer ${apiKey}"
+      }
+    }
+  }
+}`
+    : "";
 
   const openClawInstall = "openclaw plugins install @vincentwei1021/synapse-openclaw-plugin";
 
@@ -216,11 +233,36 @@ export function OnboardingStep2({ agentUuid, agentName, agentType, onComplete, o
                 </div>
               </div>
             ) : (
-              <div className="mt-2">
-                <p className="text-xs text-muted-foreground">{t("configClaudeCode")}</p>
-                <pre className="mt-1.5 rounded-lg border border-border bg-muted/50 p-3 text-xs font-mono text-foreground whitespace-pre-wrap break-all">
-                  {claudeCodeConfig}
-                </pre>
+              <div className="mt-2 space-y-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">{t("configClaudeCodeInstall")}</p>
+                  <pre className="mt-1.5 rounded-lg border border-border bg-muted/50 p-3 text-xs font-mono text-foreground whitespace-pre-wrap break-all">
+                    {claudeCodePluginInstall}
+                  </pre>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">{t("configClaudeCodeEnv")}</p>
+                  <pre className="mt-1.5 rounded-lg border border-border bg-muted/50 p-3 text-xs font-mono text-foreground whitespace-pre-wrap break-all">
+                    {claudeCodeEnv}
+                  </pre>
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowManualConfig((v) => !v)}
+                    className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                  >
+                    {showManualConfig ? t("configClaudeCodeManualHide") : t("configClaudeCodeManualToggle")}
+                  </button>
+                  {showManualConfig && (
+                    <div className="mt-2">
+                      <p className="text-xs text-muted-foreground">{t("configClaudeCodeManual")}</p>
+                      <pre className="mt-1.5 rounded-lg border border-border bg-muted/50 p-3 text-xs font-mono text-foreground whitespace-pre-wrap break-all">
+                        {claudeCodeManualConfig}
+                      </pre>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
