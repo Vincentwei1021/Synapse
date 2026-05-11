@@ -1719,7 +1719,77 @@ export async function completeExperiment(input: {
     context: "experiment completion",
   });
 
+  // Full Auto mode: re-fire task_assigned for every pending_start experiment
+  // already assigned to the loop agent, so the freed GPU can pick up queued
+  // work. Otherwise queued experiments sit idle because task_assigned was only
+  // delivered once at propose time.
+  try {
+    await reNotifyQueuedExperiments({
+      companyUuid: input.companyUuid,
+      researchProjectUuid: updated.researchProjectUuid,
+    });
+  } catch (err) {
+    log.error({ err }, "failed to re-notify queued experiments after completion");
+  }
+
   return formatExperiment(input.companyUuid, updated);
+}
+
+async function reNotifyQueuedExperiments(input: {
+  companyUuid: string;
+  researchProjectUuid: string;
+}) {
+  const project = await prisma.researchProject.findFirst({
+    where: { uuid: input.researchProjectUuid, companyUuid: input.companyUuid },
+    select: {
+      name: true,
+      autonomousLoopEnabled: true,
+      autonomousLoopAgentUuid: true,
+      autonomousLoopMode: true,
+    },
+  });
+
+  if (
+    !project?.autonomousLoopEnabled ||
+    !project.autonomousLoopAgentUuid ||
+    project.autonomousLoopMode !== "full_auto"
+  ) {
+    return;
+  }
+
+  const queued = await prisma.experiment.findMany({
+    where: {
+      researchProjectUuid: input.researchProjectUuid,
+      companyUuid: input.companyUuid,
+      status: "pending_start",
+      assigneeType: "agent",
+      assigneeUuid: project.autonomousLoopAgentUuid,
+    },
+    orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
+    select: { uuid: true, title: true },
+  });
+
+  if (queued.length === 0) {
+    return;
+  }
+
+  for (const experiment of queued) {
+    await notificationService.create({
+      companyUuid: input.companyUuid,
+      researchProjectUuid: input.researchProjectUuid,
+      recipientType: "agent",
+      recipientUuid: project.autonomousLoopAgentUuid,
+      entityType: "experiment",
+      entityUuid: experiment.uuid,
+      entityTitle: experiment.title,
+      projectName: project.name,
+      action: "task_assigned",
+      message: `Queued experiment "${experiment.title}" ready to start — GPU freed by a completed experiment.`,
+      actorType: "user",
+      actorUuid: "system",
+      actorName: "Synapse",
+    });
+  }
 }
 
 export async function deleteExperiment(companyUuid: string, experimentUuid: string) {
