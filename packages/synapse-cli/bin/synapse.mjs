@@ -173,6 +173,12 @@ process.env.HOSTNAME = "0.0.0.0";
 process.env.NEXTAUTH_SECRET =
   process.env.NEXTAUTH_SECRET ||
   createHash("sha256").update(`synapse-local-${dataDir}`).digest("hex");
+// Zero-dependency CLI mode always serves over HTTP. Browsers discard cookies
+// with the Secure flag on HTTP, which logs users out on every request.
+// Default to insecure cookies unless the operator explicitly opts in.
+if (process.env.COOKIE_SECURE === undefined) {
+  process.env.COOKIE_SECURE = "false";
+}
 
 const child = fork(serverJs, [], {
   cwd: DIST_DIR,
