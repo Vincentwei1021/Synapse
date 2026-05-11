@@ -1573,7 +1573,8 @@
       "memory": "显存",
       "utilization": "利用率",
       "temperature": "温度",
-      "status": "状态"
+      "status": "状态",
+      "release": "释放"
     },
     "status": {
       "available": "可用",
@@ -1588,6 +1589,10 @@
       "idle": "空闲",
       "offline": "离线",
       "maintenance": "维护中"
+    },
+    "release": {
+      "title": "释放该 GPU 预留吗？",
+      "description": "将强制把 {gpu} 从 “{holder}” 上释放，当前预留会立即清除。不会通知对应的 Agent —— 仅在预留卡住时使用。"
     },
     "telemetry": "自动刷新",
     "telemetryDesc": "每 30 秒轮询 GPU 状态"

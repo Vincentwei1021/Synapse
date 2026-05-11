@@ -143,6 +143,12 @@ export function ComputePageClient({
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [manageError, setManageError] = useState<string | null>(null);
+  const [releaseTarget, setReleaseTarget] = useState<{
+    gpuUuid: string;
+    gpuLabel: string;
+    holderTitle: string;
+  } | null>(null);
+  const [isReleasing, setIsReleasing] = useState(false);
 
   const nodes = pools.flatMap((pool) => pool.nodes);
   const gpus = nodes.flatMap((node) => node.gpus);
@@ -179,6 +185,36 @@ export function ComputePageClient({
       );
     } finally {
       setIsDeleting(false);
+    }
+  }
+
+  async function handleReleaseConfirm() {
+    if (!releaseTarget) return;
+
+    setIsReleasing(true);
+    setManageError(null);
+
+    try {
+      const response = await authFetch(
+        `/api/compute-gpus/${releaseTarget.gpuUuid}/release`,
+        { method: "POST" },
+      );
+      const json = await response.json().catch(() => null);
+
+      if (!response.ok || !json?.success) {
+        throw new Error(json?.error || t("common.genericError"));
+      }
+
+      setReleaseTarget(null);
+      router.refresh();
+    } catch (error) {
+      setManageError(
+        error instanceof Error && error.message
+          ? error.message
+          : t("common.genericError")
+      );
+    } finally {
+      setIsReleasing(false);
     }
   }
 
@@ -344,23 +380,41 @@ export function ComputePageClient({
                                     ? `${gpu.temperatureC}°C`
                                     : t("compute.machine.pending")}
                                 </span>
-                                <div className="flex items-center gap-2">
-                                  <span
-                                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                                      gpu.activeReservation
-                                        ? "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300"
-                                        : gpu.computedStatus === "available"
-                                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
-                                          : "bg-secondary text-muted-foreground"
-                                    }`}
-                                  >
-                                    {gpu.activeReservation
-                                      ? t("compute.status.occupied")
-                                      : t(`compute.status.${gpu.computedStatus}`)}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {gpu.activeReservation?.itemTitle || t("compute.status.idleLabel")}
-                                  </span>
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex min-w-0 items-center gap-2">
+                                    <span
+                                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                                        gpu.activeReservation
+                                          ? "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300"
+                                          : gpu.computedStatus === "available"
+                                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+                                            : "bg-secondary text-muted-foreground"
+                                      }`}
+                                    >
+                                      {gpu.activeReservation
+                                        ? t("compute.status.occupied")
+                                        : t(`compute.status.${gpu.computedStatus}`)}
+                                    </span>
+                                    <span className="truncate text-xs text-muted-foreground">
+                                      {gpu.activeReservation?.itemTitle || t("compute.status.idleLabel")}
+                                    </span>
+                                  </div>
+                                  {gpu.activeReservation ? (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 shrink-0 px-2 text-xs"
+                                      onClick={() =>
+                                        setReleaseTarget({
+                                          gpuUuid: gpu.uuid,
+                                          gpuLabel: `GPU ${gpu.slotIndex}`,
+                                          holderTitle: gpu.activeReservation?.itemTitle ?? "",
+                                        })
+                                      }
+                                    >
+                                      {t("compute.table.release")}
+                                    </Button>
+                                  ) : null}
                                 </div>
                               </div>
                             ))}
@@ -496,6 +550,36 @@ export function ComputePageClient({
               }}
             >
               {isDeleting ? t("common.processing") : t("common.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={releaseTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setReleaseTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("compute.release.title")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("compute.release.description", {
+                gpu: releaseTarget?.gpuLabel ?? "",
+                holder: releaseTarget?.holderTitle ?? "",
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                void handleReleaseConfirm();
+              }}
+            >
+              {isReleasing ? t("common.processing") : t("compute.table.release")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -717,6 +717,42 @@ export async function releaseGpuReservationsForExperiment(companyUuid: string, e
   });
 }
 
+/**
+ * Manually release every active reservation on a single GPU. Used by the
+ * Compute page's per-GPU "Release" button when a reservation gets stuck
+ * (e.g. agent crashed before calling submit). Clears both the current
+ * Experiment reservations and the legacy Run reservations.
+ */
+export async function releaseGpuReservationsForGpu(
+  companyUuid: string,
+  gpuUuid: string,
+): Promise<{ experimentsReleased: number; runsReleased: number }> {
+  const gpu = await prisma.computeGpu.findFirst({
+    where: { uuid: gpuUuid, companyUuid },
+    select: { uuid: true },
+  });
+  if (!gpu) {
+    throw new Error("GPU not found");
+  }
+
+  const now = new Date();
+  const [expResult, runResult] = await prisma.$transaction([
+    prisma.experimentGpuReservation.updateMany({
+      where: { companyUuid, gpuUuid, releasedAt: null },
+      data: { releasedAt: now },
+    }),
+    prisma.runGpuReservation.updateMany({
+      where: { companyUuid, gpuUuid, releasedAt: null },
+      data: { releasedAt: now },
+    }),
+  ]);
+
+  return {
+    experimentsReleased: expResult.count,
+    runsReleased: runResult.count,
+  };
+}
+
 export async function getNodeAccessBundle(input: {
   companyUuid: string;
   experimentUuid: string;

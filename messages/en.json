@@ -1573,7 +1573,8 @@
       "memory": "Memory",
       "utilization": "Utilization",
       "temperature": "Temp",
-      "status": "Status"
+      "status": "Status",
+      "release": "Release"
     },
     "status": {
       "available": "Available",
@@ -1588,6 +1589,10 @@
       "idle": "Idle",
       "offline": "Offline",
       "maintenance": "Maintenance"
+    },
+    "release": {
+      "title": "Release GPU reservation?",
+      "description": "Force-release {gpu} from \"{holder}\". The current reservation will be cleared immediately. The agent will not be notified — use this only when a reservation is stuck."
     },
     "telemetry": "Auto-refresh",
     "telemetryDesc": "Poll GPU status every 30s"
