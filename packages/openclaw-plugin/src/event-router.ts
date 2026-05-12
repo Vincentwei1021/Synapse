@@ -691,8 +691,9 @@ Write a detailed experiment report document for this experiment. Follow these st
    - Analysis and interpretation
    - Conclusions and next steps
 4. Write the report in the same language as the project description.
-5. Use python to plot graphs to analyze and showcase results from different angles, attach it to the document markdown
-5. Use synapse_save_experiment_report with experimentUuid "${n.entityUuid}" and the full Markdown content to create or update the dedicated experiment result document for this experiment. Do NOT post the report as an experiment comment.
+5. Use python to plot graphs to analyze and showcase results from different angles, attach it to the document markdown.
+6. To embed figures, you MUST upload each local image to Synapse via synapse_upload_document_image (or HTTP POST /api/documents/:uuid/images) and reference it in the Markdown with the returned /api/documents/:uuid/images/... link. Do NOT use catbox, litterbox, imgur, or any other third-party image host — those links expire and are not reliably reachable from end users' browsers.
+7. Use synapse_save_experiment_report with experimentUuid "${n.entityUuid}" and the full Markdown content to create or update the dedicated experiment result document for this experiment. Do NOT post the report as an experiment comment.
 
 Keep the report focused on THIS experiment only — do not summarize the entire project.`,
       { notificationUuid: n.uuid, action: "experiment_report_requested", entityUuid: n.entityUuid, projectUuid }

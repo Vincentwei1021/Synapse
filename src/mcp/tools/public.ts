@@ -8,6 +8,7 @@ import type { AgentAuthContext } from "@/types/auth";
 import * as researchProjectService from "@/services/research-project.service";
 import * as researchQuestionService from "@/services/research-question.service";
 import * as documentService from "@/services/document.service";
+import { writeDocumentImage, DOCUMENT_IMAGE_ALLOWED_MIME } from "@/services/document-image.service";
 import * as activityService from "@/services/activity.service";
 import * as commentService from "@/services/comment.service";
 import * as assignmentService from "@/services/assignment.service";
@@ -627,6 +628,57 @@ Work style: rigorous, efficient, quality-focused`,
       return {
         content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
       };
+    }
+  );
+
+  // synapse_upload_document_image - Upload a figure/image into a document's local image store
+  server.registerTool(
+    "synapse_upload_document_image",
+    {
+      description:
+        "Upload a figure/image into a document's local image store and get back a Synapse-hosted URL for embedding in Markdown (e.g. ![alt](/api/documents/:uuid/images/...)). Use this for any figure you render in an experiment report or document — never embed third-party image-host links (catbox, litterbox, imgur, etc.), because they expire and are not reliably reachable from end users' browsers.",
+      inputSchema: z.object({
+        documentUuid: z.string().describe("Document UUID the image belongs to"),
+        filename: z.string().describe("Original file name, used for extension and sanitized server-side (e.g. 'cross-benchmark-summary.png')"),
+        mimeType: z
+          .enum(["image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml"])
+          .describe("Image MIME type"),
+        base64Content: z.string().describe("Base64-encoded image bytes (no data: prefix)"),
+      }),
+    },
+    async ({ documentUuid, filename, mimeType, base64Content }) => {
+      const doc = await documentService.getDocumentByUuid(auth.companyUuid, documentUuid);
+      if (!doc) {
+        return { content: [{ type: "text", text: "Document not found" }], isError: true };
+      }
+      if (!DOCUMENT_IMAGE_ALLOWED_MIME.has(mimeType)) {
+        return { content: [{ type: "text", text: `Unsupported mimeType: ${mimeType}` }], isError: true };
+      }
+
+      let buffer: Buffer;
+      try {
+        buffer = Buffer.from(base64Content, "base64");
+      } catch {
+        return { content: [{ type: "text", text: "base64Content is not valid base64" }], isError: true };
+      }
+
+      try {
+        const result = await writeDocumentImage({
+          companyUuid: auth.companyUuid,
+          documentUuid,
+          originalName: filename,
+          mimeType,
+          data: buffer,
+        });
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      } catch (error) {
+        return {
+          content: [{ type: "text", text: error instanceof Error ? error.message : "Failed to upload image" }],
+          isError: true,
+        };
+      }
     }
   );
 }

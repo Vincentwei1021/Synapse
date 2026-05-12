@@ -482,6 +482,27 @@ export const commonToolDefinitions = defineOpenClawTools([
     },
     targetToolName: "synapse_save_experiment_report",
   }),
+  createPassthroughTool<{ documentUuid: string; filename: string; mimeType: string; base64Content: string }>({
+    name: "synapse_upload_document_image",
+    description:
+      "Upload a figure/image into a document's local image store and get back a Synapse-hosted URL for embedding in Markdown (e.g. ![alt](/api/documents/:uuid/images/...)). Use this for any figure you render in a report — never embed third-party image-host links (catbox, litterbox, imgur, etc.), because they expire and are not reliably reachable from end users' browsers.",
+    parameters: {
+      type: "object",
+      properties: {
+        documentUuid: { type: "string", description: "Document UUID the image belongs to" },
+        filename: { type: "string", description: "Original file name, used for extension and sanitized server-side (e.g. 'cross-benchmark-summary.png')" },
+        mimeType: {
+          type: "string",
+          enum: ["image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml"],
+          description: "Image MIME type",
+        },
+        base64Content: { type: "string", description: "Base64-encoded image bytes (no data: prefix)" },
+      },
+      required: ["documentUuid", "filename", "mimeType", "base64Content"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_upload_document_image",
+  }),
 
   // =========================================================================
   // Comments
