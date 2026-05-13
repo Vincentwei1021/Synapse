@@ -784,14 +784,14 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
   server.registerTool(
     "synapse_create_experiment",
     {
-      description: "Create a new experiment outside the autonomous loop. This is the standard agent-side creation path for user-directed work and defaults to pending_review so a human can inspect it before execution.",
+      description: "Create a new experiment outside the autonomous loop. Defaults to draft so the calling agent can run a self-review sub-agent against the new experiment, revise the plan if needed, then advance to pending_review with synapse_update_experiment_status. User-directed terminal flows on Claude Code follow this same draft → self-review → pending_review path before asking the user to approve.",
       inputSchema: z.object({
         researchProjectUuid: z.string(),
         title: z.string(),
         description: z.string(),
         researchQuestionUuid: z.string().optional(),
         priority: z.enum(["low", "medium", "high", "immediate"]).default("medium"),
-        status: z.enum(["draft", "pending_review"]).default("pending_review"),
+        status: z.enum(["draft", "pending_review"]).default("draft"),
       }),
     },
     async ({ researchProjectUuid, title, description, researchQuestionUuid, priority, status }) => {

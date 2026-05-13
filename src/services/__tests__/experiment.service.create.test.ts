@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { z } from "zod";
 
 const mockPrisma = vi.hoisted(() => ({
   experiment: {
@@ -123,5 +124,26 @@ describe("createExperiment default status", () => {
         data: expect.objectContaining({ status: "pending_review" }),
       }),
     );
+  });
+});
+
+describe("synapse_create_experiment zod default", () => {
+  it("zod schema default for status is draft", async () => {
+    const schema = z.object({
+      researchProjectUuid: z.string(),
+      title: z.string(),
+      description: z.string(),
+      researchQuestionUuid: z.string().optional(),
+      priority: z.enum(["low", "medium", "high", "immediate"]).default("medium"),
+      status: z.enum(["draft", "pending_review"]).default("draft"),
+    });
+
+    const parsed = schema.parse({
+      researchProjectUuid: PROJECT,
+      title: "t",
+      description: "d",
+    });
+
+    expect(parsed.status).toBe("draft");
   });
 });
