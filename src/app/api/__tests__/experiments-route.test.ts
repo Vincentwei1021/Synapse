@@ -12,6 +12,7 @@ const mockCompleteExperiment = vi.fn();
 const mockResetExperimentToPendingStart = vi.fn();
 const mockReserveGpusForExperiment = vi.fn();
 const mockReleaseGpuReservationsForExperiment = vi.fn();
+const mockReviewExperiment = vi.fn();
 
 vi.mock("@/lib/auth", () => ({
   getAuthContext: (...args: unknown[]) => mockGetAuthContext(...args),
@@ -52,6 +53,7 @@ vi.mock("@/services/experiment.service", () => ({
   startExperiment: (...args: unknown[]) => mockStartExperiment(...args),
   completeExperiment: (...args: unknown[]) => mockCompleteExperiment(...args),
   resetExperimentToPendingStart: (...args: unknown[]) => mockResetExperimentToPendingStart(...args),
+  reviewExperiment: (...args: unknown[]) => mockReviewExperiment(...args),
 }));
 
 vi.mock("@/services/compute.service", () => ({
@@ -72,6 +74,7 @@ import { PATCH as patchExperimentRoute } from "@/app/api/experiments/[uuid]/rout
 import { POST as startExperimentRoute } from "@/app/api/experiments/[uuid]/start/route";
 import { POST as completeExperimentRoute } from "@/app/api/experiments/[uuid]/complete/route";
 import { POST as resetExperimentRoute } from "@/app/api/experiments/[uuid]/reset/route";
+import { POST as reviewExperimentRoute } from "@/app/api/experiments/[uuid]/review/route";
 
 const companyUuid = "company-0000-0000-0000-000000000001";
 const projectUuid = "project-0000-0000-0000-000000000001";
@@ -97,6 +100,7 @@ describe("experiment routes", () => {
     mockStartExperiment.mockResolvedValue({ uuid: experimentUuid, status: "in_progress" });
     mockCompleteExperiment.mockResolvedValue({ uuid: experimentUuid, status: "completed" });
     mockResetExperimentToPendingStart.mockResolvedValue({ uuid: experimentUuid, status: "pending_start" });
+    mockReviewExperiment.mockResolvedValue({ uuid: experimentUuid, status: "pending_start" });
   });
 
   it("creates experiments with an unlimited compute budget when the field is blank", async () => {
@@ -357,5 +361,61 @@ describe("experiment routes", () => {
       }),
       { actorType: "user", actorUuid: "user-uuid-1" },
     );
+  });
+
+  it("allows PI agents to review experiments through API-key authentication", async () => {
+    mockGetAuthContext.mockResolvedValueOnce({
+      type: "agent",
+      companyUuid,
+      actorUuid: "agent-pi-1",
+      ownerUuid: "user-uuid-1",
+      roles: ["pi"],
+    });
+
+    const response = await reviewExperimentRoute(
+      new NextRequest(new URL(`/api/experiments/${experimentUuid}/review`, "http://localhost:3000"), {
+        method: "POST",
+        body: JSON.stringify({
+          approved: true,
+          reviewNote: "Looks ready",
+        }),
+        headers: { "content-type": "application/json" },
+      }),
+      makeContext(experimentUuid),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockReviewExperiment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        companyUuid,
+        experimentUuid,
+        approved: true,
+        reviewNote: "Looks ready",
+        actorUuid: "agent-pi-1",
+        actorType: "agent",
+      }),
+    );
+  });
+
+  it("blocks non-PI agents from reviewing experiments", async () => {
+    mockGetAuthContext.mockResolvedValueOnce({
+      type: "agent",
+      companyUuid,
+      actorUuid: "agent-researcher-1",
+      ownerUuid: "user-uuid-1",
+      roles: ["experiment"],
+    });
+
+    const response = await reviewExperimentRoute(
+      new NextRequest(new URL(`/api/experiments/${experimentUuid}/review`, "http://localhost:3000"), {
+        method: "POST",
+        body: JSON.stringify({ approved: true }),
+        headers: { "content-type": "application/json" },
+      }),
+      makeContext(experimentUuid),
+    );
+
+    expect(response.status).toBe(403);
+    expect(mockReviewExperiment).not.toHaveBeenCalled();
   });
 });

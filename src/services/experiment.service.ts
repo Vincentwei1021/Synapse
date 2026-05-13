@@ -880,7 +880,9 @@ export async function reviewExperiment(input: {
   reviewNote?: string | null;
   assignedAgentUuid?: string | null; // present (even if null) = caller wants to set assignment
   actorUuid: string;
+  actorType?: "user" | "agent";
 }) {
+  const actorType = input.actorType ?? "user";
   const existing = await prisma.experiment.findFirst({
     where: { uuid: input.experimentUuid, companyUuid: input.companyUuid },
     include: { researchProject: { select: { name: true } } },
@@ -932,7 +934,7 @@ export async function reviewExperiment(input: {
     researchProjectUuid: updated.researchProjectUuid,
     targetType: "experiment",
     targetUuid: updated.uuid,
-    actorType: "user",
+    actorType,
     actorUuid: input.actorUuid,
     action: input.approved ? "approved" : "rejected",
     value: input.reviewNote ? { reviewNote: input.reviewNote } : undefined,
@@ -951,7 +953,7 @@ export async function reviewExperiment(input: {
     await notificationService.create({
       companyUuid: input.companyUuid,
       researchProjectUuid: updated.researchProjectUuid,
-      recipientType: "user",
+      recipientType: actorType,
       recipientUuid: input.actorUuid,
       entityType: "experiment",
       entityUuid: updated.uuid,
@@ -959,9 +961,9 @@ export async function reviewExperiment(input: {
       projectName: existing.researchProject.name,
       action: "experiment_status_changed",
       message: input.approved ? "→ approved" : "→ returned to draft",
-      actorType: "user",
+      actorType,
       actorUuid: input.actorUuid,
-      actorName: (await getActorName("user", input.actorUuid)) || "Unknown",
+      actorName: (await getActorName(actorType, input.actorUuid)) || "Unknown",
     });
   } catch {}
 
@@ -974,7 +976,7 @@ export async function reviewExperiment(input: {
   // task_assigned so the plugin wakes the agent to start execution.
   if (approvedAgentAssigneeUuid) {
     try {
-      const actorName = await getActorName("user", input.actorUuid);
+      const actorName = await getActorName(actorType, input.actorUuid);
       await notificationService.create({
         companyUuid: input.companyUuid,
         researchProjectUuid: updated.researchProjectUuid,
@@ -986,7 +988,7 @@ export async function reviewExperiment(input: {
         projectName: existing.researchProject.name,
         action: "task_assigned",
         message: `${updated.title} has been approved and assigned to you.`,
-        actorType: "user",
+        actorType,
         actorUuid: input.actorUuid,
         actorName: actorName || "Unknown",
       });
@@ -1014,13 +1016,13 @@ export async function reviewExperiment(input: {
             targetType: "experiment",
             targetUuid: updated.uuid,
             content: trimmedNote,
-            authorType: "user",
+            authorType: actorType,
             authorUuid: input.actorUuid,
           },
         });
       }
 
-      const actorName = await getActorName("user", input.actorUuid);
+      const actorName = await getActorName(actorType, input.actorUuid);
       await notificationService.create({
         companyUuid: input.companyUuid,
         researchProjectUuid: updated.researchProjectUuid,
@@ -1034,7 +1036,7 @@ export async function reviewExperiment(input: {
         message: trimmedNote
           ? `Revision requested: ${trimmedNote.slice(0, 160)}`
           : "Revision requested — see the experiment draft.",
-        actorType: "user",
+        actorType,
         actorUuid: input.actorUuid,
         actorName: actorName || "Unknown",
       });

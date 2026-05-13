@@ -893,10 +893,41 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
           autonomousLoopEnabled: true,
           autonomousLoopAgentUuid: auth.actorUuid,
         },
-        select: { uuid: true, autonomousLoopMode: true },
+        select: {
+          uuid: true,
+          name: true,
+          autonomousLoopEnabled: true,
+          autonomousLoopAgentUuid: true,
+          autonomousLoopMode: true,
+        },
       });
       if (!project) {
-        return { content: [{ type: "text", text: "Autonomous loop is not enabled for this project or you are not the assigned agent" }], isError: true };
+        return {
+          content: [
+            {
+              type: "text",
+              text: "synapse_propose_experiment is only available to the project's assigned autonomous-loop agent. For user-directed or terminal-created experiments, use synapse_create_experiment.",
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      if (researchQuestionUuid) {
+        const question = await prisma.researchQuestion.findFirst({
+          where: {
+            uuid: researchQuestionUuid,
+            companyUuid: auth.companyUuid,
+            researchProjectUuid,
+          },
+          select: { uuid: true },
+        });
+        if (!question) {
+          return {
+            content: [{ type: "text", text: "Research question not found in this project" }],
+            isError: true,
+          };
+        }
       }
 
       const isFullAuto = project.autonomousLoopMode === "full_auto";
@@ -912,6 +943,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
         // attributable back to the proposing agent.
         createdByUuid: auth.actorUuid,
         createdByType: "agent",
+        status: isFullAuto ? "pending_start" : "pending_review",
         // Mode 2: skip review, go straight to pending_start with agent assigned.
         // F-024: also stamp assignedBy/assignedAt so the assignment appears
         // complete in the queue and activity streams.
@@ -928,15 +960,11 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
 
       // Notify the agent's owner that a new experiment was auto-proposed
       try {
-        const projectForNotif = await prisma.researchProject.findFirst({
-          where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid },
-          select: { name: true },
-        });
         const agent = await prisma.agent.findUnique({
           where: { uuid: auth.actorUuid },
           select: { ownerUuid: true, name: true },
         });
-        if (agent?.ownerUuid && projectForNotif) {
+        if (agent?.ownerUuid) {
           await notificationService.create({
             companyUuid: auth.companyUuid,
             researchProjectUuid,
@@ -945,7 +973,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
             entityType: "experiment",
             entityUuid: experiment.uuid,
             entityTitle: experiment.title,
-            projectName: projectForNotif.name,
+            projectName: project.name,
             action: "experiment_auto_proposed",
             message: isFullAuto
               ? `Agent auto-proposed experiment "${title}" for immediate execution.`
@@ -958,7 +986,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
 
         // Full Auto: also send task_assigned notification to the agent itself
         // This triggers handleExperimentAssigned in the plugin → detailed execution prompt
-        if (isFullAuto && projectForNotif) {
+        if (isFullAuto) {
           await notificationService.create({
             companyUuid: auth.companyUuid,
             researchProjectUuid,
@@ -967,7 +995,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
             entityType: "experiment",
             entityUuid: experiment.uuid,
             entityTitle: experiment.title,
-            projectName: projectForNotif.name,
+            projectName: project.name,
             action: "task_assigned",
             message: `Experiment "${title}" auto-assigned for immediate execution.`,
             actorType: "agent",

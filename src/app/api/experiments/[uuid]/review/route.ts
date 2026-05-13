@@ -1,8 +1,9 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { errors, success } from "@/lib/api-response";
-import { getAuthContext, isUser } from "@/lib/auth";
+import { getAuthContext, isAgent, isUser } from "@/lib/auth";
 import { reviewExperiment } from "@/services/experiment.service";
+import type { AuthContext } from "@/types/auth";
 
 type RouteContext = { params: Promise<{ uuid: string }> };
 
@@ -12,13 +13,20 @@ const reviewSchema = z.object({
   assignedAgentUuid: z.string().uuid().nullable().optional(),
 });
 
+function canReviewExperiments(auth: AuthContext): boolean {
+  if (isUser(auth)) {
+    return true;
+  }
+  return isAgent(auth) && auth.roles.some((role) => role === "admin" || role === "pi" || role === "pi_agent");
+}
+
 export async function POST(request: NextRequest, context: RouteContext) {
   const auth = await getAuthContext(request);
   if (!auth) {
     return errors.unauthorized();
   }
-  if (!isUser(auth)) {
-    return errors.forbidden("Only users can review experiments");
+  if (!canReviewExperiments(auth)) {
+    return errors.forbidden("Only users or PI/admin agents can review experiments");
   }
 
   const { uuid } = await context.params;
@@ -37,6 +45,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       ? { assignedAgentUuid: parsed.data.assignedAgentUuid }
       : {}),
     actorUuid: auth.actorUuid,
+    actorType: isUser(auth) ? "user" : "agent",
   });
 
   return success({ experiment });

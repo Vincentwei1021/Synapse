@@ -301,7 +301,7 @@ export const commonToolDefinitions = defineOpenClawTools([
     priority?: string;
   }>({
     name: "synapse_propose_experiment",
-    description: "Propose one independent experiment run for human review (created in pending_review status). Only usable when autonomous loop is active. Split comparisons, ablations, and repeated runs into separate experiment cards.",
+    description: "Autonomous-loop only: propose one independent experiment run. Human-review mode creates pending_review; full-auto mode creates pending_start and assigns it to the loop agent. For user-directed work, use synapse_create_experiment.",
     parameters: {
       type: "object",
       properties: {
@@ -315,6 +315,30 @@ export const commonToolDefinitions = defineOpenClawTools([
       additionalProperties: false,
     },
     targetToolName: "synapse_propose_experiment",
+  }),
+  createPassthroughTool<{
+    experimentUuid: string;
+    decision: "approved" | "rejected";
+    reviewNote?: string;
+    assignedAgentUuid?: string | null;
+  }>({
+    name: "synapse_review_experiment",
+    description: "PI/admin only: approve a pending experiment into pending_start or reject it back to draft from an agent terminal flow.",
+    parameters: {
+      type: "object",
+      properties: {
+        experimentUuid: { type: "string", description: "Experiment UUID" },
+        decision: { type: "string", description: "Review decision: approved | rejected" },
+        reviewNote: { type: "string", description: "Optional review note or revision feedback" },
+        assignedAgentUuid: {
+          type: ["string", "null"],
+          description: "Optional agent UUID to assign while reviewing, or null to clear assignment",
+        },
+      },
+      required: ["experimentUuid", "decision"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_review_experiment",
   }),
 
   createPassthroughTool<{

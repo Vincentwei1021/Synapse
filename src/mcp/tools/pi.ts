@@ -12,6 +12,7 @@ import * as documentService from "@/services/document.service";
 import * as activityService from "@/services/activity.service";
 import * as projectGroupService from "@/services/project-group.service";
 import * as baselineService from "@/services/baseline.service";
+import * as experimentService from "@/services/experiment.service";
 
 export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
   // synapse_create_research_project - Create a new research project
@@ -82,6 +83,38 @@ export function registerAdminTools(server: McpServer, auth: AgentAuthContext) {
         actorUuid: auth.actorUuid,
         action: decision === "accepted" ? "approved" : "rejected",
         value: reviewNote ? { reviewNote } : undefined,
+      });
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(updated, null, 2) }],
+      };
+    }
+  );
+
+  server.registerTool(
+    "synapse_review_experiment",
+    {
+      description: "Atomically approve or reject a pending_review experiment (state transition + activity + notifications + reject-comment). Restricted to admin / pi / pi_agent roles. When a Claude Code agent acts on a user's verbal approve, reviewNote MUST quote the user's exact words, e.g. 'User verbally approved in terminal: \"OK 上吧\"'. On verbal reject, reviewNote MUST summarize the user's revision request in second-person Chinese with key quoted phrases — synapse_review_experiment will write that as the comment automatically; do NOT also call synapse_add_comment. In CC full-auto mode the reviewNote MUST follow the template: 'Full-auto session authorized by <ownerName> at <ISO time>. Self-review pass: <key points>.' (or 'Self-review skipped: <reason>.' if the sub-agent failed).",
+      inputSchema: z.object({
+        experimentUuid: z.string(),
+        decision: z.enum(["approved", "rejected"]),
+        reviewNote: z.string().optional(),
+        assignedAgentUuid: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("Optional agent UUID to assign while reviewing. Pass null to clear assignment."),
+      }),
+    },
+    async ({ experimentUuid, decision, reviewNote, assignedAgentUuid }) => {
+      const updated = await experimentService.reviewExperiment({
+        companyUuid: auth.companyUuid,
+        experimentUuid,
+        approved: decision === "approved",
+        reviewNote: reviewNote || null,
+        ...(assignedAgentUuid !== undefined ? { assignedAgentUuid } : {}),
+        actorUuid: auth.actorUuid,
+        actorType: "agent",
       });
 
       return {

@@ -337,6 +337,42 @@ describe("reviewExperiment revert paths", () => {
       })
     );
   });
+
+  it("records PI-agent reviews as agent activity and notifications", async () => {
+    const existing = makeExperiment({
+      assigneeType: null,
+      assigneeUuid: null,
+    });
+    mockPrisma.experiment.findFirst.mockResolvedValue(existing);
+    mockPrisma.experiment.update.mockResolvedValue({
+      ...existing,
+      status: "pending_start",
+    });
+
+    await reviewExperiment({
+      companyUuid: COMPANY,
+      experimentUuid: "exp-1",
+      approved: true,
+      actorUuid: "agent-pi-1",
+      actorType: "agent",
+    });
+
+    expect(mockCreateActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorType: "agent",
+        actorUuid: "agent-pi-1",
+        action: "approved",
+      }),
+    );
+    expect(mockNotificationCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientType: "agent",
+        recipientUuid: "agent-pi-1",
+        actorType: "agent",
+        actorUuid: "agent-pi-1",
+      }),
+    );
+  });
 });
 
 describe("requestExperimentPlan", () => {
