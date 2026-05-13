@@ -59,6 +59,15 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/bin/on-post-submit-results.sh"
           }
         ]
+      },
+      {
+        "matcher": "mcp__synapse__synapse_create_experiment|synapse_create_experiment",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/on-post-create-experiment.sh"
+          }
+        ]
       }
     ],
     "SubagentStart": [
