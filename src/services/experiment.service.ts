@@ -658,7 +658,7 @@ export async function getExperiment(companyUuid: string, uuid: string) {
 export async function createExperiment(params: ExperimentCreateParams) {
   const status =
     params.status ??
-    (params.createdByType === "agent" ? "pending_review" : "pending_start");
+    (params.createdByType === "agent" ? "draft" : "pending_start");
 
   // F-024: when an assignee is supplied, stamp assignedAt and assignedByUuid so
   // downstream consumers (queue ordering, activity feeds) see a proper assignment.
