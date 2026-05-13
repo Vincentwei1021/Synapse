@@ -1,5 +1,8 @@
 {
   "id": "synapse-openclaw-plugin",
+  "activation": {
+    "onStartup": true
+  },
   "contracts": {
     "tools": [
       "synapse_checkin",
