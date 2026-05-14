@@ -32,6 +32,15 @@ vi.mock("@/services/experiment-progress.service", () => ({
 }));
 vi.mock("@/services/session.service", () => ({}));
 
+const mockRecordIncidentLesson = vi.hoisted(() => vi.fn());
+const mockSearchIncidentLessons = vi.hoisted(() => vi.fn());
+const mockGetExperimentIncidentLessons = vi.hoisted(() => vi.fn());
+vi.mock("@/services/incident-lessons.service", () => ({
+  recordExperimentIncidentLesson: mockRecordIncidentLesson,
+  searchIncidentLessons: mockSearchIncidentLessons,
+  getExperimentIncidentLessons: mockGetExperimentIncidentLessons,
+}));
+
 import { registerComputeTools } from "@/mcp/tools/compute";
 
 type ToolHandler = (input: Record<string, unknown>) => Promise<{
@@ -139,5 +148,102 @@ describe("synapse_propose_experiment", () => {
         createdByType: "agent",
       }),
     );
+  });
+});
+
+describe("incident lesson tools", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockRecordIncidentLesson.mockResolvedValue({ uuid: "lesson-1", title: "CUDA OOM" });
+    mockSearchIncidentLessons.mockResolvedValue({ lessons: [{ uuid: "lesson-1" }], total: 1, mode: "keyword" });
+    mockGetExperimentIncidentLessons.mockResolvedValue([{ uuid: "lesson-1" }]);
+  });
+
+  it("records an experiment incident lesson with the current agent identity", async () => {
+    const { server, tools } = makeServer();
+    registerComputeTools(server, {
+      type: "agent",
+      companyUuid: "company-1",
+      actorUuid: "agent-1",
+      roles: ["experiment"],
+      agentName: "Agent",
+    });
+
+    const result = await tools.get("synapse_record_experiment_incident_lesson")?.({
+      experimentUuid: "exp-1",
+      title: "CUDA OOM",
+      failureType: "compute_issue",
+      status: "resolved_in_run",
+      symptom: "Training crashed.",
+      tags: ["cuda"],
+    });
+
+    expect(result?.isError).toBeUndefined();
+    expect(mockRecordIncidentLesson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        companyUuid: "company-1",
+        experimentUuid: "exp-1",
+        title: "CUDA OOM",
+        failureType: "compute_issue",
+        status: "resolved_in_run",
+        symptom: "Training crashed.",
+        tags: ["cuda"],
+        createdByUuid: "agent-1",
+        createdByType: "agent",
+      }),
+    );
+  });
+
+  it("searches incident lessons with keyword filters", async () => {
+    const { server, tools } = makeServer();
+    registerComputeTools(server, {
+      type: "agent",
+      companyUuid: "company-1",
+      actorUuid: "agent-1",
+      roles: ["experiment"],
+      agentName: "Agent",
+    });
+
+    const result = await tools.get("synapse_search_incident_lessons")?.({
+      researchProjectUuid: "project-1",
+      query: "cuda oom",
+      failureType: "compute_issue",
+      limit: 5,
+      mode: "bm25",
+    });
+
+    expect(result?.isError).toBeUndefined();
+    expect(mockSearchIncidentLessons).toHaveBeenCalledWith(
+      expect.objectContaining({
+        companyUuid: "company-1",
+        researchProjectUuid: "project-1",
+        query: "cuda oom",
+        failureType: "compute_issue",
+        limit: 5,
+        mode: "bm25",
+      }),
+    );
+    expect(JSON.parse(result?.content[0]?.text ?? "{}")).toMatchObject({ total: 1 });
+  });
+
+  it("lists incident lessons for one experiment", async () => {
+    const { server, tools } = makeServer();
+    registerComputeTools(server, {
+      type: "agent",
+      companyUuid: "company-1",
+      actorUuid: "agent-1",
+      roles: ["experiment"],
+      agentName: "Agent",
+    });
+
+    const result = await tools.get("synapse_get_experiment_incident_lessons")?.({
+      experimentUuid: "exp-1",
+    });
+
+    expect(result?.isError).toBeUndefined();
+    expect(mockGetExperimentIncidentLessons).toHaveBeenCalledWith({
+      companyUuid: "company-1",
+      experimentUuid: "exp-1",
+    });
   });
 });

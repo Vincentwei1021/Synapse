@@ -70,6 +70,7 @@ export function DocumentContent({ documentUuid, projectUuid, initialContent, doc
   const [isPending, startTransition] = useTransition();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const isGeneratedDocument = documentType === "experiment_results_log" || documentType === "execution_incident_lessons";
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -188,7 +189,7 @@ export function DocumentContent({ documentUuid, projectUuid, initialContent, doc
               {isPending ? t("common.processing") : t("documents.saveChanges")}
             </Button>
           </div>
-        ) : (
+        ) : isGeneratedDocument ? null : (
           <Button
             onClick={() => setIsEditing(true)}
             className="bg-primary hover:bg-primary/90 text-primary-foreground"

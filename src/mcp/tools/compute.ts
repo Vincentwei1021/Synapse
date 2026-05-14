@@ -9,6 +9,7 @@ import * as experimentRunService from "@/services/experiment-run.service";
 import { createProgressLog } from "@/services/experiment-progress.service";
 import * as sessionService from "@/services/session.service";
 import * as notificationService from "@/services/notification.service";
+import * as incidentLessonsService from "@/services/incident-lessons.service";
 
 function serializeAccess(node: {
   sshHost: string | null;
@@ -589,6 +590,140 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
   );
 
   server.registerTool(
+    "synapse_record_experiment_incident_lesson",
+    {
+      description:
+        "Record a reusable execution incident lesson for an experiment. Use this when an experiment fails, or when an agent hits a recoverable issue during execution and fixes it. Pair live execution updates with synapse_report_experiment_progress; this tool stores the reusable lesson for future search. Do not include raw secrets, full environment variables, private keys, or unredacted logs.",
+      inputSchema: z.object({
+        experimentUuid: z.string().describe("Experiment UUID"),
+        title: z.string().describe("Short lesson title, e.g. 'CUDA OOM during reward model training'"),
+        failureType: z
+          .enum(["code_bug", "data_issue", "compute_issue", "auth_issue", "environment", "methodology", "agent_error", "other"])
+          .describe("Incident category"),
+        status: z
+          .enum(["resolved_in_run", "unresolved", "caused_failure"])
+          .describe("Whether the incident was fixed during the run, remains unresolved, or caused final experiment failure"),
+        severity: z.enum(["low", "medium", "high"]).default("medium"),
+        phase: z.string().optional().describe("Execution phase, e.g. data_prep, training, evaluation, compute, reporting"),
+        symptom: z.string().describe("What went wrong, in concise factual terms"),
+        rootCause: z.string().optional().describe("Best known root cause, if identified"),
+        resolution: z.string().optional().describe("How the agent fixed or worked around it"),
+        prevention: z.string().optional().describe("What future agents should do to avoid this issue"),
+        evidenceSummary: z.string().optional().describe("Short redacted evidence summary; do not paste raw logs containing secrets"),
+        experimentOutcomeImpact: z
+          .enum(["none", "changed_config", "invalidated_partial_results", "increased_cost", "caused_failure"])
+          .optional()
+          .describe("How this incident affected the experiment outcome or reproducibility"),
+        tags: z.array(z.string()).optional().describe("Searchable tags such as cuda, oom, ssh, dataset-schema"),
+      }),
+    },
+    async (input) => {
+      try {
+        const lesson = await incidentLessonsService.recordExperimentIncidentLesson({
+          companyUuid: auth.companyUuid,
+          experimentUuid: input.experimentUuid,
+          title: input.title,
+          failureType: input.failureType,
+          status: input.status,
+          severity: input.severity,
+          phase: input.phase ?? null,
+          symptom: input.symptom,
+          rootCause: input.rootCause ?? null,
+          resolution: input.resolution ?? null,
+          prevention: input.prevention ?? null,
+          evidenceSummary: input.evidenceSummary ?? null,
+          experimentOutcomeImpact: input.experimentOutcomeImpact ?? null,
+          tags: input.tags,
+          createdByUuid: auth.actorUuid,
+          createdByType: auth.type,
+        });
+
+        return {
+          content: [{ type: "text", text: JSON.stringify({ lesson }, null, 2) }],
+        };
+      } catch (error) {
+        return {
+          content: [{ type: "text", text: error instanceof Error ? error.message : "Failed to record incident lesson" }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.registerTool(
+    "synapse_search_incident_lessons",
+    {
+      description:
+        "Search reusable execution incident lessons for a research project before or during experiment work. Keyword/BM25 search uses Postgres full-text search with structured filters; semantic/hybrid modes are reserved for future embedding support.",
+      inputSchema: z.object({
+        researchProjectUuid: z.string().describe("Research Project UUID"),
+        query: z.string().optional().describe("Keyword query, e.g. 'cuda oom batch size'"),
+        failureType: z
+          .enum(["code_bug", "data_issue", "compute_issue", "auth_issue", "environment", "methodology", "agent_error", "other"])
+          .optional(),
+        phase: z.string().optional(),
+        status: z.enum(["resolved_in_run", "unresolved", "caused_failure"]).optional(),
+        severity: z.enum(["low", "medium", "high"]).optional(),
+        tags: z.array(z.string()).optional(),
+        limit: z.number().int().min(1).max(50).default(20),
+        mode: z.enum(["keyword", "bm25", "semantic", "hybrid"]).default("keyword"),
+      }),
+    },
+    async (input) => {
+      try {
+        const result = await incidentLessonsService.searchIncidentLessons({
+          companyUuid: auth.companyUuid,
+          researchProjectUuid: input.researchProjectUuid,
+          query: input.query ?? null,
+          failureType: input.failureType ?? null,
+          phase: input.phase ?? null,
+          status: input.status ?? null,
+          severity: input.severity ?? null,
+          tags: input.tags,
+          limit: input.limit,
+          mode: input.mode,
+        });
+
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      } catch (error) {
+        return {
+          content: [{ type: "text", text: error instanceof Error ? error.message : "Failed to search incident lessons" }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.registerTool(
+    "synapse_get_experiment_incident_lessons",
+    {
+      description: "List execution incident lessons recorded for a single experiment.",
+      inputSchema: z.object({
+        experimentUuid: z.string().describe("Experiment UUID"),
+      }),
+    },
+    async ({ experimentUuid }) => {
+      try {
+        const lessons = await incidentLessonsService.getExperimentIncidentLessons({
+          companyUuid: auth.companyUuid,
+          experimentUuid,
+        });
+
+        return {
+          content: [{ type: "text", text: JSON.stringify({ lessons }, null, 2) }],
+        };
+      } catch (error) {
+        return {
+          content: [{ type: "text", text: error instanceof Error ? error.message : "Failed to get incident lessons" }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  server.registerTool(
     "synapse_report_experiment_progress",
     {
       description:
@@ -735,6 +870,42 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
         select: { uuid: true, title: true, content: true, updatedAt: true },
       });
 
+      let recentIncidentLessons: Array<{
+        uuid: string;
+        experimentUuid: string;
+        experimentTitle: string | null;
+        title: string;
+        status: string;
+        severity: string;
+        failureType: string;
+        phase: string | null;
+        symptom: string;
+        resolution: string | null;
+        prevention: string | null;
+        tags: string[];
+      }> = [];
+      try {
+        const incidentResult = await incidentLessonsService.searchIncidentLessons({
+          companyUuid: auth.companyUuid,
+          researchProjectUuid,
+          limit: 6,
+        });
+        recentIncidentLessons = incidentResult.lessons.map((lesson) => ({
+          uuid: lesson.uuid,
+          experimentUuid: lesson.experimentUuid,
+          experimentTitle: lesson.experimentTitle,
+          title: lesson.title,
+          status: lesson.status,
+          severity: lesson.severity,
+          failureType: lesson.failureType,
+          phase: lesson.phase,
+          symptom: lesson.symptom,
+          resolution: lesson.resolution,
+          prevention: lesson.prevention,
+          tags: lesson.tags,
+        }));
+      } catch { /* ignore incident lesson errors */ }
+
       // Fetch compute availability for the project's bound pool
       let computeAvailability: { totalGpus: number; availableGpus: number; occupiedGpus: number; gpuModels: string[] } | null = null;
       try {
@@ -771,11 +942,12 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
             documents,
           },
           resultsLog: resultsLog ? { uuid: resultsLog.uuid, content: resultsLog.content, updatedAt: resultsLog.updatedAt } : null,
+          recentIncidentLessons,
           relatedWorks,
           documents,
           computeAvailability,
           experimentQueue: { inProgress: inProgressCount, pendingStart: pendingStartCount },
-          _hint: "Experiment id and uuid fields are the same public UUID; pass either value as experimentUuid to synapse_get_experiment for full details. Document id and uuid fields are the same public UUID; pass either value as documentUuid to synapse_get_document for full content. Use synapse_get_related_works when paper metadata beyond titles is needed. When proposing experiments, consider available compute resources — propose at most as many experiments as there are available GPUs, minus already queued/running experiments. Each experiment card must represent ONE independent run: split sweeps, ablations, repeated trials, and baseline-vs-variant comparisons into separate cards. Multi-phase cards are only acceptable when the phases are strictly sequential stages of a single run — never pack parallel or comparative runs together.",
+          _hint: "Experiment id and uuid fields are the same public UUID; pass either value as experimentUuid to synapse_get_experiment for full details. Document id and uuid fields are the same public UUID; pass either value as documentUuid to synapse_get_document for full content. Use synapse_get_related_works when paper metadata beyond titles is needed. Before starting or proposing experiments, inspect recentIncidentLessons and call synapse_search_incident_lessons for relevant execution lessons. When an experiment fails or a recoverable issue changes config, cost, partial results, or reproducibility, call synapse_record_experiment_incident_lesson. When proposing experiments, consider available compute resources — propose at most as many experiments as there are available GPUs, minus already queued/running experiments. Each experiment card must represent ONE independent run: split sweeps, ablations, repeated trials, and baseline-vs-variant comparisons into separate cards. Multi-phase cards are only acceptable when the phases are strictly sequential stages of a single run — never pack parallel or comparative runs together.",
         }, null, 2) }],
       };
     }

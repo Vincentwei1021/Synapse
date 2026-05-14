@@ -6,7 +6,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, FileText, ChevronRight, FlaskConical, Beaker, type LucideIcon } from "lucide-react";
+import { BookOpen, FileText, ChevronRight, FlaskConical, Beaker, Wrench, type LucideIcon } from "lucide-react";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { getDocument } from "@/services/document.service";
 import { researchProjectExists } from "@/services/research-project.service";
@@ -21,6 +21,7 @@ const docTypeConfig: Record<string, { labelKey: string; color: string; icon: Luc
   rdr: { labelKey: "documents.typeRdr", color: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300", icon: FileText },
   results_report: { labelKey: "documents.typeResultsReport", color: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300", icon: Beaker },
   project_synthesis: { labelKey: "documents.typeProjectSynthesis", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300", icon: FlaskConical },
+  execution_incident_lessons: { labelKey: "documents.typeExecutionIncidentLessons", color: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300", icon: Wrench },
   other: { labelKey: "documents.typeOther", color: "bg-secondary text-muted-foreground", icon: FileText },
 };
 

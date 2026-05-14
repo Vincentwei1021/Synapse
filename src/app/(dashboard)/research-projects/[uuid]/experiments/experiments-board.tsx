@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { LayoutGroup, motion } from "framer-motion";
-import { CheckCircle2, ChevronRight, CornerUpLeft, FileText, GitBranch, Loader2, PenLine, Save, Send, Sparkles, Trash2, Zap } from "lucide-react";
+import { CheckCircle2, ChevronRight, CornerUpLeft, FileText, GitBranch, Loader2, PenLine, Save, Send, Sparkles, Trash2, Wrench, Zap } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1079,6 +1079,39 @@ export function ExperimentsBoard({
                     </div>
                   );
                 })() : null}
+
+                {selectedExperiment.incidentLessons.length ? (
+                  <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
+                    <div className="mb-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Wrench className="h-4 w-4 text-amber-600 dark:text-amber-300" />
+                        <h3 className="text-sm font-semibold text-foreground">{t("experiments.detail.incidentLessons")}</h3>
+                      </div>
+                      <a
+                        href={`/research-projects/${projectUuid}/lessons?selected=${selectedExperiment.incidentLessons[0].uuid}`}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        {t("experiments.detail.viewAllLessons")}
+                      </a>
+                    </div>
+                    <div className="space-y-2">
+                      {selectedExperiment.incidentLessons.slice(0, 3).map((lesson) => (
+                        <a
+                          key={lesson.uuid}
+                          href={`/research-projects/${projectUuid}/lessons?selected=${lesson.uuid}`}
+                          className="block rounded-lg border border-border bg-background/60 p-3 transition-colors hover:border-primary/50"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="outline">{t(`lessons.status.${lesson.status}` as Parameters<typeof t>[0])}</Badge>
+                            <Badge variant="secondary">{t(`lessons.failureType.${lesson.failureType}` as Parameters<typeof t>[0])}</Badge>
+                            {lesson.phase ? <span className="text-xs text-muted-foreground">{lesson.phase}</span> : null}
+                          </div>
+                          <p className="mt-2 text-sm font-medium text-foreground">{lesson.title}</p>
+                        </a>
+                      ))}
+                    </div>
+                  </Card>
+                ) : null}
 
                 {selectedExperiment.status === "draft" ? (
                   <Card className="rounded-2xl border-border bg-card p-4 shadow-none">

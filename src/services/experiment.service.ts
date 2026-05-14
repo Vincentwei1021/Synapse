@@ -46,6 +46,16 @@ export interface ExperimentResponse {
     uuid: string;
     title: string;
   } | null;
+  incidentLessons: Array<{
+    uuid: string;
+    title: string;
+    status: string;
+    severity: string;
+    failureType: string;
+    phase: string | null;
+    experimentOutcomeImpact: string | null;
+    updatedAt: string;
+  }>;
   liveStatus: string | null;
   liveMessage: string | null;
   liveUpdatedAt: string | null;
@@ -533,7 +543,7 @@ async function formatExperiment(
     formatCreatedBy(experiment.createdByUuid, experiment.createdByType === "agent" ? "agent" : "user"),
   ]);
 
-  const [parentQuestionExperiments, resultDocument] = await Promise.all([
+  const [parentQuestionExperiments, resultDocument, incidentLessons] = await Promise.all([
     experiment.researchQuestion?.parentQuestionUuid
       ? prisma.experiment.findMany({
           where: {
@@ -564,6 +574,24 @@ async function formatExperiment(
         title: true,
       },
     }),
+    prisma.experimentIncidentLesson.findMany({
+      where: {
+        companyUuid,
+        experimentUuid: experiment.uuid,
+      },
+      select: {
+        uuid: true,
+        title: true,
+        status: true,
+        severity: true,
+        failureType: true,
+        phase: true,
+        experimentOutcomeImpact: true,
+        updatedAt: true,
+      },
+      orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+      take: 6,
+    }),
   ]);
 
   return {
@@ -583,6 +611,16 @@ async function formatExperiment(
     experimentBranch: experiment.experimentBranch,
     commitSha: experiment.commitSha,
     resultDocument,
+    incidentLessons: incidentLessons.map((lesson) => ({
+      uuid: lesson.uuid,
+      title: lesson.title,
+      status: lesson.status,
+      severity: lesson.severity,
+      failureType: lesson.failureType,
+      phase: lesson.phase,
+      experimentOutcomeImpact: lesson.experimentOutcomeImpact,
+      updatedAt: lesson.updatedAt.toISOString(),
+    })),
     liveStatus: experiment.liveStatus,
     liveMessage: experiment.liveMessage,
     liveUpdatedAt: experiment.liveUpdatedAt?.toISOString() ?? null,

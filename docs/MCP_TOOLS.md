@@ -41,6 +41,9 @@ All agents have access to all tools. Tool access is not gated by permissions —
 | `synapse_start_experiment` | Move experiment to in_progress, optionally reserve GPUs. | `experimentUuid`, `gpuUuids?`, `workingNotes?` |
 | `synapse_submit_experiment_results` | Submit experiment outcomes and complete. | `experimentUuid`, `outcome?`, `experimentResults?` |
 | `synapse_report_experiment_progress` | Report progress update (appears on experiment card in real-time). | `experimentUuid`, `message`, `phase?` |
+| `synapse_record_experiment_incident_lesson` | Record a reusable execution incident lesson for failures or recovered issues. | `experimentUuid`, `title`, `failureType`, `status`, `symptom`, `resolution?`, `prevention?`, `tags?` |
+| `synapse_search_incident_lessons` | Search project execution lessons with keyword/BM25 search and structured filters. | `researchProjectUuid`, `query?`, `failureType?`, `phase?`, `status?`, `tags?`, `mode?` |
+| `synapse_get_experiment_incident_lessons` | List execution lessons recorded for one experiment. | `experimentUuid` |
 | `synapse_propose_experiment` | Propose a draft experiment (autonomous loop only). | `researchProjectUuid`, `title`, `description` |
 
 ### Literature

@@ -22,6 +22,7 @@ import {
   LineChart,
   LogOut,
   Menu,
+  Wrench,
 } from "lucide-react";
 import { authFetch, logout as authLogout, clearUserManager, refreshAuthCookies } from "@/lib/auth-client";
 import { clientLogger } from "@/lib/logger-client";
@@ -264,6 +265,7 @@ export default function DashboardLayout({
         badge: currentProject?.autonomousLoopEnabled ? t("nav.autoBadge") : undefined,
       },
       { href: `/research-projects/${currentProjectUuid}/insights`, label: t("nav.insights"), icon: LineChart },
+      { href: `/research-projects/${currentProjectUuid}/lessons`, label: t("nav.lessons"), icon: Wrench },
       { href: `/research-projects/${currentProjectUuid}/documents`, label: t("nav.documents"), icon: FileText },
       { href: `/research-projects/${currentProjectUuid}/settings`, label: t("nav.projectSettings"), icon: Settings },
     ];

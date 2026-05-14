@@ -122,6 +122,7 @@
     "researchQuestions": "Research Questions",
     "experiments": "Experiments",
     "insights": "Insights",
+    "lessons": "Lessons",
     "compute": "Compute",
     "documents": "Documents",
     "experimentDesigns": "Experiment Designs",
@@ -758,12 +759,57 @@
     "typeExperimentResult": "Experiment Result",
     "typeAnalysis": "Analysis",
     "typeLiteratureReview": "Literature Review",
+    "typeExecutionIncidentLessons": "Execution Lessons",
     "typeMethodology": "Methodology",
     "typeRdr": "Research Decision Record",
     "typeResultsReport": "Results Report",
     "typeProjectSynthesis": "Project Synthesis",
     "linkedExperiment": "Linked experiment",
     "openExperimentDetail": "Open experiment detail"
+  },
+  "lessons": {
+    "title": "Execution Lessons",
+    "subtitle": "Search recoverable incidents, unresolved execution issues, and failure lessons captured during experiments.",
+    "openDocument": "Open lessons document",
+    "searchPlaceholder": "Search symptoms, root causes, fixes...",
+    "anyType": "Any type",
+    "anyStatus": "Any status",
+    "anySeverity": "Any severity",
+    "phasePlaceholder": "Phase",
+    "tagsPlaceholder": "Tags, comma separated",
+    "applyFilters": "Apply",
+    "emptyTitle": "No incident lessons yet",
+    "emptyDesc": "When agents fix recoverable issues or close failed experiments, reusable lessons will appear here.",
+    "selectLesson": "Select a lesson to inspect details.",
+    "notRecorded": "Not recorded",
+    "noTags": "No tags",
+    "status": {
+      "resolved_in_run": "Resolved",
+      "unresolved": "Unresolved",
+      "caused_failure": "Caused failure"
+    },
+    "severity": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "failureType": {
+      "code_bug": "Code bug",
+      "data_issue": "Data issue",
+      "compute_issue": "Compute",
+      "auth_issue": "Auth",
+      "environment": "Environment",
+      "methodology": "Methodology",
+      "agent_error": "Agent error",
+      "other": "Other"
+    },
+    "detail": {
+      "symptom": "Symptom",
+      "rootCause": "Root cause",
+      "resolution": "Resolution",
+      "prevention": "Prevention",
+      "evidence": "Evidence"
+    }
   },
   "settings": {
     "title": "Settings",
@@ -1402,6 +1448,8 @@
       "experimentBranch": "Code Branch",
       "commitSha": "Commit",
       "resultDocument": "Result Document",
+      "incidentLessons": "Incident lessons",
+      "viewAllLessons": "View lessons",
       "viewDocument": "Open document",
       "viewOnGithub": "View on GitHub",
       "progressLog": "Progress Log",

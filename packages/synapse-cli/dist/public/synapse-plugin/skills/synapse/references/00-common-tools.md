@@ -59,8 +59,12 @@ Requires the `experiment` tool family.
 | `synapse_start_experiment` | Move an experiment into execution. Optionally reserve GPUs inline. |
 | `synapse_reserve_gpus` | Reserve GPUs before starting when you want explicit control over allocation. |
 | `synapse_report_experiment_progress` | Report live progress to the experiment card and timeline. Supports `liveStatus` such as `queuing`, `checking_resources`, or `running`. |
+| `synapse_record_experiment_incident_lesson` | Record reusable execution lessons for failed experiments or recoverable incidents fixed during a run. Store root cause, resolution, prevention, and redacted evidence. |
+| `synapse_search_incident_lessons` | Search project execution lessons with keyword/BM25 search plus failure type, phase, status, severity, and tag filters before starting related work. |
+| `synapse_get_experiment_incident_lessons` | List incident lessons already recorded for one experiment. |
 | `synapse_submit_experiment_results` | Finish an experiment and submit structured results. |
 | `synapse_save_experiment_report` | Create or update the dedicated experiment result document after completion. |
+| `synapse_upload_document_image` | Upload a figure/image for an existing document (`documentUuid`) or an experiment report (`experimentUuid`) and return a Synapse-hosted Markdown image URL. |
 | `synapse_propose_experiment` | Autonomous-loop only: propose the next experiment when the caller is the assigned loop agent. Human-review mode creates `pending_review`; full-auto mode creates `pending_start` and auto-assigns it back to the agent. Use `synapse_create_experiment` for user-directed terminal work. |
 | `synapse_list_compute_nodes` | List pools, nodes, GPUs, and access details. |
 | `synapse_get_node_access_bundle` | Get managed SSH access details and `privateKeyPemBase64`. |

@@ -122,6 +122,7 @@
     "researchQuestions": "研究问题",
     "experiments": "实验",
     "insights": "洞察",
+    "lessons": "经验库",
     "compute": "算力",
     "documents": "文档",
     "experimentDesigns": "实验设计",
@@ -758,12 +759,57 @@
     "typeExperimentResult": "实验结果",
     "typeAnalysis": "分析",
     "typeLiteratureReview": "文献综述",
+    "typeExecutionIncidentLessons": "执行经验",
     "typeMethodology": "方法论",
     "typeRdr": "研究决策记录",
     "typeResultsReport": "结果报告",
     "typeProjectSynthesis": "项目洞察",
     "linkedExperiment": "关联实验",
     "openExperimentDetail": "打开实验详情"
+  },
+  "lessons": {
+    "title": "执行经验库",
+    "subtitle": "检索实验过程中沉淀的可恢复错误、未解决问题和失败经验。",
+    "openDocument": "打开经验文档",
+    "searchPlaceholder": "搜索症状、根因、修复方式...",
+    "anyType": "全部类型",
+    "anyStatus": "全部状态",
+    "anySeverity": "全部严重度",
+    "phasePlaceholder": "环节",
+    "tagsPlaceholder": "标签，用逗号分隔",
+    "applyFilters": "筛选",
+    "emptyTitle": "暂无执行经验",
+    "emptyDesc": "当智能体修复可恢复问题或关闭失败实验时，可复用经验会出现在这里。",
+    "selectLesson": "选择一条经验查看详情。",
+    "notRecorded": "未记录",
+    "noTags": "暂无标签",
+    "status": {
+      "resolved_in_run": "已在运行中修复",
+      "unresolved": "未解决",
+      "caused_failure": "导致失败"
+    },
+    "severity": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    },
+    "failureType": {
+      "code_bug": "代码问题",
+      "data_issue": "数据问题",
+      "compute_issue": "算力问题",
+      "auth_issue": "认证问题",
+      "environment": "环境问题",
+      "methodology": "方法问题",
+      "agent_error": "智能体失误",
+      "other": "其他"
+    },
+    "detail": {
+      "symptom": "症状",
+      "rootCause": "根因",
+      "resolution": "解决方式",
+      "prevention": "预防建议",
+      "evidence": "证据摘要"
+    }
   },
   "settings": {
     "title": "设置",
@@ -1402,6 +1448,8 @@
       "experimentBranch": "代码分支",
       "commitSha": "提交",
       "resultDocument": "结果文档",
+      "incidentLessons": "执行经验",
+      "viewAllLessons": "查看经验",
       "viewDocument": "打开文档",
       "viewOnGithub": "在 GitHub 上查看",
       "progressLog": "进度日志",
