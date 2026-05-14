@@ -188,7 +188,7 @@ This is the detailed flow for moving an experiment through `in_progress` to `com
    tmux new -d -s exp-<short> 'cd ~/work && PYTHONUNBUFFERED=1 python -u train.py --config exp.yaml 2>&1 | tee run.log'
    ```
 
-8. **Monitoring — long runs (>30 min)**: poll from the main agent on a cadence, or set up a cron / periodic job on the remote node that calls back with a progress update. Use `synapse_report_experiment_progress` to push each milestone:
+8. **Monitoring — long runs (>30 min)**: schedule a Claude Code `CronCreate` heartbeat from the main agent (`durable: true`, default cadence `*/10 * * * *`, tighten to `*/30 * * * *` after warmup for multi-hour runs). Each fire reads `synapse_get_experiment` + tails the remote tmux log + calls `synapse_report_experiment_progress`, and on completion calls `CronDelete`. See "Monitoring Long Runs With CronCreate" in the experiments skill for the full pattern. Each heartbeat call uses `synapse_report_experiment_progress` to push the latest milestone:
 
    ```text
    synapse_report_experiment_progress({

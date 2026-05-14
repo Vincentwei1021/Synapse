@@ -173,7 +173,7 @@ synapse_update_experiment_status({ experimentUuid, status: "pending_review" })
 
 ### Main agent: monitor and continue
 
-The main agent does not block on any individual sub-agent. It polls Synapse:
+The main agent does not block on any individual sub-agent. It schedules a Claude Code `CronCreate` heartbeat (see "Monitoring Long Runs With CronCreate" in the experiments skill) that polls Synapse on a 10-minute cadence by default. Each fire runs:
 
 ```text
 synapse_get_assigned_experiments({
@@ -186,10 +186,12 @@ synapse_get_experiment({ experimentUuid })
 
 # Once all have completed, synthesize. If this is the assigned autonomous-loop
 # agent, propose follow-ups; otherwise use synapse_create_experiment for
-# user-directed terminal work.
+# user-directed terminal work. Then CronDelete the heartbeat.
 synapse_save_project_synthesis({ researchProjectUuid, title, content })
 synapse_propose_experiment({ researchProjectUuid, title, description })
 ```
+
+Use `durable: true` so the heartbeat survives CC restarts. Always `CronDelete` once all experiments in scope are `completed`.
 
 ### Sequential multi-experiment sub-agent
 

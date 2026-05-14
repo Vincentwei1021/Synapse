@@ -188,7 +188,7 @@ This is the detailed flow for moving an experiment through `in_progress` to `com
    tmux new -d -s exp-<short> 'cd ~/work && PYTHONUNBUFFERED=1 python -u train.py --config exp.yaml 2>&1 | tee run.log'
    ```
 
-8. **Monitoring — long runs (>30 min)**: poll from the main agent on a cadence, or set up a cron / periodic job on the remote node that calls back with a progress update. Use `synapse_report_experiment_progress` to push each milestone:
+8. **Monitoring — long runs (>30 min)**: schedule a Claude Code `CronCreate` heartbeat from the main agent (`durable: true`, default cadence `*/10 * * * *`, tighten to `*/30 * * * *` after warmup for multi-hour runs). Each fire reads `synapse_get_experiment` + tails the remote tmux log + calls `synapse_report_experiment_progress`, and on completion calls `CronDelete`. See "Monitoring Long Runs With CronCreate" in the experiments skill for the full pattern. Each heartbeat call uses `synapse_report_experiment_progress` to push the latest milestone:
 
    ```text
    synapse_report_experiment_progress({
@@ -208,7 +208,7 @@ This is the detailed flow for moving an experiment through `in_progress` to `com
 
 9. **Monitoring — short runs** (a few minutes): skip the cron, report progress inline at setup / mid-training / evaluation / analysis transitions.
 
-10. **Commit code and artifacts** — commit configs, scripts, and meaningful artifacts to the experiment branch (or base branch) and capture the commit SHA to include in the submission.
+10. **Commit code and artifacts** — if `synapse_get_repo_access` shows the project is repo-backed, you **must** commit configs, scripts, and meaningful artifacts to the experiment branch (or base branch) **and push to the configured repo**. Capture the commit SHA so it can be passed to `synapse_submit_experiment_results` as `experimentResults.commit` (and `branch`). Local-only runs that never push back are not acceptable when a repo is configured.
 
 11. **Submit results**
 
@@ -227,7 +227,7 @@ This is the detailed flow for moving an experiment through `in_progress` to `com
 
     `outcome` is optional, typically `success`, `failure`, or `inconclusive`. Submitting moves the experiment to `completed`, refreshes the experiment result document, and triggers the project synthesis refresh.
 
-12. **Save the dedicated experiment report** — when the flow asks for a full writeup:
+12. **Save the dedicated experiment report** — every submission must be immediately followed by a markdown report. This is required for `success`, `failure`, and `inconclusive` outcomes:
 
     ```text
     synapse_save_experiment_report({
@@ -237,7 +237,7 @@ This is the detailed flow for moving an experiment through `in_progress` to `com
     })
     ```
 
-    Use python + a plotting library to generate charts and embed them in the markdown where they help. Do **not** post the report as a comment — always use `synapse_save_experiment_report` so the dedicated result document exists.
+    Use python + a plotting library to generate charts and embed them in the markdown where they help. Do **not** post the report as a comment — always use `synapse_save_experiment_report` so the dedicated result document exists. The plugin's `PostToolUse` hook on `synapse_submit_experiment_results` injects a reminder, but you should treat this step as part of the submit flow, not as something to wait for the hook to nag about.
 
 13. **Match the project description's language** — if the project brief is in Chinese, write plan, progress messages, and report in Chinese.
 
@@ -313,7 +313,7 @@ When a reviewer sends `pending_review` back to `draft`:
 8. Run workload in tmux + unbuffered python
 9. `synapse_report_experiment_progress()` at milestones
 10. `synapse_submit_experiment_results()` — success, failure, or inconclusive
-11. `synapse_save_experiment_report()` if a dedicated report is required
+11. `synapse_save_experiment_report()` — **always** runs immediately after submit, regardless of outcome
 12. `synapse_add_comment()` for durable findings and mention the reviewer
 
 For parallel multi-experiment dispatch (main agent orchestrates, sub-agents execute), see **[05-session-sub-agent.md](05-session-sub-agent.md)**.

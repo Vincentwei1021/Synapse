@@ -107,7 +107,7 @@ If the project has a repo, commit all three onto the base branch (or a per-exper
 8. If repo-backed: `synapse_get_repo_access` → clone → branch from the experiment's base branch (commit + push back to this repo at the end is mandatory)
 9. Run the workload in a persistent remote shell (`tmux`/`screen`) with unbuffered output (`python -u …` or `PYTHONUNBUFFERED=1`) so logs never stall a tool call
 10. Report progress with `synapse_report_experiment_progress` at milestones — `phase` ∈ `setup` | `training` | `evaluation` | `analysis`; `liveStatus` ∈ `checking_resources` | `queuing` | `running`
-11. For long runs (>30 min), schedule periodic progress updates (cron on the remote node, or the main agent polling and calling `synapse_report_experiment_progress` on a timer) so the card never looks dead
+11. For long runs (>30 min), the main agent must schedule its own monitor heartbeat with `CronCreate` so the experiment card never looks dead. See "Monitoring Long Runs With CronCreate" below for the exact pattern.
 12. Commit code/artifacts to the experiment branch or base branch; capture the commit SHA
 13. Finish with `synapse_submit_experiment_results({ outcome, experimentResults, branch, commitSha })` — `outcome` ∈ `success` | `failure` | `inconclusive`; on failure include the error and partial results
 14. **Always** follow `synapse_submit_experiment_results` with `synapse_save_experiment_report({ experimentUuid, title, content })` — write a full markdown writeup (objective, methodology, results, analysis, charts where relevant). Do **not** post the report as a comment, and do **not** treat this step as optional even for `failure` / `inconclusive` runs
@@ -124,9 +124,64 @@ If the project has a repo, commit all three onto the base branch (or a per-exper
 - **Revision stays durable.** When a reviewer sends an experiment back, flip to `draft`, revise, then move it back to `pending_review`; leave a reply via `synapse_add_comment` using `@[name](actorType:uuid)` format to notify the reviewer.
 - **Failures are data.** An experiment that crashes or shows a regression is still a valid submission: set `outcome: "failure"` (or `"inconclusive"`) and write up what happened in `experimentResults` and the report.
 
+## Monitoring Long Runs With CronCreate
+
+For any experiment that you expect to run longer than ~30 minutes, the main agent must set up its own heartbeat with Claude Code's built-in `CronCreate` tool so the experiment card stays current and the user (or the autonomous loop) sees regress / completion as soon as it happens. **Do not** ask the user to run `/loop` and **do not** install a remote cron job — the main agent owns this.
+
+### When to schedule
+
+Schedule the monitor **immediately after** `synapse_start_experiment` returns successfully, before you SSH into the node or hand off to the workload. That way the card is being touched even while the workload is still warming up.
+
+### The CronCreate call
+
+`CronCreate` is a deferred Claude Code tool. If its schema is not loaded yet, run `ToolSearch` with `select:CronCreate,CronDelete` once before scheduling.
+
+```text
+CronCreate({
+  cron: "<every-N-minutes expression>",
+  prompt: "Check Synapse experiment <experimentUuid>: read synapse_get_experiment, parse the latest tmux/log output on the remote node, and call synapse_report_experiment_progress with phase + liveStatus + a one-line message describing the latest metric. If the experiment has completed, call CronDelete on this job.",
+  recurring: true,
+  durable: true,
+})
+```
+
+Capture the returned job id — you will need it for `CronDelete` when the experiment finishes.
+
+### Cadence
+
+- **Default: every 10 minutes** (`cron: "*/10 * * * *"`). This matches the `/loop` default and is the right starting point for almost every experiment.
+- **Long experiments (expected to run >3 hours): tighten cadence over time.** Start with 10 minutes for the first few heartbeats so users see early-failure signals quickly; once the experiment has reached a steady-state training phase, the main agent should `CronDelete` the 10-minute job and `CronCreate` a 30-minute job (`cron: "*/30 * * * *"` — or pick `"7,37 * * * *"` etc to avoid the :00 / :30 fleet-wide convoy).
+- **Avoid `:00` and `:30` exact minutes** unless something else demands them. The `CronCreate` schema documents that the global Claude fleet stampedes those marks; pick odd offsets (`*/10` is fine because of the natural distribution; `0 */1 * * *` for hourly is not — use `7 */1 * * *`).
+- **Never schedule below 5 minutes.** Synapse's backend doesn't need that resolution and you'll burn through the 7-day recurring-task budget on noise.
+
+### Required: `durable: true`
+
+Set `durable: true` always. Long experiments routinely outlive a single CC session (user closes laptop overnight, CC restarts, etc.). With `durable: true`, the cron job persists to `.claude/scheduled_tasks.json` and resumes automatically — missed fires are caught up after restart, so the card never goes stale just because CC was offline.
+
+The `recurring: true` 7-day auto-expiry is fine: very few experiments run longer than a week. If one does, the heartbeat firing one last time and self-deleting is a safe failure mode.
+
+### What the heartbeat prompt does
+
+When the cron fires, CC enqueues your prompt as a fresh user turn. The agent should:
+
+1. `synapse_get_experiment({ experimentUuid })` — read current state.
+2. If `status` is `completed` (success / failure / inconclusive), call `CronDelete({ id: <jobId> })` and exit. **Do not** keep heartbeating after completion.
+3. Otherwise, SSH into the compute node (use the cached PEM, do not re-fetch the access bundle on every tick) and read the tail of the tmux log.
+4. Compose a one-line `synapse_report_experiment_progress` update: latest metric, current phase, `liveStatus: "running"`. If progress has stalled (same metric for 3+ heartbeats), surface that to the user.
+5. If you change cadence (10 min → 30 min after warmup), do `CronDelete(oldId)` then `CronCreate(...)` with the new cadence and the new id.
+
+### Cleanup
+
+After `synapse_submit_experiment_results`, the post-submit hook reminds you to call `synapse_save_experiment_report`. **At the same time**, call `CronDelete({ id: <heartbeatJobId> })` to stop the heartbeat. Forgetting this is the easiest mistake — the experiment is `completed` but a stale heartbeat keeps re-checking it for up to 7 days. Track the job id in your todo list right after `CronCreate` so you don't lose it.
+
+### Why CronCreate, not `/loop` or remote cron
+
+- `/loop` is the user-facing command that wraps `CronCreate`. The main agent should call `CronCreate` directly — never push the user to type `/loop` themselves.
+- A remote cron job on the GPU node would work but adds operational overhead (SSH + cron edit + cleanup) and breaks if the node is reimaged. CC's scheduler is closer to the agent, knows when to fire (REPL-idle), and clears itself in 7 days.
+
 ## Running Multiple Experiments In Parallel
 
-When the user wants to execute several `pending_start` experiments at the same time, the main agent should monitor and dispatch rather than run workloads itself. Spawn one Task-tool sub-agent per experiment UUID — the plugin's `SubagentStart` hook auto-creates a Synapse session and injects the full execution workflow. The main agent then polls with `synapse_get_assigned_experiments({ statuses: ["in_progress", "completed"] })` and `synapse_get_experiment` to track progress. See **[sessions](../sessions/SKILL.md)** for the full pattern.
+When the user wants to execute several `pending_start` experiments at the same time, the main agent should monitor and dispatch rather than run workloads itself. Spawn one Task-tool sub-agent per experiment UUID — the plugin's `SubagentStart` hook auto-creates a Synapse session and injects the full execution workflow. To track progress without blocking on any one sub-agent, schedule a single `CronCreate` heartbeat that reads `synapse_get_assigned_experiments({ statuses: ["in_progress", "completed"] })` and reports state changes — see "Monitoring Long Runs With CronCreate" above for the pattern. See **[sessions](../sessions/SKILL.md)** for the full sub-agent pattern.
 
 ## Reference
 

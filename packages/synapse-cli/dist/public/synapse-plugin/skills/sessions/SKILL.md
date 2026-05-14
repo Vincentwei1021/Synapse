@@ -119,7 +119,18 @@ Each sub-agent follows the full execution checklist in **[experiments](../experi
 
 ### Main agent: monitor
 
-The main agent polls for completion rather than blocking on any one sub-agent:
+The main agent does not block on any one sub-agent. After dispatching all sub-agents, it schedules a single Claude Code `CronCreate` heartbeat that polls Synapse on a cadence — see "Monitoring Long Runs With CronCreate" in the [experiments](../experiments/SKILL.md) skill for the full pattern. The heartbeat prompt should look like:
+
+```text
+CronCreate({
+  cron: "*/10 * * * *",
+  prompt: "Check Synapse for project <projectUuid>: synapse_get_assigned_experiments({ researchProjectUuid: '<projectUuid>', statuses: ['in_progress', 'completed'] }). For each still-in-progress experiment, synapse_get_experiment + synapse_report_experiment_progress with the latest tmux/log line. Once all have completed, CronDelete this job.",
+  recurring: true,
+  durable: true,
+})
+```
+
+Within each fire of the heartbeat, the iteration looks like:
 
 ```text
 synapse_get_assigned_experiments({
@@ -135,6 +146,8 @@ synapse_get_experiment({ experimentUuid })
 # user-directed terminal work.
 synapse_propose_experiment({ researchProjectUuid, title, description })
 ```
+
+`durable: true` keeps the heartbeat alive across CC restarts so cards do not go stale just because the user closed their laptop. Always `CronDelete` once every experiment is `completed` and synthesis has been written.
 
 ### Sequential multi-experiment sub-agent
 
