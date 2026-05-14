@@ -104,7 +104,8 @@ Each stage skill repeats this onboarding prompt from its own perspective when en
 | Documents and synthesis | `synapse_get_documents`, `synapse_get_document`, `synapse_save_project_synthesis` |
 | Literature and deep research | `synapse_search_papers`, `synapse_add_related_work`, `synapse_get_related_works`, `synapse_get_deep_research_report` |
 | Research questions | `synapse_get_research_question` and research-question mutation tools when roles allow |
-| Experiments | `synapse_get_assigned_experiments`, `synapse_get_experiment`, `synapse_start_experiment`, `synapse_report_experiment_progress`, `synapse_submit_experiment_results`, `synapse_propose_experiment` |
+| Experiments | `synapse_get_assigned_experiments`, `synapse_get_experiment`, `synapse_create_experiment`, `synapse_start_experiment`, `synapse_report_experiment_progress`, `synapse_submit_experiment_results`, `synapse_propose_experiment` (autonomous loop only) |
+| PI/Admin review | `synapse_review_experiment` |
 | Compute | `synapse_list_compute_nodes`, `synapse_reserve_gpus`, `synapse_get_node_access_bundle` |
 | Collaboration | `synapse_add_comment`, `synapse_get_comments`, `synapse_search_mentionables` |
 | Task cleanup | `synapse_complete_task` except where a task-specific save/submit tool already clears state |

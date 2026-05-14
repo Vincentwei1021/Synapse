@@ -104,7 +104,7 @@ synapse_create_research_question({
 **When:** After an idea is selected for execution (user selects or auto-select #1).
 
 ```
-synapse_propose_experiment({
+synapse_create_experiment({
   researchProjectUuid: <projectUuid>,
   title: <selected idea title>,
   description: <idea description + hypothesis + expected outcome>,
@@ -114,7 +114,7 @@ synapse_propose_experiment({
 → Save mainExperimentUuid to state file
 ```
 
-**Note:** If the Synapse project has autonomous loop enabled, this creates the experiment in `pending_start` and auto-assigns it to the agent. Otherwise it lands in `pending_review` (visible on the board either way).
+**Note:** ARIS sync is user-directed terminal work, not autonomous-loop orchestration. This creates the experiment in `pending_review` for review. Only autonomous-loop agents should call `synapse_propose_experiment`.
 
 ### Checkpoint 4: Experiment Plan Sync
 

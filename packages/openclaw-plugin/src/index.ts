@@ -1,6 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type OpenClawPluginApi = any;
 
+import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 import { synapseConfigSchema, type SynapsePluginConfig, validateConfigWithWarnings } from "./config.js";
 import { SynapseMcpClient } from "./mcp-client.js";
 import { SynapseSseListener } from "./sse-listener.js";
@@ -47,7 +48,7 @@ async function wakeAgent(
   }
 }
 
-const plugin = {
+const plugin = definePluginEntry({
   id: "synapse-openclaw-plugin",
   name: "Synapse",
   description:
@@ -162,6 +163,6 @@ const plugin = {
     // --- Commands ---
     registerSynapseCommands(api, mcpClient, () => sseListener?.status ?? "disconnected");
   },
-};
+});
 
 export default plugin;

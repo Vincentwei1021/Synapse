@@ -784,14 +784,14 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
   server.registerTool(
     "synapse_create_experiment",
     {
-      description: "Create a new experiment outside the autonomous loop. This is the standard agent-side creation path for user-directed work and defaults to pending_review so a human can inspect it before execution.",
+      description: "Create a new experiment outside the autonomous loop. Defaults to draft so the calling agent can run a self-review sub-agent against the new experiment, revise the plan if needed, then advance to pending_review with synapse_update_experiment_status. User-directed terminal flows on Claude Code follow this same draft → self-review → pending_review path before asking the user to approve.",
       inputSchema: z.object({
         researchProjectUuid: z.string(),
         title: z.string(),
         description: z.string(),
         researchQuestionUuid: z.string().optional(),
         priority: z.enum(["low", "medium", "high", "immediate"]).default("medium"),
-        status: z.enum(["draft", "pending_review"]).default("pending_review"),
+        status: z.enum(["draft", "pending_review"]).default("draft"),
       }),
     },
     async ({ researchProjectUuid, title, description, researchQuestionUuid, priority, status }) => {
@@ -876,7 +876,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
   server.registerTool(
     "synapse_propose_experiment",
     {
-      description: "Propose one independent experiment run. In Human Review mode, created as 'pending_review' for human approval. In Full Auto mode, created as 'pending_start' and assigned to you for immediate execution. Only usable when autonomous loop is active and you are the assigned agent. Split comparisons, ablations, and repeated runs into separate experiment cards.",
+      description: "Autonomous-loop only: propose one independent experiment run after reviewing project context, synthesis, and compute. Before calling this tool, the autonomous-loop main agent MUST spawn a sub-agent to self-review the proposal text (motivation, hypothesis, method, success criteria, compute fit). Self-review never persists to the database. Human Review mode creates 'pending_review'; Full Auto mode creates 'pending_start' and assigns it to you. For user-directed or terminal-created experiments outside autonomous loop, use synapse_create_experiment instead.",
       inputSchema: z.object({
         researchProjectUuid: z.string(),
         title: z.string(),
@@ -893,10 +893,41 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
           autonomousLoopEnabled: true,
           autonomousLoopAgentUuid: auth.actorUuid,
         },
-        select: { uuid: true, autonomousLoopMode: true },
+        select: {
+          uuid: true,
+          name: true,
+          autonomousLoopEnabled: true,
+          autonomousLoopAgentUuid: true,
+          autonomousLoopMode: true,
+        },
       });
       if (!project) {
-        return { content: [{ type: "text", text: "Autonomous loop is not enabled for this project or you are not the assigned agent" }], isError: true };
+        return {
+          content: [
+            {
+              type: "text",
+              text: "synapse_propose_experiment is only available to the project's assigned autonomous-loop agent. For user-directed or terminal-created experiments, use synapse_create_experiment.",
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      if (researchQuestionUuid) {
+        const question = await prisma.researchQuestion.findFirst({
+          where: {
+            uuid: researchQuestionUuid,
+            companyUuid: auth.companyUuid,
+            researchProjectUuid,
+          },
+          select: { uuid: true },
+        });
+        if (!question) {
+          return {
+            content: [{ type: "text", text: "Research question not found in this project" }],
+            isError: true,
+          };
+        }
       }
 
       const isFullAuto = project.autonomousLoopMode === "full_auto";
@@ -912,6 +943,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
         // attributable back to the proposing agent.
         createdByUuid: auth.actorUuid,
         createdByType: "agent",
+        status: isFullAuto ? "pending_start" : "pending_review",
         // Mode 2: skip review, go straight to pending_start with agent assigned.
         // F-024: also stamp assignedBy/assignedAt so the assignment appears
         // complete in the queue and activity streams.
@@ -928,15 +960,11 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
 
       // Notify the agent's owner that a new experiment was auto-proposed
       try {
-        const projectForNotif = await prisma.researchProject.findFirst({
-          where: { uuid: researchProjectUuid, companyUuid: auth.companyUuid },
-          select: { name: true },
-        });
         const agent = await prisma.agent.findUnique({
           where: { uuid: auth.actorUuid },
           select: { ownerUuid: true, name: true },
         });
-        if (agent?.ownerUuid && projectForNotif) {
+        if (agent?.ownerUuid) {
           await notificationService.create({
             companyUuid: auth.companyUuid,
             researchProjectUuid,
@@ -945,7 +973,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
             entityType: "experiment",
             entityUuid: experiment.uuid,
             entityTitle: experiment.title,
-            projectName: projectForNotif.name,
+            projectName: project.name,
             action: "experiment_auto_proposed",
             message: isFullAuto
               ? `Agent auto-proposed experiment "${title}" for immediate execution.`
@@ -958,7 +986,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
 
         // Full Auto: also send task_assigned notification to the agent itself
         // This triggers handleExperimentAssigned in the plugin → detailed execution prompt
-        if (isFullAuto && projectForNotif) {
+        if (isFullAuto) {
           await notificationService.create({
             companyUuid: auth.companyUuid,
             researchProjectUuid,
@@ -967,7 +995,7 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
             entityType: "experiment",
             entityUuid: experiment.uuid,
             entityTitle: experiment.title,
-            projectName: projectForNotif.name,
+            projectName: project.name,
             action: "task_assigned",
             message: `Experiment "${title}" auto-assigned for immediate execution.`,
             actorType: "agent",

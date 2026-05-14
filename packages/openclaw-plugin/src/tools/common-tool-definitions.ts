@@ -277,7 +277,7 @@ export const commonToolDefinitions = defineOpenClawTools([
     status?: "draft" | "pending_review";
   }>({
     name: "synapse_create_experiment",
-    description: "Create a new experiment outside the autonomous loop. Defaults to pending_review so a human can review it before execution.",
+    description: "Create a new experiment outside the autonomous loop. Defaults to draft. After creating, spawn a sub-agent (Agent tool) to self-review the experiment plan, revise via synapse_update_experiment_plan if needed, then call synapse_update_experiment_status to push it to pending_review for human approval.",
     parameters: {
       type: "object",
       properties: {
@@ -286,7 +286,7 @@ export const commonToolDefinitions = defineOpenClawTools([
         description: { type: "string", description: "Experiment description or plan" },
         researchQuestionUuid: { type: "string", description: "Optional linked research question UUID" },
         priority: { type: "string", description: "Priority: low | medium | high | immediate (default: medium)" },
-        status: { type: "string", description: "Optional initial status: draft | pending_review (default: pending_review)" },
+        status: { type: "string", description: "Optional initial status: draft | pending_review (default: draft)" },
       },
       required: ["researchProjectUuid", "title", "description"],
       additionalProperties: false,
@@ -301,7 +301,7 @@ export const commonToolDefinitions = defineOpenClawTools([
     priority?: string;
   }>({
     name: "synapse_propose_experiment",
-    description: "Propose one independent experiment run for human review (created in pending_review status). Only usable when autonomous loop is active. Split comparisons, ablations, and repeated runs into separate experiment cards.",
+    description: "Autonomous-loop only: propose one independent experiment run. Before calling this tool, spawn a sub-agent (Agent tool) to self-review the proposal text. Human-review mode creates pending_review; full-auto mode creates pending_start and assigns it to the loop agent. For user-directed work, use synapse_create_experiment.",
     parameters: {
       type: "object",
       properties: {
@@ -315,6 +315,30 @@ export const commonToolDefinitions = defineOpenClawTools([
       additionalProperties: false,
     },
     targetToolName: "synapse_propose_experiment",
+  }),
+  createPassthroughTool<{
+    experimentUuid: string;
+    decision: "approved" | "rejected";
+    reviewNote?: string;
+    assignedAgentUuid?: string | null;
+  }>({
+    name: "synapse_review_experiment",
+    description: "PI/admin only: approve a pending experiment into pending_start or reject it back to draft. On reject, a non-empty reviewNote is automatically posted as a comment and emits experiment_revision_requested — do NOT also call synapse_add_comment. On approve, reviewNote is recommended for audit.",
+    parameters: {
+      type: "object",
+      properties: {
+        experimentUuid: { type: "string", description: "Experiment UUID" },
+        decision: { type: "string", description: "Review decision: approved | rejected" },
+        reviewNote: { type: "string", description: "Optional review note or revision feedback" },
+        assignedAgentUuid: {
+          type: ["string", "null"],
+          description: "Optional agent UUID to assign while reviewing, or null to clear assignment",
+        },
+      },
+      required: ["experimentUuid", "decision"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_review_experiment",
   }),
 
   createPassthroughTool<{

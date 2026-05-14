@@ -3,7 +3,18 @@
 // UUID-Based Architecture: All IDs are UUIDs
 
 export type ActorType = "user" | "agent" | "super_admin";
-export type AgentRole = "research_lead" | "researcher" | "pi" | "research_lead_agent" | "researcher_agent" | "pi_agent";
+export type AgentRole =
+  | "pre_research"
+  | "research"
+  | "experiment"
+  | "report"
+  | "admin"
+  | "research_lead"
+  | "researcher"
+  | "pi"
+  | "research_lead_agent"
+  | "researcher_agent"
+  | "pi_agent";
 
 // Authentication context for the current request (UUID-based)
 export interface AuthContext {

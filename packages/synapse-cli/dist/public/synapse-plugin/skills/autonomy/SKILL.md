@@ -25,6 +25,17 @@ This is the **CC-client autonomous loop**. It does not depend on the server-side
 
 If the user explicitly asks for "human review before each experiment", switch to **review mode**: proposals land as `pending_review` and the loop pauses until they are approved externally.
 
+## Full-Auto Lives In This Session Only
+
+Full-auto mode for the CC-client autonomous loop is opted in **verbally** ("turn on autonomous loop", "full auto", "run until done") and lives only in the main agent's current session context. It does **not** flip the server-side `autonomousLoopEnabled` / `autonomousLoopMode` fields, and it does not write any state to Synapse.
+
+Full-auto is a one-way track. The only exits are:
+
+- The user explicitly says stop (or interrupts the session).
+- A hard external error makes progress impossible (compute exhausted, MCP failure, network partition that cannot be recovered).
+
+Self-review **never** pauses full-auto. Sub-agent timeouts in self-review do not pause full-auto. Advisory issues raised by self-review do not pause full-auto. The main agent applies a single revision pass when feasible and continues. Whatever the main agent decides, it must be reflected in the `reviewNote` of the resulting `synapse_review_experiment` call (see template below).
+
 ## Prompt Boundary
 
 Stay inside this skill when the work is about:
@@ -72,6 +83,12 @@ Each iteration of the loop follows the same shape. The main agent runs this unti
 
 5. **Check stop conditions**, then either return control to the user (normal case) or immediately re-run step 1 if the user asked for tight, unattended iteration within a single turn.
 
+## Self-Review Before `synapse_propose_experiment`
+
+Before calling `synapse_propose_experiment`, spawn a `Task` sub-agent to self-review the proposal text (motivation, hypothesis, method, success criteria, compute fit) against the project context and evaluation methods. Self-review is in-session only — it does **not** write to Synapse. Refine the proposal text based on the verdict, then call `synapse_propose_experiment`.
+
+The same applies after `synapse_create_experiment` lands a draft inside the loop: self-review the draft via a sub-agent, revise, then push to `pending_review` and (in full-auto) auto-approve.
+
 ## Monitor-Not-Executor
 
 The main agent does **not** SSH into GPU nodes, does **not** run training loops, and does **not** call `synapse_start_experiment` itself (unless the user explicitly tells it to run an experiment inline with no sub-agent). Its job is:
@@ -108,6 +125,26 @@ Exit the loop and report back to the user when any of these hold:
 - compute pool is exhausted and no experiment is making forward progress
 
 On exit, summarize what was run, what was learned, the current state of the synthesis document, and any recommended follow-ups for a human.
+
+## Auto-Approve `reviewNote` Template (CC Full-Auto Only)
+
+When the main agent auto-approves a draft after a successful self-review:
+
+```
+synapse_review_experiment({
+  experimentUuid,
+  decision: "approved",
+  reviewNote: "Full-auto session authorized by <ownerName> at <ISO time>. Self-review pass: <key points>.",
+})
+```
+
+When self-review failed or timed out, use:
+
+```
+reviewNote: "Full-auto session authorized by <ownerName> at <ISO time>. Self-review skipped: <reason>."
+```
+
+Either way, full-auto continues — the `reviewNote` is the audit truth.
 
 ## Mutual Exclusion With The Server-Side Loop
 

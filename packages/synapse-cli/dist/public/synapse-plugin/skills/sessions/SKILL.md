@@ -130,7 +130,9 @@ synapse_get_assigned_experiments({
 # For any experiment still in_progress, read its latest state
 synapse_get_experiment({ experimentUuid })
 
-# Once all have completed, synthesize / propose follow-ups
+# Once all have completed, synthesize. If this is the assigned autonomous-loop
+# agent, propose follow-ups; otherwise use synapse_create_experiment for
+# user-directed terminal work.
 synapse_propose_experiment({ researchProjectUuid, title, description })
 ```
 

@@ -477,7 +477,8 @@ Your task:
 2. Read the project description carefully — it is your "program.md" (research directives from the human)
 3. Read evaluationMethods — it defines the metric to optimize and keep/discard criteria
 4. Analyze past results: What worked? What didn't? What should you try next?
-5. Call synapse_propose_experiment once per independent run you want to execute. Do NOT combine comparison runs, ablations, or multiple parameter sweeps into one experiment card; create multiple experiment cards instead.
+5. Before calling synapse_propose_experiment, spawn a sub-agent via the Agent tool (subagent_type: "general-purpose") and ask it to self-review the proposal text — motivation, hypothesis, method, success criteria, and compute fit — against the project context you just loaded. Self-review never writes to Synapse. Refine the proposal text based on the verdict.
+6. Call synapse_propose_experiment once per independent run you want to execute. Do NOT combine comparison runs, ablations, or multiple parameter sweeps into one experiment card; create multiple experiment cards instead.
 
 After you propose, the platform will automatically trigger the experiment execution flow. You do NOT need to start the experiment yourself.
 
@@ -487,7 +488,8 @@ IMPORTANT: You are autonomous. Do NOT ask for permission. Do NOT pause to ask if
 The experiment queue is empty. Your task:
 1. Use synapse_get_project_full_context with researchProjectUuid "${projectUuid}" to review all project details, research questions, experiment results, latest synthesis.
 2. Analyze: What questions remain unanswered? What experiments could yield new insights? Are there gaps in the research?
-3. If you identify valuable next steps, use synapse_propose_experiment once per independent run to create experiments for human review. Do NOT combine comparison runs, ablations, or multiple parameter sweeps into one experiment card; create multiple experiment cards instead
+3. Before calling synapse_propose_experiment for any next step, spawn a sub-agent via the Agent tool (subagent_type: "general-purpose") to self-review the proposal text against project context and evaluation methods. Self-review never writes to Synapse. Refine the proposal based on the verdict.
+4. If you identify valuable next steps, use synapse_propose_experiment once per independent run to create experiments for human review. Do NOT combine comparison runs, ablations, or multiple parameter sweeps into one experiment card; create multiple experiment cards instead
 
 Proposed experiments will enter "pending_review" status and require human approval before execution.`;
 
@@ -645,8 +647,9 @@ Your task is to flesh out this experiment into a detailed plan. Follow these ste
    - A detailed description (the full experiment plan)
    - researchQuestionUuid (if applicable)
    - priority (based on the project context)
-6. When the plan is ready, call synapse_update_experiment_status with experimentUuid "${n.entityUuid}" and status "pending_review" so the experiment moves into the review queue.
-7. Write the plan in the same language as the project description.
+6. Before publishing the experiment for human review, spawn a sub-agent via the Agent tool (subagent_type: "general-purpose") to self-review the plan. Pass the experimentUuid and project context in the sub-agent's prompt; ask it to call synapse_get_experiment, evaluate clarity of the objective, soundness of the methodology, measurability of success criteria, and realism of the compute estimate, then return a short verdict. Self-review never writes to Synapse. Apply revisions with synapse_update_experiment_plan if the verdict surfaces issues.
+7. When the plan is ready, call synapse_update_experiment_status with experimentUuid "${n.entityUuid}" and status "pending_review" so the experiment moves into the review queue.
+8. Write the plan in the same language as the project description.
 
 Keep the plan actionable and specific enough that another agent could execute it.`,
       { notificationUuid: n.uuid, action: "experiment_plan_requested", entityUuid: n.entityUuid, projectUuid }
@@ -668,7 +671,8 @@ Your task:
 3. If the experiment is not already in draft, use synapse_update_experiment_status with status "draft" before editing the plan.
 4. Revise the experiment's title/description to address the feedback.
 5. Use synapse_update_experiment_plan (or the appropriate update tool) with experimentUuid "${n.entityUuid}" to save the revised plan.
-6. When the revision is ready, use synapse_update_experiment_status with status "pending_review" so the reviewer can approve it.
+6. Before resubmitting for review, spawn a sub-agent via the Agent tool (subagent_type: "general-purpose") to self-review the revised plan against the reviewer's feedback. Pass the experimentUuid in the sub-agent's prompt. Self-review never writes to Synapse. Apply additional revisions if needed.
+7. When the revision is ready, use synapse_update_experiment_status with status "pending_review" so the reviewer can approve it.
 ` + mentionGuidance,
       { notificationUuid: n.uuid, action: "experiment_revision_requested", entityUuid: n.entityUuid, projectUuid }
     );

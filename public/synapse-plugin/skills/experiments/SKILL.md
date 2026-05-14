@@ -33,9 +33,55 @@ Hand off to:
 If `synapse_get_assigned_experiments` returns empty, do not idle. Ask the user which path:
 
 1. **Execute an approved experiment** — list `pending_start` experiments in the project with `synapse_get_project_full_context` and ask which to start.
-2. **Flesh out a quick idea** — call `synapse_get_project_full_context`, then draft a plan with `synapse_create_experiment` (defaults to `pending_review`, or pass `status: "draft"` to keep refining).
+2. **Flesh out a quick idea** — call `synapse_get_project_full_context`, then draft a plan with `synapse_create_experiment` (defaults to `draft`; run a self-review sub-agent before pushing to `pending_review` per the "Create → Self-Review → Pending Review → Verbal Approve" section below).
 3. **Create the foundational experiment** — if the project has no completed experiments, offer the foundational template below.
 4. **Enter the autonomous loop** — hand off to **[autonomy](../autonomy/SKILL.md)** to propose and auto-dispatch the next experiment.
+
+## Create → Self-Review → Pending Review → Verbal Approve
+
+Every agent-created experiment goes through this sequence before reaching `pending_review`.
+
+1. `synapse_create_experiment(...)` — defaults to `draft`. The PostToolUse hook will remind you to run self-review next.
+2. Spawn a self-review sub-agent with the `Task` tool. Use a prompt similar to:
+   ```
+   Self-review experiment <experimentUuid> for project <projectUuid>.
+   Call synapse_get_experiment to read the plan. Then evaluate against the project's evaluationMethods:
+   - Is the objective specific and measurable?
+   - Is the methodology sound and reproducible?
+   - Do the success criteria align with the project's evaluation methods?
+   - Is the compute budget realistic given current availability (synapse_list_compute_nodes)?
+   Return a short verdict: "pass" or a bulleted list of concrete revisions.
+   Do NOT write back to Synapse — your verdict is consumed in-session by the main agent.
+   ```
+3. If the verdict surfaces issues, apply revisions with `synapse_update_experiment_plan({ experimentUuid, ... })`.
+4. `synapse_update_experiment_status({ experimentUuid, status: "pending_review" })` to push the draft into review.
+5. Present the self-review summary and the plan summary to the user in the terminal. Wait for a verbal answer.
+6. **On verbal approve:**
+   ```
+   synapse_review_experiment({
+     experimentUuid,
+     decision: "approved",
+     reviewNote: 'User verbally approved in terminal: "<exact words>"',
+   })
+   ```
+   That call atomically transitions to `pending_start`, writes the activity, and emits `task_assigned` so execution can begin.
+7. **On verbal reject:** summarize the user's revision request in second-person Chinese, including a quoted phrase from the user, and pass it as `reviewNote`:
+   ```
+   synapse_review_experiment({
+     experimentUuid,
+     decision: "rejected",
+     reviewNote: '用户口头要求修改：…（原话："…"）',
+   })
+   ```
+   The review tool writes the comment and emits `experiment_revision_requested` automatically — **do not** also call `synapse_add_comment`.
+8. After a reject, the experiment is back in `draft`. Revise per feedback, run self-review again, then resubmit to `pending_review`.
+9. **Full-auto mode** (set verbally via the `autonomy` skill, lives only in the current CC session): after step 4, skip steps 5–8 and immediately call `synapse_review_experiment` with the fixed full-auto template:
+   ```
+   reviewNote: 'Full-auto session authorized by <ownerName> at <ISO time>. Self-review pass: <key points>.'
+   ```
+   If self-review timed out or errored: `'Self-review skipped: <reason>.'`. Full-auto **never pauses** on advisory self-review output — it only exits on user-stop or hard external errors.
+
+The `synapse_review_experiment` tool requires `admin` or `pi_agent` role. To run verbal-approve flows on Claude Code, configure the CC agent with one of those roles.
 
 ## Foundational First Experiment
 
@@ -51,20 +97,20 @@ If the project has a repo, commit all three onto the base branch (or a per-exper
 
 1. `synapse_checkin()` — refresh identity and assignments
 2. Author or fetch the experiment
-   - New plan: `synapse_create_experiment(...)` (defaults to `pending_review`, or `status: "draft"` to keep editing)
+   - New plan: `synapse_create_experiment(...)` (defaults to `draft`; run a self-review sub-agent and revise before pushing to `pending_review` per the section below)
    - Existing assignment: `synapse_get_assigned_experiments()` then `synapse_get_experiment({ experimentUuid })`
 3. If drafting or revising: `synapse_update_experiment_status({ status: "draft", liveStatus: "writing" })` + `synapse_update_experiment_plan(...)`, then `synapse_update_experiment_status({ status: "pending_review" })`
 4. Before execution: `synapse_list_compute_nodes({ onlyAvailable: true, researchProjectUuid })`
 5. Reserve compute: optional `synapse_reserve_gpus(...)` or inline via `synapse_start_experiment({ gpuUuids })`
 6. `synapse_start_experiment({ experimentUuid, workingNotes })` — moves to `in_progress`
 7. If remote compute: `synapse_get_node_access_bundle({ experimentUuid, nodeUuid })`, write the returned `privateKeyPemBase64` to a local PEM, `chmod 600`, SSH with the returned host/user/port
-8. If repo-backed: `synapse_get_repo_access` → clone → branch from the experiment's base branch
+8. If repo-backed: `synapse_get_repo_access` → clone → branch from the experiment's base branch (commit + push back to this repo at the end is mandatory)
 9. Run the workload in a persistent remote shell (`tmux`/`screen`) with unbuffered output (`python -u …` or `PYTHONUNBUFFERED=1`) so logs never stall a tool call
 10. Report progress with `synapse_report_experiment_progress` at milestones — `phase` ∈ `setup` | `training` | `evaluation` | `analysis`; `liveStatus` ∈ `checking_resources` | `queuing` | `running`
 11. For long runs (>30 min), schedule periodic progress updates (cron on the remote node, or the main agent polling and calling `synapse_report_experiment_progress` on a timer) so the card never looks dead
 12. Commit code/artifacts to the experiment branch or base branch; capture the commit SHA
 13. Finish with `synapse_submit_experiment_results({ outcome, experimentResults, branch, commitSha })` — `outcome` ∈ `success` | `failure` | `inconclusive`; on failure include the error and partial results
-14. If the flow asks for a dedicated report document: `synapse_save_experiment_report({ experimentUuid, title, content })` — do **not** post a full report as a comment
+14. **Always** follow `synapse_submit_experiment_results` with `synapse_save_experiment_report({ experimentUuid, title, content })` — write a full markdown writeup (objective, methodology, results, analysis, charts where relevant). Do **not** post the report as a comment, and do **not** treat this step as optional even for `failure` / `inconclusive` runs
 15. If revising per reviewer feedback, read the full thread first with `synapse_get_comments({ targetType: "experiment", targetUuid })` before editing the plan
 
 ## Core Rules
@@ -72,6 +118,8 @@ If the project has a repo, commit all three onto the base branch (or a per-exper
 - **Never assume a server-local SSH key path exists.** Always fetch the access bundle and write the PEM locally.
 - **One independent run per experiment card.** Do not bundle comparison runs, ablations, or parameter sweeps into a single experiment — create multiple cards.
 - **Match the project description's language.** If the project brief is in Chinese, write the plan, progress, and report in Chinese.
+- **If the project is repo-backed, you must commit back.** Whenever `synapse_get_repo_access` returns a configured repo, all experiment code, configs, and meaningful artifacts must be committed and pushed to that repo (on the experiment branch or merged to base), and the resulting `branch` + `commitSha` must be passed to `synapse_submit_experiment_results`. Local-only runs without a commit are not acceptable when a repo exists.
+- **Always save an experiment report after submitting results.** Every `synapse_submit_experiment_results` call must be immediately followed by `synapse_save_experiment_report({ experimentUuid, title, content })` with a full markdown writeup. This applies to `success`, `failure`, and `inconclusive` outcomes alike.
 - **Split plan / execution / report tools.** Use `synapse_update_experiment_plan` for plan edits, `synapse_report_experiment_progress` for live status, `synapse_submit_experiment_results` for completion, and `synapse_save_experiment_report` for the dedicated report. Do not substitute with comments.
 - **Revision stays durable.** When a reviewer sends an experiment back, flip to `draft`, revise, then move it back to `pending_review`; leave a reply via `synapse_add_comment` using `@[name](actorType:uuid)` format to notify the reviewer.
 - **Failures are data.** An experiment that crashes or shows a regression is still a valid submission: set `outcome: "failure"` (or `"inconclusive"`) and write up what happened in `experimentResults` and the report.

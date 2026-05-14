@@ -61,12 +61,49 @@ Requires the `experiment` tool family.
 | `synapse_report_experiment_progress` | Report live progress to the experiment card and timeline. Supports `liveStatus` such as `queuing`, `checking_resources`, or `running`. |
 | `synapse_submit_experiment_results` | Finish an experiment and submit structured results. |
 | `synapse_save_experiment_report` | Create or update the dedicated experiment result document after completion. |
-| `synapse_propose_experiment` | Propose the next experiment during autonomous loop execution. Human-review mode creates `pending_review`; full-auto mode creates `pending_start` and auto-assigns it back to the agent. |
+| `synapse_propose_experiment` | Autonomous-loop only: propose the next experiment when the caller is the assigned loop agent. Human-review mode creates `pending_review`; full-auto mode creates `pending_start` and auto-assigns it back to the agent. Use `synapse_create_experiment` for user-directed terminal work. |
 | `synapse_list_compute_nodes` | List pools, nodes, GPUs, and access details. |
 | `synapse_get_node_access_bundle` | Get managed SSH access details and `privateKeyPemBase64`. |
 | `synapse_sync_node_inventory` | Sync node instance metadata and GPU inventory. |
 | `synapse_report_gpu_status` | Report GPU lifecycle or telemetry updates. |
 | `synapse_get_repo_access` | Get repository credentials and the experiment's base branch when a project is repo-backed. |
+
+---
+
+## PI / Admin Review
+
+Requires `admin`, `pi`, or `pi_agent`.
+
+| Tool | Description |
+|------|-------------|
+| `synapse_review_experiment` | Approve a pending experiment into `pending_start` or reject it back to `draft`. Use this for Claude Code terminal review flows. |
+
+### `reviewNote` Formatting
+
+`synapse_review_experiment` records `reviewNote` in:
+- the activity entry,
+- the recipient notification,
+- and (on reject) a comment authored by the actor.
+
+The wording matters because the actor is the agent — `reviewNote` is what makes the human voice visible in audit. Use these formats:
+
+- **Verbal approve (Claude Code terminal):**
+  ```
+  reviewNote: 'User verbally approved in terminal: "<exact words from the user>"'
+  ```
+- **Verbal reject (Claude Code terminal):** summarize the user's revision request in second-person Chinese, including a quoted phrase. Example:
+  ```
+  reviewNote: '用户口头要求修改：把 batch size 改回 32（原话："那个 batch size 改回 32 试试"）'
+  ```
+  The tool writes the comment and emits `experiment_revision_requested` automatically — **do not** also call `synapse_add_comment`.
+- **Claude Code full-auto auto-approve:**
+  ```
+  reviewNote: 'Full-auto session authorized by <ownerName> at <ISO time>. Self-review pass: <key points>.'
+  ```
+  Or, if self-review failed:
+  ```
+  reviewNote: 'Full-auto session authorized by <ownerName> at <ISO time>. Self-review skipped: <reason>.'
+  ```
 
 ---
 
