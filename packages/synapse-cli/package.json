@@ -1,6 +1,6 @@
 {
   "name": "@synapse-research/synapse",
-  "version": "0.2.12",
+  "version": "0.2.13",
   "description": "Synapse — AI Research Orchestration Platform (zero-dependency local mode)",
   "license": "AGPL-3.0",
   "bin": {
@@ -8,7 +8,9 @@
   },
   "files": [
     "bin/",
-    "dist/"
+    "dist/",
+    "!dist/public/synapse-plugin/",
+    "!dist/public/skill/"
   ],
   "scripts": {
     "prepack": "node scripts/prepack-pglite.mjs",
