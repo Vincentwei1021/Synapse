@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.7.2] - 2026-05-18
+
+### Added
+- **Experiment incident lessons**: new `IncidentLesson` table, lessons MCP/service layer, and a project-level Lessons page. Lessons are surfaced to the experiment proposal flow so agents can avoid repeating known failure modes.
+- **Experiment report figure uploads**: `synapse_upload_document_image` now accepts experiment-report figures and serves them from Synapse instead of relying on external image hosts.
+
+### Changed
+- **Release process**: publishing the main npm package must now also rebuild and push the `vincentwei1021/synapse` Docker image (both `:vX.Y.Z` and `:latest`) so Docker deployments stay in sync with npm. Documented in CLAUDE.md and AGENTS.md.
+
+---
+
 ## [0.7.1] - 2026-05-11
 
 ### Added
