@@ -160,6 +160,7 @@ Rules:
 - `synapse-test` syncs by `git pull`, not rsync.
 - Exclude `.env` when rsyncing to `synapse`.
 - Do not overwrite unrelated dirty files. Current screenshots or remote docker-compose edits may be user/local artifacts.
+- After a PR is merged, check whether the merged PR changed any published package surface. Do not assume merge means release is complete.
 
 Useful verification:
 
@@ -169,6 +170,17 @@ ssh synapse 'cd /home/ubuntu/Synapse && git log --oneline -1'
 ssh synapse-test 'cd /home/ubuntu/Synapse && git log --oneline -1'
 ssh openclaw 'cat /home/ubuntu/.openclaw/extensions/synapse-openclaw-plugin/package.json | grep version'
 ```
+
+## Post-Merge Package Release Check
+
+After each PR merge, inspect the merged PR file list and publish any affected package:
+
+- OpenClaw plugin: if `packages/openclaw-plugin/` changed, publish and reinstall it on `openclaw` using the OpenClaw Plugin Deployment steps below.
+- Claude Code plugin: if `public/synapse-plugin/` changed, bump the plugin package metadata/version as needed and publish the Claude Code plugin update through the current plugin release flow.
+- Main npm package: if `packages/synapse-cli/`, packaged app assets, Prisma schema/migrations, or runtime code shipped by `@synapse-research/synapse` changed, bump `packages/synapse-cli/package.json` and publish `@synapse-research/synapse` from `synapse`.
+- Docker image: any time the main npm package is published, also rebuild and push `vincentwei1021/synapse:<vX.Y.Z>` and `vincentwei1021/synapse:latest` from `synapse`. The npm release and the Docker `:latest` tag must always advance together — Docker users running `docker compose pull` rely on `:latest` tracking the same code as the latest npm release. Build flow: `cd /home/ubuntu/Synapse && sudo docker buildx build --platform linux/amd64 --target production -t vincentwei1021/synapse:vX.Y.Z -t vincentwei1021/synapse:latest --push .` (multi-arch only when explicitly needed). Requires `sudo docker login -u vincentwei1021` to be active on `synapse`.
+
+When a PR touches more than one surface, release each affected package. Publishing requires the appropriate npm or plugin marketplace permissions; never commit tokens or leave them in checked-in config.
 
 ## OpenClaw Plugin Deployment
 
