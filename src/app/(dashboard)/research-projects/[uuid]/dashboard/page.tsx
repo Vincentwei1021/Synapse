@@ -8,6 +8,7 @@ import { getServerAuthContext } from "@/lib/auth-server";
 import { getResearchProjectDashboardData } from "@/services/research-project.service";
 import { EditProjectDialog } from "./edit-project-dialog";
 import { CollapsibleDescription } from "./collapsible-description";
+import { CompleteProjectButton } from "./complete-project-button";
 import { DashboardStatCard } from "./dashboard-stat-card";
 
 interface PageProps {
@@ -90,6 +91,7 @@ export default async function DashboardPage({ params }: PageProps) {
             <Button asChild variant="outline" className="border-border bg-background">
               <Link href={`/research-projects/${projectUuid}/insights`}>{t("nav.insights")}</Link>
             </Button>
+            <CompleteProjectButton projectUuid={projectUuid} />
             <EditProjectDialog
               projectUuid={projectUuid}
               initialData={{

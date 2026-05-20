@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // ===== Prisma mock =====
 const mockPrisma = vi.hoisted(() => ({
@@ -14,6 +14,10 @@ const mockPrisma = vi.hoisted(() => ({
     count: vi.fn(),
     groupBy: vi.fn(),
     findMany: vi.fn(),
+    updateMany: vi.fn(),
+  },
+  experimentGpuReservation: {
+    updateMany: vi.fn(),
   },
   experimentDesign: {
     groupBy: vi.fn(),
@@ -34,6 +38,9 @@ const mockPrisma = vi.hoisted(() => ({
     groupBy: vi.fn(),
     findMany: vi.fn(),
   },
+  relatedWork: {
+    count: vi.fn(),
+  },
 }));
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 
@@ -43,6 +50,7 @@ import {
   getResearchProjectDetailRef,
   createResearchProject,
   updateResearchProject,
+  completeResearchProject,
   deleteResearchProject,
   researchProjectExists,
   getResearchProjectByUuid,
@@ -80,11 +88,17 @@ function makeProject(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.useRealTimers();
   mockPrisma.researchQuestion.groupBy.mockResolvedValue([]);
   mockPrisma.experiment.groupBy.mockResolvedValue([]);
   mockPrisma.experimentDesign.groupBy.mockResolvedValue([]);
   mockPrisma.experimentRun.groupBy.mockResolvedValue([]);
   mockPrisma.document.groupBy.mockResolvedValue([]);
+  mockPrisma.relatedWork.count.mockResolvedValue(0);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 // ===== listResearchProjects =====
@@ -239,6 +253,96 @@ describe("updateResearchProject", () => {
         data: { name: "Updated Name" },
       })
     );
+  });
+});
+
+describe("completeResearchProject", () => {
+  it("completes unfinished experiments and clears active project work", async () => {
+    const completedAt = new Date("2026-05-20T08:00:00Z");
+    vi.useFakeTimers();
+    vi.setSystemTime(completedAt);
+    mockPrisma.researchProject.findFirst.mockResolvedValue({ uuid: researchProjectUuid });
+    mockPrisma.experiment.findMany.mockResolvedValue([{ uuid: "exp-1" }, { uuid: "exp-2" }]);
+    mockPrisma.experiment.updateMany.mockResolvedValue({ count: 2 });
+    mockPrisma.experimentGpuReservation.updateMany.mockResolvedValue({ count: 2 });
+    mockPrisma.researchProject.update.mockResolvedValue(makeProject({
+      autoSearchActiveAgentUuid: null,
+      autoSearchStartedAt: null,
+      deepResearchActiveAgentUuid: null,
+      deepResearchStartedAt: null,
+      synthesisActiveAgentUuid: null,
+      synthesisStartedAt: null,
+    }));
+
+    const result = await completeResearchProject({
+      companyUuid,
+      researchProjectUuid,
+      actorUuid: "user-uuid-1",
+    });
+
+    expect(result.completedExperiments).toBe(2);
+    expect(mockPrisma.researchProject.findFirst).toHaveBeenCalledWith({
+      where: { uuid: researchProjectUuid, companyUuid },
+      select: { uuid: true },
+    });
+    expect(mockPrisma.experiment.findMany).toHaveBeenCalledWith({
+      where: {
+        companyUuid,
+        researchProjectUuid,
+        status: { not: "completed" },
+      },
+      select: { uuid: true },
+    });
+    expect(mockPrisma.experiment.updateMany).toHaveBeenCalledWith({
+      where: {
+        companyUuid,
+        researchProjectUuid,
+        status: { not: "completed" },
+      },
+      data: {
+        status: "completed",
+        outcome: "Project marked complete",
+        completedAt,
+        liveStatus: null,
+        liveMessage: null,
+        liveUpdatedAt: completedAt,
+      },
+    });
+    expect(mockPrisma.experimentGpuReservation.updateMany).toHaveBeenCalledWith({
+      where: {
+        companyUuid,
+        experimentUuid: { in: ["exp-1", "exp-2"] },
+        releasedAt: null,
+      },
+      data: { releasedAt: completedAt },
+    });
+    expect(mockPrisma.researchProject.update).toHaveBeenCalledWith({
+      where: { uuid: researchProjectUuid },
+      data: {
+        autoSearchActiveAgentUuid: null,
+        autoSearchStartedAt: null,
+        deepResearchActiveAgentUuid: null,
+        deepResearchStartedAt: null,
+        synthesisActiveAgentUuid: null,
+        synthesisStartedAt: null,
+      },
+      select: expect.any(Object),
+    });
+  });
+
+  it("returns null when the scoped project does not exist", async () => {
+    mockPrisma.researchProject.findFirst.mockResolvedValue(null);
+
+    const result = await completeResearchProject({
+      companyUuid,
+      researchProjectUuid,
+      actorUuid: "user-uuid-1",
+    });
+
+    expect(result).toBeNull();
+    expect(mockPrisma.experiment.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.experimentGpuReservation.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.researchProject.update).not.toHaveBeenCalled();
   });
 });
 
@@ -417,6 +521,8 @@ describe("getResearchProjectByUuid", () => {
         goal: true,
         datasets: true,
         evaluationMethods: true,
+        autonomousLoopEnabled: true,
+        autonomousLoopMode: true,
         latestSynthesisAt: true,
         latestSynthesisIdeaCount: true,
         latestSynthesisSummary: true,
