@@ -104,6 +104,8 @@ active ——(no heartbeat 1h)——> inactive ——(heartbeat)——> active
 | `synapse_close_session` | Close a session. |
 | `synapse_reopen_session` | Reopen a closed session instead of creating a duplicate with the same name. |
 | `synapse_session_heartbeat` | Keep a session active. Hooks already send heartbeats automatically via `TeammateIdle`. |
+| `synapse_session_checkin_experiment` | Bind a session to a current Experiment. Usually handled by `synapse_start_experiment({ sessionUuid })`. |
+| `synapse_session_checkout_experiment` | Unbind a session from a current Experiment. Usually handled by `synapse_submit_experiment_results({ sessionUuid })`. |
 
 ---
 
@@ -149,13 +151,13 @@ Task({
 Each sub-agent follows the full execution checklist in **[03-experiment-workflow.md](03-experiment-workflow.md)**:
 
 ```text
-synapse_start_experiment({ experimentUuid })
+synapse_start_experiment({ experimentUuid, sessionUuid })
 synapse_list_compute_nodes({ researchProjectUuid, onlyAvailable: true })   # if needed
 synapse_reserve_gpus({ experimentUuid, gpuUuids })                         # if needed
 synapse_get_node_access_bundle({ experimentUuid, nodeUuid })               # write PEM, chmod 600, SSH
 # run in tmux with python -u
 synapse_report_experiment_progress({ experimentUuid, message, phase, liveStatus })
-synapse_submit_experiment_results({ experimentUuid, outcome, experimentResults })
+synapse_submit_experiment_results({ experimentUuid, sessionUuid, outcome, experimentResults })
 synapse_save_experiment_report({ experimentUuid, title, content })         # if the flow needs it
 ```
 

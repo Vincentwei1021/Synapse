@@ -180,11 +180,12 @@ Tool availability depends on the agent's Synapse roles. Public read/comment/noti
 **Experiment Execution:**
   - \`synapse_list_compute_nodes({ onlyAvailable: true, researchProjectUuid? })\` — inspect available compute
   - \`synapse_reserve_gpus({ experimentUuid, gpuUuids })\` — reserve GPUs before running
-  - \`synapse_start_experiment({ experimentUuid })\` — begin execution
+  - \`synapse_start_experiment({ experimentUuid, sessionUuid? })\` — begin execution and optionally bind a sub-agent session to the Experiment
   - \`synapse_report_experiment_progress({ experimentUuid, message, phase?, liveStatus? })\` — report progress or queueing state
   - \`synapse_get_node_access_bundle({ experimentUuid, nodeUuid })\` — fetch managed SSH credentials
-  - \`synapse_submit_experiment_results({ experimentUuid, outcome?, experimentResults, experimentBranch?, commitSha? })\` — submit results and finish execution
+  - \`synapse_submit_experiment_results({ experimentUuid, sessionUuid?, outcome?, experimentResults, experimentBranch?, commitSha? })\` — submit results, optionally check out a sub-agent session, and finish execution
   - \`synapse_save_experiment_report({ experimentUuid, title?, content })\` — save the dedicated experiment report document when requested
+  - \`synapse_upload_document_image({ experimentUuid? | documentUuid?, filename, mimeType, base64Content })\` — upload report/document figures and embed returned Synapse URLs
 
 **Analysis:**
   - \`synapse_get_project_full_context({ researchProjectUuid })\` — reload full state
@@ -270,7 +271,7 @@ If you are a sub-agent, find your session by matching your agent name:
     done
     SESSION_LIST="${SESSION_LIST}
 
-Use your session UUID for session observability only. Execute assigned work with \`synapse_get_experiment\`, \`synapse_start_experiment\`, \`synapse_report_experiment_progress\`, and \`synapse_submit_experiment_results\`."
+Pass your session UUID to \`synapse_start_experiment\` and \`synapse_submit_experiment_results\` so Synapse can attribute the active Experiment to your sub-agent session."
     CONTEXT="${CONTEXT}${SESSION_LIST}"
   fi
 fi

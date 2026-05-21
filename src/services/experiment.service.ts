@@ -56,6 +56,16 @@ export interface ExperimentResponse {
     experimentOutcomeImpact: string | null;
     updatedAt: string;
   }>;
+  activeSessions: Array<{
+    sessionUuid: string;
+    sessionName: string;
+    status: string;
+    agentUuid: string;
+    agentName: string;
+    agentType: string;
+    agentColor: string | null;
+    checkinAt: string;
+  }>;
   liveStatus: string | null;
   liveMessage: string | null;
   liveUpdatedAt: string | null;
@@ -543,7 +553,7 @@ async function formatExperiment(
     formatCreatedBy(experiment.createdByUuid, experiment.createdByType === "agent" ? "agent" : "user"),
   ]);
 
-  const [parentQuestionExperiments, resultDocument, incidentLessons] = await Promise.all([
+  const [parentQuestionExperiments, resultDocument, incidentLessons, activeSessionCheckins] = await Promise.all([
     experiment.researchQuestion?.parentQuestionUuid
       ? prisma.experiment.findMany({
           where: {
@@ -592,6 +602,30 @@ async function formatExperiment(
       orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
       take: 6,
     }),
+    prisma.sessionExperimentCheckin.findMany({
+      where: {
+        experimentUuid: experiment.uuid,
+        checkoutAt: null,
+        session: {
+          companyUuid,
+          status: { in: ["active", "inactive"] },
+        },
+      },
+      select: {
+        sessionUuid: true,
+        checkinAt: true,
+        session: {
+          select: {
+            uuid: true,
+            name: true,
+            status: true,
+            agentUuid: true,
+            agent: { select: { name: true, type: true, color: true } },
+          },
+        },
+      },
+      orderBy: { checkinAt: "asc" },
+    }),
   ]);
 
   return {
@@ -620,6 +654,16 @@ async function formatExperiment(
       phase: lesson.phase,
       experimentOutcomeImpact: lesson.experimentOutcomeImpact,
       updatedAt: lesson.updatedAt.toISOString(),
+    })),
+    activeSessions: activeSessionCheckins.map((checkin) => ({
+      sessionUuid: checkin.session.uuid,
+      sessionName: checkin.session.name,
+      status: checkin.session.status,
+      agentUuid: checkin.session.agentUuid,
+      agentName: checkin.session.agent.name,
+      agentType: checkin.session.agent.type,
+      agentColor: checkin.session.agent.color,
+      checkinAt: checkin.checkinAt.toISOString(),
     })),
     liveStatus: experiment.liveStatus,
     liveMessage: experiment.liveMessage,

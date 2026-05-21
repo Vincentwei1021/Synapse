@@ -62,6 +62,10 @@ run_test "on-pre-spawn-agent.sh" '{"tool_input":{"subagent_type":"general-purpos
 run_test "on-pre-enter-plan.sh"  '{}'
 run_test "on-pre-exit-plan.sh"   '{}'
 
+# --- PostToolUse hooks ---
+run_test "on-post-create-experiment.sh" '{"tool_name":"synapse_create_experiment","tool_response":{"experiment":{"uuid":"00000000-0000-0000-0000-000000000000"}}}'
+run_test "on-post-submit-results.sh" '{"tool_name":"synapse_submit_experiment_results","tool_input":{"experimentUuid":"00000000-0000-0000-0000-000000000000","outcome":"success"}}'
+
 # --- Lifecycle hooks (need agent_id/agent_type) ---
 run_test "on-subagent-start.sh"  '{"agent_id":"agent-001","agent_type":"Explore"}'
 run_test "on-subagent-start.sh"  '{"agent_id":"agent-002","agent_type":"general-purpose"}'

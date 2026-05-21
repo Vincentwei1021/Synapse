@@ -228,11 +228,12 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
       description: "Move an assigned experiment from pending_start to in_progress. Pass gpuUuids only when start_experiment should also reserve them; if you already called synapse_reserve_gpus, start without gpuUuids.",
       inputSchema: z.object({
         experimentUuid: z.string(),
+        sessionUuid: z.string().optional().describe("Synapse agent session UUID for sub-agent attribution"),
         gpuUuids: z.array(z.string()).default([]),
         workingNotes: z.string().optional(),
       }),
     },
-    async ({ experimentUuid, gpuUuids, workingNotes }) => {
+    async ({ experimentUuid, sessionUuid, gpuUuids, workingNotes }) => {
       const experiment = await experimentService.getExperiment(auth.companyUuid, experimentUuid);
       if (!experiment) {
         return { content: [{ type: "text", text: "Experiment not found" }], isError: true };
@@ -273,6 +274,10 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
               actorUuid: auth.actorUuid,
               ownerUuid: auth.ownerUuid,
             });
+
+      if (sessionUuid) {
+        await sessionService.sessionCheckinToExperiment(auth.companyUuid, sessionUuid, experimentUuid);
+      }
 
       if (gpuUuids.length > 0) {
         await computeService.reserveGpusForExperiment({
@@ -454,6 +459,10 @@ export function registerComputeTools(server: McpServer, auth: AgentAuthContext) 
         });
 
         await experimentService.updateExperimentLiveStatus(experimentUuid, null, null);
+
+        if (sessionUuid) {
+          await sessionService.sessionCheckoutFromExperiment(auth.companyUuid, sessionUuid, experimentUuid);
+        }
 
         // Re-trigger queued experiments now that GPUs are freed
         // Find all experiments with liveStatus='queuing', sorted by priority then assignedAt

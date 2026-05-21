@@ -159,6 +159,7 @@ This is the detailed flow for moving an experiment through `in_progress` to `com
    ```text
    synapse_start_experiment({
      experimentUuid: "...",
+     sessionUuid: "...", // sub-agents use the auto-injected session UUID
      workingNotes: "Starting with baseline configuration"
    })
    ```
@@ -215,6 +216,7 @@ This is the detailed flow for moving an experiment through `in_progress` to `com
     ```text
     synapse_submit_experiment_results({
       experimentUuid: "...",
+      sessionUuid: "...",
       outcome: "success",
       experimentResults: {
         "accuracy": 0.923,
@@ -226,6 +228,7 @@ This is the detailed flow for moving an experiment through `in_progress` to `com
     ```
 
     `outcome` is optional, typically `success`, `failure`, or `inconclusive`. Submitting moves the experiment to `completed`, refreshes the experiment result document, and triggers the project synthesis refresh.
+    Sub-agents should pass their auto-injected `sessionUuid` so Synapse checks the session out of the active Experiment.
 
 12. **Save the dedicated experiment report** — every submission must be immediately followed by a markdown report. This is required for `success`, `failure`, and `inconclusive` outcomes:
 
@@ -250,6 +253,7 @@ A failed or inconclusive experiment is still a valid submission — it is data. 
 ```text
 synapse_submit_experiment_results({
   experimentUuid: "...",
+  sessionUuid: "...",
   outcome: "failure",
   experimentResults: {
     "error": "OOM at batch size 32 on 2x L40S",

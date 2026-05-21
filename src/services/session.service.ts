@@ -22,6 +22,12 @@ export interface SessionRunCheckinInfo {
   checkoutAt: string | null;
 }
 
+export interface SessionExperimentCheckinInfo {
+  experimentUuid: string;
+  checkinAt: string;
+  checkoutAt: string | null;
+}
+
 export interface SessionResponse {
   uuid: string;
   agentUuid: string;
@@ -33,6 +39,7 @@ export interface SessionResponse {
   createdAt: string;
   updatedAt: string;
   checkins: SessionRunCheckinInfo[];
+  experimentCheckins: SessionExperimentCheckinInfo[];
 }
 
 export interface RunSessionInfo {
@@ -61,6 +68,11 @@ function formatSessionResponse(
       checkinAt: Date;
       checkoutAt: Date | null;
     }>;
+    experimentCheckins?: Array<{
+      experimentUuid: string;
+      checkinAt: Date;
+      checkoutAt: Date | null;
+    }>;
   }
 ): SessionResponse {
   return {
@@ -75,6 +87,11 @@ function formatSessionResponse(
     updatedAt: session.updatedAt.toISOString(),
     checkins: (session.runCheckins || []).map((c) => ({
       runUuid: c.runUuid,
+      checkinAt: c.checkinAt.toISOString(),
+      checkoutAt: c.checkoutAt?.toISOString() ?? null,
+    })),
+    experimentCheckins: (session.experimentCheckins || []).map((c) => ({
+      experimentUuid: c.experimentUuid,
       checkinAt: c.checkinAt.toISOString(),
       checkoutAt: c.checkoutAt?.toISOString() ?? null,
     })),
@@ -120,6 +137,10 @@ export async function getSession(
         where: { checkoutAt: null },
         select: { runUuid: true, checkinAt: true, checkoutAt: true },
       },
+      experimentCheckins: {
+        where: { checkoutAt: null },
+        select: { experimentUuid: true, checkinAt: true, checkoutAt: true },
+      },
     },
   });
 
@@ -144,6 +165,10 @@ export async function listAgentSessions(
         where: { checkoutAt: null },
         select: { runUuid: true, checkinAt: true, checkoutAt: true },
       },
+      experimentCheckins: {
+        where: { checkoutAt: null },
+        select: { experimentUuid: true, checkinAt: true, checkoutAt: true },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -167,9 +192,17 @@ export async function closeSession(
     where: { sessionUuid, checkoutAt: null },
     select: { run: { select: { uuid: true, researchProjectUuid: true } } },
   });
+  const activeExperimentCheckins = await prisma.sessionExperimentCheckin.findMany({
+    where: { sessionUuid, checkoutAt: null },
+    select: { experiment: { select: { uuid: true, researchProjectUuid: true } } },
+  });
 
   // Batch checkout all active checkins
   await prisma.sessionRunCheckin.updateMany({
+    where: { sessionUuid, checkoutAt: null },
+    data: { checkoutAt: new Date() },
+  });
+  await prisma.sessionExperimentCheckin.updateMany({
     where: { sessionUuid, checkoutAt: null },
     data: { checkoutAt: new Date() },
   });
@@ -181,14 +214,85 @@ export async function closeSession(
       runCheckins: {
         select: { runUuid: true, checkinAt: true, checkoutAt: true },
       },
+      experimentCheckins: {
+        select: { experimentUuid: true, checkinAt: true, checkoutAt: true },
+      },
     },
   });
 
   for (const checkin of activeCheckins) {
     eventBus.emitChange({ companyUuid: session.companyUuid, researchProjectUuid: checkin.run.researchProjectUuid, entityType: "experiment_run", entityUuid: checkin.run.uuid, action: "updated" });
   }
+  for (const checkin of activeExperimentCheckins) {
+    eventBus.emitChange({ companyUuid: session.companyUuid, researchProjectUuid: checkin.experiment.researchProjectUuid, entityType: "experiment", entityUuid: checkin.experiment.uuid, action: "updated" });
+  }
 
   return formatSessionResponse(updated);
+}
+
+// Session checkin to current Experiment
+export async function sessionCheckinToExperiment(
+  companyUuid: string,
+  sessionUuid: string,
+  experimentUuid: string
+): Promise<SessionExperimentCheckinInfo> {
+  const session = await prisma.agentSession.findFirst({
+    where: { uuid: sessionUuid, companyUuid, status: "active" },
+  });
+  if (!session) throw new Error("Session not found or not active");
+
+  const experiment = await prisma.experiment.findFirst({
+    where: { uuid: experimentUuid, companyUuid },
+    select: { uuid: true, researchProjectUuid: true },
+  });
+  if (!experiment) throw new Error("Experiment not found");
+
+  const checkin = await prisma.sessionExperimentCheckin.upsert({
+    where: {
+      sessionUuid_experimentUuid: { sessionUuid, experimentUuid },
+    },
+    create: { sessionUuid, experimentUuid },
+    update: { checkoutAt: null, checkinAt: new Date() },
+  });
+
+  await prisma.agentSession.update({
+    where: { uuid: sessionUuid },
+    data: { lastActiveAt: new Date() },
+  });
+
+  eventBus.emitChange({ companyUuid, researchProjectUuid: experiment.researchProjectUuid, entityType: "experiment", entityUuid: experimentUuid, action: "updated" });
+
+  return {
+    experimentUuid: checkin.experimentUuid,
+    checkinAt: checkin.checkinAt.toISOString(),
+    checkoutAt: checkin.checkoutAt?.toISOString() ?? null,
+  };
+}
+
+// Session checkout from current Experiment
+export async function sessionCheckoutFromExperiment(
+  companyUuid: string,
+  sessionUuid: string,
+  experimentUuid: string
+): Promise<void> {
+  const session = await prisma.agentSession.findFirst({
+    where: { uuid: sessionUuid, companyUuid },
+  });
+  if (!session) throw new Error("Session not found");
+
+  const experiment = await prisma.experiment.findFirst({
+    where: { uuid: experimentUuid, companyUuid },
+    select: { researchProjectUuid: true },
+  });
+
+  await prisma.sessionExperimentCheckin.updateMany({
+    where: { sessionUuid, experimentUuid, checkoutAt: null },
+    data: { checkoutAt: new Date() },
+  });
+
+  if (experiment) {
+    eventBus.emitChange({ companyUuid, researchProjectUuid: experiment.researchProjectUuid, entityType: "experiment", entityUuid: experimentUuid, action: "updated" });
+  }
 }
 
 // Session checkin to Experiment Run
@@ -348,6 +452,10 @@ export async function reopenSession(
       runCheckins: {
         where: { checkoutAt: null },
         select: { runUuid: true, checkinAt: true, checkoutAt: true },
+      },
+      experimentCheckins: {
+        where: { checkoutAt: null },
+        select: { experimentUuid: true, checkinAt: true, checkoutAt: true },
       },
     },
   });

@@ -77,6 +77,53 @@ function liveStatusBadge(t: ReturnType<typeof useTranslations>, status: string |
   );
 }
 
+function sessionStatusLabel(t: ReturnType<typeof useTranslations>, status: string) {
+  const key = `sessions.status${status.charAt(0).toUpperCase()}${status.slice(1)}` as Parameters<typeof t>[0];
+  return t(key);
+}
+
+function formatSessionCheckinTime(value: string) {
+  return new Date(value).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
+function ActiveSessionPills({
+  sessions,
+  t,
+  limit,
+}: {
+  sessions: ExperimentResponse["activeSessions"];
+  t: ReturnType<typeof useTranslations>;
+  limit?: number;
+}) {
+  if (!sessions.length) return null;
+  const visibleSessions = sessions.slice(0, limit ?? sessions.length);
+  const hiddenCount = sessions.length - visibleSessions.length;
+
+  return (
+    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+      {visibleSessions.map((session) => {
+        const color = getAgentColor(session.agentUuid, session.agentColor);
+        return (
+          <span
+            key={session.sessionUuid}
+            className="inline-flex max-w-full items-center gap-1 rounded-full border bg-background px-2 py-0.5 text-[10px] font-medium"
+            style={{ borderColor: color.light, color: color.primary }}
+            title={`${session.sessionName} · ${sessionStatusLabel(t, session.status)}`}
+          >
+            <AgentTypeIcon type={session.agentType} className="h-2.5 w-2.5 shrink-0" />
+            <span className="truncate">{session.sessionName || session.agentName}</span>
+          </span>
+        );
+      })}
+      {hiddenCount > 0 ? (
+        <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+          +{hiddenCount}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 const PRIORITY_ORDER: Record<string, number> = { immediate: 0, high: 1, medium: 2, low: 3 };
 
 function sortColumnExperiments(columnId: string, items: ExperimentResponse[]): ExperimentResponse[] {
@@ -903,6 +950,15 @@ export function ExperimentsBoard({
                         </div>
                       ) : null}
 
+                      {experiment.activeSessions.length ? (
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-medium uppercase text-muted-foreground">
+                            {t("sessions.workerCount", { count: experiment.activeSessions.length })}
+                          </p>
+                          <ActiveSessionPills sessions={experiment.activeSessions} t={t} limit={2} />
+                        </div>
+                      ) : null}
+
                       {renderActionBlock(experiment)}
                     </Card>
                     </GlowBorder>
@@ -1079,6 +1135,47 @@ export function ExperimentsBoard({
                     </div>
                   );
                 })() : null}
+
+                {selectedExperiment.activeSessions.length ? (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-foreground">{t("sessions.activeWorkers")}</h3>
+                    <Card className="rounded-2xl border-border bg-card p-4 shadow-none">
+                      <div className="space-y-3">
+                        {selectedExperiment.activeSessions.map((session) => {
+                          const color = getAgentColor(session.agentUuid, session.agentColor);
+                          return (
+                            <div key={session.sessionUuid} className="flex items-center justify-between gap-3 rounded-xl bg-secondary/60 px-3 py-2.5">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <span
+                                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white"
+                                  style={{ backgroundColor: color.primary }}
+                                >
+                                  <AgentTypeIcon type={session.agentType} className="h-3.5 w-3.5" />
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-medium text-foreground">{session.sessionName}</p>
+                                  <p className="truncate text-xs text-muted-foreground">
+                                    {session.agentName} · {t("sessions.checkedInSince", { time: formatSessionCheckinTime(session.checkinAt) })}
+                                  </p>
+                                </div>
+                              </div>
+                              <Badge
+                                variant="outline"
+                                className={`shrink-0 text-[10px] ${
+                                  session.status === "active"
+                                    ? "border-green-300 text-green-700 dark:border-green-500/40 dark:text-green-300"
+                                    : "border-yellow-300 text-yellow-700 dark:border-yellow-500/40 dark:text-yellow-300"
+                                }`}
+                              >
+                                {sessionStatusLabel(t, session.status)}
+                              </Badge>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </Card>
+                  </div>
+                ) : null}
 
                 {selectedExperiment.incidentLessons.length ? (
                   <Card className="rounded-2xl border-border bg-card p-4 shadow-none">

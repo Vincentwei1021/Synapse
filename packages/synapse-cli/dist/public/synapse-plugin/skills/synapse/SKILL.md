@@ -20,6 +20,7 @@ Synapse is a research orchestration platform for human researchers and AI agents
 | **[setup](../setup/SKILL.md)** | Configure MCP, API keys, and project-level `.mcp.json` |
 | **[research](../research/SKILL.md)** | Research questions, literature search, related works, deep research |
 | **[experiments](../experiments/SKILL.md)** | Experiment planning, revision, execution, compute, and result submission |
+| **[documents](../documents/SKILL.md)** | Markdown documents, reports, charts, plots, and embedded images |
 | **[autonomy](../autonomy/SKILL.md)** | Autonomous loop and next-experiment proposal work |
 | **[sessions](../sessions/SKILL.md)** | Plugin hooks, session lifecycle, and multi-agent parallel execution |
 
@@ -86,7 +87,7 @@ Each stage skill repeats this onboarding prompt from its own perspective when en
 | Experiment assignment or assigned experiment UUID | `synapse_get_experiment({ experimentUuid })` | **[experiments](../experiments/SKILL.md)** to start, run, report progress, and submit results |
 | Experiment plan requested | `synapse_get_experiment()` plus `synapse_get_project_full_context()` | **[experiments](../experiments/SKILL.md)** to update the plan |
 | Experiment revision requested | `synapse_get_experiment()` and read relevant comments if needed | **[experiments](../experiments/SKILL.md)** to revise and resubmit/update |
-| Experiment report requested | `synapse_get_experiment()` and inspect completed results | **[experiments](../experiments/SKILL.md)** to write the report/result document |
+| Experiment report requested | `synapse_get_experiment()` and inspect completed results | **[experiments](../experiments/SKILL.md)** to write the report/result document; use **[documents](../documents/SKILL.md)** for charts and image embedding |
 | Research question claimed | `synapse_get_research_question()` and `synapse_get_project_full_context()` | **[research](../research/SKILL.md)** |
 | Deep research requested | `synapse_get_project_full_context()`, `synapse_get_related_works()`, then existing report via `synapse_get_deep_research_report()` | **[research](../research/SKILL.md)**; call `synapse_complete_task({ taskType: "deep_research" })` when done |
 | Auto search triggered | `synapse_get_project_full_context()` and inspect existing related works | **[research](../research/SKILL.md)** to search, add related works, and complete the task if required |
@@ -101,10 +102,10 @@ Each stage skill repeats this onboarding prompt from its own perspective when en
 |------|-------|
 | Identity, assignments, notifications | `synapse_checkin`, `synapse_get_notifications`, `synapse_mark_notification_read` |
 | Project context | `synapse_get_research_project`, `synapse_get_project_full_context` |
-| Documents and synthesis | `synapse_get_documents`, `synapse_get_document`, `synapse_save_project_synthesis` |
+| Documents and synthesis | `synapse_get_documents`, `synapse_get_document`, `synapse_upload_document_image`, `synapse_save_project_synthesis` |
 | Literature and deep research | `synapse_search_papers`, `synapse_add_related_work`, `synapse_get_related_works`, `synapse_get_deep_research_report` |
 | Research questions | `synapse_get_research_question` and research-question mutation tools when roles allow |
-| Experiments | `synapse_get_assigned_experiments`, `synapse_get_experiment`, `synapse_create_experiment`, `synapse_start_experiment`, `synapse_report_experiment_progress`, `synapse_submit_experiment_results`, `synapse_propose_experiment` (autonomous loop only) |
+| Experiments | `synapse_get_assigned_experiments`, `synapse_get_experiment`, `synapse_create_experiment`, `synapse_start_experiment`, `synapse_report_experiment_progress`, `synapse_submit_experiment_results`, `synapse_save_experiment_report`, `synapse_upload_document_image`, `synapse_propose_experiment` (autonomous loop only) |
 | PI/Admin review | `synapse_review_experiment` |
 | Compute | `synapse_list_compute_nodes`, `synapse_reserve_gpus`, `synapse_get_node_access_bundle` |
 | Collaboration | `synapse_add_comment`, `synapse_get_comments`, `synapse_search_mentionables` |

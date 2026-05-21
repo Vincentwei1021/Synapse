@@ -282,6 +282,7 @@ model Experiment {
   gpuReservations ExperimentGpuReservation[]
   progressLogs ExperimentProgressLog[]
   incidentLessons ExperimentIncidentLesson[]
+  sessionCheckins SessionExperimentCheckin[]
 
   @@index([companyUuid])
   @@index([researchProjectUuid])
@@ -515,6 +516,7 @@ model AgentSession {
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
   runCheckins  SessionRunCheckin[]
+  experimentCheckins SessionExperimentCheckin[]
 
   @@index([companyUuid])
   @@index([agentUuid])
@@ -681,6 +683,21 @@ model SessionRunCheckin {
   @@index([sessionUuid])
   @@index([runUuid])
   @@map("SessionTaskCheckin")
+}
+
+// Session-Experiment checkin relation (many-to-many for current Experiment workflow)
+model SessionExperimentCheckin {
+  id             Int          @id @default(autoincrement())
+  sessionUuid    String
+  session        AgentSession @relation(fields: [sessionUuid], references: [uuid], onDelete: Cascade)
+  experimentUuid String
+  experiment     Experiment   @relation(fields: [experimentUuid], references: [uuid], onDelete: Cascade)
+  checkinAt      DateTime     @default(now())
+  checkoutAt     DateTime?
+
+  @@unique([sessionUuid, experimentUuid])
+  @@index([sessionUuid])
+  @@index([experimentUuid])
 }
 
 // Notification

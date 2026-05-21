@@ -148,6 +148,48 @@ export function registerSessionTools(server: McpServer, auth: AgentAuthContext) 
         return textResult(`Heartbeat successful: ${new Date().toISOString()}`);
       },
     }),
+    createMcpTool({
+      name: "synapse_session_checkin_experiment",
+      description: "Check a Synapse agent session into a current Experiment for sub-agent observability.",
+      inputSchema: z.object({
+        sessionUuid: z.string().describe("Session UUID"),
+        experimentUuid: z.string().describe("Experiment UUID"),
+      }),
+      async execute({ sessionUuid, experimentUuid }) {
+        const result = await getOwnedSession(sessionUuid);
+        if (!result.ok) {
+          return result.error;
+        }
+
+        const checkin = await sessionService.sessionCheckinToExperiment(
+          auth.companyUuid,
+          result.session.uuid,
+          experimentUuid
+        );
+        return jsonTextResult(checkin);
+      },
+    }),
+    createMcpTool({
+      name: "synapse_session_checkout_experiment",
+      description: "Check a Synapse agent session out of a current Experiment.",
+      inputSchema: z.object({
+        sessionUuid: z.string().describe("Session UUID"),
+        experimentUuid: z.string().describe("Experiment UUID"),
+      }),
+      async execute({ sessionUuid, experimentUuid }) {
+        const result = await getOwnedSession(sessionUuid);
+        if (!result.ok) {
+          return result.error;
+        }
+
+        await sessionService.sessionCheckoutFromExperiment(
+          auth.companyUuid,
+          result.session.uuid,
+          experimentUuid
+        );
+        return jsonTextResult({ success: true, sessionUuid: result.session.uuid, experimentUuid });
+      },
+    }),
   ]);
 
   registerMcpTools(server, sessionTools);
