@@ -42,7 +42,18 @@ if [ -z "$SESSION_UUID" ]; then
   exit 0
 fi
 
-# Close the Synapse session via MCP
+# Snapshot active experiment checkins before close (so we can surface them in the
+# hook output). closeSession itself batch-checkouts both run and experiment
+# checkins; this query is only for messaging.
+ACTIVE_EXPERIMENTS=""
+SESSION_DETAIL=$("$API" mcp-tool "synapse_get_session" \
+  "$(printf '{"sessionUuid":"%s"}' "$SESSION_UUID")" 2>/dev/null) || true
+if [ -n "$SESSION_DETAIL" ] && command -v jq >/dev/null 2>&1; then
+  ACTIVE_EXPERIMENTS=$(echo "$SESSION_DETAIL" \
+    | jq -r '[.experimentCheckins[]? | select(.checkoutAt == null) | .experimentUuid] | join(",")' 2>/dev/null) || true
+fi
+
+# Close the Synapse session via MCP (server-side batch-checkouts all checkins)
 CLOSE_OK=true
 "$API" mcp-tool "synapse_close_session" "$(printf '{"sessionUuid":"%s"}' "$SESSION_UUID")" >/dev/null 2>&1 || CLOSE_OK=false
 
@@ -68,13 +79,20 @@ fi
 
 # === Output ===
 DISPLAY_NAME="${AGENT_NAME:-${AGENT_ID:0:8}}"
+
+UNBOUND_NOTE=""
+if [ -n "$ACTIVE_EXPERIMENTS" ]; then
+  EXP_COUNT=$(echo "$ACTIVE_EXPERIMENTS" | awk -F',' '{print NF}')
+  UNBOUND_NOTE=" Auto-checked-out ${EXP_COUNT} experiment binding(s) (uuids: ${ACTIVE_EXPERIMENTS}). Experiment status is unchanged — if the sub-agent died before submit_results, the experiment may still be in_progress and need follow-up."
+fi
+
 if [ "$CLOSE_OK" = true ]; then
   USER_MSG="Synapse session closed: '${DISPLAY_NAME}'"
-  CONTEXT_MSG="Synapse session ${SESSION_UUID} for sub-agent '${DISPLAY_NAME}' closed. Local state and session file cleaned up."
+  CONTEXT_MSG="Synapse session ${SESSION_UUID} for sub-agent '${DISPLAY_NAME}' closed. Local state and session file cleaned up.${UNBOUND_NOTE}"
   "$API" hook-output "$USER_MSG" "$CONTEXT_MSG" "SubagentStop"
 else
   "$API" hook-output \
     "Synapse: failed to close session for '${DISPLAY_NAME}'" \
-    "WARNING: Failed to close Synapse session ${SESSION_UUID} for sub-agent '${DISPLAY_NAME}'. State cleaned up locally." \
+    "WARNING: Failed to close Synapse session ${SESSION_UUID} for sub-agent '${DISPLAY_NAME}'. State cleaned up locally.${UNBOUND_NOTE}" \
     "SubagentStop"
 fi

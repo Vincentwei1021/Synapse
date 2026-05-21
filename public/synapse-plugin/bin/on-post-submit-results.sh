@@ -42,15 +42,14 @@ OUTCOME=$(echo "$EVENT" \
   | jq -r '.tool_input.outcome // .input.outcome // empty' 2>/dev/null) || true
 
 if [ -n "$EXPERIMENT_UUID" ]; then
-  CONTEXT="[Synapse Plugin — Required next step after submitting results]
-You just called synapse_submit_experiment_results for experiment ${EXPERIMENT_UUID}${OUTCOME:+ (outcome=${OUTCOME})}.
-You MUST now immediately call synapse_save_experiment_report({ experimentUuid: \"${EXPERIMENT_UUID}\", title, content }) with a full markdown writeup (objective, methodology, results, analysis, charts where useful).
-This is required for success, failure, and inconclusive outcomes alike. Do not finish the task, hand off, or move on until the report has been saved. Do not post the writeup as a comment — use synapse_save_experiment_report."
-  USER_MSG="Synapse: results submitted for ${EXPERIMENT_UUID:0:8} — now save the experiment report"
+  CONTEXT="[Synapse Plugin — Suggested next step after submitting results]
+You just submitted results for experiment ${EXPERIMENT_UUID}${OUTCOME:+ (outcome=${OUTCOME})}.
+The expected follow-up is synapse_save_experiment_report({ experimentUuid: \"${EXPERIMENT_UUID}\", title, content }) with a markdown writeup covering objective, methodology, results, and analysis (plus charts where useful). Apply this for success, failure, and inconclusive outcomes — the report is what makes the result legible to the rest of the project. Use synapse_save_experiment_report rather than posting the writeup as a comment so it lands in the dedicated experiment document. Skip only with a documented reason (e.g. result is a trivial sanity check the user explicitly waived)."
+  USER_MSG="Synapse: results submitted for ${EXPERIMENT_UUID:0:8} — save the experiment report next"
 else
-  CONTEXT="[Synapse Plugin — Required next step after submitting results]
-You just called synapse_submit_experiment_results. You MUST now immediately call synapse_save_experiment_report({ experimentUuid, title, content }) with a full markdown writeup (objective, methodology, results, analysis). This is required for every outcome — success, failure, and inconclusive. Do not finish the task or move on until the report has been saved."
-  USER_MSG="Synapse: results submitted — now save the experiment report"
+  CONTEXT="[Synapse Plugin — Suggested next step after submitting results]
+You just submitted experiment results. The expected follow-up is synapse_save_experiment_report({ experimentUuid, title, content }) with a markdown writeup (objective, methodology, results, analysis). Recommended for every outcome — success, failure, and inconclusive. Skip only with a documented reason."
+  USER_MSG="Synapse: results submitted — save the experiment report next"
 fi
 
 "$API" hook-output "$USER_MSG" "$CONTEXT" "PostToolUse"

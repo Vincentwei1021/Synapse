@@ -119,87 +119,34 @@ No research projects found. The user can create one on the Synapse web UI."
   fi
 fi
 
-# Static workflow guide for Research Copilot
+# Compact stage-skill router. Full tool inventory lives in references/00-common-tools.md
+# and each stage's SKILL.md — load them on demand instead of paying the token cost
+# every SessionStart.
 WORKFLOW_GUIDE="
-## Research Copilot — Workflow Guide
+## Stage Skill Router
 
-When the user selects a project:
+When the user picks a project, call \`synapse_get_project_full_context({ researchProjectUuid })\` first, then route to the matching stage skill rather than recalling tools from memory:
 
-1. Call \`synapse_get_project_full_context({ researchProjectUuid })\` to load full context.
-2. Present the project's current state to the user:
-   - Collected papers (count + highlights if any)
-   - Deep research status
-   - Research questions (list titles)
-   - Experiments (count by status, key results if completed)
-3. Explain the full research lifecycle:
-   a. **Paper Search** — find and collect relevant papers
-   b. **Deep Research** — synthesize papers into a literature review
-   c. **Research Questions** — formulate specific research questions
-   d. **Experiments** — design, execute, and submit results
-   e. **Analysis & Iteration** — analyze results, identify gaps, loop back
-4. Based on current state, suggest the most natural next step:
-   - relatedWorksCount = 0 → suggest starting with Paper Search
-   - relatedWorksCount > 0 but deepResearchExists = false → suggest Deep Research
-   - no research questions → suggest formulating Research Questions
-   - no experiments → suggest proposing Experiments
-   - some experiments completed → suggest analyzing results and planning next iteration
-5. Tell the user they can jump to any stage — the suggestion is a guide, not a constraint.
+| Project state / user intent | Skill to load |
+|---|---|
+| relatedWorksCount=0, or paper search / deep research | \`research\` skill |
+| Research questions: formulate, claim, refine | \`research\` skill |
+| Experiment plan, revise, execute, report, submit | \`experiments\` skill |
+| Compute / GPU reservation / SSH access | \`experiments\` skill (compute section) |
+| Markdown reports, embedded figures, synthesis | \`documents\` skill |
+| Empty queue, autonomous loop, propose next experiment | \`autonomy\` skill |
+| Plugin hook behavior, session lifecycle, parallel sub-agents | \`sessions\` skill |
 
-### Tool Reference by Stage
+Each stage skill carries its own tool inventory and execution rules. The full tool reference is at \`skills/synapse/references/00-common-tools.md\`. Tool availability depends on the agent's Synapse roles (\`pre_research\` / \`research\` / \`experiment\` / \`report\` / \`admin\`).
 
-Tool availability depends on the agent's Synapse roles. Public read/comment/notification/session tools are broadly available, while literature tools usually require \`pre_research\`, experiment execution tools require \`experiment\`, and project / question mutation tools depend on \`research\` or \`admin\`.
+Respond in the same language the user uses."
 
-**Paper Search:**
-  - \`synapse_search_papers({ query })\` — search for papers
-  - \`synapse_read_paper_brief({ arxivId })\` — quick summary (~500 tokens)
-  - \`synapse_read_paper_head({ arxivId })\` — section structure (~1-2k tokens)
-  - \`synapse_read_paper_section({ arxivId, sectionName })\` — full section
-  - \`synapse_add_related_work({ researchProjectUuid, ... })\` — add paper to project
-  - \`synapse_get_related_works({ researchProjectUuid })\` — list collected papers
-
-**Deep Research:**
-  - \`synapse_get_related_works\` — review collected papers
-  - \`synapse_get_deep_research_report({ researchProjectUuid })\` — get existing report
-  - \`synapse_save_deep_research_report({ researchProjectUuid, title, content })\` — create/update report
-  - \`synapse_complete_task({ researchProjectUuid, taskType: \"deep_research\" })\` — clear the active task when you are fulfilling a Synapse-triggered deep research request
-
-**Research Questions:**
-  - \`synapse_get_research_project({ researchProjectUuid })\` — project context
-  - \`synapse_get_research_questions({ researchProjectUuid })\` — inspect the current question set
-  - Claim / status-update tools are available only when the agent has the matching research-oriented role
-
-**Experiment Planning / Revision:**
-  - \`synapse_create_experiment({ researchProjectUuid, title, description, researchQuestionUuid?, priority?, status? })\` — create a brand-new experiment outside autonomous loop (defaults to \`draft\`; spawn a self-review sub-agent and revise before pushing to \`pending_review\`)
-  - \`synapse_review_experiment({ experimentUuid, decision, reviewNote?, assignedAgentUuid? })\` — PI/admin agents can approve into \`pending_start\` or reject back to \`draft\` from the terminal flow
-  - \`synapse_get_experiment({ experimentUuid })\` — inspect the current experiment
-  - \`synapse_get_comments({ targetType: \"experiment\", targetUuid })\` — read review feedback or @mention threads
-  - \`synapse_update_experiment_status({ experimentUuid, status: \"draft\", liveStatus: \"writing\", liveMessage })\` — mark that you are drafting or revising the plan
-  - \`synapse_update_experiment_plan({ experimentUuid, title?, description?, researchQuestionUuid?, priority? })\` — save the fleshed-out plan
-  - \`synapse_update_experiment_status({ experimentUuid, status: \"pending_review\" })\` — hand the revised plan back for review
-
-**Experiment Execution:**
-  - \`synapse_list_compute_nodes({ onlyAvailable: true, researchProjectUuid? })\` — inspect available compute
-  - \`synapse_reserve_gpus({ experimentUuid, gpuUuids })\` — reserve GPUs before running
-  - \`synapse_start_experiment({ experimentUuid, sessionUuid? })\` — begin execution and optionally bind a sub-agent session to the Experiment
-  - \`synapse_report_experiment_progress({ experimentUuid, message, phase?, liveStatus? })\` — report progress or queueing state
-  - \`synapse_get_node_access_bundle({ experimentUuid, nodeUuid })\` — fetch managed SSH credentials
-  - \`synapse_submit_experiment_results({ experimentUuid, sessionUuid?, outcome?, experimentResults, experimentBranch?, commitSha? })\` — submit results, optionally check out a sub-agent session, and finish execution
-  - \`synapse_save_experiment_report({ experimentUuid, title?, content })\` — save the dedicated experiment report document when requested
-  - \`synapse_upload_document_image({ experimentUuid? | documentUuid?, filename, mimeType, base64Content })\` — upload report/document figures and embed returned Synapse URLs
-
-**Analysis:**
-  - \`synapse_get_project_full_context({ researchProjectUuid })\` — reload full state
-  - Review experiment outcomes, compute availability, and synthesis state before proposing next steps
-
-### Language
-
-Respond in the same language the user uses. If the user writes in Chinese, respond in Chinese. If in English, respond in English."
-
-# Build context for Claude (additionalContext)
+# Build context for Claude (additionalContext) — kept lean. Stage-specific
+# guidance loads via the matching skill when the agent actually needs it.
 CONTEXT="# Synapse Plugin — Active
 
 Synapse is connected at ${SYNAPSE_URL}.
-Session lifecycle hooks are enabled: SubagentStart, SubagentStop, TeammateIdle, TaskCompleted.
+Hooks active: SessionStart, UserPromptSubmit, PreToolUse(EnterPlan/ExitPlan/Task), PostToolUse(create_experiment/submit_results), SubagentStart, SubagentStop, TeammateIdle, TaskCompleted, SessionEnd.
 
 ## Checkin Result
 
@@ -208,31 +155,14 @@ ${ASSIGNMENTS_BLOCK}
 ${PROJECTS_BLOCK}
 ${WORKFLOW_GUIDE}
 
-## Session Management — IMPORTANT
+## Plugin-Managed Behavior (don't replicate manually)
 
-The Synapse Plugin **fully automates** Synapse session lifecycle:
-- Sub-agent spawn → Synapse session auto-created (or reused) + session UUID and workflow auto-injected into sub-agent context
-- Teammate idle → Synapse session heartbeat (automatic)
-- Sub-agent stop → Synapse session closed
-
-**Do NOT call synapse_create_session or synapse_close_session for sub-agents.** The plugin handles this.
-When spawning sub-agents, pass Synapse EXPERIMENT UUIDs in the prompt. Session UUID + Experiment workflow are auto-injected by SubagentStart hook.
-
-For your own session (if you are working directly, not via sub-agents):
-call synapse_list_sessions() first, then reopen or create as needed.
-
-To link a Claude Code work item to a Synapse experiment, include \`synapse:experiment:<uuid>\` in the description.
-
-## Notifications
-
-When you or your sub-agents receive @mentions or other notifications:
-- \`synapse_get_notifications()\` — fetches unread notifications and **auto-marks them as read**
-- \`synapse_get_notifications({ autoMarkRead: false })\` — peek without marking read
-- No need to call \`synapse_mark_notification_read\` separately after reading
-
-## Project Groups
-
-Projects are organized into Project Groups. If your agent has admin capabilities and needs to create a project, call \`synapse_get_project_groups()\` first so the new project lands in the correct group."
+- **Sub-agent sessions**: SubagentStart auto-creates/reuses a Synapse session and injects the session UUID + experiment workflow into the sub-agent. SubagentStop closes it (and batch-checks-out experiment bindings). TeammateIdle keeps it alive. Do not call \`synapse_create_session\` / \`synapse_close_session\` for sub-agents.
+- **Spawning sub-agents**: pass Synapse experiment UUIDs in the prompt. The plugin injects everything else.
+- **Linking CC work items to experiments**: include \`synapse:experiment:<uuid>\` in the description; TaskCompleted picks it up.
+- **Direct (non-sub-agent) work**: call \`synapse_list_sessions()\` first, then reopen or create.
+- **Notifications**: \`synapse_get_notifications()\` fetches unread and auto-marks read; pass \`{ autoMarkRead: false }\` to peek.
+- **Creating projects (admin only)**: call \`synapse_get_project_groups()\` first so the new project lands in the right group."
 
 # Check for existing state (resumed session)
 MAIN_SESSION=$("$API" state-get "main_session_uuid" 2>/dev/null) || true
