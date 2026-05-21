@@ -4,6 +4,7 @@
 
 import { Prisma } from "@/generated/prisma/client";
 import { ApiError } from "@/lib/api-handler";
+import { eventBus } from "@/lib/event-bus";
 import { prisma } from "@/lib/prisma";
 import { isRealtimeAgent } from "@/lib/agent-transport";
 import { getAgentByUuid } from "@/services/agent.service";
@@ -92,6 +93,12 @@ export interface ResearchProjectExportData {
     outcome: string | null;
   }>;
   rdrDocs: Array<{ title: string; content: string | null; createdAt: Date }>;
+}
+
+export interface CompleteResearchProjectParams {
+  companyUuid: string;
+  researchProjectUuid: string;
+  actorUuid: string;
 }
 
 export async function listResearchProjects({ companyUuid, skip, take }: ResearchProjectListParams) {
@@ -353,6 +360,93 @@ export async function updateResearchProject(
       },
     },
   });
+}
+
+export async function completeResearchProject({
+  companyUuid,
+  researchProjectUuid,
+  actorUuid,
+}: CompleteResearchProjectParams) {
+  const project = await prisma.researchProject.findFirst({
+    where: { uuid: researchProjectUuid, companyUuid },
+    select: { uuid: true },
+  });
+
+  if (!project) {
+    return null;
+  }
+
+  const completedAt = new Date();
+  const unfinishedExperiments = await prisma.experiment.findMany({
+    where: {
+      companyUuid,
+      researchProjectUuid,
+      status: { not: "completed" },
+    },
+    select: { uuid: true },
+  });
+  const experimentUuids = unfinishedExperiments.map((experiment) => experiment.uuid);
+
+  const [completedExperiments, updatedProject] = await Promise.all([
+    prisma.experiment.updateMany({
+      where: {
+        companyUuid,
+        researchProjectUuid,
+        status: { not: "completed" },
+      },
+      data: {
+        status: "completed",
+        outcome: "Project marked complete",
+        completedAt,
+        liveStatus: null,
+        liveMessage: null,
+        liveUpdatedAt: completedAt,
+      },
+    }),
+    prisma.researchProject.update({
+      where: { uuid: researchProjectUuid },
+      data: {
+        autoSearchActiveAgentUuid: null,
+        autoSearchStartedAt: null,
+        deepResearchActiveAgentUuid: null,
+        deepResearchStartedAt: null,
+        synthesisActiveAgentUuid: null,
+        synthesisStartedAt: null,
+      },
+      select: {
+        uuid: true,
+        name: true,
+        autoSearchActiveAgentUuid: true,
+        deepResearchActiveAgentUuid: true,
+        synthesisActiveAgentUuid: true,
+      },
+    }),
+  ]);
+
+  if (experimentUuids.length > 0) {
+    await prisma.experimentGpuReservation.updateMany({
+      where: {
+        companyUuid,
+        experimentUuid: { in: experimentUuids },
+        releasedAt: null,
+      },
+      data: { releasedAt: completedAt },
+    });
+  }
+
+  eventBus.emitChange({
+    companyUuid,
+    researchProjectUuid,
+    entityType: "research_project",
+    entityUuid: researchProjectUuid,
+    action: "updated",
+    actorUuid,
+  });
+
+  return {
+    project: updatedProject,
+    completedExperiments: completedExperiments.count,
+  };
 }
 
 export async function deleteResearchProject(uuid: string) {

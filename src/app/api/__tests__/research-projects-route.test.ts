@@ -8,6 +8,7 @@ const mockGetResearchProject = vi.fn();
 const mockGetResearchProjectByUuid = vi.fn();
 const mockGetResearchProjectDetailRef = vi.fn();
 const mockUpdateResearchProject = vi.fn();
+const mockCompleteResearchProject = vi.fn();
 const mockDeleteResearchProject = vi.fn();
 const mockGetProjectMetricsSnapshot = vi.fn();
 const mockToProjectCompatibilityCounts = vi.fn();
@@ -25,6 +26,7 @@ vi.mock("@/services/research-project.service", () => ({
   getResearchProjectByUuid: (...args: unknown[]) => mockGetResearchProjectByUuid(...args),
   getResearchProjectDetailRef: (...args: unknown[]) => mockGetResearchProjectDetailRef(...args),
   updateResearchProject: (...args: unknown[]) => mockUpdateResearchProject(...args),
+  completeResearchProject: (...args: unknown[]) => mockCompleteResearchProject(...args),
   deleteResearchProject: (...args: unknown[]) => mockDeleteResearchProject(...args),
 }));
 
@@ -38,6 +40,9 @@ vi.mock("@/services/project-metrics.service", () => ({
 }));
 
 import { GET as listProjects, POST as createProject } from "@/app/api/research-projects/route";
+import {
+  POST as completeProject,
+} from "@/app/api/research-projects/[uuid]/complete/route";
 import {
   DELETE as deleteProjectDetail,
   GET as getProjectDetail,
@@ -88,6 +93,13 @@ describe("research projects routes", () => {
       proposals: 2,
     });
     mockGetResearchProjectDetailRef.mockResolvedValue({ uuid: projectUuid });
+    mockCompleteResearchProject.mockResolvedValue({
+      project: {
+        uuid: projectUuid,
+        name: "Test Project",
+      },
+      completedExperiments: 2,
+    });
   });
 
   it("GET /api/research-projects returns paginated projects with compatibility counts", async () => {
@@ -292,5 +304,24 @@ describe("research projects routes", () => {
     expect(body.success).toBe(true);
     expect(mockGetResearchProjectDetailRef).toHaveBeenCalledWith(companyUuid, projectUuid);
     expect(mockDeleteResearchProject).toHaveBeenCalledWith(projectUuid);
+  });
+
+  it("POST /api/research-projects/[uuid]/complete completes a project through service layer", async () => {
+    const response = await completeProject(
+      new NextRequest(new URL(`/api/research-projects/${projectUuid}/complete`, "http://localhost:3000"), {
+        method: "POST",
+      }),
+      makeContext(projectUuid),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.data.completedExperiments).toBe(2);
+    expect(mockCompleteResearchProject).toHaveBeenCalledWith({
+      companyUuid,
+      researchProjectUuid: projectUuid,
+      actorUuid: "user-uuid-1",
+    });
   });
 });
