@@ -10,6 +10,16 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 API="${SCRIPT_DIR}/synapse-api.sh"
 
+safe_file_component() {
+  local raw="$1"
+  local safe
+  safe=$(printf '%s' "$raw" | tr -c 'A-Za-z0-9._-' '_' | sed 's/^_*//; s/_*$//')
+  if [ -z "$safe" ]; then
+    safe="agent"
+  fi
+  printf '%s' "${safe:0:80}"
+}
+
 # Check environment
 if [ -z "${SYNAPSE_URL:-}" ] || [ -z "${SYNAPSE_API_KEY:-}" ]; then
   exit 0
@@ -67,8 +77,11 @@ fi
 
 # Clean up session file
 SESSIONS_DIR="${CLAUDE_PROJECT_DIR:-.}/.synapse/sessions"
-if [ -n "$AGENT_NAME" ] && [ -f "${SESSIONS_DIR}/${AGENT_NAME}.json" ]; then
-  rm -f "${SESSIONS_DIR}/${AGENT_NAME}.json"
+if [ -n "$AGENT_NAME" ]; then
+  SESSION_FILE_NAME=$(safe_file_component "$AGENT_NAME")
+  if [ -f "${SESSIONS_DIR}/${SESSION_FILE_NAME}.json" ]; then
+    rm -f "${SESSIONS_DIR}/${SESSION_FILE_NAME}.json"
+  fi
 fi
 
 # Clean up claimed file (written by SubagentStart)

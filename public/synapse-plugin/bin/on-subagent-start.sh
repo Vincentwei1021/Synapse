@@ -20,6 +20,16 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 API="${SCRIPT_DIR}/synapse-api.sh"
 
+safe_file_component() {
+  local raw="$1"
+  local safe
+  safe=$(printf '%s' "$raw" | tr -c 'A-Za-z0-9._-' '_' | sed 's/^_*//; s/_*$//')
+  if [ -z "$safe" ]; then
+    safe="agent"
+  fi
+  printf '%s' "${safe:0:80}"
+}
+
 # Check environment
 if [ -z "${SYNAPSE_URL:-}" ] || [ -z "${SYNAPSE_API_KEY:-}" ]; then
   exit 0
@@ -128,8 +138,14 @@ if [ -n "$SESSIONS_LIST" ]; then
         # Send heartbeat to refresh lastActiveAt
         "$API" mcp-tool "synapse_session_heartbeat" \
           "$(printf '{"sessionUuid":"%s"}' "$SESSION_UUID")" >/dev/null 2>&1 || true
-      elif [ "$MATCH_STATUS" = "closed" ] || [ "$MATCH_STATUS" = "inactive" ]; then
-        # Closed/inactive session — reopen
+      elif [ "$MATCH_STATUS" = "inactive" ]; then
+        # Inactive sessions are still open; heartbeat restores them to active.
+        SESSION_UUID="$MATCH_UUID"
+        SESSION_ACTION="reused"
+        "$API" mcp-tool "synapse_session_heartbeat" \
+          "$(printf '{"sessionUuid":"%s"}' "$SESSION_UUID")" >/dev/null 2>&1 || true
+      elif [ "$MATCH_STATUS" = "closed" ]; then
+        # Closed session — reopen
         REOPEN_RESPONSE=$("$API" mcp-tool "synapse_reopen_session" \
           "$(printf '{"sessionUuid":"%s"}' "$MATCH_UUID")" 2>/dev/null) || true
         REOPEN_UUID=$(echo "$REOPEN_RESPONSE" | jq -r '.uuid // empty' 2>/dev/null) || true
@@ -144,9 +160,13 @@ fi
 
 # === No existing session found — create new ===
 if [ -z "$SESSION_UUID" ]; then
-  RESPONSE=$("$API" mcp-tool "synapse_create_session" \
-    "$(printf '{"name":"%s","description":"Auto-created by Synapse plugin for sub-agent %s (type: %s)"}' \
-      "$SESSION_NAME" "$AGENT_ID" "${AGENT_TYPE:-unknown}")" 2>/dev/null) || {
+  DESCRIPTION="Auto-created by Synapse plugin for sub-agent ${AGENT_ID} (type: ${AGENT_TYPE:-unknown})"
+  if command -v jq >/dev/null 2>&1; then
+    CREATE_ARGS=$(jq -n --arg name "$SESSION_NAME" --arg description "$DESCRIPTION" '{name: $name, description: $description}')
+  else
+    CREATE_ARGS=$(printf '{"name":"%s","description":"%s"}' "$SESSION_NAME" "$DESCRIPTION")
+  fi
+  RESPONSE=$("$API" mcp-tool "synapse_create_session" "$CREATE_ARGS" 2>/dev/null) || {
     "$API" hook-output \
       "Synapse: failed to create session for '${SESSION_NAME}'" \
       "WARNING: Failed to create Synapse session for sub-agent '${SESSION_NAME}'. Session lifecycle will not be tracked." \
@@ -180,17 +200,29 @@ fi
 # === Session file: minimal metadata for other hooks (TeammateIdle, SubagentStop) ===
 SESSIONS_DIR="${CLAUDE_PROJECT_DIR:-.}/.synapse/sessions"
 mkdir -p "$SESSIONS_DIR"
+SESSION_FILE_NAME=$(safe_file_component "$SESSION_NAME")
 
-cat > "${SESSIONS_DIR}/${SESSION_NAME}.json" <<SESSIONEOF
-{
-  "sessionUuid": "${SESSION_UUID}",
-  "agentId": "${AGENT_ID}",
-  "agentName": "${SESSION_NAME}",
-  "agentType": "${AGENT_TYPE:-unknown}",
-  "sessionAction": "${SESSION_ACTION}",
-  "createdAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-}
+if command -v jq >/dev/null 2>&1; then
+  jq -n \
+    --arg sessionUuid "$SESSION_UUID" \
+    --arg agentId "$AGENT_ID" \
+    --arg agentName "$SESSION_NAME" \
+    --arg agentType "${AGENT_TYPE:-unknown}" \
+    --arg sessionAction "$SESSION_ACTION" \
+    --arg createdAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    '{
+      sessionUuid: $sessionUuid,
+      agentId: $agentId,
+      agentName: $agentName,
+      agentType: $agentType,
+      sessionAction: $sessionAction,
+      createdAt: $createdAt
+    }' > "${SESSIONS_DIR}/${SESSION_FILE_NAME}.json"
+else
+  cat > "${SESSIONS_DIR}/${SESSION_FILE_NAME}.json" <<SESSIONEOF
+{"sessionUuid":"${SESSION_UUID}","agentId":"${AGENT_ID}","agentName":"${SESSION_NAME}","agentType":"${AGENT_TYPE:-unknown}","sessionAction":"${SESSION_ACTION}","createdAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
 SESSIONEOF
+fi
 
 # === Owner info: read from state (stored by on-session-start.sh from checkin response) ===
 OWNER_SECTION=""
