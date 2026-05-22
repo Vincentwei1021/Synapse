@@ -8,7 +8,9 @@
 
 set -euo pipefail
 
-[ -z "${SYNAPSE_URL:-}" ] && exit 0
+if [ -z "${SYNAPSE_URL:-}" ] || [ -z "${SYNAPSE_API_KEY:-}" ]; then
+  exit 0
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 API="${SCRIPT_DIR}/synapse-api.sh"

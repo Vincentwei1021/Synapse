@@ -328,6 +328,16 @@ JSONEOF
     tool_response=$(cat "$response_file")
     rm -f "$response_file"
 
+    # Treat HTTP failures as hook/API failures. Without this, JSON-RPC error
+    # bodies can be parsed as empty successful results and make hooks lie about
+    # connectivity.
+    case "$http_code" in
+      2*|3*) ;;
+      *)
+        die "MCP tool call failed (${http_code}): ${tool_response}"
+        ;;
+    esac
+
     # Break the retry loop - request succeeded
     break
   done
@@ -347,6 +357,15 @@ JSONEOF
     json_response=$(echo "$tool_response" | grep "^data: " | head -1 | sed 's/^data: //')
   else
     json_response="$tool_response"
+  fi
+
+  # A JSON-RPC error with HTTP 200 is still a failed tool call.
+  if command -v jq &>/dev/null; then
+    if echo "$json_response" | jq -e '.error? != null' >/dev/null 2>&1; then
+      local error_message
+      error_message=$(echo "$json_response" | jq -r '.error.message // (.error | tostring)' 2>/dev/null) || error_message="$json_response"
+      die "MCP JSON-RPC error: ${error_message}"
+    fi
   fi
 
   # Extract text content from result

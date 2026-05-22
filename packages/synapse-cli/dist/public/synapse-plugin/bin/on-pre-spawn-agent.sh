@@ -12,8 +12,6 @@
 
 set -euo pipefail
 
-[ -z "${SYNAPSE_URL:-}" ] && exit 0
-
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 API="${SCRIPT_DIR}/synapse-api.sh"
 
@@ -21,6 +19,10 @@ API="${SCRIPT_DIR}/synapse-api.sh"
 EVENT=""
 if [ ! -t 0 ]; then
   EVENT=$(cat)
+fi
+
+if [ -z "${SYNAPSE_URL:-}" ] || [ -z "${SYNAPSE_API_KEY:-}" ]; then
+  exit 0
 fi
 
 # Try to extract subagent_type and name from the tool input
@@ -38,6 +40,26 @@ case "$(printf '%s' "$AGENT_TYPE" | tr '[:upper:]' '[:lower:]')" in
     ;;
 esac
 
+safe_file_component() {
+  local raw="$1"
+  local safe
+  safe=$(printf '%s' "$raw" | tr -c 'A-Za-z0-9._-' '_' | sed 's/^_*//; s/_*$//')
+  if [ -z "$safe" ]; then
+    safe="agent"
+  fi
+  printf '%s' "${safe:0:80}"
+}
+
+short_hash() {
+  if command -v shasum >/dev/null 2>&1; then
+    printf '%s' "$1" | shasum | awk '{print substr($1,1,12)}'
+  elif command -v sha1sum >/dev/null 2>&1; then
+    printf '%s' "$1" | sha1sum | awk '{print substr($1,1,12)}'
+  else
+    date +%s
+  fi
+}
+
 # Write a per-agent pending file for SubagentStart to claim.
 # SubagentStart only receives agent_id + agent_type — not the name.
 # CC sometimes uses the agent name as agent_type, so we store both.
@@ -51,11 +73,30 @@ esac
 PENDING_DIR="${CLAUDE_PROJECT_DIR:-.}/.synapse/pending"
 mkdir -p "$PENDING_DIR"
 
-# Use agent name as filename; fall back to timestamp-based unique name
-PENDING_NAME="${AGENT_NAME:-unknown-$(date +%s%N)}"
-printf '{"name":"%s","type":"%s","ts":"%s"}\n' \
-  "${AGENT_NAME:-}" "${AGENT_TYPE:-}" "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)" \
-  > "${PENDING_DIR}/${PENDING_NAME}"
+# Use the raw name as the filename only when it is already path-safe and not
+# colliding. Otherwise use a sanitized component plus a short hash; the original
+# name is preserved inside the JSON payload.
+RAW_PENDING_NAME="${AGENT_NAME:-unknown-$(date +%s)}"
+if printf '%s' "$RAW_PENDING_NAME" | grep -Eq '^[A-Za-z0-9._-]+$' \
+  && [ ! -e "${PENDING_DIR}/${RAW_PENDING_NAME}" ]; then
+  PENDING_NAME="$RAW_PENDING_NAME"
+else
+  SAFE_BASE=$(safe_file_component "$RAW_PENDING_NAME")
+  PENDING_NAME="${SAFE_BASE}-$(date +%s)-$(short_hash "$RAW_PENDING_NAME")"
+fi
+
+TS="$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)"
+TMP_FILE=$(mktemp "${PENDING_DIR}/.pending.XXXXXX")
+if command -v jq >/dev/null 2>&1; then
+  jq -n \
+    --arg name "${AGENT_NAME:-}" \
+    --arg type "${AGENT_TYPE:-}" \
+    --arg ts "$TS" \
+    '{name: $name, type: $type, ts: $ts}' > "$TMP_FILE"
+else
+  printf '{"name":"","type":"","ts":"%s"}\n' "$TS" > "$TMP_FILE"
+fi
+mv "$TMP_FILE" "${PENDING_DIR}/${PENDING_NAME}"
 
 CONTEXT="[Synapse Plugin — Sub-agent Spawn]
 Session auto-managed by plugin. Do NOT call synapse_create_session.
