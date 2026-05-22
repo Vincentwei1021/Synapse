@@ -24,12 +24,23 @@ Inspired by the [AI-DLC (AI-Driven Development Lifecycle)](https://aws.amazon.co
 
 ## What's New
 
-**v0.7.0** — PGlite Local Mode & Server Action Fix (2026-04-20) &nbsp; 🔴 `New`
+**v0.8.0** — Sub-Agent Observability, Auto-Loop Pill Shader & Critical Plugin Fix (2026-05-22) &nbsp; 🔴 `New`
+- **Critical fix — plugin no longer wipes `~/.synapse/`**: when Claude Code launched from `$HOME`, the SessionEnd hook's `rm -rf $STATE_DIR` could delete the user's PGlite database. The hook now only removes its own artifacts and uses `rmdir` on the parent — sibling `data/` directories survive. **Upgrade strongly recommended.**
+- **Sub-agent experiment checkin**: new `SessionExperimentCheckin` table plus `synapse_checkin_experiments` MCP tool let parent sessions hand off experiment context to sub-agents and auto-close them on SubagentStop, ending the 1-hour heartbeat-timeout pile-up after hard CC exits.
+- **Auto loop pill animation**: when an autonomous loop is active, the status pill on the Experiments board now renders a slow liquid mesh-gradient (WebGL) — emerald/cyan in Human Review, emerald/cyan/violet in Full Auto. Honors `prefers-reduced-motion` and falls back to the previous static tint on WebGL failure.
+- **Plugin hooks tightened**: `on-session-start` swaps its inline tool inventory for a stage-skill router (~5k tokens saved per session), `on-subagent-stop` runs async and surfaces auto-checked-out experiment bindings, and several hook prompts soften "MUST" language so agents can deviate with documented reason.
+- **Claude Code plugin** bumped to **0.9.0**, npm `@synapse-research/synapse` to **0.3.0**, Docker image `vincentwei1021/synapse:v0.8.0` (`:latest` follows).
+
+<details>
+<summary><strong>v0.7.0</strong> — PGlite Local Mode & Server Action Fix (2026-04-20)</summary>
+
 - **One-command local install**: `npm install -g @synapse-research/synapse && synapse` — zero-dependency PGlite mode, no PostgreSQL or Redis required
 - Fixed critical bug where research question creation silently failed in standalone mode (server actions replaced with REST API)
 - Fixed cache directory permission error when installed globally via `sudo npm install -g`
 - Completion notifications now show a checkmark icon instead of a plain dot
 - Health check no longer reports "degraded" when Redis is configured but not yet lazy-loaded
+
+</details>
 
 <details>
 <summary><strong>v0.6.1</strong> — Experiment Board UI Polish (2026-04-15)</summary>

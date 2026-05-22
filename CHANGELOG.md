@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.8.0] - 2026-05-22
+
+### Fixed
+- **CRITICAL — plugin no longer wipes `~/.synapse/`**: the SessionEnd hook used to run `rm -rf "$STATE_DIR"` (where `STATE_DIR=$CLAUDE_PROJECT_DIR/.synapse`). When Claude Code was launched from `$HOME`, that path overlapped the Synapse CLI's persistent PGlite database directory (`~/.synapse/data/`), causing the user's local database to be silently destroyed at session end. The hook now only removes artifacts it created (empty `state.json`, empty `sessions/`) and uses `rmdir` on the parent — sibling directories like `data/` keep the parent alive. Verified against four scenarios including the home-dir DB case. **All users on plugin 0.8.x should upgrade immediately.**
+
+### Added
+- **Sub-agent experiment checkin**: new `SessionExperimentCheckin` table, `synapse_checkin_experiments` MCP tool, and matching service layer hand experiment context from a parent Claude Code session to its sub-agents. SubagentStop now auto-closes those sessions and batch-checks-out their experiment bindings, ending the 1-hour heartbeat-timeout pile-up that occurred after hard CC exits.
+- **Auto loop pill liquid mesh-gradient**: when an autonomous loop is active, the status pill on the Experiments board renders a slow WebGL mesh gradient (`@paper-design/shaders-react`) — emerald/cyan for `human_review`, emerald/cyan/violet for `full_auto`. Honors `prefers-reduced-motion: reduce` (returns null, parent's static emerald shows through) and an error boundary catches WebGL failures so the pill never breaks. Component is dynamically loaded with `ssr: false`; pill size, copy, and dropdown logic are unchanged.
+
+### Changed
+- **Plugin hooks tightened (per Chorus design lessons)**:
+  - `on-session-start`: replaces the inline tool inventory with a stage-skill router; full tool reference moves to `skills/synapse/references/00-common-tools.md` (~5k tokens saved per session).
+  - `on-subagent-stop`: runs async and surfaces auto-checked-out experiment bindings in hook output (`closeSession` already batch-checks-out via `SessionExperimentCheckin`).
+  - `on-post-create-experiment` / `on-post-submit-results`: soften "MUST"/"DO NOT" to "Suggested next step" so agents can deviate with documented reason instead of locking up on edge cases.
+- **Versions**: main app 0.7.2 → **0.8.0**; npm `@synapse-research/synapse` 0.2.14 → **0.3.0**; Claude Code plugin 0.8.2 → **0.9.0**; Docker `vincentwei1021/synapse:v0.8.0` (`:latest` advances together).
+
+---
+
 ## [0.7.2] - 2026-05-18
 
 ### Added
