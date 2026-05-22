@@ -11,26 +11,48 @@ const mockPrisma = vi.hoisted(() => ({
   agent: {
     findUnique: vi.fn(),
   },
+  experiment: {
+    findMany: vi.fn(),
+  },
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 
 const mockCreateExperiment = vi.hoisted(() => vi.fn());
+const mockGetExperiment = vi.hoisted(() => vi.fn());
+const mockStartExperiment = vi.hoisted(() => vi.fn());
+const mockCompleteExperiment = vi.hoisted(() => vi.fn());
+const mockUpdateExperimentLiveStatus = vi.hoisted(() => vi.fn());
 vi.mock("@/services/experiment.service", () => ({
   createExperiment: mockCreateExperiment,
+  getExperiment: mockGetExperiment,
+  startExperiment: mockStartExperiment,
+  completeExperiment: mockCompleteExperiment,
+  updateExperimentLiveStatus: mockUpdateExperimentLiveStatus,
 }));
 
+const mockCreateNotification = vi.hoisted(() => vi.fn(async () => ({})));
 vi.mock("@/services/notification.service", () => ({
-  create: vi.fn(async () => ({})),
+  create: mockCreateNotification,
 }));
 
 vi.mock("@/services/activity.service", () => ({}));
-vi.mock("@/services/compute.service", () => ({}));
+const mockReleaseGpuReservationsForExperiment = vi.hoisted(() => vi.fn());
+const mockListComputePools = vi.hoisted(() => vi.fn());
+vi.mock("@/services/compute.service", () => ({
+  releaseGpuReservationsForExperiment: mockReleaseGpuReservationsForExperiment,
+  listComputePools: mockListComputePools,
+}));
 vi.mock("@/services/experiment-run.service", () => ({}));
 vi.mock("@/services/experiment-progress.service", () => ({
   createProgressLog: vi.fn(),
 }));
-vi.mock("@/services/session.service", () => ({}));
+const mockSessionCheckinToExperiment = vi.hoisted(() => vi.fn());
+const mockSessionCheckoutFromExperiment = vi.hoisted(() => vi.fn());
+vi.mock("@/services/session.service", () => ({
+  sessionCheckinToExperiment: mockSessionCheckinToExperiment,
+  sessionCheckoutFromExperiment: mockSessionCheckoutFromExperiment,
+}));
 
 const mockRecordIncidentLesson = vi.hoisted(() => vi.fn());
 const mockSearchIncidentLessons = vi.hoisted(() => vi.fn());
@@ -147,6 +169,78 @@ describe("synapse_propose_experiment", () => {
         createdByUuid: "agent-1",
         createdByType: "agent",
       }),
+    );
+  });
+});
+
+describe("experiment session attribution in execution tools", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetExperiment.mockResolvedValue({
+      uuid: "exp-1",
+      title: "Run one",
+      researchProjectUuid: "project-1",
+      status: "pending_start",
+      assignee: { type: "agent", uuid: "agent-1" },
+    });
+    mockCompleteExperiment.mockResolvedValue({
+      uuid: "exp-1",
+      status: "completed",
+    });
+    mockStartExperiment.mockResolvedValue({
+      uuid: "exp-1",
+      status: "in_progress",
+    });
+    mockListComputePools.mockResolvedValue([]);
+    mockPrisma.experiment.findMany.mockResolvedValue([]);
+  });
+
+  it("checks the current session into the experiment when starting", async () => {
+    const { server, tools } = makeServer();
+    registerComputeTools(server, {
+      type: "agent",
+      companyUuid: "company-1",
+      actorUuid: "agent-1",
+      roles: ["experiment"],
+      agentName: "Agent",
+    });
+
+    const result = await tools.get("synapse_start_experiment")?.({
+      experimentUuid: "exp-1",
+      sessionUuid: "session-1",
+      gpuUuids: [],
+    });
+
+    expect(result?.isError).toBeUndefined();
+    expect(mockSessionCheckinToExperiment).toHaveBeenCalledWith(
+      "company-1",
+      "session-1",
+      "exp-1",
+    );
+  });
+
+  it("checks the current session out of the experiment after submitting results", async () => {
+    const { server, tools } = makeServer();
+    registerComputeTools(server, {
+      type: "agent",
+      companyUuid: "company-1",
+      actorUuid: "agent-1",
+      roles: ["experiment"],
+      agentName: "Agent",
+    });
+
+    const result = await tools.get("synapse_submit_experiment_results")?.({
+      experimentUuid: "exp-1",
+      sessionUuid: "session-1",
+      outcome: "success",
+      experimentResults: { accuracy: 0.9 },
+    });
+
+    expect(result?.isError).toBeUndefined();
+    expect(mockSessionCheckoutFromExperiment).toHaveBeenCalledWith(
+      "company-1",
+      "session-1",
+      "exp-1",
     );
   });
 });

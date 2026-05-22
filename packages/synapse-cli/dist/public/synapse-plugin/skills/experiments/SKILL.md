@@ -103,7 +103,7 @@ If the project has a repo, commit all three onto the base branch (or a per-exper
 3. If drafting or revising: `synapse_update_experiment_status({ status: "draft", liveStatus: "writing" })` + `synapse_update_experiment_plan(...)`, then `synapse_update_experiment_status({ status: "pending_review" })`
 4. Before execution: `synapse_search_incident_lessons({ researchProjectUuid, query? })` for relevant prior failures/recoveries, then `synapse_list_compute_nodes({ onlyAvailable: true, researchProjectUuid })`
 5. Reserve compute: optional `synapse_reserve_gpus(...)` or inline via `synapse_start_experiment({ gpuUuids })`
-6. `synapse_start_experiment({ experimentUuid, workingNotes })` — moves to `in_progress`
+6. `synapse_start_experiment({ experimentUuid, sessionUuid?, workingNotes })` — moves to `in_progress`; sub-agents should pass the auto-injected `sessionUuid`
 7. If remote compute: `synapse_get_node_access_bundle({ experimentUuid, nodeUuid })`, write the returned `privateKeyPemBase64` to a local PEM, `chmod 600`, SSH with the returned host/user/port
 8. If repo-backed: `synapse_get_repo_access` → clone → branch from the experiment's base branch (commit + push back to this repo at the end is mandatory)
 9. Run the workload in a persistent remote shell (`tmux`/`screen`) with unbuffered output (`python -u …` or `PYTHONUNBUFFERED=1`) so logs never stall a tool call
@@ -111,7 +111,7 @@ If the project has a repo, commit all three onto the base branch (or a per-exper
 11. If you hit a reusable execution issue and recover, call `synapse_record_experiment_incident_lesson({ status: "resolved_in_run", ... })` after the fix. Use progress logs for the live narrative; use incident lessons for root cause, resolution, and prevention.
 12. For long runs (>30 min), the main agent must schedule its own monitor heartbeat with `CronCreate` so the experiment card never looks dead. See "Monitoring Long Runs With CronCreate" below for the exact pattern.
 13. Commit code/artifacts to the experiment branch or base branch; capture the commit SHA
-14. Finish with `synapse_submit_experiment_results({ outcome, experimentResults, branch, commitSha })` — `outcome` ∈ `success` | `failure` | `inconclusive`; on failure include the error and partial results
+14. Finish with `synapse_submit_experiment_results({ experimentUuid, sessionUuid?, outcome, experimentResults, experimentBranch, commitSha })` — `outcome` ∈ `success` | `failure` | `inconclusive`; sub-agents should pass `sessionUuid` so Synapse checks the session out
 15. If the final outcome is `failure` or `inconclusive`, call `synapse_record_experiment_incident_lesson({ status: "caused_failure" | "unresolved", ... })` unless there is truly no reusable lesson; in that case state that explicitly in the report.
 16. **Always** follow `synapse_submit_experiment_results` with `synapse_save_experiment_report({ experimentUuid, title, content })` — write a full markdown writeup (objective, methodology, results, analysis, charts where relevant). For generated plots, use **[documents](../documents/SKILL.md)** and upload each figure with `synapse_upload_document_image({ experimentUuid, filename, mimeType, base64Content })` before embedding the returned `/api/documents/.../images/...` URL. Do **not** post the report as a comment, and do **not** treat this step as optional even for `failure` / `inconclusive` runs
 17. If revising per reviewer feedback, read the full thread first with `synapse_get_comments({ targetType: "experiment", targetUuid })` before editing the plan

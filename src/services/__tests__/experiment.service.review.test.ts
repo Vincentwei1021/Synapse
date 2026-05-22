@@ -24,6 +24,9 @@ const mockPrisma = vi.hoisted(() => ({
   experimentIncidentLesson: {
     findMany: vi.fn(),
   },
+  sessionExperimentCheckin: {
+    findMany: vi.fn(),
+  },
   user: {
     findUnique: vi.fn(),
   },
@@ -130,6 +133,7 @@ beforeEach(() => {
   mockPrisma.experiment.groupBy.mockResolvedValue([]);
   mockPrisma.experiment.findMany.mockResolvedValue([]);
   mockPrisma.experimentIncidentLesson.findMany.mockResolvedValue([]);
+  mockPrisma.sessionExperimentCheckin.findMany.mockResolvedValue([]);
 });
 
 describe("reviewExperiment revert paths", () => {

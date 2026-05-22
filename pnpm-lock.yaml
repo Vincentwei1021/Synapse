@@ -17,6 +17,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0
         version: 1.26.0(zod@4.3.6)
+      '@paper-design/shaders-react':
+        specifier: ^0.0.76
+        version: 0.0.76(@types/react@19.2.11)(react@19.2.3)
       '@prisma/adapter-pg':
         specifier: ^7.0.0
         version: 7.3.0
@@ -179,7 +182,7 @@ importers:
         version: 19.2.3(@types/react@19.2.11)
       '@vitest/coverage-v8':
         specifier: ^4.1.0
-        version: 4.1.0(vitest@4.1.0(@types/node@22.19.8)(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1)))
+        version: 4.1.0(vitest@4.1.0(@types/node@22.19.8)(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1)(yaml@2.9.0)))
       eslint:
         specifier: ^9
         version: 9.39.2(jiti@2.6.1)
@@ -206,10 +209,10 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@types/node@22.19.8)(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1))
+        version: 4.1.0(@types/node@22.19.8)(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1)(yaml@2.9.0))
       vitest-mock-extended:
         specifier: ^3.1.0
-        version: 3.1.0(typescript@5.9.3)(vitest@4.1.0(@types/node@22.19.8)(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1)))
+        version: 3.1.0(typescript@5.9.3)(vitest@4.1.0(@types/node@22.19.8)(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1)(yaml@2.9.0)))
 
   packages/openclaw-plugin:
     dependencies:
@@ -1312,6 +1315,18 @@ packages:
 
   '@oxc-project/types@0.115.0':
     resolution: {integrity: sha512-4n91DKnebUS4yjUHl2g3/b2T+IUdCfmoZGhmwsovZCDaJSs+QkVAM+0AqqTxHSsHfeiMuueT75cZaZcT/m0pSw==}
+
+  '@paper-design/shaders-react@0.0.76':
+    resolution: {integrity: sha512-uPJWrYRf6cJdO2H+fuXlahaqz0QjYglNAyUTaRfIInpzCa/d6guxBIK003soAZQFuQ035yg9FhtfFzKNWm+a5A==}
+    peerDependencies:
+      '@types/react': ^18 || ^19
+      react: ^18 || ^19
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+
+  '@paper-design/shaders@0.0.76':
+    resolution: {integrity: sha512-AcNDY4J66YQHUfQYFInkCP7M9VOje0od7wLpOR7LtCmc532opJy6ll+h1W9zBovz8tt9U7OADUmJ/qKEXyOX/A==}
 
   '@parcel/watcher-android-arm64@2.5.6':
     resolution: {integrity: sha512-YQxSS34tPF/6ZG7r/Ih9xy+kP/WwediEUsqmtf0cuCV5TPPKw/PQHRhueUo6JdeFJaqV3pyjm0GdYjZotbRt/A==}
@@ -9084,6 +9099,15 @@ snapshots:
 
   '@oxc-project/types@0.115.0': {}
 
+  '@paper-design/shaders-react@0.0.76(@types/react@19.2.11)(react@19.2.3)':
+    dependencies:
+      '@paper-design/shaders': 0.0.76
+      react: 19.2.3
+    optionalDependencies:
+      '@types/react': 19.2.11
+
+  '@paper-design/shaders@0.0.76': {}
+
   '@parcel/watcher-android-arm64@2.5.6':
     optional: true
 
@@ -11090,7 +11114,7 @@ snapshots:
   '@unrs/resolver-binding-win32-x64-msvc@1.11.1':
     optional: true
 
-  '@vitest/coverage-v8@4.1.0(vitest@4.1.0(@types/node@22.19.8)(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1)))':
+  '@vitest/coverage-v8@4.1.0(vitest@4.1.0(@types/node@22.19.8)(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1)(yaml@2.9.0)))':
     dependencies:
       '@bcoe/v8-coverage': 1.0.2
       '@vitest/utils': 4.1.0
@@ -11102,7 +11126,7 @@ snapshots:
       obug: 2.1.1
       std-env: 4.0.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.0(@types/node@22.19.8)(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1))
+      vitest: 4.1.0(@types/node@22.19.8)(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1)(yaml@2.9.0))
 
   '@vitest/expect@4.1.0':
     dependencies:
@@ -11113,14 +11137,14 @@ snapshots:
       chai: 6.2.2
       tinyrainbow: 3.1.0
 
-  '@vitest/mocker@4.1.0(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1))':
+  '@vitest/mocker@4.1.0(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1)(yaml@2.9.0))':
     dependencies:
       '@vitest/spy': 4.1.0
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
       msw: 2.12.9(@types/node@22.19.8)(typescript@5.9.3)
-      vite: 8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1)
+      vite: 8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1)(yaml@2.9.0)
 
   '@vitest/pretty-format@4.1.0':
     dependencies:
@@ -15987,7 +16011,7 @@ snapshots:
       d3-time: 3.1.0
       d3-timer: 3.0.1
 
-  vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1):
+  vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1)(yaml@2.9.0):
     dependencies:
       '@oxc-project/runtime': 0.115.0
       lightningcss: 1.32.0
@@ -16000,17 +16024,18 @@ snapshots:
       fsevents: 2.3.3
       jiti: 2.6.1
       terser: 5.46.1
+      yaml: 2.9.0
 
-  vitest-mock-extended@3.1.0(typescript@5.9.3)(vitest@4.1.0(@types/node@22.19.8)(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1))):
+  vitest-mock-extended@3.1.0(typescript@5.9.3)(vitest@4.1.0(@types/node@22.19.8)(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1)(yaml@2.9.0))):
     dependencies:
       ts-essentials: 10.1.1(typescript@5.9.3)
       typescript: 5.9.3
-      vitest: 4.1.0(@types/node@22.19.8)(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1))
+      vitest: 4.1.0(@types/node@22.19.8)(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1)(yaml@2.9.0))
 
-  vitest@4.1.0(@types/node@22.19.8)(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1)):
+  vitest@4.1.0(@types/node@22.19.8)(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1)(yaml@2.9.0)):
     dependencies:
       '@vitest/expect': 4.1.0
-      '@vitest/mocker': 4.1.0(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1))
+      '@vitest/mocker': 4.1.0(msw@2.12.9(@types/node@22.19.8)(typescript@5.9.3))(vite@8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1)(yaml@2.9.0))
       '@vitest/pretty-format': 4.1.0
       '@vitest/runner': 4.1.0
       '@vitest/snapshot': 4.1.0
@@ -16027,7 +16052,7 @@ snapshots:
       tinyexec: 1.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.1.0
-      vite: 8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1)
+      vite: 8.0.0(@types/node@22.19.8)(jiti@2.6.1)(terser@5.46.1)(yaml@2.9.0)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 22.19.8

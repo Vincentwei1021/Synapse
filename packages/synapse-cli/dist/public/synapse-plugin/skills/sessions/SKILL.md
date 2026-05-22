@@ -88,6 +88,8 @@ active ——(no heartbeat 1h)——> inactive ——(heartbeat)——> active
 | `synapse_close_session` | Close a session. |
 | `synapse_reopen_session` | Reopen a closed session instead of creating a duplicate with the same name. |
 | `synapse_session_heartbeat` | Keep a session active. Hooks already send heartbeats automatically. |
+| `synapse_session_checkin_experiment` | Bind a session to a current Experiment. Usually handled by `synapse_start_experiment({ sessionUuid })`. |
+| `synapse_session_checkout_experiment` | Unbind a session from a current Experiment. Usually handled by `synapse_submit_experiment_results({ sessionUuid })`. |
 
 ## Running Multiple Experiments In Parallel
 
@@ -115,7 +117,7 @@ Task({
 
 ### Sub-agent: execute
 
-Each sub-agent follows the full execution checklist in **[experiments](../experiments/SKILL.md)**: `synapse_start_experiment` → `synapse_list_compute_nodes` / `synapse_reserve_gpus` → `synapse_get_node_access_bundle` → run remotely (tmux + unbuffered) → `synapse_report_experiment_progress` at milestones → `synapse_submit_experiment_results` → optional `synapse_save_experiment_report`.
+Each sub-agent follows the full execution checklist in **[experiments](../experiments/SKILL.md)**: `synapse_start_experiment({ sessionUuid })` → `synapse_list_compute_nodes` / `synapse_reserve_gpus` → `synapse_get_node_access_bundle` → run remotely (tmux + unbuffered) → `synapse_report_experiment_progress` at milestones → `synapse_submit_experiment_results({ sessionUuid })` → optional `synapse_save_experiment_report`.
 
 ### Main agent: monitor
 

@@ -216,14 +216,14 @@ The plugin manages session lifecycle (heartbeat, close). Do NOT call synapse_cre
 
 **Before starting:**
 1. Read the experiment: synapse_get_experiment({ experimentUuid: \"<EXPERIMENT_UUID>\" })
-2. If the experiment is ready to execute, start it: synapse_start_experiment({ experimentUuid: \"<EXPERIMENT_UUID>\" })
+2. If the experiment is ready to execute, start it and bind this session to the Experiment: synapse_start_experiment({ experimentUuid: \"<EXPERIMENT_UUID>\", sessionUuid: \"${SESSION_UUID}\" })
 
 **While working:**
 3. Report major milestones with synapse_report_experiment_progress({ experimentUuid: \"<EXPERIMENT_UUID>\", message: \"...\", phase: \"setup|training|evaluation|analysis\" })
 4. Add comments for durable decisions or findings with synapse_add_comment({ targetType: \"experiment\", targetUuid: \"<EXPERIMENT_UUID>\", content: \"...\" })
 
 **After completing:**
-5. Submit the outcome with synapse_submit_experiment_results({ experimentUuid: \"<EXPERIMENT_UUID>\", outcome: \"success|failure|inconclusive\", experimentResults: \"...\" })
+5. Submit the outcome and check this session out with synapse_submit_experiment_results({ experimentUuid: \"<EXPERIMENT_UUID>\", sessionUuid: \"${SESSION_UUID}\", outcome: \"success|failure|inconclusive\", experimentResults: \"...\" })
 
 Replace <EXPERIMENT_UUID> with the actual Synapse experiment UUID from your prompt.${OWNER_SECTION}"
 

@@ -16,7 +16,17 @@ const mockPrisma = vi.hoisted(() => ({
     updateMany: vi.fn(),
     groupBy: vi.fn(),
   },
+  sessionExperimentCheckin: {
+    findMany: vi.fn(),
+    upsert: vi.fn(),
+    updateMany: vi.fn(),
+    groupBy: vi.fn(),
+  },
   experimentRun: {
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+  },
+  experiment: {
     findFirst: vi.fn(),
     findMany: vi.fn(),
   },
@@ -41,6 +51,8 @@ import {
   reopenSession,
   sessionCheckinToRun,
   sessionCheckoutFromRun,
+  sessionCheckinToExperiment,
+  sessionCheckoutFromExperiment,
   heartbeatSession,
   markInactiveSessions,
   batchGetWorkerCountsForRuns,
@@ -55,6 +67,7 @@ const companyUuid = "company-0000-0000-0000-000000000001";
 const agentUuid = "agent-0000-0000-0000-000000000001";
 const sessionUuid = "session-0000-0000-0000-000000000001";
 const runUuid = "task-0000-0000-0000-000000000001";
+const experimentUuid = "experiment-0000-0000-0000-000000000001";
 const researchProjectUuid = "project-0000-0000-0000-000000000001";
 
 function makeSession(overrides: Record<string, unknown> = {}) {
@@ -153,10 +166,15 @@ describe("closeSession", () => {
     mockPrisma.sessionRunCheckin.findMany.mockResolvedValue([
       { run: { uuid: runUuid, researchProjectUuid } },
     ]);
+    mockPrisma.sessionExperimentCheckin.findMany.mockResolvedValue([
+      { experiment: { uuid: experimentUuid, researchProjectUuid } },
+    ]);
     mockPrisma.sessionRunCheckin.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.sessionExperimentCheckin.updateMany.mockResolvedValue({ count: 1 });
     const closedSession = makeSession({
       status: "closed",
       runCheckins: [{ runUuid, checkinAt: now, checkoutAt: now }],
+      experimentCheckins: [{ experimentUuid, checkinAt: now, checkoutAt: now }],
     });
     mockPrisma.agentSession.update.mockResolvedValue(closedSession);
 
@@ -168,14 +186,107 @@ describe("closeSession", () => {
         where: { sessionUuid, checkoutAt: null },
       })
     );
+    expect(mockPrisma.sessionExperimentCheckin.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { sessionUuid, checkoutAt: null },
+      })
+    );
     expect(eventBus.emitChange).toHaveBeenCalledWith(
       expect.objectContaining({ entityUuid: runUuid, action: "updated" })
+    );
+    expect(eventBus.emitChange).toHaveBeenCalledWith(
+      expect.objectContaining({ entityType: "experiment", entityUuid: experimentUuid, action: "updated" })
     );
   });
 
   it("should throw when session not found", async () => {
     mockPrisma.agentSession.findFirst.mockResolvedValue(null);
     await expect(closeSession(companyUuid, "missing")).rejects.toThrow("Session not found");
+  });
+});
+
+// ===== sessionCheckinToExperiment =====
+describe("sessionCheckinToExperiment", () => {
+  it("should check in to an experiment and return checkin info", async () => {
+    mockPrisma.agentSession.findFirst.mockResolvedValue(makeSession());
+    mockPrisma.experiment.findFirst.mockResolvedValue({
+      uuid: experimentUuid,
+      companyUuid,
+      researchProjectUuid,
+      assigneeUuid: agentUuid,
+    });
+    mockPrisma.sessionExperimentCheckin.upsert.mockResolvedValue({
+      experimentUuid,
+      checkinAt: now,
+      checkoutAt: null,
+    });
+    mockPrisma.agentSession.update.mockResolvedValue(makeSession());
+
+    const result = await sessionCheckinToExperiment(companyUuid, sessionUuid, experimentUuid);
+
+    expect(result.experimentUuid).toBe(experimentUuid);
+    expect(result.checkoutAt).toBeNull();
+    expect(mockPrisma.sessionExperimentCheckin.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { sessionUuid_experimentUuid: { sessionUuid, experimentUuid } },
+      })
+    );
+    expect(eventBus.emitChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityType: "experiment",
+        entityUuid: experimentUuid,
+        action: "updated",
+      })
+    );
+  });
+
+  it("should throw when session is missing or inactive", async () => {
+    mockPrisma.agentSession.findFirst.mockResolvedValue(null);
+
+    await expect(
+      sessionCheckinToExperiment(companyUuid, sessionUuid, experimentUuid)
+    ).rejects.toThrow("Session not found or not active");
+  });
+
+  it("should throw when experiment is missing", async () => {
+    mockPrisma.agentSession.findFirst.mockResolvedValue(makeSession());
+    mockPrisma.experiment.findFirst.mockResolvedValue(null);
+
+    await expect(
+      sessionCheckinToExperiment(companyUuid, sessionUuid, experimentUuid)
+    ).rejects.toThrow("Experiment not found");
+  });
+});
+
+// ===== sessionCheckoutFromExperiment =====
+describe("sessionCheckoutFromExperiment", () => {
+  it("should checkout from an experiment and emit an update event", async () => {
+    mockPrisma.agentSession.findFirst.mockResolvedValue(makeSession());
+    mockPrisma.experiment.findFirst.mockResolvedValue({ researchProjectUuid });
+    mockPrisma.sessionExperimentCheckin.updateMany.mockResolvedValue({ count: 1 });
+
+    await sessionCheckoutFromExperiment(companyUuid, sessionUuid, experimentUuid);
+
+    expect(mockPrisma.sessionExperimentCheckin.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { sessionUuid, experimentUuid, checkoutAt: null },
+      })
+    );
+    expect(eventBus.emitChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityType: "experiment",
+        entityUuid: experimentUuid,
+        action: "updated",
+      })
+    );
+  });
+
+  it("should throw when session is missing", async () => {
+    mockPrisma.agentSession.findFirst.mockResolvedValue(null);
+
+    await expect(
+      sessionCheckoutFromExperiment(companyUuid, sessionUuid, experimentUuid)
+    ).rejects.toThrow("Session not found");
   });
 });
 

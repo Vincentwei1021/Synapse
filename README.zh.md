@@ -24,12 +24,23 @@ Synapse 是一个研究编排平台，让人类研究者与 AI Agent 协同工�
 
 ## 最新动态
 
-**v0.7.0** — PGlite 本地模式 & Server Action 修复 (2026-04-20) &nbsp; 🔴 `New`
+**v0.8.0** — 子 Agent 观测、Auto Loop 流光动画 & 插件严重 Bug 修复 (2026-05-22) &nbsp; 🔴 `New`
+- **重要修复 — 插件不再误删 `~/.synapse/`**：当 Claude Code 在 `$HOME` 下启动时，SessionEnd hook 旧版的 `rm -rf $STATE_DIR` 会把用户的 PGlite 数据库一并清掉。新版只清理自己创建的产物，并对父目录使用 `rmdir`，兄弟目录如 `data/` 完全保留。**强烈建议升级。**
+- **子 Agent 实验 checkin**：新增 `SessionExperimentCheckin` 表与 `synapse_checkin_experiments` MCP 工具，主会话可以把实验上下文交接给子 Agent，子 Agent 退出时（SubagentStop）自动 close session，避免硬退出后 1 小时心跳超时才被回收。
+- **Auto Loop pill 动画**：自主循环开启时，Experiments 看板顶部状态 pill 现在是流动的 mesh gradient（WebGL）—— Human Review 模式 emerald/cyan，Full Auto 模式 emerald/cyan/violet。尊重 `prefers-reduced-motion`，WebGL 失败时回退到原静态色。
+- **插件 hook 收紧**：`on-session-start` 将内嵌工具清单替换为 stage-skill 路由（每次会话节省约 5k token），`on-subagent-stop` 改异步并把自动 check-out 的实验绑定写入 hook 输出，多个 hook 的 prompt 把 "MUST" 软化为 "Suggested next step"，允许 Agent 在边缘场景下显式说明后偏离。
+- **Claude Code 插件**升级到 **0.9.0**，npm `@synapse-research/synapse` 升级到 **0.3.0**，Docker 镜像 `vincentwei1021/synapse:v0.8.0`（`:latest` 同步）。
+
+<details>
+<summary><strong>v0.7.0</strong> — PGlite 本地模式 & Server Action 修复 (2026-04-20)</summary>
+
 - **一键本地安装**：`npm install -g @synapse-research/synapse && synapse` — 零依赖 PGlite 模式，无需 PostgreSQL 或 Redis
 - 修复研究问题创建在 standalone 模式下静默失败的严重 bug（Server Actions 替换为 REST API）
 - 修复全局安装后缓存目录权限不足的问题
 - 完成通知弹窗改为勾号图标，替代原来的圆点
 - 健康检查不再将 Redis 懒加载未初始化误报为 degraded
+
+</details>
 
 <details>
 <summary><strong>v0.6.1</strong> — 实验看板界面打磨 (2026-04-15)</summary>

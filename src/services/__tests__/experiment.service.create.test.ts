@@ -18,6 +18,9 @@ const mockPrisma = vi.hoisted(() => ({
   experimentIncidentLesson: {
     findMany: vi.fn(async () => []),
   },
+  sessionExperimentCheckin: {
+    findMany: vi.fn(async () => []),
+  },
 }));
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 
