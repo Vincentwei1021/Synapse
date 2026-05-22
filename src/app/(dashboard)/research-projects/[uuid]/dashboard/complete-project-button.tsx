@@ -48,7 +48,10 @@ export function CompleteProjectButton({ projectUuid }: { projectUuid: string }) 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant="outline" className="border-border bg-background">
+        <Button
+          variant="outline"
+          className="border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 hover:text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-100"
+        >
           <CheckCircle2 className="mr-2 h-4 w-4" />
           {t("completeProject")}
         </Button>
