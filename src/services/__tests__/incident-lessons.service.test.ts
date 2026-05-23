@@ -88,7 +88,7 @@ beforeEach(() => {
 });
 
 describe("recordExperimentIncidentLesson", () => {
-  it("creates a scoped incident lesson and creates the project lessons document", async () => {
+  it("creates a scoped incident lesson without producing a derived document", async () => {
     const lesson = await recordExperimentIncidentLesson({
       companyUuid,
       experimentUuid,
@@ -130,15 +130,8 @@ describe("recordExperimentIncidentLesson", () => {
         }),
       }),
     );
-    expect(mockPrisma.document.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          type: "execution_incident_lessons",
-          title: "Project One - Execution Incident Lessons",
-          content: expect.stringContaining("CUDA OOM during training"),
-        }),
-      }),
-    );
+    expect(mockPrisma.document.create).not.toHaveBeenCalled();
+    expect(mockPrisma.document.update).not.toHaveBeenCalled();
   });
 
   it("rejects lessons for experiments outside the current company", async () => {

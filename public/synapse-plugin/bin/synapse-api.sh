@@ -17,6 +17,97 @@ SYNAPSE_API_KEY="${SYNAPSE_API_KEY:-}"
 STATE_DIR="${CLAUDE_PROJECT_DIR:-.}/.synapse"
 STATE_FILE="${STATE_DIR}/state.json"
 
+# ===== Hook Debug Logging =====
+# Activated by setting SYNAPSE_HOOK_DEBUG=1 in the Claude Code env.
+# Each hook calls `log-init <hook_name> <event_json>` once, which writes the
+# input event and prints the per-session JSONL path to stdout. The hook then
+# exports SYNAPSE_HOOK_LOG_FILE so subsequent api_call/mcp-tool/hook-output
+# invocations append their own entries.
+#
+# Layout: $CLAUDE_PROJECT_DIR/.synapse/logs/{session_id}/{hook_name}.jsonl
+# Each line is one JSON record: {ts, kind, ...payload}
+
+# Append a JSON record to the per-hook log if logging is enabled.
+# Usage: log_event <kind> <json_payload_or_string>
+log_event() {
+  [ "${SYNAPSE_HOOK_DEBUG:-0}" = "1" ] || return 0
+  [ -n "${SYNAPSE_HOOK_LOG_FILE:-}" ] || return 0
+  local kind="$1"
+  local payload="${2:-}"
+  local ts
+  ts=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ 2>/dev/null) || ts=""
+  case "$ts" in
+    *.3NZ|"") ts=$(date -u +%Y-%m-%dT%H:%M:%SZ) ;;
+  esac
+  if command -v jq >/dev/null 2>&1; then
+    # Try to embed payload as JSON; fall back to a string if it doesn't parse.
+    local entry
+    if [ -z "$payload" ]; then
+      entry=$(jq -cn --arg ts "$ts" --arg kind "$kind" --arg hook "${SYNAPSE_HOOK_NAME:-}" \
+        '{ts:$ts, hook:$hook, kind:$kind}')
+    elif printf '%s' "$payload" | jq -e . >/dev/null 2>&1; then
+      entry=$(printf '%s' "$payload" | jq -c --arg ts "$ts" --arg kind "$kind" --arg hook "${SYNAPSE_HOOK_NAME:-}" \
+        '{ts:$ts, hook:$hook, kind:$kind, payload:.}')
+    else
+      entry=$(jq -cn --arg ts "$ts" --arg kind "$kind" --arg hook "${SYNAPSE_HOOK_NAME:-}" --arg payload "$payload" \
+        '{ts:$ts, hook:$hook, kind:$kind, payload:$payload}')
+    fi
+    # Serialize concurrent appenders.
+    (
+      flock -w 2 201 2>/dev/null || true
+      printf '%s\n' "$entry" >> "$SYNAPSE_HOOK_LOG_FILE"
+    ) 201>"${SYNAPSE_HOOK_LOG_FILE}.lock"
+  else
+    # jq missing — record the raw payload as a fenced string. Newlines/quotes
+    # are not strictly valid JSON, but the log is for debugging only.
+    printf '{"ts":"%s","hook":"%s","kind":"%s","payload":%s}\n' \
+      "$ts" "${SYNAPSE_HOOK_NAME:-}" "$kind" "\"$(printf '%s' "$payload" | sed 's/\\/\\\\/g; s/"/\\"/g; s/$/\\n/' | tr -d '\n')\"" \
+      >> "$SYNAPSE_HOOK_LOG_FILE" 2>/dev/null || true
+  fi
+}
+
+# log_init is called once at the top of each hook (via the `log-init` subcommand).
+# It picks the session id out of the event JSON, prepares the log file, writes
+# the input event entry, and echoes the log file path so the hook can export it.
+# Usage: log_init <hook_name> <event_json>
+log_init() {
+  [ "${SYNAPSE_HOOK_DEBUG:-0}" = "1" ] || { echo ""; return 0; }
+  local hook="$1"
+  local event="${2:-}"
+  local sid="unknown"
+  if [ -n "$event" ] && command -v jq >/dev/null 2>&1; then
+    sid=$(printf '%s' "$event" | jq -r '.session_id // .sessionId // .cwd // "unknown"' 2>/dev/null) || sid="unknown"
+    [ -n "$sid" ] || sid="unknown"
+  fi
+  # Sanitize session id for filesystem use.
+  local safe_sid
+  safe_sid=$(printf '%s' "$sid" | tr -c 'A-Za-z0-9._-' '_')
+  [ -n "$safe_sid" ] || safe_sid="unknown"
+  local log_dir="${STATE_DIR}/logs/${safe_sid}"
+  local log_file="${log_dir}/${hook}.jsonl"
+  mkdir -p "$log_dir" 2>/dev/null || { echo ""; return 0; }
+  # Set env for our own log_event call below.
+  export SYNAPSE_HOOK_LOG_FILE="$log_file"
+  export SYNAPSE_HOOK_NAME="$hook"
+  # Record metadata + input event as the first entries of this invocation.
+  local meta
+  if command -v jq >/dev/null 2>&1; then
+    meta=$(jq -cn \
+      --arg pid "$$" \
+      --arg cwd "$(pwd 2>/dev/null || echo)" \
+      --arg url "${SYNAPSE_URL:-}" \
+      --arg key_present "$([ -n "${SYNAPSE_API_KEY:-}" ] && echo true || echo false)" \
+      '{pid:$pid, cwd:$cwd, synapse_url:$url, synapse_key_present:($key_present=="true")}')
+  else
+    meta=""
+  fi
+  log_event "hook_start" "$meta"
+  if [ -n "$event" ]; then
+    log_event "stdin" "$event"
+  fi
+  printf '%s\n' "$log_file"
+}
+
 # ===== Helpers =====
 
 die() {
@@ -48,10 +139,27 @@ api_call() {
   fi
 
   local response
+  local _t0
+  _t0=$(date +%s%3N 2>/dev/null) || _t0=""
   response=$(curl "${args[@]}" "${SYNAPSE_URL}${path}" 2>&1) || {
     echo "CURL_ERROR: Failed to reach ${SYNAPSE_URL}${path}" >&2
+    log_event "api_call_error" "$(jq -cn --arg method "$method" --arg path "$path" '{method:$method, path:$path}' 2>/dev/null)"
     return 1
   }
+  if [ "${SYNAPSE_HOOK_DEBUG:-0}" = "1" ] && [ -n "${SYNAPSE_HOOK_LOG_FILE:-}" ] && command -v jq >/dev/null 2>&1; then
+    local _t1 _dur
+    _t1=$(date +%s%3N 2>/dev/null) || _t1=""
+    if [ -n "$_t0" ] && [ -n "$_t1" ]; then _dur=$((_t1 - _t0)); else _dur=null; fi
+    local entry
+    entry=$(jq -cn \
+      --arg method "$method" \
+      --arg path "$path" \
+      --arg req "${data:-}" \
+      --arg resp "$response" \
+      --argjson ms "$_dur" \
+      '{method:$method, path:$path, request:$req, response:$resp, duration_ms:$ms}')
+    log_event "api_call" "$entry"
+  fi
 
   echo "$response"
 }
@@ -383,13 +491,56 @@ shift || true
 
 case "$cmd" in
   checkin)          cmd_checkin "$@" ;;
-  mcp-tool)         cmd_mcp_tool "$@" ;;
+  mcp-tool)
+    _tool="${1:-}"
+    _args="${2:-{\}}"
+    if [ "${SYNAPSE_HOOK_DEBUG:-0}" = "1" ] && [ -n "${SYNAPSE_HOOK_LOG_FILE:-}" ]; then
+      _t0=$(date +%s%3N 2>/dev/null) || _t0=""
+      _out=""
+      _rc=0
+      _out=$(cmd_mcp_tool "$@") || _rc=$?
+      _t1=$(date +%s%3N 2>/dev/null) || _t1=""
+      if [ -n "$_t0" ] && [ -n "$_t1" ]; then _dur=$((_t1 - _t0)); else _dur=null; fi
+      if command -v jq >/dev/null 2>&1; then
+        _entry=$(jq -cn \
+          --arg tool "$_tool" \
+          --arg args "$_args" \
+          --arg result "$_out" \
+          --argjson ms "$_dur" \
+          --argjson rc "$_rc" \
+          '{tool:$tool, args:$args, result:$result, duration_ms:$ms, exit_code:$rc}')
+        log_event "mcp_tool" "$_entry"
+      fi
+      printf '%s' "$_out"
+      exit "$_rc"
+    else
+      cmd_mcp_tool "$@"
+    fi
+    ;;
   state-get)        state_get "${1:-}" ;;
   state-set)        state_set "${1:-}" "${2:-}" ;;
   state-delete)     state_delete "${1:-}" ;;
   session-read)     session_file_read "${1:-}" ;;
   session-list)     session_file_list ;;
-  hook-output)      hook_output "${1:-}" "${2:-}" "${3:-}" "${4:-}" ;;
+  hook-output)
+    _sm="${1:-}"
+    _ac="${2:-}"
+    _hen="${3:-}"
+    _ui="${4:-}"
+    _out=$(hook_output "$_sm" "$_ac" "$_hen" "$_ui")
+    if [ "${SYNAPSE_HOOK_DEBUG:-0}" = "1" ] && [ -n "${SYNAPSE_HOOK_LOG_FILE:-}" ] && command -v jq >/dev/null 2>&1; then
+      _entry=$(jq -cn \
+        --arg sm "$_sm" \
+        --arg ac "$_ac" \
+        --arg hen "$_hen" \
+        --arg ui "$_ui" \
+        '{systemMessage:$sm, additionalContext:$ac, hookEventName:$hen, updatedInput:$ui}')
+      log_event "hook_output" "$_entry"
+    fi
+    printf '%s' "$_out"
+    ;;
+  log-init)         log_init "${1:-}" "${2:-}" ;;
+  log-event)        log_event "${1:-}" "${2:-}" ;;
   *)
     echo "Usage: synapse-api.sh <command> [args...]"
     echo ""
@@ -401,6 +552,8 @@ case "$cmd" in
     echo "  state-delete <key>                     Delete key from state.json"
     echo "  session-read <name>                    Read session file for an agent"
     echo "  session-list                           List all pre-created session files"
+    echo "  log-init <hook_name> <event_json>      Initialize debug log (echoes log file path)"
+    echo "  log-event <kind> <payload>             Append a debug log entry"
     exit 1
     ;;
 esac

@@ -22,6 +22,10 @@ if [ ! -t 0 ]; then
   EVENT=$(cat)
 fi
 
+SYNAPSE_HOOK_LOG_FILE=$("$API" log-init "PostToolUse:submit_results" "$EVENT") || SYNAPSE_HOOK_LOG_FILE=""
+export SYNAPSE_HOOK_LOG_FILE
+export SYNAPSE_HOOK_NAME="PostToolUse:submit_results"
+
 if [ -z "$EVENT" ]; then
   exit 0
 fi
@@ -44,14 +48,17 @@ OUTCOME=$(echo "$EVENT" \
   | jq -r '.tool_input.outcome // .input.outcome // empty' 2>/dev/null) || true
 
 if [ -n "$EXPERIMENT_UUID" ]; then
-  CONTEXT="[Synapse Plugin — Suggested next step after submitting results]
-You just submitted results for experiment ${EXPERIMENT_UUID}${OUTCOME:+ (outcome=${OUTCOME})}.
-The expected follow-up is synapse_save_experiment_report({ experimentUuid: \"${EXPERIMENT_UUID}\", title, content }) with a markdown writeup covering objective, methodology, results, and analysis (plus charts where useful). Apply this for success, failure, and inconclusive outcomes — the report is what makes the result legible to the rest of the project. Use synapse_save_experiment_report rather than posting the writeup as a comment so it lands in the dedicated experiment document. Skip only with a documented reason (e.g. result is a trivial sanity check the user explicitly waived)."
-  USER_MSG="Synapse: results submitted for ${EXPERIMENT_UUID:0:8} — save the experiment report next"
+  CONTEXT="[Synapse Plugin — REQUIRED next steps after submitting results]
+For experiment ${EXPERIMENT_UUID}${OUTCOME:+ (outcome=${OUTCOME})} you must do BOTH of the following before considering this experiment closed:
+  1. synapse_save_experiment_report({ experimentUuid: \"${EXPERIMENT_UUID}\", title, content }) — markdown writeup covering objective, methodology, results, analysis (charts when useful). Use the report tool, NOT a comment, so the writeup lands in the dedicated experiment document.
+  2. For every incident, surprise, failure, or non-trivial debugging step you hit during execution, call synapse_record_experiment_incident_lesson({ experimentUuid: \"${EXPERIMENT_UUID}\", failureType, severity, phase, rootCause, resolution, prevention, tags }). This is the shared experience library (经验库) and is the only durable place this knowledge lives — without it, future agents repeat the same mistakes. One lesson per distinct issue.
+
+Apply both for success, failure, and inconclusive outcomes. Skip only with a documented reason (e.g. trivial sanity check the user explicitly waived)."
+  USER_MSG="Synapse: results submitted for ${EXPERIMENT_UUID:0:8} — save report + record lessons"
 else
-  CONTEXT="[Synapse Plugin — Suggested next step after submitting results]
-You just submitted experiment results. The expected follow-up is synapse_save_experiment_report({ experimentUuid, title, content }) with a markdown writeup (objective, methodology, results, analysis). Recommended for every outcome — success, failure, and inconclusive. Skip only with a documented reason."
-  USER_MSG="Synapse: results submitted — save the experiment report next"
+  CONTEXT="[Synapse Plugin — REQUIRED next steps after submitting results]
+Save the markdown report with synapse_save_experiment_report({ experimentUuid, title, content }) AND record any incidents/surprises/failures/non-trivial debugging steps via synapse_record_experiment_incident_lesson. The lesson tool writes to the shared experience library — without it, the knowledge is lost. Apply both for every outcome."
+  USER_MSG="Synapse: results submitted — save report + record lessons"
 fi
 
 "$API" hook-output "$USER_MSG" "$CONTEXT" "PostToolUse"

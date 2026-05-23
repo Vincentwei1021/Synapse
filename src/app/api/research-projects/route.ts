@@ -55,6 +55,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     latestSynthesisIdeaCount: p.latestSynthesisIdeaCount ?? 0,
     latestSynthesisSummary: p.latestSynthesisSummary,
     groupUuid: p.groupUuid,
+    status: p.status ?? "active",
+    completedAt: p.completedAt?.toISOString() ?? null,
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
     counts: toProjectCompatibilityCounts(p.metrics),

@@ -166,7 +166,13 @@ export async function searchDeepXiv(
   let data: DeepXivSearchResult[];
   try {
     const json = await resp.json();
-    data = Array.isArray(json) ? json : [];
+    if (Array.isArray(json)) {
+      data = json;
+    } else if (json && typeof json === "object" && Array.isArray((json as { result?: unknown }).result)) {
+      data = (json as { result: DeepXivSearchResult[] }).result;
+    } else {
+      data = [];
+    }
   } catch {
     return [];
   }

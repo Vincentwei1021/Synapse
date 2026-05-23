@@ -13,6 +13,14 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 API="${SCRIPT_DIR}/synapse-api.sh"
 
+EVENT=""
+if [ ! -t 0 ]; then
+  EVENT=$(cat)
+fi
+SYNAPSE_HOOK_LOG_FILE=$("$API" log-init "PreToolUse:EnterPlanMode" "$EVENT") || SYNAPSE_HOOK_LOG_FILE=""
+export SYNAPSE_HOOK_LOG_FILE
+export SYNAPSE_HOOK_NAME="PreToolUse:EnterPlanMode"
+
 CONTEXT="[Synapse Planning Workflow]
 When planning implementation, follow the current Synapse research lifecycle:
 1. Identify the Research Project and, if needed, the relevant Research Question

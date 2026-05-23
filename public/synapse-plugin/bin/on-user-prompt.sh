@@ -9,6 +9,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+API="${SCRIPT_DIR}/synapse-api.sh"
 STATE_DIR="${CLAUDE_PROJECT_DIR:-.}/.synapse"
 SESSIONS_DIR="${STATE_DIR}/sessions"
 
@@ -16,6 +17,15 @@ SESSIONS_DIR="${STATE_DIR}/sessions"
 if [ -z "${SYNAPSE_URL:-}" ] || [ -z "${SYNAPSE_API_KEY:-}" ]; then
   exit 0
 fi
+
+# Optional debug log (enable with SYNAPSE_HOOK_DEBUG=1)
+EVENT=""
+if [ ! -t 0 ]; then
+  EVENT=$(cat)
+fi
+SYNAPSE_HOOK_LOG_FILE=$("$API" log-init "UserPromptSubmit" "$EVENT") || SYNAPSE_HOOK_LOG_FILE=""
+export SYNAPSE_HOOK_LOG_FILE
+export SYNAPSE_HOOK_NAME="UserPromptSubmit"
 
 # Count active session files (fast local check)
 SESSION_COUNT=0
@@ -44,6 +54,9 @@ if [ "$SESSION_COUNT" -gt 0 ]; then
   CONTEXT="${CONTEXT}
 - Active sub-agent sessions (${SESSION_COUNT}): ${SESSION_NAMES}"
 fi
+
+# Log final output for debug
+"$API" log-event "hook_output" "$(jq -cn --arg ac "$CONTEXT" '{additionalContext:$ac}' 2>/dev/null)" 2>/dev/null || true
 
 # Output JSON — no systemMessage (too noisy for every turn)
 if command -v jq &>/dev/null; then

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { AlertTriangle, ArrowUpRight, Search, SlidersHorizontal, Wrench } from "lucide-react";
+import { AlertTriangle, ArrowUpRight, Search, SlidersHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -84,17 +84,9 @@ export default async function LessonsPage({ params, searchParams }: PageProps) {
 
   return (
     <div className="p-4 md:p-8">
-      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">{t("lessons.title")}</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{t("lessons.subtitle")}</p>
-        </div>
-        <Link href={`/research-projects/${projectUuid}/documents?type=execution_incident_lessons`}>
-          <Button variant="outline" size="sm">
-            <Wrench className="mr-2 h-4 w-4" />
-            {t("lessons.openDocument")}
-          </Button>
-        </Link>
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-foreground">{t("lessons.title")}</h1>
+        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{t("lessons.subtitle")}</p>
       </div>
 
       <form className="mb-6 rounded-lg border border-border bg-card p-4" action={`/research-projects/${projectUuid}/lessons`}>

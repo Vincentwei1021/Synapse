@@ -100,7 +100,11 @@ export function EditProjectDialog({
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => handleOpenChange(true)}>
+      <Button
+        variant="outline"
+        className="border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100 hover:text-sky-900 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200 dark:hover:bg-sky-500/20 dark:hover:text-sky-100"
+        onClick={() => handleOpenChange(true)}
+      >
         <Pencil className="mr-2 h-4 w-4" />
         {t("common.edit")}
       </Button>

@@ -3,6 +3,7 @@ export interface ProjectData {
   name: string;
   description: string | null;
   groupUuid: string | null;
+  status: string;
   createdAt: string;
   updatedAt: string;
   counts: {

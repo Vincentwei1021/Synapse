@@ -17,6 +17,11 @@ if [ ! -t 0 ]; then
   EVENT=$(cat)
 fi
 
+# Optional debug log (enable with SYNAPSE_HOOK_DEBUG=1)
+SYNAPSE_HOOK_LOG_FILE=$("$API" log-init "SessionStart" "$EVENT") || SYNAPSE_HOOK_LOG_FILE=""
+export SYNAPSE_HOOK_LOG_FILE
+export SYNAPSE_HOOK_NAME="SessionStart"
+
 # Check if Synapse environment is configured
 if [ -z "${SYNAPSE_URL:-}" ] || [ -z "${SYNAPSE_API_KEY:-}" ]; then
   "$API" hook-output \

@@ -33,7 +33,6 @@ import { ANIM } from "@/lib/animation";
 import type { ExperimentResponse } from "@/services/experiment.service";
 import { ExperimentComments } from "./experiment-comments";
 import { RevertDialog } from "./revert-dialog";
-import { AutoLoopShaderBg } from "./auto-loop-shader-bg";
 
 const columns = [
   { id: "draft", labelKey: "draft" },
@@ -748,10 +747,9 @@ export function ExperimentsBoard({
               <div className="flex items-center">
                 <button
                   onClick={() => setLoopDropdownOpen(!loopDropdownOpen)}
-                  className="relative flex items-center gap-2 overflow-hidden rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 cursor-pointer transition-all duration-200"
+                  className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 cursor-pointer transition-all duration-200"
                 >
-                  <AutoLoopShaderBg mode={loopMode === "full_auto" ? "full_auto" : "human_review"} />
-                  <span className="relative z-10 flex items-center gap-2">
+                  <span className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse shrink-0" />
                     <span className="whitespace-nowrap text-sm font-medium text-emerald-600 dark:text-emerald-400">
                       {loopMode === "full_auto" ? t("experiments.fullAutoMode") : t("experiments.humanReviewMode")}

@@ -25,6 +25,10 @@ if [ -z "${SYNAPSE_URL:-}" ] || [ -z "${SYNAPSE_API_KEY:-}" ]; then
   exit 0
 fi
 
+SYNAPSE_HOOK_LOG_FILE=$("$API" log-init "PreToolUse:Task" "$EVENT") || SYNAPSE_HOOK_LOG_FILE=""
+export SYNAPSE_HOOK_LOG_FILE
+export SYNAPSE_HOOK_NAME="PreToolUse:Task"
+
 # Try to extract subagent_type and name from the tool input
 AGENT_TYPE=""
 AGENT_NAME=""
