@@ -119,6 +119,8 @@ export async function listResearchProjects({ companyUuid, skip, take }: Research
         latestSynthesisAt: true,
         latestSynthesisIdeaCount: true,
         latestSynthesisSummary: true,
+        status: true,
+        completedAt: true,
         groupUuid: true,
         createdAt: true,
         updatedAt: true,
@@ -157,6 +159,8 @@ export async function getResearchProject(companyUuid: string, uuid: string) {
       latestSynthesisAt: true,
       latestSynthesisIdeaCount: true,
       latestSynthesisSummary: true,
+      status: true,
+      completedAt: true,
       createdAt: true,
       updatedAt: true,
       _count: {
@@ -406,6 +410,10 @@ export async function completeResearchProject({
     prisma.researchProject.update({
       where: { uuid: researchProjectUuid },
       data: {
+        status: "completed",
+        completedAt,
+        autonomousLoopEnabled: false,
+        autoSearchEnabled: false,
         autoSearchActiveAgentUuid: null,
         autoSearchStartedAt: null,
         deepResearchActiveAgentUuid: null,
@@ -416,6 +424,8 @@ export async function completeResearchProject({
       select: {
         uuid: true,
         name: true,
+        status: true,
+        completedAt: true,
         autoSearchActiveAgentUuid: true,
         deepResearchActiveAgentUuid: true,
         synthesisActiveAgentUuid: true,
@@ -447,6 +457,46 @@ export async function completeResearchProject({
     project: updatedProject,
     completedExperiments: completedExperiments.count,
   };
+}
+
+export async function restartResearchProject({
+  companyUuid,
+  researchProjectUuid,
+  actorUuid,
+}: CompleteResearchProjectParams) {
+  const project = await prisma.researchProject.findFirst({
+    where: { uuid: researchProjectUuid, companyUuid },
+    select: { uuid: true },
+  });
+
+  if (!project) {
+    return null;
+  }
+
+  const updatedProject = await prisma.researchProject.update({
+    where: { uuid: researchProjectUuid },
+    data: {
+      status: "active",
+      completedAt: null,
+    },
+    select: {
+      uuid: true,
+      name: true,
+      status: true,
+      completedAt: true,
+    },
+  });
+
+  eventBus.emitChange({
+    companyUuid,
+    researchProjectUuid,
+    entityType: "research_project",
+    entityUuid: researchProjectUuid,
+    action: "updated",
+    actorUuid,
+  });
+
+  return { project: updatedProject };
 }
 
 export async function deleteResearchProject(uuid: string) {

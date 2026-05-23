@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Synapse MCP Tester</title>
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --panel: #14171c;
+      --panel2: #1b1f26;
+      --border: #262b34;
+      --fg: #e6e9ef;
+      --muted: #8a93a0;
+      --accent: #6aa0ff;
+      --accent-fg: #0b0d10;
+      --ok: #6ddc8c;
+      --warn: #f0b95a;
+      --err: #f06a6a;
+      --code-bg: #0e1115;
+      --hover: #1f242c;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f6f7f9;
+        --panel: #ffffff;
+        --panel2: #f0f2f5;
+        --border: #d8dde4;
+        --fg: #1a1d22;
+        --muted: #5a6470;
+        --accent: #2563eb;
+        --accent-fg: #ffffff;
+        --ok: #16a34a;
+        --warn: #b45309;
+        --err: #dc2626;
+        --code-bg: #f8fafc;
+        --hover: #eef1f6;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    header h1 {
+      font-size: 14px;
+      margin: 0;
+      letter-spacing: 0.2px;
+    }
+    .conn-form {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex: 1 1 auto;
+      flex-wrap: wrap;
+    }
+    .conn-form input {
+      background: var(--panel2);
+      color: var(--fg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font: inherit;
+      min-width: 0;
+    }
+    .conn-form input.url { flex: 2 1 280px; }
+    .conn-form input.token { flex: 3 1 320px; }
+    button {
+      background: var(--accent);
+      color: var(--accent-fg);
+      border: 0;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font: inherit;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    button.ghost {
+      background: transparent;
+      color: var(--fg);
+      border: 1px solid var(--border);
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button:hover:not(:disabled) { filter: brightness(1.1); }
+    .status {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--panel2);
+    }
+    .status.ok { color: var(--ok); }
+    .status.err { color: var(--err); }
+    .status.warn { color: var(--warn); }
+
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      min-height: 0;
+    }
+    aside {
+      border-right: 1px solid var(--border);
+      background: var(--panel);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .tools-header {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .tools-header input {
+      flex: 1;
+      background: var(--panel2);
+      color: var(--fg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 8px;
+      font: inherit;
+    }
+    .tools-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .tool-item {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .tool-item:hover { background: var(--hover); }
+    .tool-item.active { background: var(--panel2); border-left: 3px solid var(--accent); padding-left: 9px; }
+    .tool-name { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 12px; }
+    .tool-desc { color: var(--muted); font-size: 11px; margin-top: 2px; line-height: 1.3; }
+
+    section.detail {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      min-width: 0;
+    }
+    .detail-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+    }
+    .detail-header h2 {
+      margin: 0;
+      font-size: 14px;
+      font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    }
+    .detail-header .desc {
+      color: var(--muted);
+      margin-top: 4px;
+      font-size: 12px;
+    }
+    .detail-body {
+      flex: 1;
+      display: grid;
+      grid-template-rows: minmax(120px, auto) 1fr;
+      min-height: 0;
+    }
+    .args-area, .resp-area {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .area-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel2);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .area-header .actions { display: flex; gap: 6px; }
+    .area-header strong { color: var(--fg); font-weight: 500; }
+    textarea {
+      flex: 1;
+      width: 100%;
+      background: var(--code-bg);
+      color: var(--fg);
+      border: 0;
+      padding: 12px 16px;
+      font: 12px/1.5 ui-monospace, "SF Mono", Consolas, monospace;
+      resize: none;
+      outline: none;
+    }
+    .resp-body {
+      flex: 1;
+      overflow: auto;
+      background: var(--code-bg);
+    }
+    .resp-body pre {
+      margin: 0;
+      padding: 12px 16px;
+      font: 12px/1.5 ui-monospace, "SF Mono", Consolas, monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .resp-meta {
+      padding: 6px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--panel2);
+      display: flex;
+      gap: 16px;
+    }
+    .resp-meta span.ok { color: var(--ok); }
+    .resp-meta span.err { color: var(--err); }
+    .empty {
+      padding: 32px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .pill {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: var(--panel2);
+      font-size: 10px;
+      color: var(--muted);
+      margin-left: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .schema {
+      padding: 8px 16px;
+      background: var(--panel2);
+      border-bottom: 1px solid var(--border);
+      font: 11px/1.5 ui-monospace, "SF Mono", Consolas, monospace;
+      max-height: 160px;
+      overflow: auto;
+      color: var(--muted);
+    }
+    .schema details summary { cursor: pointer; color: var(--fg); }
+    .json-key { color: var(--accent); }
+    .json-string { color: var(--ok); }
+    .json-number { color: var(--warn); }
+    .json-bool, .json-null { color: var(--err); }
+    kbd {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 0 4px;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Synapse MCP Tester</h1>
+    <form class="conn-form" id="conn">
+      <input class="url" id="url" type="url" placeholder="https://your-synapse.com" required />
+      <input class="token" id="token" type="password" placeholder="syn_… (Bearer token)" required autocomplete="off" />
+      <button type="submit" id="connect-btn">Connect</button>
+      <button type="button" class="ghost" id="disconnect-btn" hidden>Disconnect</button>
+      <span class="status" id="status">disconnected</span>
+    </form>
+  </header>
+  <main>
+    <aside>
+      <div class="tools-header">
+        <input type="search" id="filter" placeholder="Filter tools…" />
+        <span class="pill" id="tools-count">0</span>
+      </div>
+      <div class="tools-list" id="tools-list">
+        <div class="empty">Connect to load tools.</div>
+      </div>
+    </aside>
+    <section class="detail">
+      <div id="detail-empty" class="empty">Select a tool from the list to test it.</div>
+      <div id="detail" hidden>
+        <div class="detail-header">
+          <h2 id="d-name"></h2>
+          <div class="desc" id="d-desc"></div>
+        </div>
+        <div class="schema" id="d-schema"></div>
+        <div class="detail-body">
+          <div class="args-area">
+            <div class="area-header">
+              <strong>Arguments (JSON)</strong>
+              <div class="actions">
+                <button type="button" class="ghost" id="reset-args">Reset to template</button>
+                <button type="button" id="call-btn">Call <kbd>⌘↵</kbd></button>
+              </div>
+            </div>
+            <textarea id="args" spellcheck="false" placeholder="{}"></textarea>
+          </div>
+          <div class="resp-area">
+            <div class="area-header">
+              <strong>Response</strong>
+              <div class="actions">
+                <button type="button" class="ghost" id="copy-resp">Copy</button>
+              </div>
+            </div>
+            <div class="resp-meta" id="resp-meta" hidden></div>
+            <div class="resp-body"><pre id="resp"></pre></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+  (() => {
+    const STORAGE_KEY = "synapse-mcp-tester:v1";
+    const ARGS_PREFIX = "synapse-mcp-tester:args:";
+
+    const $ = (id) => document.getElementById(id);
+    const els = {
+      url: $("url"),
+      token: $("token"),
+      conn: $("conn"),
+      connectBtn: $("connect-btn"),
+      disconnectBtn: $("disconnect-btn"),
+      status: $("status"),
+      filter: $("filter"),
+      toolsList: $("tools-list"),
+      toolsCount: $("tools-count"),
+      detail: $("detail"),
+      detailEmpty: $("detail-empty"),
+      dName: $("d-name"),
+      dDesc: $("d-desc"),
+      dSchema: $("d-schema"),
+      args: $("args"),
+      resetArgs: $("reset-args"),
+      callBtn: $("call-btn"),
+      respMeta: $("resp-meta"),
+      resp: $("resp"),
+      copyResp: $("copy-resp"),
+    };
+
+    let state = {
+      tools: [],
+      selected: null,
+      sessionId: null,
+      url: "",
+      token: "",
+    };
+
+    // Load persisted URL/token
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      if (saved.url) els.url.value = saved.url;
+      if (saved.token) els.token.value = saved.token;
+    } catch {}
+
+    function setStatus(text, kind = "") {
+      els.status.textContent = text;
+      els.status.className = "status" + (kind ? " " + kind : "");
+    }
+
+    function persist() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ url: state.url, token: state.token }));
+    }
+
+    function trimUrl(u) {
+      return u.replace(/\/+$/, "");
+    }
+
+    function mcpEndpoint() {
+      return trimUrl(state.url) + "/api/mcp";
+    }
+
+    // Parse a response that might be JSON or SSE-framed (data: {...})
+    async function parseMcpResponse(res) {
+      const text = await res.text();
+      if (!text) return { headers: res.headers, body: null, raw: "" };
+      const trimmed = text.trim();
+      // SSE framing
+      if (trimmed.startsWith("event:") || trimmed.startsWith("data:")) {
+        const dataLine = trimmed
+          .split(/\r?\n/)
+          .find((l) => l.startsWith("data:"));
+        if (dataLine) {
+          const json = dataLine.slice(5).trim();
+          try {
+            return { headers: res.headers, body: JSON.parse(json), raw: text };
+          } catch (e) {
+            return { headers: res.headers, body: null, raw: text };
+          }
+        }
+      }
+      try {
+        return { headers: res.headers, body: JSON.parse(trimmed), raw: text };
+      } catch {
+        return { headers: res.headers, body: null, raw: text };
+      }
+    }
+
+    async function rpc(method, params, id = 1) {
+      const headers = {
+        "Authorization": `Bearer ${state.token}`,
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/event-stream",
+      };
+      if (state.sessionId) headers["mcp-session-id"] = state.sessionId;
+      const body = id === null
+        ? { jsonrpc: "2.0", method, params }
+        : { jsonrpc: "2.0", id, method, params };
+
+      const res = await fetch(mcpEndpoint(), {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      });
+      const sid = res.headers.get("mcp-session-id");
+      if (sid && !state.sessionId) state.sessionId = sid;
+
+      if (!res.ok && res.status !== 202) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`HTTP ${res.status}: ${text || res.statusText}`);
+      }
+      const parsed = await parseMcpResponse(res);
+      if (parsed.body && parsed.body.error) {
+        const err = parsed.body.error;
+        throw new Error(`MCP error ${err.code ?? ""}: ${err.message ?? JSON.stringify(err)}`);
+      }
+      return parsed.body;
+    }
+
+    async function connect() {
+      state.url = trimUrl(els.url.value.trim());
+      state.token = els.token.value.trim();
+      if (!state.url || !state.token) {
+        setStatus("URL and token required", "err");
+        return;
+      }
+      persist();
+      setStatus("connecting…");
+      try {
+        await disconnect({ silent: true });
+
+        const init = await rpc("initialize", {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: { name: "synapse-mcp-tester", version: "1.0.0" },
+        }, 1);
+        if (!init || !init.result) {
+          throw new Error("Initialize returned no result: " + JSON.stringify(init));
+        }
+        // Notifications have no id
+        await rpc("notifications/initialized", {}, null).catch(() => {});
+
+        const tools = await rpc("tools/list", {}, 2);
+        const list = (tools && tools.result && tools.result.tools) || [];
+        state.tools = list.sort((a, b) => a.name.localeCompare(b.name));
+        renderToolsList();
+        setStatus(`connected · ${state.tools.length} tools`, "ok");
+        els.connectBtn.hidden = true;
+        els.disconnectBtn.hidden = false;
+      } catch (e) {
+        console.error(e);
+        setStatus("error: " + e.message, "err");
+        state.sessionId = null;
+      }
+    }
+
+    async function disconnect({ silent } = {}) {
+      if (state.sessionId) {
+        try {
+          await fetch(mcpEndpoint(), {
+            method: "DELETE",
+            headers: {
+              "Authorization": `Bearer ${state.token}`,
+              "mcp-session-id": state.sessionId,
+            },
+          });
+        } catch {}
+      }
+      state.sessionId = null;
+      if (!silent) {
+        state.tools = [];
+        state.selected = null;
+        renderToolsList();
+        showDetail(null);
+        setStatus("disconnected");
+        els.connectBtn.hidden = false;
+        els.disconnectBtn.hidden = true;
+      }
+    }
+
+    function renderToolsList() {
+      const filter = els.filter.value.trim().toLowerCase();
+      const filtered = filter
+        ? state.tools.filter((t) => t.name.toLowerCase().includes(filter)
+            || (t.description || "").toLowerCase().includes(filter))
+        : state.tools;
+      els.toolsCount.textContent = filtered.length;
+      if (!filtered.length) {
+        els.toolsList.innerHTML = `<div class="empty">${state.tools.length === 0 ? "Connect to load tools." : "No matches."}</div>`;
+        return;
+      }
+      els.toolsList.innerHTML = filtered.map((t) => {
+        const desc = (t.description || "").split("\n")[0].slice(0, 140);
+        const active = state.selected && state.selected.name === t.name ? " active" : "";
+        return `<div class="tool-item${active}" data-name="${escapeHtml(t.name)}">
+          <div class="tool-name">${escapeHtml(t.name)}</div>
+          ${desc ? `<div class="tool-desc">${escapeHtml(desc)}</div>` : ""}
+        </div>`;
+      }).join("");
+      for (const node of els.toolsList.querySelectorAll(".tool-item")) {
+        node.addEventListener("click", () => {
+          const name = node.dataset.name;
+          const tool = state.tools.find((t) => t.name === name);
+          showDetail(tool);
+          renderToolsList();
+        });
+      }
+    }
+
+    function templateForSchema(schema) {
+      if (!schema || schema.type !== "object" || !schema.properties) return {};
+      const required = new Set(schema.required || []);
+      const out = {};
+      for (const [k, v] of Object.entries(schema.properties)) {
+        if (!required.has(k)) continue;
+        out[k] = sampleForProp(v);
+      }
+      // If nothing is required, give the user a starting point with all string props
+      if (!Object.keys(out).length) {
+        for (const [k, v] of Object.entries(schema.properties)) {
+          out[k] = sampleForProp(v);
+          if (Object.keys(out).length >= 3) break;
+        }
+      }
+      return out;
+    }
+
+    function sampleForProp(prop) {
+      if (!prop) return null;
+      if (prop.default !== undefined) return prop.default;
+      if (prop.enum && prop.enum.length) return prop.enum[0];
+      switch (prop.type) {
+        case "string": return "";
+        case "number":
+        case "integer": return 0;
+        case "boolean": return false;
+        case "array": return [];
+        case "object": return {};
+        default: return null;
+      }
+    }
+
+    function showDetail(tool) {
+      state.selected = tool;
+      els.respMeta.hidden = true;
+      els.resp.textContent = "";
+      if (!tool) {
+        els.detail.hidden = true;
+        els.detailEmpty.hidden = false;
+        return;
+      }
+      els.detail.hidden = false;
+      els.detailEmpty.hidden = true;
+      els.dName.textContent = tool.name;
+      els.dDesc.textContent = tool.description || "";
+
+      const schema = tool.inputSchema || tool.input_schema || null;
+      if (schema && Object.keys(schema.properties || {}).length) {
+        const required = new Set(schema.required || []);
+        const lines = Object.entries(schema.properties).map(([k, v]) => {
+          const types = Array.isArray(v.type) ? v.type.join("|") : (v.type || "any");
+          const enumPart = v.enum ? ` ∈ {${v.enum.map(JSON.stringify).join(", ")}}` : "";
+          const desc = v.description ? ` — ${v.description}` : "";
+          const flag = required.has(k) ? "*" : " ";
+          return `${flag} ${k}: ${types}${enumPart}${desc}`;
+        });
+        els.dSchema.innerHTML = `<details open><summary>Schema (${Object.keys(schema.properties).length} props${schema.required ? `, ${schema.required.length} required` : ""})</summary><pre style="margin:6px 0 0 0; white-space:pre-wrap">${escapeHtml(lines.join("\n"))}</pre></details>`;
+      } else {
+        els.dSchema.innerHTML = `<em>No input schema (or empty arguments).</em>`;
+      }
+
+      // Restore last args for this tool, else build from schema
+      const stored = localStorage.getItem(ARGS_PREFIX + tool.name);
+      if (stored) {
+        els.args.value = stored;
+      } else {
+        const tpl = templateForSchema(schema);
+        els.args.value = JSON.stringify(tpl, null, 2);
+      }
+    }
+
+    async function callTool() {
+      if (!state.selected) return;
+      let args;
+      try {
+        args = JSON.parse(els.args.value || "{}");
+      } catch (e) {
+        showResp({ error: "Invalid JSON in arguments: " + e.message }, { status: "parse error" });
+        return;
+      }
+      localStorage.setItem(ARGS_PREFIX + state.selected.name, els.args.value);
+
+      els.callBtn.disabled = true;
+      const t0 = performance.now();
+      try {
+        const res = await rpc("tools/call", {
+          name: state.selected.name,
+          arguments: args,
+        }, Math.floor(Math.random() * 1e9));
+        const ms = Math.round(performance.now() - t0);
+        showResp(res, { ms, status: "ok" });
+      } catch (e) {
+        const ms = Math.round(performance.now() - t0);
+        showResp({ error: e.message }, { ms, status: "error" });
+      } finally {
+        els.callBtn.disabled = false;
+      }
+    }
+
+    function showResp(res, meta) {
+      els.respMeta.hidden = false;
+      const isErr = meta.status !== "ok";
+      els.respMeta.innerHTML = `
+        <span class="${isErr ? "err" : "ok"}">${isErr ? "✗" : "✓"} ${meta.status}</span>
+        ${meta.ms != null ? `<span>${meta.ms} ms</span>` : ""}
+        ${state.sessionId ? `<span title="MCP session ID">sid: ${state.sessionId.slice(0, 8)}…</span>` : ""}
+      `;
+      // Try to surface tool result text content prominently if present
+      let body = res;
+      if (res && res.result && Array.isArray(res.result.content)) {
+        const textParts = res.result.content
+          .filter((c) => c.type === "text")
+          .map((c) => c.text);
+        if (textParts.length) {
+          // Try to JSON-parse text content for nicer display
+          const joined = textParts.join("\n");
+          try {
+            body = { _text_content: JSON.parse(joined), _raw: res };
+          } catch {
+            body = { _text_content: joined, _raw: res };
+          }
+        }
+      }
+      els.resp.innerHTML = highlightJson(body);
+    }
+
+    function highlightJson(obj) {
+      const str = JSON.stringify(obj, null, 2) || "";
+      return escapeHtml(str)
+        .replace(/&quot;([^&]+?)&quot;(\s*:)/g, '<span class="json-key">&quot;$1&quot;</span>$2')
+        .replace(/: &quot;([^&]*?)&quot;/g, ': <span class="json-string">&quot;$1&quot;</span>')
+        .replace(/: (-?\d+(?:\.\d+)?)/g, ': <span class="json-number">$1</span>')
+        .replace(/: (true|false)/g, ': <span class="json-bool">$1</span>')
+        .replace(/: (null)/g, ': <span class="json-null">$1</span>');
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    // Wire up events
+    els.conn.addEventListener("submit", (e) => { e.preventDefault(); connect(); });
+    els.disconnectBtn.addEventListener("click", () => disconnect());
+    els.filter.addEventListener("input", renderToolsList);
+    els.callBtn.addEventListener("click", callTool);
+    els.resetArgs.addEventListener("click", () => {
+      if (!state.selected) return;
+      const schema = state.selected.inputSchema || state.selected.input_schema;
+      els.args.value = JSON.stringify(templateForSchema(schema), null, 2);
+      localStorage.removeItem(ARGS_PREFIX + state.selected.name);
+    });
+    els.copyResp.addEventListener("click", () => {
+      navigator.clipboard.writeText(els.resp.textContent || "").catch(() => {});
+    });
+    els.args.addEventListener("keydown", (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        callTool();
+      }
+    });
+    window.addEventListener("beforeunload", () => {
+      if (state.sessionId) {
+        navigator.sendBeacon?.(mcpEndpoint(), new Blob([], { type: "text/plain" }));
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

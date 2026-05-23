@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { getServerAuthContext } from "@/lib/auth-server";
 import { getResearchProjectDashboardData } from "@/services/research-project.service";
 import { EditProjectDialog } from "./edit-project-dialog";
@@ -85,13 +84,7 @@ export default async function DashboardPage({ params }: PageProps) {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90">
-              <Link href={`/research-projects/${projectUuid}/experiments/new`}>{t("dashboard.newExperiment")}</Link>
-            </Button>
-            <Button asChild variant="outline" className="border-border bg-background">
-              <Link href={`/research-projects/${projectUuid}/insights`}>{t("nav.insights")}</Link>
-            </Button>
-            <CompleteProjectButton projectUuid={projectUuid} />
+            <CompleteProjectButton projectUuid={projectUuid} status={project.status} />
             <EditProjectDialog
               projectUuid={projectUuid}
               initialData={{

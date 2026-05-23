@@ -89,6 +89,7 @@ function ProjectCard({ project }: { project: ProjectData }) {
   const progress = project.counts.tasks > 0
     ? Math.round((project.counts.doneTasks / project.counts.tasks) * 100)
     : 0;
+  const isCompleted = project.status === "completed";
 
   return (
     <Card className="group cursor-pointer rounded-2xl border-border bg-card p-6 shadow-none transition-all hover:border-primary/50 hover:shadow-md">
@@ -104,13 +105,23 @@ function ProjectCard({ project }: { project: ProjectData }) {
             <h3 className="truncate font-semibold text-foreground group-hover:text-primary">
               {project.name}
             </h3>
-            <Badge
-              variant="success"
-              className="gap-1 border-0 bg-emerald-500/15 text-[10px] text-emerald-600 dark:text-emerald-400"
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              {t("status.active")}
-            </Badge>
+            {isCompleted ? (
+              <Badge
+                variant="secondary"
+                className="gap-1 border-0 bg-muted text-[10px] text-muted-foreground"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
+                {t("status.completed")}
+              </Badge>
+            ) : (
+              <Badge
+                variant="success"
+                className="gap-1 border-0 bg-emerald-500/15 text-[10px] text-emerald-600 dark:text-emerald-400"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                {t("status.active")}
+              </Badge>
+            )}
           </div>
           {project.description && (
             <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">

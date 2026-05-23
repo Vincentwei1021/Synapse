@@ -152,6 +152,8 @@ model ResearchProject {
   repoUrl              String?
   githubUsername        String?
   githubToken          String?
+  status               String   @default("active") // active | completed
+  completedAt          DateTime?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 

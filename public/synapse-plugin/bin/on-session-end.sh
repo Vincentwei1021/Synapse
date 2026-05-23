@@ -11,6 +11,15 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 API="${SCRIPT_DIR}/synapse-api.sh"
 STATE_DIR="${CLAUDE_PROJECT_DIR:-.}/.synapse"
 
+# Capture the stdin event for optional debug logging
+EVENT=""
+if [ ! -t 0 ]; then
+  EVENT=$(cat)
+fi
+SYNAPSE_HOOK_LOG_FILE=$("$API" log-init "SessionEnd" "$EVENT") || SYNAPSE_HOOK_LOG_FILE=""
+export SYNAPSE_HOOK_LOG_FILE
+export SYNAPSE_HOOK_NAME="SessionEnd"
+
 # Nothing to clean up
 if [ ! -d "$STATE_DIR" ]; then
   exit 0

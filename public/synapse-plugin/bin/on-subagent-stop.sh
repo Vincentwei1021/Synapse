@@ -31,6 +31,10 @@ if [ ! -t 0 ]; then
   EVENT=$(cat)
 fi
 
+SYNAPSE_HOOK_LOG_FILE=$("$API" log-init "SubagentStop" "$EVENT") || SYNAPSE_HOOK_LOG_FILE=""
+export SYNAPSE_HOOK_LOG_FILE
+export SYNAPSE_HOOK_NAME="SubagentStop"
+
 if [ -z "$EVENT" ]; then
   exit 0
 fi

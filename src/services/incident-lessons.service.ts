@@ -2,8 +2,6 @@ import { prisma } from "@/lib/prisma";
 import { eventBus } from "@/lib/event-bus";
 import type { Prisma } from "@/generated/prisma/client";
 
-export const INCIDENT_LESSONS_DOCUMENT_TYPE = "execution_incident_lessons";
-
 export type IncidentLessonStatus = "resolved_in_run" | "unresolved" | "caused_failure";
 export type IncidentLessonSeverity = "low" | "medium" | "high";
 export type IncidentLessonSearchMode = "keyword" | "bm25" | "semantic" | "hybrid";
@@ -129,42 +127,6 @@ function formatIncidentLesson(record: IncidentLessonRecord): IncidentLessonRespo
   };
 }
 
-function markdownValue(value: string | null | undefined): string {
-  return value && value.trim() ? value.trim() : "-";
-}
-
-function renderLessonsDocument(projectName: string, lessons: IncidentLessonResponse[]): string {
-  const sections = lessons.map((lesson) => {
-    const tags = lesson.tags.length ? lesson.tags.join(", ") : "-";
-    return [
-      `## ${lesson.title}`,
-      "",
-      `<!-- synapse:incident-lesson:${lesson.uuid} experiment:${lesson.experimentUuid} -->`,
-      "",
-      `- Experiment: ${markdownValue(lesson.experimentTitle)} (${lesson.experimentUuid})`,
-      `- Status: ${lesson.status}`,
-      `- Severity: ${lesson.severity}`,
-      `- Phase: ${markdownValue(lesson.phase)}`,
-      `- Type: ${lesson.failureType}`,
-      `- Impact: ${markdownValue(lesson.experimentOutcomeImpact)}`,
-      `- Symptom: ${markdownValue(lesson.symptom)}`,
-      `- Root cause: ${markdownValue(lesson.rootCause)}`,
-      `- Resolution: ${markdownValue(lesson.resolution)}`,
-      `- Prevention: ${markdownValue(lesson.prevention)}`,
-      `- Evidence: ${markdownValue(lesson.evidenceSummary)}`,
-      `- Tags: ${tags}`,
-    ].join("\n");
-  });
-
-  return [
-    `# ${projectName} - Execution Incident Lessons`,
-    "",
-    "Recoverable incidents, unresolved execution issues, and failure lessons captured during experiment work.",
-    "",
-    ...sections,
-  ].join("\n");
-}
-
 async function getScopedExperiment(companyUuid: string, experimentUuid: string) {
   const experiment = await prisma.experiment.findFirst({
     where: { uuid: experimentUuid, companyUuid },
@@ -179,51 +141,6 @@ async function getScopedExperiment(companyUuid: string, experimentUuid: string) 
     throw new Error("Experiment not found");
   }
   return experiment;
-}
-
-export async function refreshExecutionIncidentLessonsDocument(
-  companyUuid: string,
-  researchProjectUuid: string,
-) {
-  const [project, rawLessons, existing] = await Promise.all([
-    prisma.researchProject.findFirst({
-      where: { uuid: researchProjectUuid, companyUuid },
-      select: { name: true },
-    }),
-    prisma.experimentIncidentLesson.findMany({
-      where: { companyUuid, researchProjectUuid },
-      include: { experiment: { select: { uuid: true, title: true } } },
-      orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
-    }),
-    prisma.document.findFirst({
-      where: { companyUuid, researchProjectUuid, type: INCIDENT_LESSONS_DOCUMENT_TYPE },
-      select: { uuid: true },
-    }),
-  ]);
-
-  const projectName = project?.name ?? "Project";
-  const content = renderLessonsDocument(projectName, rawLessons.map(formatIncidentLesson));
-
-  if (existing) {
-    await prisma.document.update({
-      where: { uuid: existing.uuid },
-      data: { content, title: `${projectName} - Execution Incident Lessons`, updatedAt: new Date() },
-    });
-    return existing.uuid;
-  }
-
-  const created = await prisma.document.create({
-    data: {
-      companyUuid,
-      researchProjectUuid,
-      title: `${projectName} - Execution Incident Lessons`,
-      type: INCIDENT_LESSONS_DOCUMENT_TYPE,
-      content,
-      createdByUuid: "system",
-    },
-    select: { uuid: true },
-  });
-  return created.uuid;
 }
 
 export async function recordExperimentIncidentLesson(input: RecordIncidentLessonInput) {
@@ -252,8 +169,6 @@ export async function recordExperimentIncidentLesson(input: RecordIncidentLesson
     },
     include: { experiment: { select: { uuid: true, title: true } } },
   });
-
-  await refreshExecutionIncidentLessonsDocument(input.companyUuid, experiment.researchProjectUuid);
 
   eventBus.emitChange({
     companyUuid: input.companyUuid,

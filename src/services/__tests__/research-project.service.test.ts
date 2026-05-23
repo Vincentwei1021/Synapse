@@ -319,6 +319,10 @@ describe("completeResearchProject", () => {
     expect(mockPrisma.researchProject.update).toHaveBeenCalledWith({
       where: { uuid: researchProjectUuid },
       data: {
+        status: "completed",
+        completedAt,
+        autonomousLoopEnabled: false,
+        autoSearchEnabled: false,
         autoSearchActiveAgentUuid: null,
         autoSearchStartedAt: null,
         deepResearchActiveAgentUuid: null,
