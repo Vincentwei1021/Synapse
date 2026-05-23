@@ -86,10 +86,12 @@ function ProjectCard({ project }: { project: ProjectData }) {
   const formatRelative = useRelativeDate();
   const initials = getProjectInitials(project.name);
   const avatarColor = getAvatarColor(project.name);
-  const progress = project.counts.tasks > 0
-    ? Math.round((project.counts.doneTasks / project.counts.tasks) * 100)
-    : 0;
   const isCompleted = project.status === "completed";
+  const progress = isCompleted
+    ? 100
+    : project.counts.tasks > 0
+      ? Math.round((project.counts.doneTasks / project.counts.tasks) * 100)
+      : 0;
 
   return (
     <Card className="group cursor-pointer rounded-2xl border-border bg-card p-6 shadow-none transition-all hover:border-primary/50 hover:shadow-md">
