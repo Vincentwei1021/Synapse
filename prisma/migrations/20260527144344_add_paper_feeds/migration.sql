@@ -55,7 +55,7 @@ CREATE UNIQUE INDEX "PaperFeedRun_uuid_key" ON "PaperFeedRun"("uuid");
 CREATE INDEX "PaperFeedRun_companyUuid_researchProjectUuid_idx" ON "PaperFeedRun"("companyUuid", "researchProjectUuid");
 
 -- CreateIndex
-CREATE INDEX "PaperFeedRun_status_idx" ON "PaperFeedRun"("status");
+CREATE INDEX "PaperFeedRun_status_startedAt_idx" ON "PaperFeedRun"("status", "startedAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PaperFeedRun_researchProjectUuid_feedDate_key" ON "PaperFeedRun"("researchProjectUuid", "feedDate");

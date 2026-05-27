@@ -903,7 +903,7 @@ model PaperFeedRun {
 
   @@unique([researchProjectUuid, feedDate])
   @@index([companyUuid, researchProjectUuid])
-  @@index([status])
+  @@index([status, startedAt])
 }
 
 model PaperFeedItem {
