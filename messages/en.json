@@ -134,6 +134,7 @@
     "openMenu": "Open menu",
     "agents": "Agents",
     "relatedWorks": "Related Works",
+    "paperFeeds": "Paper Feeds",
     "projectSettings": "Settings",
     "autoBadge": "AUTO"
   },
@@ -179,6 +180,40 @@
     "defaultSearchPrompt": "",
     "defaultDeepResearchPrompt": "",
     "addPaperError": "Failed to add paper. Please provide a title if auto-fetch is unavailable."
+  },
+  "paperFeeds": {
+    "title": "Paper Feeds",
+    "description": "An assigned agent reviews HuggingFace Daily Papers each day and surfaces what's relevant to this project.",
+    "status": {
+      "disabled": "Disabled",
+      "active": "Active — daily run",
+      "running": "Running…"
+    },
+    "actions": {
+      "enable": "Enable",
+      "disable": "Disable",
+      "runNow": "Run now",
+      "addToRelatedWorks": "Add to Related Works",
+      "promoted": "Added",
+      "openArxiv": "Open arXiv ↗",
+      "retry": "Retry",
+      "dismiss": "Dismiss"
+    },
+    "lastRun": "Last run: {date} · {count} relevant · {status}",
+    "emptyDay": "{date} · No relevant papers today",
+    "emptyState": {
+      "title": "Enable Paper Feeds",
+      "body": "Pick an OpenClaw agent. It will review yesterday's HuggingFace Daily Papers each day and surface anything relevant to this project — with a TL;DR and why it matters.",
+      "cta": "Enable Paper Feeds"
+    },
+    "agentPicker": {
+      "title": "Pick an agent",
+      "description": "Only OpenClaw agents with the paper_feeds role can be assigned.",
+      "confirm": "Enable",
+      "cancel": "Cancel"
+    },
+    "failedBanner": "Run for {date} failed: {reason}",
+    "groupHeader": "{date} · {count} relevant papers"
   },
   "priority": {
     "immediate": "Immediate",
