@@ -22,6 +22,7 @@ import {
   LineChart,
   LogOut,
   Menu,
+  Rss,
   Wrench,
 } from "lucide-react";
 import { authFetch, logout as authLogout, clearUserManager, refreshAuthCookies } from "@/lib/auth-client";
@@ -78,6 +79,7 @@ function ProjectNavFrameList({
   const agentActivity = useAgentActivity(projectUuid);
   const getAgentsFor = (href: string): AgentSummary[] => {
     if (href.endsWith("/related-works")) return agentActivity.relatedWorks;
+    if (href.endsWith("/paper-feeds")) return agentActivity.paperFeeds;
     if (href.endsWith("/experiments")) return agentActivity.experiments;
     if (href.endsWith("/research-questions")) return agentActivity.researchQuestions;
     if (href.endsWith("/insights")) return agentActivity.insights;
@@ -257,6 +259,7 @@ export default function DashboardLayout({
     return [
       { href: `/research-projects/${currentProjectUuid}/dashboard`, label: t("nav.overview"), icon: LayoutDashboard },
       { href: `/research-projects/${currentProjectUuid}/related-works`, label: t("nav.relatedWorks"), icon: BookOpen },
+      { href: `/research-projects/${currentProjectUuid}/paper-feeds`, label: t("nav.paperFeeds"), icon: Rss },
       { href: `/research-projects/${currentProjectUuid}/research-questions`, label: t("nav.researchQuestions"), icon: Lightbulb },
       {
         href: `/research-projects/${currentProjectUuid}/experiments`,
