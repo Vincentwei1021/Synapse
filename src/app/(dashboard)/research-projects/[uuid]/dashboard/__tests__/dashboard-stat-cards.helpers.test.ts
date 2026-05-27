@@ -10,6 +10,7 @@ describe("dashboard stat card helpers", () => {
     researchQuestions: [{ uuid: "agent-rq", name: "Questioner", color: "orange", type: "claude_code" }],
     insights: [],
     documents: [{ uuid: "agent-doc", name: "Writer", color: "violet", type: "openclaw" }],
+    paperFeeds: [],
   };
 
   it("maps related works cards to the related works activity lane", () => {
