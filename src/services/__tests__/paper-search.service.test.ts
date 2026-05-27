@@ -106,6 +106,45 @@ describe("searchDeepXiv", () => {
     expect(results).toEqual([]);
   });
 
+  it("forwards date filter params (exact)", async () => {
+    const { searchDeepXiv } = await import("@/services/paper-search.service");
+
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify([]), { status: 200 }),
+    );
+
+    await searchDeepXiv("recent", 10, {
+      dateFilter: { dateSearchType: "exact", dateStr: "2026-05-26" },
+    });
+
+    const calledUrl = mockFetch.mock.calls[0][0] as string;
+    expect(calledUrl).toContain("date_search_type=exact");
+    expect(calledUrl).toContain("date_str=2026-05-26");
+  });
+
+  it("forwards date filter params (between, two date_str entries)", async () => {
+    const { searchDeepXiv } = await import("@/services/paper-search.service");
+
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify([]), { status: 200 }),
+    );
+
+    await searchDeepXiv("window", 10, {
+      dateFilter: {
+        dateSearchType: "between",
+        dateStr: ["2026-05-01", "2026-05-26"],
+      },
+    });
+
+    const calledUrl = mockFetch.mock.calls[0][0] as string;
+    expect(calledUrl).toContain("date_search_type=between");
+    // URLSearchParams encodes multi-value params as repeated entries
+    const dateStrCount = (calledUrl.match(/date_str=/g) ?? []).length;
+    expect(dateStrCount).toBe(2);
+    expect(calledUrl).toContain("date_str=2026-05-01");
+    expect(calledUrl).toContain("date_str=2026-05-26");
+  });
+
   it("generates URL from arxiv_id when url field is missing", async () => {
     const { searchDeepXiv } = await import("@/services/paper-search.service");
 
@@ -633,6 +672,23 @@ describe("searchPapers", () => {
     expect(results).toHaveLength(1);
     expect(results[0].source).toBe("arxiv");
     expect(results[0].title).toBe("Fallback After Failure");
+  });
+
+  it("does NOT fall back to arXiv when a date filter is set and DeepXiv returns empty", async () => {
+    const { searchPapers } = await import("@/services/paper-search.service");
+
+    // DeepXiv returns empty for the requested date window
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify([]), { status: 200 }),
+    );
+
+    const results = await searchPapers("nothing today", 5, {
+      dateFilter: { dateSearchType: "exact", dateStr: "2026-05-26" },
+    });
+
+    // Should NOT call arXiv (no equivalent date predicate), so still 1 fetch.
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(results).toEqual([]);
   });
 
   it("deduplicates results", async () => {

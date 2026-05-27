@@ -662,14 +662,38 @@ export const commonToolDefinitions = defineOpenClawTools([
   // =========================================================================
   // Literature / Related Works
   // =========================================================================
-  createPassthroughTool<{ query: string; limit?: number }>({
+  createPassthroughTool<{
+    query: string;
+    limit?: number;
+    dateSearchType?: "exact" | "after" | "before" | "between";
+    dateStr?: string | [string, string];
+  }>({
     name: "synapse_search_papers",
-    description: "Search for academic papers. Uses DeepXiv hybrid search (BM25 + vector) over arXiv, with arXiv API as fallback.",
+    description:
+      "Search for academic papers. Uses DeepXiv hybrid search (BM25 + vector) over arXiv (T+0 daily sync), with arXiv API as fallback. Optional publication-date filter via dateSearchType + dateStr (e.g. dateSearchType='exact', dateStr='2026-05-26' for a single day).",
     parameters: {
       type: "object",
       properties: {
         query: { type: "string", description: "Search query" },
         limit: { type: "number", description: "Max results (default: 10, max: 20)" },
+        dateSearchType: {
+          type: "string",
+          enum: ["exact", "after", "before", "between"],
+          description: "Optional DeepXiv publication-date filter mode.",
+        },
+        dateStr: {
+          description:
+            "Date for the filter — 'YYYY', 'YYYY-MM', or 'YYYY-MM-DD'. Pass a [start, end] tuple when dateSearchType='between'.",
+          oneOf: [
+            { type: "string" },
+            {
+              type: "array",
+              items: { type: "string" },
+              minItems: 2,
+              maxItems: 2,
+            },
+          ],
+        },
       },
       required: ["query"],
       additionalProperties: false,
