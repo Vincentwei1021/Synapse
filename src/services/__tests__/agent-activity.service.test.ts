@@ -29,6 +29,7 @@ beforeEach(() => {
     autoSearchActiveAgentUuid: null,
     deepResearchActiveAgentUuid: null,
     synthesisActiveAgentUuid: null,
+    paperFeedActiveAgentUuid: null,
   });
   mockPrisma.experiment.findMany.mockResolvedValue([]);
   mockPrisma.relatedWork.findFirst.mockResolvedValue(null);
@@ -48,6 +49,7 @@ describe("getProjectAgentActivity", () => {
       researchQuestions: [],
       insights: [],
       documents: [],
+      paperFeeds: [],
     });
     expect(mockPrisma.agent.findMany).not.toHaveBeenCalled();
   });
@@ -117,6 +119,7 @@ describe("getProjectAgentActivity", () => {
       autoSearchActiveAgentUuid: "agent-search-1",
       deepResearchActiveAgentUuid: null,
       synthesisActiveAgentUuid: null,
+      paperFeedActiveAgentUuid: null,
     });
     mockPrisma.agent.findMany.mockResolvedValue([
       { uuid: "agent-search-1", name: "Searcher", color: "violet", type: "openclaw" },
@@ -141,6 +144,7 @@ describe("getProjectAgentActivity", () => {
       autoSearchActiveAgentUuid: null,
       deepResearchActiveAgentUuid: null,
       synthesisActiveAgentUuid: null,
+      paperFeedActiveAgentUuid: null,
     });
 
     const result = await getProjectAgentActivity({
@@ -158,6 +162,7 @@ describe("getProjectAgentActivity", () => {
       autoSearchActiveAgentUuid: null,
       deepResearchActiveAgentUuid: null,
       synthesisActiveAgentUuid: null,
+      paperFeedActiveAgentUuid: null,
     });
 
     const result = await getProjectAgentActivity({

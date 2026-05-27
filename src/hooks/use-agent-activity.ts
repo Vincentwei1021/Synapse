@@ -10,6 +10,7 @@ const EMPTY: AgentActivitySummary = {
   researchQuestions: [],
   insights: [],
   documents: [],
+  paperFeeds: [],
 };
 
 const cache = new Map<string, AgentActivitySummary>();

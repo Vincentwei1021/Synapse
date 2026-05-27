@@ -149,6 +149,11 @@ model ResearchProject {
   deepResearchStartedAt    DateTime?
   synthesisActiveAgentUuid String?
   synthesisStartedAt       DateTime?
+  paperFeedEnabled         Boolean   @default(false)
+  paperFeedAgentUuid       String?
+  paperFeedActiveAgentUuid String?
+  paperFeedStartedAt       DateTime?
+  paperFeedLastRunAt       DateTime?
   repoUrl              String?
   githubUsername        String?
   githubToken          String?
@@ -164,6 +169,8 @@ model ResearchProject {
   experimentRuns    ExperimentRun[]
   experimentDesigns ExperimentDesign[]
   relatedWorks      RelatedWork[]
+  paperFeedRuns     PaperFeedRun[]
+  paperFeedItems    PaperFeedItem[]
   activities        Activity[]
 
   @@index([companyUuid])
@@ -664,6 +671,7 @@ model RelatedWork {
   source              String
   addedBy             String
   addedByAgentUuid    String?
+  addedNote           String?
   publishedYear       Int?
   createdAt           DateTime        @default(now())
 
@@ -874,4 +882,51 @@ model Baseline {
 
   @@index([companyUuid])
   @@index([researchProjectUuid])
+}
+
+model PaperFeedRun {
+  id                  Int      @id @default(autoincrement())
+  uuid                String   @unique @default(uuid())
+  companyUuid         String
+  researchProjectUuid String
+  researchProject     ResearchProject @relation(fields: [researchProjectUuid], references: [uuid], onDelete: Cascade)
+  agentUuid           String
+  feedDate            DateTime @db.Date
+  status              String   // pending | running | completed | failed
+  paperCount          Int      @default(0)
+  errorMessage        String?
+  triggeredBy         String   // cron | manual
+  startedAt           DateTime @default(now())
+  completedAt         DateTime?
+
+  items               PaperFeedItem[]
+
+  @@unique([researchProjectUuid, feedDate])
+  @@index([companyUuid, researchProjectUuid])
+  @@index([status, startedAt])
+}
+
+model PaperFeedItem {
+  id                  Int      @id @default(autoincrement())
+  uuid                String   @unique @default(uuid())
+  companyUuid         String
+  researchProjectUuid String
+  researchProject     ResearchProject @relation(fields: [researchProjectUuid], references: [uuid], onDelete: Cascade)
+  feedRunUuid         String
+  feedRun             PaperFeedRun @relation(fields: [feedRunUuid], references: [uuid], onDelete: Cascade)
+  feedDate            DateTime @db.Date
+  paperId             String
+  arxivId             String?
+  title               String
+  authors             String
+  abstract            String
+  paperUrl            String
+  summary             String
+  relevanceNote       String
+  relatedWorkUuid     String?
+  createdAt           DateTime @default(now())
+
+  @@unique([researchProjectUuid, paperId])
+  @@index([researchProjectUuid, feedDate])
+  @@index([feedRunUuid])
 }

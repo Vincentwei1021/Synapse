@@ -443,6 +443,56 @@ describe("SynapseEventRouter", () => {
     expect(triggerAgent).toHaveBeenCalledTimes(1);
   });
 
+  it("routes paper_feed_triggered events to the paper feed runner", async () => {
+    callTool.mockResolvedValueOnce({
+      notifications: [
+        {
+          uuid: "notification-1",
+          researchProjectUuid: "proj-1",
+          entityType: "paper_feed_run",
+          entityUuid: "run-1",
+          entityTitle: "Demo Project",
+          action: "paper_feed_triggered",
+          message: "2026-05-26",
+          actorType: "user",
+          actorUuid: "system",
+          actorName: "Synapse cron",
+        },
+      ],
+    });
+
+    const router = new SynapseEventRouter({
+      mcpClient: { callTool } as never,
+      config: {
+        synapseUrl: "http://synapse.local",
+        apiKey: "syn_key",
+        autoStart: true,
+        projectUuids: [],
+      },
+      triggerAgent,
+      logger,
+    });
+
+    await (router as unknown as { fetchAndRoute: (notificationUuid: string) => Promise<void> }).fetchAndRoute("notification-1");
+
+    expect(triggerAgent).toHaveBeenCalledTimes(1);
+    const [prompt, metadata] = triggerAgent.mock.calls[0];
+    expect(prompt).toContain("synapse_get_project_full_context");
+    expect(prompt).toContain("synapse_get_huggingface_daily_papers");
+    expect(prompt).toContain("synapse_record_paper_feed_items");
+    expect(prompt).toContain("synapse_complete_paper_feed_run");
+    expect(prompt).toContain("feedRunUuid: run-1");
+    expect(prompt).toContain("feedDate: 2026-05-26");
+    expect(prompt).toContain("Demo Project");
+    expect(metadata).toMatchObject({
+      action: "paper_feed_triggered",
+      entityUuid: "run-1",
+      projectUuid: "proj-1",
+      timeoutSeconds: 600,
+      notificationUuid: "notification-1",
+    });
+  });
+
   it("ignores non-new_notification event types", () => {
     const router = new SynapseEventRouter({
       mcpClient: { callTool } as never,

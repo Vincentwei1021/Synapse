@@ -22,6 +22,7 @@ export interface AgentActivitySummary {
   researchQuestions: AgentSummary[];
   insights: AgentSummary[];
   documents: AgentSummary[];
+  paperFeeds: AgentSummary[];
 }
 
 const EMPTY_ACTIVITY: AgentActivitySummary = {
@@ -30,6 +31,7 @@ const EMPTY_ACTIVITY: AgentActivitySummary = {
   researchQuestions: [],
   insights: [],
   documents: [],
+  paperFeeds: [],
 };
 
 function dedupeAgents(list: AgentSummary[]): AgentSummary[] {
@@ -57,6 +59,7 @@ export async function getProjectAgentActivity({
       autoSearchActiveAgentUuid: true,
       deepResearchActiveAgentUuid: true,
       synthesisActiveAgentUuid: true,
+      paperFeedActiveAgentUuid: true,
     },
   });
   if (!project) {
@@ -96,8 +99,18 @@ export async function getProjectAgentActivity({
     synthesisAgentUuids.push(project.synthesisActiveAgentUuid);
   }
 
+  const paperFeedAgentUuids: string[] = [];
+  if (project.paperFeedActiveAgentUuid) {
+    paperFeedAgentUuids.push(project.paperFeedActiveAgentUuid);
+  }
+
   const allAgentUuids = Array.from(
-    new Set([...experimentAgentUuids, ...relatedWorksAgentUuids, ...synthesisAgentUuids])
+    new Set([
+      ...experimentAgentUuids,
+      ...relatedWorksAgentUuids,
+      ...synthesisAgentUuids,
+      ...paperFeedAgentUuids,
+    ])
   );
   if (allAgentUuids.length === 0) {
     return { ...EMPTY_ACTIVITY };
@@ -126,5 +139,6 @@ export async function getProjectAgentActivity({
     relatedWorks: pick(relatedWorksAgentUuids),
     insights: pick(synthesisAgentUuids),
     documents: [],
+    paperFeeds: pick(paperFeedAgentUuids),
   };
 }

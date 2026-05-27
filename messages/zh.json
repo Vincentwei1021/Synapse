@@ -134,6 +134,7 @@
     "openMenu": "打开菜单",
     "agents": "智能体",
     "relatedWorks": "相关文献",
+    "paperFeeds": "论文订阅",
     "projectSettings": "项目设置",
     "autoBadge": "AUTO"
   },
@@ -179,6 +180,40 @@
     "defaultSearchPrompt": "",
     "defaultDeepResearchPrompt": "",
     "addPaperError": "添加论文失败。如果无法自动获取，请手动填写标题。"
+  },
+  "paperFeeds": {
+    "title": "论文订阅",
+    "description": "已分配的 Agent 每天审阅 HuggingFace 每日论文，挑出与本项目相关的内容。",
+    "status": {
+      "disabled": "未启用",
+      "active": "已启用 — 每日运行",
+      "running": "运行中…"
+    },
+    "actions": {
+      "enable": "启用",
+      "disable": "停用",
+      "runNow": "立即运行",
+      "addToRelatedWorks": "加入相关文献",
+      "promoted": "已添加",
+      "openArxiv": "查看 arXiv ↗",
+      "retry": "重试",
+      "dismiss": "关闭"
+    },
+    "lastRun": "最近一次：{date} · 相关 {count} 篇 · {status}",
+    "emptyDay": "{date} · 今日无相关论文",
+    "emptyState": {
+      "title": "启用论文订阅",
+      "body": "选择一个 OpenClaw Agent，它会每天审阅昨日的 HuggingFace 每日论文，挑出与本项目相关的内容，并附上要点和相关性说明。",
+      "cta": "启用论文订阅"
+    },
+    "agentPicker": {
+      "title": "选择 Agent",
+      "description": "只有具备 paper_feeds 角色的 OpenClaw Agent 可被分配。",
+      "confirm": "启用",
+      "cancel": "取消"
+    },
+    "failedBanner": "{date} 的运行失败：{reason}",
+    "groupHeader": "{date} · 相关 {count} 篇"
   },
   "priority": {
     "immediate": "立即执行",
