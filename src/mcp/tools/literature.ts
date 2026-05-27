@@ -8,6 +8,7 @@ import * as notificationService from "@/services/notification.service";
 import { updateResearchProject } from "@/services/research-project.service";
 import { eventBus } from "@/lib/event-bus";
 import { saveProjectSynthesisDocument } from "@/services/project-synthesis.service";
+import { registerPaperFeedTools } from "@/mcp/tools/paper-feeds";
 
 const TASK_TYPE_FIELDS = {
   auto_search: { activeField: "autoSearchActiveAgentUuid", notificationAction: "auto_search_completed" },
@@ -480,4 +481,6 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
       return { content: [{ type: "text" as const, text: JSON.stringify({ cleared: true }) }] };
     }
   );
+
+  registerPaperFeedTools(server, auth);
 }
