@@ -22,6 +22,24 @@ export interface TriggerPaperFeedRunInput {
   feedDate: string;
 }
 
+export interface PaperFeedItemInput {
+  paperId: string;
+  title: string;
+  authors: string;
+  abstract: string;
+  paperUrl: string;
+  summary: string;
+  relevanceNote: string;
+  arxivId?: string;
+}
+
+/**
+ * Stale-run reap threshold. A run still in `running` after this much time has
+ * elapsed since `startedAt` is treated as crashed/disconnected and forced to
+ * `failed` by `reapStalePaperFeedRuns`.
+ */
+const STALE_RUN_MS = 30 * 60 * 1000;
+
 // ===== Service Methods =====
 
 /**
@@ -171,4 +189,178 @@ export async function triggerPaperFeedRun(
   });
 
   return { runUuid, reused: false };
+}
+
+/**
+ * Record a batch of feed items against an in-flight run.
+ * Dedups by composite unique `(researchProjectUuid, paperId)`. The first call
+ * for a `pending` run also transitions it to `running` so the UI reflects
+ * progress while the agent continues writing items.
+ */
+export async function recordPaperFeedItems(input: {
+  companyUuid: string;
+  researchProjectUuid: string;
+  feedRunUuid: string;
+  items: PaperFeedItemInput[];
+}): Promise<{ inserted: number; skipped: number }> {
+  const run = await prisma.paperFeedRun.findUnique({
+    where: { uuid: input.feedRunUuid },
+    select: { feedDate: true, status: true },
+  });
+  if (!run) {
+    throw new Error("Paper feed run not found");
+  }
+
+  let inserted = 0;
+  let skipped = 0;
+
+  for (const item of input.items) {
+    const existing = await prisma.paperFeedItem.findUnique({
+      where: {
+        researchProjectUuid_paperId: {
+          researchProjectUuid: input.researchProjectUuid,
+          paperId: item.paperId,
+        },
+      },
+    });
+    if (existing) {
+      skipped++;
+      continue;
+    }
+    await prisma.paperFeedItem.create({
+      data: {
+        companyUuid: input.companyUuid,
+        researchProjectUuid: input.researchProjectUuid,
+        feedRunUuid: input.feedRunUuid,
+        feedDate: run.feedDate,
+        paperId: item.paperId,
+        arxivId: item.arxivId ?? item.paperId,
+        title: item.title,
+        authors: item.authors,
+        abstract: item.abstract,
+        paperUrl: item.paperUrl,
+        summary: item.summary,
+        relevanceNote: item.relevanceNote,
+      },
+    });
+    inserted++;
+  }
+
+  if (run.status === "pending") {
+    await prisma.paperFeedRun.update({
+      where: { uuid: input.feedRunUuid },
+      data: { status: "running" },
+    });
+  }
+
+  return { inserted, skipped };
+}
+
+/**
+ * Mark a paper feed run as completed or failed. Clears the project's
+ * `paperFeedActive*` flags, stamps `paperFeedLastRunAt`, and notifies the
+ * agent owner (if any) with the appropriate action.
+ */
+export async function completePaperFeedRun(input: {
+  feedRunUuid: string;
+  status: "completed" | "failed";
+  errorMessage?: string;
+}): Promise<void> {
+  const run = await prisma.paperFeedRun.findUnique({
+    where: { uuid: input.feedRunUuid },
+    select: {
+      uuid: true,
+      companyUuid: true,
+      researchProjectUuid: true,
+      agentUuid: true,
+      feedDate: true,
+    },
+  });
+  if (!run) {
+    throw new Error("Paper feed run not found");
+  }
+
+  const paperCount = await prisma.paperFeedItem.count({
+    where: { feedRunUuid: run.uuid },
+  });
+
+  await prisma.paperFeedRun.update({
+    where: { uuid: run.uuid },
+    data: {
+      status: input.status,
+      completedAt: new Date(),
+      paperCount,
+      errorMessage: input.status === "failed" ? input.errorMessage ?? null : null,
+    },
+  });
+
+  await prisma.researchProject.update({
+    where: { uuid: run.researchProjectUuid },
+    data: {
+      paperFeedActiveAgentUuid: null,
+      paperFeedStartedAt: null,
+      paperFeedLastRunAt: new Date(),
+    },
+  });
+
+  const project = await prisma.researchProject.findUnique({
+    where: { uuid: run.researchProjectUuid },
+    select: { name: true },
+  });
+  const agent = await prisma.agent.findUnique({
+    where: { uuid: run.agentUuid },
+    select: { ownerUuid: true, name: true },
+  });
+
+  if (agent?.ownerUuid) {
+    const feedDateStr = run.feedDate.toISOString().slice(0, 10);
+    const message =
+      input.status === "completed"
+        ? `Paper Feed for ${feedDateStr} ready: ${paperCount} relevant papers.`
+        : `Paper Feed for ${feedDateStr} failed${
+            input.errorMessage ? `: ${input.errorMessage}` : "."
+          }`;
+    await notificationService.create({
+      companyUuid: run.companyUuid,
+      researchProjectUuid: run.researchProjectUuid,
+      recipientType: "user",
+      recipientUuid: agent.ownerUuid,
+      entityType: "paper_feed_run",
+      entityUuid: run.uuid,
+      entityTitle: project?.name ?? "",
+      projectName: project?.name ?? "",
+      action:
+        input.status === "completed"
+          ? "paper_feed_completed"
+          : "paper_feed_failed",
+      message,
+      actorType: "agent",
+      actorUuid: run.agentUuid,
+      actorName: agent.name ?? "Agent",
+    });
+  }
+}
+
+/**
+ * Find runs stuck in `running` longer than `STALE_RUN_MS` and force them to
+ * `failed` via `completePaperFeedRun`. Used by the cron tick to recover from
+ * crashed agents or disconnected sessions.
+ */
+export async function reapStalePaperFeedRuns(): Promise<number> {
+  const cutoff = new Date(Date.now() - STALE_RUN_MS);
+  const stale = await prisma.paperFeedRun.findMany({
+    where: {
+      status: "running",
+      startedAt: { lt: cutoff },
+    },
+    select: { uuid: true },
+  });
+  for (const row of stale) {
+    await completePaperFeedRun({
+      feedRunUuid: row.uuid,
+      status: "failed",
+      errorMessage: "timeout",
+    });
+  }
+  return stale.length;
 }
