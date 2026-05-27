@@ -7,5 +7,8 @@ export async function register() {
 
     const { restoreEnabledTelemetry } = await import("./services/gpu-telemetry.service");
     void restoreEnabledTelemetry();
+
+    const { startPaperFeedScheduler } = await import("./services/paper-feed-scheduler");
+    startPaperFeedScheduler();
   }
 }
