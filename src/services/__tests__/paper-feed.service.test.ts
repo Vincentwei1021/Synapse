@@ -22,7 +22,12 @@ const mockPrisma = vi.hoisted(() => ({
     findFirst: vi.fn(),
     findMany: vi.fn(),
     create: vi.fn(),
+    update: vi.fn(),
     count: vi.fn(),
+  },
+  relatedWork: {
+    findUnique: vi.fn(),
+    create: vi.fn(),
   },
 }));
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
@@ -40,6 +45,8 @@ import {
   recordPaperFeedItems,
   completePaperFeedRun,
   reapStalePaperFeedRuns,
+  listPaperFeedItems,
+  promoteFeedItemToRelatedWork,
 } from "@/services/paper-feed.service";
 
 const COMPANY = "company-1";
@@ -596,6 +603,175 @@ describe("paper-feed.service", () => {
           errorMessage: "timeout",
         },
       });
+    });
+  });
+
+  describe("listPaperFeedItems", () => {
+    it("groups items by feedDate in descending order", async () => {
+      const date26 = new Date("2026-05-26T00:00:00.000Z");
+      const date25 = new Date("2026-05-25T00:00:00.000Z");
+      mockPrisma.paperFeedItem.findMany.mockResolvedValue([
+        {
+          uuid: "item-1",
+          feedDate: date26,
+          paperId: "p1",
+          arxivId: "2401.A",
+          title: "Paper One",
+          authors: "Alice",
+          abstract: "Abs 1",
+          paperUrl: "https://example.com/p1",
+          summary: "Sum 1",
+          relevanceNote: "Rel 1",
+          relatedWorkUuid: null,
+        },
+        {
+          uuid: "item-2",
+          feedDate: date26,
+          paperId: "p2",
+          arxivId: null,
+          title: "Paper Two",
+          authors: "Bob",
+          abstract: "Abs 2",
+          paperUrl: "https://example.com/p2",
+          summary: "Sum 2",
+          relevanceNote: "Rel 2",
+          relatedWorkUuid: "rw-2",
+        },
+        {
+          uuid: "item-3",
+          feedDate: date25,
+          paperId: "p3",
+          arxivId: "2401.B",
+          title: "Paper Three",
+          authors: "Carol",
+          abstract: "Abs 3",
+          paperUrl: "https://example.com/p3",
+          summary: "Sum 3",
+          relevanceNote: "Rel 3",
+          relatedWorkUuid: null,
+        },
+      ]);
+
+      const result = await listPaperFeedItems({
+        companyUuid: COMPANY,
+        researchProjectUuid: PROJECT,
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result[0].feedDate).toBe("2026-05-26");
+      expect(result[0].items).toHaveLength(2);
+      expect(result[0].items[0].uuid).toBe("item-1");
+      expect(result[0].items[1].uuid).toBe("item-2");
+      expect(result[1].feedDate).toBe("2026-05-25");
+      expect(result[1].items).toHaveLength(1);
+      expect(result[1].items[0].uuid).toBe("item-3");
+
+      expect(mockPrisma.paperFeedItem.findMany).toHaveBeenCalledWith({
+        where: { companyUuid: COMPANY, researchProjectUuid: PROJECT },
+        orderBy: [{ feedDate: "desc" }, { createdAt: "asc" }],
+      });
+    });
+  });
+
+  describe("promoteFeedItemToRelatedWork", () => {
+    it("creates a RelatedWork from the feed item and back-links", async () => {
+      mockPrisma.paperFeedItem.findFirst.mockResolvedValue({
+        uuid: "item-1",
+        companyUuid: COMPANY,
+        researchProjectUuid: PROJECT,
+        title: "Paper One",
+        authors: "Alice",
+        abstract: "Abs 1",
+        paperUrl: "https://hf/p",
+        arxivId: "2401.A",
+        relevanceNote: "matches dataset Y",
+        relatedWorkUuid: null,
+      });
+      mockPrisma.relatedWork.create.mockResolvedValue({
+        uuid: "rw-1",
+        companyUuid: COMPANY,
+        researchProjectUuid: PROJECT,
+        title: "Paper One",
+        authors: "Alice",
+        abstract: "Abs 1",
+        url: "https://hf/p",
+        arxivId: "2401.A",
+        source: "paper_feeds",
+        addedBy: "user",
+        addedNote: "matches dataset Y",
+      });
+      mockPrisma.paperFeedItem.update.mockResolvedValue({});
+
+      const result = await promoteFeedItemToRelatedWork({
+        companyUuid: COMPANY,
+        paperFeedItemUuid: "item-1",
+      });
+
+      expect(mockPrisma.relatedWork.create).toHaveBeenCalledWith({
+        data: {
+          companyUuid: COMPANY,
+          researchProjectUuid: PROJECT,
+          title: "Paper One",
+          authors: "Alice",
+          abstract: "Abs 1",
+          url: "https://hf/p",
+          arxivId: "2401.A",
+          source: "paper_feeds",
+          addedBy: "user",
+          addedNote: "matches dataset Y",
+        },
+      });
+
+      expect(mockPrisma.paperFeedItem.update).toHaveBeenCalledWith({
+        where: { uuid: "item-1" },
+        data: { relatedWorkUuid: "rw-1" },
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          uuid: "rw-1",
+          source: "paper_feeds",
+          addedNote: "matches dataset Y",
+          arxivId: "2401.A",
+          addedBy: "user",
+        })
+      );
+    });
+
+    it("is idempotent when item is already promoted", async () => {
+      mockPrisma.paperFeedItem.findFirst.mockResolvedValue({
+        uuid: "item-1",
+        companyUuid: COMPANY,
+        researchProjectUuid: PROJECT,
+        title: "Paper One",
+        authors: "Alice",
+        abstract: "Abs 1",
+        paperUrl: "https://hf/p",
+        arxivId: "2401.A",
+        relevanceNote: "matches dataset Y",
+        relatedWorkUuid: "rw-existing",
+      });
+      const existingRw = {
+        uuid: "rw-existing",
+        companyUuid: COMPANY,
+        researchProjectUuid: PROJECT,
+        title: "Paper One",
+        source: "paper_feeds",
+        addedNote: "matches dataset Y",
+      };
+      mockPrisma.relatedWork.findUnique.mockResolvedValue(existingRw);
+
+      const result = await promoteFeedItemToRelatedWork({
+        companyUuid: COMPANY,
+        paperFeedItemUuid: "item-1",
+      });
+
+      expect(mockPrisma.relatedWork.findUnique).toHaveBeenCalledWith({
+        where: { uuid: "rw-existing" },
+      });
+      expect(mockPrisma.relatedWork.create).not.toHaveBeenCalled();
+      expect(mockPrisma.paperFeedItem.update).not.toHaveBeenCalled();
+      expect(result).toBe(existingRw);
     });
   });
 });

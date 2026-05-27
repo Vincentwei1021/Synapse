@@ -33,6 +33,22 @@ export interface PaperFeedItemInput {
   arxivId?: string;
 }
 
+export interface ListedPaperFeedDay {
+  feedDate: string; // YYYY-MM-DD
+  items: Array<{
+    uuid: string;
+    paperId: string;
+    arxivId: string | null;
+    title: string;
+    authors: string;
+    abstract: string;
+    paperUrl: string;
+    summary: string;
+    relevanceNote: string;
+    relatedWorkUuid: string | null;
+  }>;
+}
+
 /**
  * Stale-run reap threshold. A run still in `running` after this much time has
  * elapsed since `startedAt` is treated as crashed/disconnected and forced to
@@ -363,4 +379,118 @@ export async function reapStalePaperFeedRuns(): Promise<number> {
     });
   }
   return stale.length;
+}
+
+/**
+ * List paper feed items for a project, grouped by feedDate. The outer array is
+ * sorted by feedDate descending; items within each day preserve insertion
+ * order (createdAt asc) so the UI can render the day list as written.
+ */
+export async function listPaperFeedItems(input: {
+  companyUuid: string;
+  researchProjectUuid: string;
+  fromDate?: string; // YYYY-MM-DD
+  toDate?: string; // YYYY-MM-DD
+}): Promise<ListedPaperFeedDay[]> {
+  const where: {
+    companyUuid: string;
+    researchProjectUuid: string;
+    feedDate?: { gte?: Date; lte?: Date };
+  } = {
+    companyUuid: input.companyUuid,
+    researchProjectUuid: input.researchProjectUuid,
+  };
+  if (input.fromDate || input.toDate) {
+    where.feedDate = {};
+    if (input.fromDate) {
+      where.feedDate.gte = new Date(`${input.fromDate}T00:00:00.000Z`);
+    }
+    if (input.toDate) {
+      where.feedDate.lte = new Date(`${input.toDate}T00:00:00.000Z`);
+    }
+  }
+
+  const rows = await prisma.paperFeedItem.findMany({
+    where,
+    orderBy: [{ feedDate: "desc" }, { createdAt: "asc" }],
+  });
+
+  const days: ListedPaperFeedDay[] = [];
+  const byDate = new Map<string, ListedPaperFeedDay>();
+  for (const row of rows) {
+    const key = row.feedDate.toISOString().slice(0, 10);
+    let day = byDate.get(key);
+    if (!day) {
+      day = { feedDate: key, items: [] };
+      byDate.set(key, day);
+      days.push(day);
+    }
+    day.items.push({
+      uuid: row.uuid,
+      paperId: row.paperId,
+      arxivId: row.arxivId,
+      title: row.title,
+      authors: row.authors,
+      abstract: row.abstract,
+      paperUrl: row.paperUrl,
+      summary: row.summary,
+      relevanceNote: row.relevanceNote,
+      relatedWorkUuid: row.relatedWorkUuid,
+    });
+  }
+  return days;
+}
+
+/**
+ * Promote a paper feed item into a `RelatedWork` row on the same project. The
+ * feed item's `relevanceNote` becomes the related-work `addedNote`, and the
+ * back-pointer (`paperFeedItem.relatedWorkUuid`) is set so subsequent calls
+ * are idempotent.
+ */
+export async function promoteFeedItemToRelatedWork(input: {
+  companyUuid: string;
+  paperFeedItemUuid: string;
+}) {
+  const item = await prisma.paperFeedItem.findFirst({
+    where: {
+      uuid: input.paperFeedItemUuid,
+      companyUuid: input.companyUuid,
+    },
+  });
+  if (!item) {
+    throw new Error("Paper feed item not found");
+  }
+
+  if (item.relatedWorkUuid) {
+    const existing = await prisma.relatedWork.findUnique({
+      where: { uuid: item.relatedWorkUuid },
+    });
+    if (existing) {
+      return existing;
+    }
+    // Back-pointer is dangling (RelatedWork was deleted). Fall through and
+    // recreate so the project still gets a RelatedWork row.
+  }
+
+  const rw = await prisma.relatedWork.create({
+    data: {
+      companyUuid: item.companyUuid,
+      researchProjectUuid: item.researchProjectUuid,
+      title: item.title,
+      authors: item.authors,
+      abstract: item.abstract,
+      url: item.paperUrl,
+      arxivId: item.arxivId,
+      source: "paper_feeds",
+      addedBy: "user",
+      addedNote: item.relevanceNote,
+    },
+  });
+
+  await prisma.paperFeedItem.update({
+    where: { uuid: item.uuid },
+    data: { relatedWorkUuid: rw.uuid },
+  });
+
+  return rw;
 }
