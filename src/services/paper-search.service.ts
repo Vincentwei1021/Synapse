@@ -148,9 +148,23 @@ interface DeepXivSearchResult {
   citation_count?: number;
 }
 
+export type DeepXivDateSearchType = "exact" | "after" | "before" | "between";
+
+export interface DeepXivDateFilter {
+  /** "exact" / "after" / "before" / "between". For "between", pass two values in `dateStr`. */
+  dateSearchType: DeepXivDateSearchType;
+  /** YYYY / YYYY-MM / YYYY-MM-DD. Pass two-element tuple for "between". */
+  dateStr: string | [string, string];
+}
+
+export interface SearchPapersOptions {
+  dateFilter?: DeepXivDateFilter;
+}
+
 export async function searchDeepXiv(
   query: string,
   limit: number,
+  options: SearchPapersOptions = {},
 ): Promise<PaperResult[]> {
   const params = new URLSearchParams({
     type: "retrieve",
@@ -158,6 +172,17 @@ export async function searchDeepXiv(
     size: String(limit),
     search_mode: "hybrid",
   });
+  if (options.dateFilter) {
+    params.set("date_search_type", options.dateFilter.dateSearchType);
+    const ds = options.dateFilter.dateStr;
+    if (Array.isArray(ds)) {
+      // DeepXiv expects two `date_str` entries for "between"
+      params.append("date_str", ds[0]);
+      params.append("date_str", ds[1]);
+    } else {
+      params.set("date_str", ds);
+    }
+  }
   const url = `${DEEPXIV_BASE}?${params}`;
 
   const resp = await fetchWithRetry(url, { headers: await deepxivHeaders() });
@@ -523,12 +548,15 @@ export function deduplicatePapers(papers: PaperResult[]): PaperResult[] {
 export async function searchPapers(
   query: string,
   limit: number = 10,
+  options: SearchPapersOptions = {},
 ): Promise<PaperResult[]> {
   // Try DeepXiv first
-  let results = await searchDeepXiv(query, limit);
+  let results = await searchDeepXiv(query, limit, options);
 
-  // Fall back to arXiv if DeepXiv returned nothing
-  if (results.length === 0) {
+  // Fall back to arXiv only when no date filter is requested. The arXiv
+  // Atom search has no equivalent date predicate, so silently falling back
+  // would return papers outside the requested window.
+  if (results.length === 0 && !options.dateFilter) {
     results = await searchArxiv(query, limit);
   }
 

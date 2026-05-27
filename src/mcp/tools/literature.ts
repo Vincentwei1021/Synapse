@@ -25,16 +25,31 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
   server.registerTool(
     "synapse_search_papers",
     {
-      description: "Search for academic papers. Uses DeepXiv hybrid search (BM25 + vector) over arXiv, with arXiv API as fallback. Returns titles, abstracts, authors, and URLs.",
+      description:
+        "Search for academic papers. Uses DeepXiv hybrid search (BM25 + vector) over arXiv (T+0 daily sync), with arXiv API as fallback. Returns titles, abstracts, authors, and URLs. Optional publication-date filter via `dateSearchType` + `dateStr` — useful for 'papers published today / yesterday / in a window'. When a date filter is supplied, results come exclusively from DeepXiv (no arXiv fallback, since arXiv search has no equivalent date predicate).",
       inputSchema: z.object({
         query: z.string().describe("Search query, e.g. 'speech recognition Chinese accent'"),
         limit: z.number().int().min(1).max(20).default(10),
+        dateSearchType: z
+          .enum(["exact", "after", "before", "between"])
+          .optional()
+          .describe("Optional DeepXiv publication-date filter mode."),
+        dateStr: z
+          .union([z.string(), z.tuple([z.string(), z.string()])])
+          .optional()
+          .describe(
+            "Date for the filter — 'YYYY', 'YYYY-MM', or 'YYYY-MM-DD'. Pass a [start, end] tuple when dateSearchType='between'.",
+          ),
       }),
     },
-    async ({ query, limit }) => {
+    async ({ query, limit, dateSearchType, dateStr }) => {
       try {
         const { searchPapers } = await import("@/services/paper-search.service");
-        const papers = await searchPapers(query, limit);
+        const dateFilter =
+          dateSearchType && dateStr !== undefined
+            ? { dateSearchType, dateStr }
+            : undefined;
+        const papers = await searchPapers(query, limit, { dateFilter });
         return {
           content: [{ type: "text" as const, text: JSON.stringify({ papers }, null, 2) }],
         };
