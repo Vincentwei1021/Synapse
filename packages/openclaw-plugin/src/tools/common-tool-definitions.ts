@@ -788,6 +788,80 @@ export const commonToolDefinitions = defineOpenClawTools([
     },
     targetToolName: "synapse_read_paper_full",
   }),
+  createPassthroughTool<{ date: string }>({
+    name: "synapse_get_huggingface_daily_papers",
+    description: "Fetch HuggingFace Daily Papers for a specific date (YYYY-MM-DD).",
+    parameters: {
+      type: "object",
+      properties: { date: { type: "string", description: "YYYY-MM-DD (UTC)" } },
+      required: ["date"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_get_huggingface_daily_papers",
+  }),
+  createPassthroughTool<{
+    feedRunUuid: string;
+    items: Array<{
+      paperId: string; title: string; authors: string; abstract: string;
+      paperUrl: string; summary: string; relevanceNote: string; arxivId?: string;
+    }>;
+  }>({
+    name: "synapse_record_paper_feed_items",
+    description: "Persist relevant papers for a Paper Feeds run.",
+    parameters: {
+      type: "object",
+      properties: {
+        feedRunUuid: { type: "string" },
+        items: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              paperId: { type: "string" },
+              title: { type: "string" },
+              authors: { type: "string" },
+              abstract: { type: "string" },
+              paperUrl: { type: "string" },
+              summary: { type: "string" },
+              relevanceNote: { type: "string" },
+              arxivId: { type: "string" },
+            },
+            required: ["paperId", "title", "authors", "abstract", "paperUrl", "summary", "relevanceNote"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["feedRunUuid", "items"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_record_paper_feed_items",
+  }),
+  createPassthroughTool<{ feedRunUuid: string; status: "completed" | "failed"; errorMessage?: string }>({
+    name: "synapse_complete_paper_feed_run",
+    description: "Terminate a Paper Feeds run.",
+    parameters: {
+      type: "object",
+      properties: {
+        feedRunUuid: { type: "string" },
+        status: { type: "string", enum: ["completed", "failed"] },
+        errorMessage: { type: "string" },
+      },
+      required: ["feedRunUuid", "status"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_complete_paper_feed_run",
+  }),
+  createPassthroughTool<{ feedRunUuid: string }>({
+    name: "synapse_get_paper_feed_run",
+    description: "Read a Paper Feeds run's context.",
+    parameters: {
+      type: "object",
+      properties: { feedRunUuid: { type: "string" } },
+      required: ["feedRunUuid"],
+      additionalProperties: false,
+    },
+    targetToolName: "synapse_get_paper_feed_run",
+  }),
 
   // =========================================================================
   // Task Completion

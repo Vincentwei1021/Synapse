@@ -232,6 +232,9 @@ export class SynapseEventRouter {
         case "experiment_revision_requested":
           this.handleExperimentRevisionRequested(notification);
           break;
+        case "paper_feed_triggered":
+          this.handlePaperFeedTriggered(notification);
+          break;
         default:
           this.logger.info(`Unhandled notification action: "${notification.action}"`);
           break;
@@ -620,6 +623,43 @@ Steps:
       notificationUuid: n.uuid,
       action: "auto_search_triggered",
       entityUuid: n.entityUuid,
+      projectUuid,
+      timeoutSeconds: 600,
+    });
+  }
+
+  private handlePaperFeedTriggered(n: NotificationDetail): void {
+    const projectUuid = n.projectUuid ?? n.researchProjectUuid ?? "";
+    const feedRunUuid = n.entityUuid;
+    const feedDate = n.message; // service sets this to YYYY-MM-DD
+
+    const prompt = `[Synapse] Paper Feed run for project "${n.entityTitle}" (projectUuid: ${projectUuid}, feedRunUuid: ${feedRunUuid}, feedDate: ${feedDate}).
+
+You may ONLY use these Synapse tools for this task:
+- synapse_get_project_full_context
+- synapse_get_huggingface_daily_papers
+- synapse_record_paper_feed_items
+- synapse_complete_paper_feed_run
+
+Steps:
+1. Call synapse_get_project_full_context with researchProjectUuid "${projectUuid}". Read the brief, datasets, evaluation methods, all experiments (including their result documents), and existing related works. Build a concrete picture of: the project's domain and goal; techniques the project IS using or HAS used (from experiments + result docs); techniques the project COULD use (open ablations, deferred ideas, related-work topics).
+
+2. Call synapse_get_huggingface_daily_papers with date "${feedDate}". You receive a list of papers with title, authors, abstract, arxivId, paperUrl.
+
+3. For EACH paper, judge relevance against the project context using the abstract alone (no extra fetches). A paper is relevant if it touches a technique the project uses, has used, or could plausibly use — methods, datasets, evaluation strategies, or directly comparable results. Borderline ties go to NOT relevant; this feed is high-precision.
+
+4. For every relevant paper, write:
+   - summary: 2–4 sentences in plain language describing what the paper does and its main contribution.
+   - relevanceNote: 1–3 sentences naming the SPECIFIC technique / dataset / evaluation overlap with the project. Cite the project artifact (experiment title, dataset name) the paper connects to.
+
+5. Call synapse_record_paper_feed_items ONCE with feedRunUuid "${feedRunUuid}" and the full batch.
+
+6. REQUIRED: Call synapse_complete_paper_feed_run with feedRunUuid "${feedRunUuid}" and status "completed". On unrecoverable error, call it with status "failed" and a short errorMessage instead.`;
+
+    this.triggerAgent(prompt, {
+      notificationUuid: n.uuid,
+      action: "paper_feed_triggered",
+      entityUuid: feedRunUuid,
       projectUuid,
       timeoutSeconds: 600,
     });
