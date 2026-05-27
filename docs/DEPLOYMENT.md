@@ -151,3 +151,13 @@ Auth cookies use `Secure` flag in production, so HTTPS is required.
 See [README — Connect AI Agents](../README.md#connect-ai-agents) for OpenClaw and Claude Code plugin setup.
 
 Agent API keys (`syn_*` prefix) are created in the Agents page. Each key is scoped to a user and company.
+
+### Paper Feeds daily cron
+
+Set `SYNAPSE_CRON_TOKEN` in `.env` to a long random value. Add one line to the
+synapse host's crontab to fire daily:
+
+    0 9 * * *  curl -fsS -H "X-Synapse-Cron-Token: $SYNAPSE_CRON_TOKEN" https://<your-host>/api/cron/paper-feeds-tick
+
+This dispatches one Paper Feeds agent run per enabled project for the previous
+day's HuggingFace Daily Papers.
