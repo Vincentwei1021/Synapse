@@ -152,12 +152,22 @@ See [README — Connect AI Agents](../README.md#connect-ai-agents) for OpenClaw 
 
 Agent API keys (`syn_*` prefix) are created in the Agents page. Each key is scoped to a user and company.
 
-### Paper Feeds daily cron
+### Paper Feeds daily scheduling
 
-Set `SYNAPSE_CRON_TOKEN` in `.env` to a long random value. Add one line to the
-synapse host's crontab to fire daily:
+Paper Feeds runs an in-process scheduler that ticks every 10 minutes and, after
+09:00 UTC, fans out one agent run per enabled project for the previous day's
+HuggingFace Daily Papers. No host crontab or external trigger is required —
+enabling Paper Feeds on a project from the UI is enough.
 
-    0 9 * * *  curl -fsS -H "X-Synapse-Cron-Token: $SYNAPSE_CRON_TOKEN" https://<your-host>/api/cron/paper-feeds-tick
+Optional environment variables:
 
-This dispatches one Paper Feeds agent run per enabled project for the previous
-day's HuggingFace Daily Papers.
+- `PAPER_FEEDS_TRIGGER_HOUR_UTC` — hour-of-day (0–23, UTC) before which the
+  scheduler waits to fire each day's runs. Default: `9`.
+- `PAPER_FEEDS_DISABLE_SCHEDULER=1` — disables the in-process scheduler.
+  Useful for offline build steps and tests.
+
+A `POST /api/cron/paper-feeds-tick` endpoint also exists for ad-hoc external
+triggering. It accepts the same `X-Synapse-Cron-Token` header (set
+`SYNAPSE_CRON_TOKEN` in `.env`) and runs the same fan-out logic as a single
+in-process tick. Use it only if you've explicitly disabled the in-process
+scheduler or need to force a tick from outside the process.
