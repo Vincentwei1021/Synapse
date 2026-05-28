@@ -952,6 +952,7 @@
       "research": "研究",
       "experiment": "实验",
       "report": "报告",
+      "paperFeeds": "论文订阅",
       "admin": "管理员",
       "adminDesc": "创建/删除项目、管理分组、审核研究问题"
     },
@@ -1815,6 +1816,7 @@
       "roleResearch": "研究问题",
       "roleExperiment": "实验",
       "roleReport": "报告",
+      "rolePaperFeeds": "论文订阅",
       "roleAdmin": "管理员",
       "createAgent": "创建 Agent"
     },

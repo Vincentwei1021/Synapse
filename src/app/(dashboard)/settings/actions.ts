@@ -77,7 +77,7 @@ interface CreateAgentKeyInput {
   color?: string | null;
 }
 
-const VALID_AGENT_ROLES = new Set(["pre_research", "research", "experiment", "report", "admin"]);
+const VALID_AGENT_ROLES = new Set(["pre_research", "research", "experiment", "report", "paper_feeds", "admin"]);
 
 export async function createAgentAndKeyAction(input: CreateAgentKeyInput): Promise<{
   success: boolean;

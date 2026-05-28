@@ -80,12 +80,12 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   }
 
   // Validate roles
-  const validRoles = ["pre_research", "research", "experiment", "report", "admin"];
+  const validRoles = ["pre_research", "research", "experiment", "report", "paper_feeds", "admin"];
   const roles = body.roles || ["research"];
   for (const role of roles) {
     if (!validRoles.includes(role)) {
       return errors.validationError({
-        roles: "Roles must be pre_research, research, experiment, report, or admin",
+        roles: "Roles must be pre_research, research, experiment, report, paper_feeds, or admin",
       });
     }
   }

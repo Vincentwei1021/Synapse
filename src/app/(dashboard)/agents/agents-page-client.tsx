@@ -84,7 +84,7 @@ interface ApiKeyEntry {
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const ROLES = ["pre_research", "research", "experiment", "report", "admin"] as const;
+const ROLES = ["pre_research", "research", "experiment", "report", "paper_feeds", "admin"] as const;
 type Role = (typeof ROLES)[number];
 
 const ROLE_BADGE_CLASSES: Record<string, string> = {
@@ -96,6 +96,8 @@ const ROLE_BADGE_CLASSES: Record<string, string> = {
     "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
   report:
     "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+  paper_feeds:
+    "bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300",
   admin:
     "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
 };
@@ -105,6 +107,7 @@ const ROLE_I18N_KEY: Record<string, string> = {
   research: "agents.permissions.research",
   experiment: "agents.permissions.experiment",
   report: "agents.permissions.report",
+  paper_feeds: "agents.permissions.paperFeeds",
   admin: "agents.permissions.admin",
 };
 
