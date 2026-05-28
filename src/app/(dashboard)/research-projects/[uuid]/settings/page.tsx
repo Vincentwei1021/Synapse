@@ -30,6 +30,7 @@ export default async function ProjectSettingsPage({ params }: PageProps) {
         autoSearchActiveAgentUuid: true,
         deepResearchActiveAgentUuid: true,
         synthesisActiveAgentUuid: true,
+        paperFeedActiveAgentUuid: true,
         experiments: {
           select: { uuid: true, title: true, status: true },
           orderBy: { createdAt: "desc" },
@@ -62,6 +63,7 @@ export default async function ProjectSettingsPage({ params }: PageProps) {
     autoSearchActive: !!project.autoSearchActiveAgentUuid,
     deepResearchActive: !!project.deepResearchActiveAgentUuid,
     synthesisActive: !!project.synthesisActiveAgentUuid,
+    paperFeedActive: !!project.paperFeedActiveAgentUuid,
     experiments: project.experiments,
     documents: project.documents,
     researchQuestions: project.researchQuestions,

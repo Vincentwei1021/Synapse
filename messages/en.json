@@ -453,10 +453,11 @@
     "githubConfigured": "Token configured",
     "githubNotConfigured": "No token configured",
     "relatedWorksStatus": "Active Tasks",
-    "relatedWorksStatusDesc": "Reset stuck auto-search, deep research, or insights synthesis tasks",
+    "relatedWorksStatusDesc": "Reset stuck auto-search, deep research, insights synthesis, or paper feed tasks",
     "autoSearch": "Paper Search",
     "deepResearch": "Deep Research",
     "insightsSynthesis": "Insights Synthesis",
+    "paperFeed": "Paper Feeds",
     "active": "Active",
     "inactive": "Idle",
     "reset": "Reset"
