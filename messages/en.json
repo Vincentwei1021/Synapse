@@ -952,6 +952,7 @@
       "research": "Research",
       "experiment": "Experiment",
       "report": "Report",
+      "paperFeeds": "Paper Feeds",
       "admin": "Admin",
       "adminDesc": "Create/delete projects, manage groups, review research questions"
     },
@@ -1815,6 +1816,7 @@
       "roleResearch": "Research Questions",
       "roleExperiment": "Experiments",
       "roleReport": "Reports",
+      "rolePaperFeeds": "Paper Feeds",
       "roleAdmin": "Admin",
       "createAgent": "Create Agent"
     },

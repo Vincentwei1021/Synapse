@@ -19,6 +19,7 @@ const ROLES = [
   { value: "research", key: "roleResearch" },
   { value: "experiment", key: "roleExperiment" },
   { value: "report", key: "roleReport" },
+  { value: "paper_feeds", key: "rolePaperFeeds" },
   { value: "admin", key: "roleAdmin" },
 ] as const;
 
