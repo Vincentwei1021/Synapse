@@ -453,10 +453,11 @@
     "githubConfigured": "令牌已配置",
     "githubNotConfigured": "未配置令牌",
     "relatedWorksStatus": "活动任务",
-    "relatedWorksStatusDesc": "重置卡住的论文搜索、深度研究或洞察分析任务",
+    "relatedWorksStatusDesc": "重置卡住的论文搜索、深度研究、洞察分析或论文订阅任务",
     "autoSearch": "论文搜索",
     "deepResearch": "深度研究",
     "insightsSynthesis": "洞察分析",
+    "paperFeed": "论文订阅",
     "active": "进行中",
     "inactive": "空闲",
     "reset": "重置"

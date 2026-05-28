@@ -60,6 +60,7 @@ interface Project {
   autoSearchActive: boolean;
   deepResearchActive: boolean;
   synthesisActive: boolean;
+  paperFeedActive: boolean;
   experiments: Experiment[];
   documents: ProjectDocument[];
   researchQuestions: ResearchQuestion[];
@@ -136,10 +137,11 @@ export function ProjectSettingsClient({ project, pools }: ProjectSettingsClientP
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [deletingProject, setDeletingProject] = useState(false);
 
-  // Active-task reset state (Related Works + Insights)
+  // Active-task reset state (Related Works + Insights + Paper Feeds)
   const [resettingAutoSearch, setResettingAutoSearch] = useState(false);
   const [resettingDeepResearch, setResettingDeepResearch] = useState(false);
   const [resettingSynthesis, setResettingSynthesis] = useState(false);
+  const [resettingPaperFeed, setResettingPaperFeed] = useState(false);
 
   async function handleSave() {
     setSaving(true);
@@ -313,6 +315,17 @@ export function ProjectSettingsClient({ project, pools }: ProjectSettingsClientP
       // Silent fail — user can retry
     }
     setResettingSynthesis(false);
+  }
+
+  async function handleResetPaperFeed() {
+    setResettingPaperFeed(true);
+    try {
+      await fetch(`/api/research-projects/${project.uuid}/paper-feeds/reset`, { method: "POST" });
+      startTransition(() => { router.refresh(); });
+    } catch {
+      // Silent fail — user can retry
+    }
+    setResettingPaperFeed(false);
   }
 
   return (
@@ -493,6 +506,20 @@ export function ProjectSettingsClient({ project, pools }: ProjectSettingsClientP
             {project.synthesisActive && (
               <Button variant="outline" size="sm" disabled={resettingSynthesis} onClick={handleResetSynthesis}>
                 {resettingSynthesis ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {t("reset")}
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-foreground">{t("paperFeed")}</span>
+              <Badge variant={project.paperFeedActive ? "default" : "secondary"}>
+                {project.paperFeedActive ? t("active") : t("inactive")}
+              </Badge>
+            </div>
+            {project.paperFeedActive && (
+              <Button variant="outline" size="sm" disabled={resettingPaperFeed} onClick={handleResetPaperFeed}>
+                {resettingPaperFeed ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 {t("reset")}
               </Button>
             )}
