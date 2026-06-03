@@ -1,0 +1,22 @@
+{
+  "name": "synapse",
+  "version": "0.9.1",
+  "description": "Synapse research orchestration plugin for Codex. Literature search and collection via MCP; expands to the full research workflow as agent roles are granted.",
+  "author": { "name": "Vincentwei1021" },
+  "homepage": "https://github.com/Vincentwei1021/Synapse",
+  "repository": "https://github.com/Vincentwei1021/Synapse",
+  "license": "AGPL-3.0",
+  "keywords": ["synapse", "research", "mcp", "literature-search"],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks-codex.json",
+  "interface": {
+    "displayName": "Synapse",
+    "shortDescription": "Connect Codex to Synapse for paper search and research orchestration",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "defaultPrompt": [
+      "Search papers for one of my Synapse research projects.",
+      "What literature have I already collected for this project?"
+    ]
+  }
+}
