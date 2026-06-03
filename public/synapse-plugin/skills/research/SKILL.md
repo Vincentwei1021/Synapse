@@ -1,6 +1,6 @@
 ---
 name: research
-description: Work on Synapse pre-experiment research: project context, research questions, literature search, related works, and deep research reports.
+description: "Work on Synapse pre-experiment research: project context, research questions, literature search, related works, and deep research reports."
 license: AGPL-3.0
 metadata:
   author: Vincentwei1021
