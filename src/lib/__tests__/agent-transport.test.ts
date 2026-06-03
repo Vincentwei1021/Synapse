@@ -3,9 +3,10 @@ import { getAgentTransport, isRealtimeAgent, VALID_AGENT_TYPES, getTypesByTransp
 
 describe("agent-transport", () => {
   describe("VALID_AGENT_TYPES", () => {
-    it("contains openclaw and claude_code", () => {
+    it("contains openclaw, claude_code, and codex", () => {
       expect(VALID_AGENT_TYPES).toContain("openclaw");
       expect(VALID_AGENT_TYPES).toContain("claude_code");
+      expect(VALID_AGENT_TYPES).toContain("codex");
     });
   });
 
@@ -16,6 +17,10 @@ describe("agent-transport", () => {
 
     it("returns poll for claude_code", () => {
       expect(getAgentTransport("claude_code")).toBe("poll");
+    });
+
+    it("returns poll for codex", () => {
+      expect(getAgentTransport("codex")).toBe("poll");
     });
 
     it("returns poll for unknown types", () => {
@@ -32,18 +37,22 @@ describe("agent-transport", () => {
       expect(isRealtimeAgent("claude_code")).toBe(false);
     });
 
+    it("returns false for codex", () => {
+      expect(isRealtimeAgent("codex")).toBe(false);
+    });
+
     it("returns false for unknown types", () => {
       expect(isRealtimeAgent("unknown")).toBe(false);
     });
   });
 
   describe("getTypesByTransport", () => {
-    it("returns openclaw for realtime", () => {
+    it("returns only openclaw for realtime (codex must be excluded)", () => {
       expect(getTypesByTransport("realtime")).toEqual(["openclaw"]);
     });
 
-    it("returns claude_code for poll", () => {
-      expect(getTypesByTransport("poll")).toEqual(["claude_code"]);
+    it("returns claude_code and codex for poll", () => {
+      expect(getTypesByTransport("poll")).toEqual(["claude_code", "codex"]);
     });
   });
 });
