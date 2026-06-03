@@ -4,7 +4,7 @@
 
 **Goal:** Connect OpenAI Codex to Synapse for the Paper Search phase, reusing the existing `public/synapse-plugin/` assets and gating capability via the agent's `pre_research` role, structured so full Claude-Code parity is later reached by adding roles rather than rewriting.
 
-**Architecture:** One server-side line registers `codex` as a poll-transport agent type (no migration — `Agent.type` is a plain String, and `VALID_AGENT_TYPES` is derived from the transport map). Tool exposure needs no change: `src/mcp/server.ts` already registers only literature tools for a `pre_research` key. The Codex plugin shares `public/synapse-plugin/` (skills, bin, `.mcp.json`) and adds a `.codex-plugin/plugin.json` manifest plus a `hooks/hooks-codex.json` containing only Codex-supported events. The frontend exposes `codex` as a selectable agent type.
+**Architecture:** One server-side line registers `codex` as a poll-transport agent type (no migration — `Agent.type` is a plain String, and `VALID_AGENT_TYPES` is derived from the transport map). Tool exposure needs no change: `src/mcp/server.ts` already registers only literature tools for a `pre_research` key. The Codex plugin shares `public/synapse-plugin/` (skills, bin) and adds a `.codex-plugin/plugin.json` manifest plus a `hooks/hooks-codex.json` of Codex-supported events. The frontend exposes `codex` as a selectable agent type. **MCP is NOT bundled for Codex** — Codex cannot env-expand the shared `.mcp.json`, so the user configures it once via `codex mcp add` (documented in README). Codex distribution uses its own `.agents/plugins/marketplace.json` (object-form `source`), separate from Claude's `.claude-plugin/marketplace.json`. `research/SKILL.md` needs its `description` YAML-quoted (Codex's strict parser rejects bare colons that Claude tolerates).
 
 **Tech Stack:** Next.js 15 App Router, React 19, TypeScript 5, Vitest, pnpm, next-intl. Codex plugin format (`.codex-plugin/plugin.json`, `hooks/hooks.json`, MCP over HTTP).
 
@@ -16,8 +16,9 @@
 
 This plan **creates** these files:
 
-- `public/synapse-plugin/.codex-plugin/plugin.json` — Codex manifest (declares `skills` + `hooks` paths + interface)
+- `public/synapse-plugin/.codex-plugin/plugin.json` — Codex manifest (declares `skills` + `hooks` paths + interface; **no `mcpServers`**)
 - `public/synapse-plugin/hooks/hooks-codex.json` — Codex-supported event subset (SessionStart only for this phase)
+- `.agents/plugins/marketplace.json` — Codex-native marketplace (object `source` `{source:"local", path:"./public/synapse-plugin"}` + `category` + `policy`)
 
 This plan **modifies** these files:
 
@@ -28,9 +29,10 @@ This plan **modifies** these files:
 - `src/app/onboarding/step1-agent.tsx` — add the `codex` type option; widen the option grid to 3 columns
 - `messages/en.json` — add `agents.type.codex`, `agents.typeDesc.codex`, onboarding `typeCodex`/`typeCodexDesc`
 - `messages/zh.json` — same keys, Chinese
-- `.claude-plugin/marketplace.json` — verify/添加 Codex policy fields on the shared entry (distribution unknown resolved here)
+- `public/synapse-plugin/skills/research/SKILL.md` — quote the `description` value (Codex YAML strictness)
+- `README.md` / `README.zh.md` — add a Codex section: plugin install + `codex mcp add` MCP config
 
-**No file is created under `docs/` beyond this plan.** The bin scripts (`synapse-api.sh`, `on-session-start.sh`) and `.mcp.json` are reused unchanged; a verification task confirms they work for Codex rather than editing them speculatively.
+**`.mcp.json` is NOT modified and NOT used by Codex.** It stays for Claude Code (which loads it by convention). The Codex manifest does not declare `mcpServers`, and the user's `codex mcp add` config takes precedence over the same-named bundled entry. The bin scripts (`synapse-api.sh`, `on-session-start.sh`) are reused unchanged; Task 8 verifies they work under Codex's stdin/output schema.
 
 ---
 
@@ -503,81 +505,163 @@ If no edit was needed, skip this commit and note in the task summary that the sh
 
 ---
 
-### Task 9: Resolve the marketplace distribution unknown
+### Task 9: Create the Codex-native marketplace
 
 **Files:**
-- Modify (if required): `.claude-plugin/marketplace.json`
+- Create: `.agents/plugins/marketplace.json`
 
-The spec leaves one open question: whether Codex requires `policy.installation`, `policy.authentication`, and `category` on the shared marketplace entry. Resolve it here.
+Corrected from the original plan: Codex and Claude use **different** marketplace files because the `source` schema differs (Claude: string; Codex: object). Do **not** mutate `.claude-plugin/marketplace.json`. Codex resolves `source.path` relative to the marketplace root (the repo root, where `.agents/` lives).
 
-- [ ] **Step 1: Determine whether Codex requires policy fields**
+- [ ] **Step 1: Create the Codex marketplace**
 
-Consult the Codex plugin marketplace docs (https://developers.openai.com/codex/plugins/build — "Installation & Enabling"). Determine whether `codex plugin marketplace add` rejects an entry lacking `policy.installation` / `policy.authentication` / `category`.
-
-- [ ] **Step 2a: If required — add them additively to the existing entry**
-
-The current `.claude-plugin/marketplace.json` `synapse` entry has `name`, `source`, `description`, `version`, `category`, `tags`. If Codex needs a `policy` object, add it to that same entry (it is inert for Claude Code):
+Create `.agents/plugins/marketplace.json` with exactly:
 
 ```json
+{
+  "name": "synapse-plugins",
+  "plugins": [
+    {
+      "name": "synapse",
+      "source": { "source": "local", "path": "./public/synapse-plugin" },
+      "category": "Productivity",
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
+    }
+  ]
+}
 ```
 
-Insert it as a sibling of `version` inside the existing `synapse` plugin object. Do not create a second entry and do not create `.agents/plugins/marketplace.json` — one entry serves both harnesses.
+Codex docs say to always include `category` and `policy.installation`/`policy.authentication`.
 
-- [ ] **Step 2b: If not required — make no change**
+- [ ] **Step 2: Verify it parses**
 
-Record in the task summary that Codex accepts the existing entry as-is.
-
-- [ ] **Step 3: Verify it parses (only if edited)**
-
-Run: `node -e "JSON.parse(require('fs').readFileSync('.claude-plugin/marketplace.json','utf8')); console.log('valid')"`
+Run: `node -e "JSON.parse(require('fs').readFileSync('.agents/plugins/marketplace.json','utf8')); console.log('valid')"`
 Expected: prints `valid`.
 
-- [ ] **Step 4: Manual install verification**
-
-On a machine with Codex: `codex plugin marketplace add Vincentwei1021/Synapse`, then install/enable the `synapse` plugin and confirm it loads the manifest and skills without error.
-
-- [ ] **Step 5: Commit (only if Step 2a applied)**
+- [ ] **Step 3: Manual install verification (needs Codex)**
 
 ```bash
-git add .claude-plugin/marketplace.json
-git commit -m "chore(plugin): add codex marketplace policy fields to shared entry
+codex plugin marketplace add <repo-root>
+codex plugin add synapse@synapse-plugins
+codex plugin list -m synapse-plugins   # STATUS should be "installed, enabled"
+```
+Expected: plugin installs and enables; `synapse` skills load. (Verified on Codex 0.136.0 during the design pass.)
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add .agents/plugins/marketplace.json
+git commit -m "feat(plugin): add codex-native marketplace for synapse plugin
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
 
 ---
 
-### Task 10: Full verification + docs touch-up
+### Task 10: Fix research SKILL.md YAML for Codex
+
+**Files:**
+- Modify: `public/synapse-plugin/skills/research/SKILL.md`
+
+Codex's strict YAML parser rejects the bare colon-space in the `description` (`research: project context`), skipping the skill with "mapping values are not allowed". Claude Code tolerates it. Quoting fixes both.
+
+- [ ] **Step 1: Quote the description value**
+
+In `public/synapse-plugin/skills/research/SKILL.md`, change line 3 from:
+
+```yaml
+description: Work on Synapse pre-experiment research: project context, research questions, literature search, related works, and deep research reports.
+```
+
+to (wrap the whole value in double quotes):
+
+```yaml
+description: "Work on Synapse pre-experiment research: project context, research questions, literature search, related works, and deep research reports."
+```
+
+- [ ] **Step 2: Audit the other SKILL.md files for the same issue**
+
+Run:
+```bash
+for f in public/synapse-plugin/skills/*/SKILL.md; do
+  awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" | grep -nE '^[a-zA-Z_]+: [^"'"'"'].*: ' && echo "  ^ in $f"
+done
+```
+Expected: no output (only `research` had the problem; quoting it clears the audit). If any other file matches, quote its value too.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add public/synapse-plugin/skills/research/SKILL.md
+git commit -m "fix(plugin): quote research SKILL.md description for codex YAML strictness
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 11: README — Codex install + MCP config
+
+**Files:**
+- Modify: `README.md`, `README.zh.md`
+
+The MCP connection for Codex is NOT bundled (Codex can't env-expand `.mcp.json`), so the README must document the one-time `codex mcp add`. Add a "Codex" subsection next to the existing "Connect AI Agents" / Claude Code plugin section.
+
+- [ ] **Step 1: Add the Codex section to README.md**
+
+Under "Connect AI Agents", after the Claude Code plugin option, add an Option for Codex with this content (adapt heading style to match the existing options):
+
+```markdown
+#### Option N: Codex
+
+\`\`\`bash
+codex plugin marketplace add Vincentwei1021/Synapse
+codex plugin add synapse@synapse-plugins
+\`\`\`
+
+Configure the Synapse MCP server (Codex stores this in `~/.codex/config.toml`):
+
+\`\`\`bash
+export SYNAPSE_URL="http://localhost:3000"
+export SYNAPSE_API_KEY="syn_your_api_key"
+codex mcp add synapse --url "$SYNAPSE_URL/api/mcp" --bearer-token-env-var SYNAPSE_API_KEY
+\`\`\`
+
+> Run `codex mcp add` before launching Codex. (Codex does not expand `${VAR}` in a plugin's bundled `.mcp.json`, so the MCP server is configured at the user level rather than bundled.)
+```
+
+- [ ] **Step 2: Add the matching Chinese section to README.zh.md**
+
+Mirror the same block in `README.zh.md` with Chinese prose (commands identical). No hardcoded English prose in the zh file.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add README.md README.zh.md
+git commit -m "docs(readme): document codex plugin install and mcp add config
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
+```
+
+---
+
+### Task 12: Full verification
 
 **Files:**
 - Read/verify only: full test suite, lint
-- Modify (optional, if release-facing): `README.md` / `README.zh.md` "What's New"
 
 - [ ] **Step 1: Run the full suite and lint**
 
 Run: `pnpm test && pnpm lint`
-Expected: PASS. Coverage thresholds hold (the only `src/services|lib` change is `agent-transport.ts`, covered by Task 1).
+Expected: PASS (modulo the pre-existing `uuid-resolver.test.ts` failures unrelated to this work — confirm they are byte-identical to base with `git diff <base> HEAD -- src/lib/__tests__/uuid-resolver.test.ts`). Coverage thresholds hold (only `src/lib` change is `agent-transport.ts`, covered by Task 1).
 
 - [ ] **Step 2: Confirm no realtime-only surface offers codex**
 
-Grep for dropdowns filtered by realtime transport and confirm codex (poll) is excluded automatically:
-
 Run: `grep -rn "transport=realtime\|getTypesByTransport(\"realtime\")\|isRealtimeAgent" src --include="*.ts" --include="*.tsx"`
-Expected: each hit relies on the transport map (which maps codex → poll), so no codex leakage into auto-search / deep-research / autonomous-loop dispatch. This is a read-only confirmation; no edit unless a hardcoded type list is found.
+Expected: each hit routes through the transport map (codex → poll), so codex is auto-excluded from auto-search / deep-research / autonomous-loop dispatch. Read-only confirmation; no edit unless a hardcoded type list is found.
 
-- [ ] **Step 3: (Optional) Add a "What's New" bullet**
+- [ ] **Step 3: (Optional) "What's New" bullet**
 
-If this ships as a release, add a one-line user-facing bullet to `README.md` and `README.zh.md` noting Codex paper-search support. Skip if the user is batching releases.
-
-- [ ] **Step 4: Final commit (only if README touched)**
-
-```bash
-git add README.md README.zh.md
-git commit -m "docs: note codex paper-search support in What's New
-
-Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
-```
+If shipping as a release, add a one-line user-facing bullet to `README.md` and `README.zh.md`. Skip if batching releases.
 
 ---
 
@@ -597,15 +681,19 @@ This is a release-time checklist, not an implementation task.
 **Spec coverage:**
 - Core insight (role-gated, not stripped plugin) → Tasks 1 (transport) + 8 Step 3 (role isolation verified). ✓
 - One-line server change, no migration → Task 1. ✓
-- Shared `public/synapse-plugin/` assets → Tasks 6, 7, 8 (reuse bin/skills/.mcp.json). ✓
-- `.codex-plugin/plugin.json` with skills + hooks + interface → Task 6. ✓
+- Shared `public/synapse-plugin/` assets (skills, bin) → Tasks 6, 7, 8. ✓
+- `.codex-plugin/plugin.json` with skills + hooks + interface, **no mcpServers** → Task 6. ✓
 - `hooks/hooks-codex.json` event subset → Task 7. ✓
 - `CLAUDE_PLUGIN_ROOT` compatibility / `hookSpecificOutput.additionalContext` → Tasks 7, 8. ✓
 - Frontend exposes codex (agents page, onboarding, icon, i18n en+zh) → Tasks 2, 3, 4, 5. ✓
-- Distribution (one shared marketplace entry; policy-field unknown) → Task 9. ✓
-- Testing matrix (unit, connectivity, script, behavior) → Tasks 1, 8, plus behavior E2E noted in Task 8 Step 3 / Task 9 Step 4. ✓
-- Exclusion from realtime dispatch → Task 1 (poll mapping) + Task 10 Step 2. ✓
+- Distribution via **Codex-native `.agents/plugins/marketplace.json`** (object source + policy), separate from Claude's → Task 9. ✓
+- SKILL.md YAML strictness (quote research description) → Task 10. ✓
+- MCP via user `codex mcp add`, documented in README (not bundled — Codex can't env-expand `.mcp.json`) → Task 11. ✓
+- Testing matrix (unit, connectivity, script, YAML, MCP wiring, behavior) → Tasks 1, 8, 9, 10, 12. ✓
+- Exclusion from realtime dispatch → Task 1 (poll mapping) + Task 12 Step 2. ✓
 
-**Placeholder scan:** No "TBD/TODO/handle edge cases" left; every code step shows exact content. Task 8 Step 2 and Task 9 Step 2 are explicitly conditional (verify-then-edit) with concrete pass criteria, not vague placeholders. ✓
+**Placeholder scan:** No "TBD/TODO/handle edge cases" left; every code step shows exact content. Task 8 Step 2 is explicitly conditional (verify-then-edit) with concrete pass criteria, not a vague placeholder. ✓
 
-**Type/name consistency:** `codex` string used identically across transport map, `AGENT_TYPES`, `TYPE_BADGE_CLASSES`, icon branch, i18n keys (`agents.type.codex`, `agents.typeDesc.codex`, `typeCodex`, `typeCodexDesc`), and both manifests (`name: "synapse"`, `version: "0.9.1"`). Icon `Sparkles` imported in both Task 2 and Task 5. ✓
+**Type/name consistency:** `codex` string used identically across transport map, `AGENT_TYPES`, `TYPE_BADGE_CLASSES`, icon branch, i18n keys (`agents.type.codex`, `agents.typeDesc.codex`, `typeCodex`, `typeCodexDesc`), both manifests (`name: "synapse"`, `version: "0.9.1"`), and both marketplaces (`name: "synapse-plugins"`, plugin `name: "synapse"`). Icon `Sparkles` imported in both Task 2 and Task 5. ✓
+
+**Note on execution status:** Tasks 1–8 were implemented and reviewed during the design/verification pass (commits on this branch). Tasks 9–11 reflect corrections discovered during live Codex testing (separate marketplace, YAML quoting, README MCP docs) and the `.agents/plugins/marketplace.json` + `research/SKILL.md` quote already exist in the worktree; the plan documents them for the record and for clean re-commit.
