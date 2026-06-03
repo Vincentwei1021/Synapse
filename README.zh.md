@@ -270,7 +270,26 @@ export SYNAPSE_URL="http://localhost:3000"
 export SYNAPSE_API_KEY="syn_your_api_key"
 ```
 
-#### 方式三：手动 MCP 配置
+#### 方式三：Codex 插件
+
+从 marketplace 安装插件：
+
+```bash
+codex plugin marketplace add Vincentwei1021/Synapse
+codex plugin add synapse@synapse-plugins
+```
+
+配置 Synapse MCP 服务器。Codex 不会展开插件自带 `.mcp.json` 中的 `${VAR}` 占位符，因此 MCP 服务器在用户级别注册（保存在 `~/.codex/config.toml`），而非随插件打包：
+
+```bash
+export SYNAPSE_URL="http://localhost:3000"
+export SYNAPSE_API_KEY="syn_your_api_key"
+codex mcp add synapse --url "$SYNAPSE_URL/api/mcp" --bearer-token-env-var SYNAPSE_API_KEY
+```
+
+> 请在启动 Codex **之前**运行 `codex mcp add`；并在 Synapse 中创建 `codex` 类型、带 `pre_research` 角色的 Agent 以获得论文搜索权限。
+
+#### 方式四：手动 MCP 配置
 
 在项目根目录创建 `.mcp.json`：
 
