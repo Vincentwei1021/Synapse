@@ -13,7 +13,6 @@
       "description": "Synapse research orchestration plugin. Automates session lifecycle, provides 60+ MCP tools for experiment execution, literature search, progress reporting, and autonomous research loops.",
       "version": "0.9.1",
       "category": "project-management",
-      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
       "tags": ["research", "orchestration", "mcp", "experiments", "ai-agents", "literature-search", "deepxiv"]
     }
   ]
