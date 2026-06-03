@@ -25,6 +25,19 @@ const ROLES = [
 
 const DEFAULT_ROLES = ["pre_research", "research", "experiment"];
 
+// Codex currently only supports the paper-search (pre_research) phase.
+// null = no restriction.
+const ALLOWED_ROLES_BY_TYPE: Record<string, readonly string[] | null> = {
+  openclaw: null,
+  claude_code: null,
+  codex: ["pre_research"],
+};
+
+function isRoleAllowedForType(role: string, type: string): boolean {
+  const allowed = ALLOWED_ROLES_BY_TYPE[type];
+  return allowed === null || allowed === undefined ? true : allowed.includes(role);
+}
+
 export function OnboardingStep1({ onComplete, onSkip }: Props) {
   const t = useTranslations("onboarding.step1");
   const tCommon = useTranslations("onboarding");
@@ -95,7 +108,12 @@ export function OnboardingStep1({ onComplete, onSkip }: Props) {
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => setType(opt.value)}
+                onClick={() => {
+                  setType(opt.value);
+                  setRoles((prev) =>
+                    prev.filter((r) => isRoleAllowedForType(r, opt.value)),
+                  );
+                }}
                 className={`flex flex-col items-start rounded-lg border p-3 text-left transition-colors ${
                   type === opt.value
                     ? "border-primary bg-primary/5"
@@ -116,15 +134,24 @@ export function OnboardingStep1({ onComplete, onSkip }: Props) {
         <div>
           <Label>{t("rolesLabel")}</Label>
           <div className="mt-1.5 space-y-2">
-            {ROLES.map((role) => (
-              <label key={role.value} className="flex items-center gap-2 text-sm">
+            {ROLES.map((role) => {
+              const allowed = isRoleAllowedForType(role.value, type);
+              return (
+              <label
+                key={role.value}
+                className={`flex items-center gap-2 text-sm ${
+                  allowed ? "" : "cursor-not-allowed opacity-40"
+                }`}
+              >
                 <Checkbox
                   checked={roles.includes(role.value)}
+                  disabled={!allowed}
                   onCheckedChange={() => toggleRole(role.value)}
                 />
                 <span className="text-foreground">{t(role.key)}</span>
               </label>
-            ))}
+              );
+            })}
           </div>
         </div>
 

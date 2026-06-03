@@ -287,7 +287,7 @@ export SYNAPSE_API_KEY="syn_your_api_key"
 codex mcp add synapse --url "$SYNAPSE_URL/api/mcp" --bearer-token-env-var SYNAPSE_API_KEY
 ```
 
-> 请在启动 Codex **之前**运行 `codex mcp add`；并在 Synapse 中创建 `codex` 类型、带 `pre_research` 角色的 Agent 以获得论文搜索权限。
+> 请在启动 Codex **之前**运行 `codex mcp add`。在 Synapse 中创建 `codex` 类型的 Agent；Codex 当前仅支持**论文搜索**阶段,因此 `codex` 类型被限定为 `pre_research` 角色(Agent 对话框会强制此限制)。更广阶段(实验、报告)尚未接入 Codex。
 
 #### 方式四：手动 MCP 配置
 
