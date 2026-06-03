@@ -644,6 +644,58 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 ---
 
+### Task 11b: Constrain codex agents to `pre_research` in the UI
+
+**Files:**
+- Modify: `src/app/(dashboard)/agents/agents-page-client.tsx`
+- Modify: `src/app/onboarding/step1-agent.tsx`
+- Modify: `README.md`, `README.zh.md` (note the limitation)
+
+Codex only supports paper-search this phase. Add a UI-level constraint so a `codex`-type agent can only hold `pre_research`. Soft constraint by design — the server is intentionally not hardened (Codex is meant to gain more roles later; a hard lock would be torn out).
+
+- [ ] **Step 1: Add the allowed-roles map + helper (both files)**
+
+In each file, near the role constants:
+
+```ts
+const ALLOWED_ROLES_BY_TYPE: Record<string, readonly string[] | null> = {
+  openclaw: null,        // null = unrestricted
+  claude_code: null,
+  codex: ["pre_research"],
+};
+function isRoleAllowedForType(role: string, type: string): boolean {
+  const allowed = ALLOWED_ROLES_BY_TYPE[type];
+  return allowed == null ? true : allowed.includes(role);
+}
+```
+(In `agents-page-client.tsx` also export a `rolesAllowedForType` if reused; keep it local otherwise.)
+
+- [ ] **Step 2: Prune roles on type change**
+
+In every place that sets the agent type (create select, edit select, onboarding type buttons), after setting the type, filter the selected roles: `setRoles(prev => prev.filter(r => isRoleAllowedForType(r, nextType)))`.
+
+- [ ] **Step 3: Disable disallowed role checkboxes**
+
+In each role-checkbox render, compute `const allowed = isRoleAllowedForType(role, type)`, pass `disabled={!allowed}` to the `Checkbox`, and dim the label (`opacity-40 cursor-not-allowed`) when not allowed.
+
+- [ ] **Step 4: README note**
+
+In both READMEs' Codex section, state that `codex` is restricted to `pre_research` this phase and the dialog enforces it; broader phases not yet wired.
+
+- [ ] **Step 5: Lint + commit**
+
+Run: `pnpm exec eslint "src/app/(dashboard)/agents/agents-page-client.tsx" "src/app/onboarding/step1-agent.tsx"`
+Expected: no new errors (a pre-existing unused-`Textarea` warning in agents-page is unrelated).
+
+```bash
+git add "src/app/(dashboard)/agents/agents-page-client.tsx" src/app/onboarding/step1-agent.tsx README.md README.zh.md
+git commit -m "feat(agents-ui): restrict codex agent type to pre_research role
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
+```
+
+---
+
 ### Task 12: Full verification
 
 **Files:**

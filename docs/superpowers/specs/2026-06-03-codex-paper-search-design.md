@@ -208,6 +208,15 @@ Confirmed in scope. Required edits:
 - `src/components/agent-type-icon.tsx` — currently `claude_code → Terminal`, else `Bot`. Add a `codex` branch (pick a distinct lucide icon; `Bot` fallback is acceptable if no distinct icon is chosen).
 - `messages/en.json` and `messages/zh.json` — add `agents.type.codex`, `agents.typeDesc.codex` (the existing keys live near the `openclaw`/`claude_code` entries, e.g. en.json:985), plus any onboarding `typeCodex`/`typeCodexDesc` strings. No hardcoded English.
 
+### Type ↔ role linkage (codex limited to `pre_research`)
+
+Codex currently supports only the paper-search phase, so the agent dialogs constrain a `codex`-type agent to the `pre_research` role. Implemented via a small `ALLOWED_ROLES_BY_TYPE` map (`codex → ["pre_research"]`, others `null` = unrestricted) in both `agents-page-client.tsx` and `onboarding/step1-agent.tsx`:
+
+- Selecting/switching to `codex` prunes any now-disallowed roles from the selection.
+- Disallowed role checkboxes render disabled + dimmed for `codex`.
+
+This is a **UI-level soft constraint only**. By deliberate decision, the server (`createAgent` / `POST /api/agents`) is **not** hardened — a direct API call can still create a `codex` agent with other roles. Rationale: the long-term plan is for Codex to support all phases (see Expansion path), so a hard server lock would have to be torn out later; the UI guard prevents accidental misconfiguration while keeping the API flexible. The README states the current paper-search-only limitation. **Known limitation:** API callers and pre-existing agents can hold disallowed role combinations; editing such an agent shows the extra role checked-but-disabled (surfaced, not silently stripped).
+
 ---
 
 ## Distribution
