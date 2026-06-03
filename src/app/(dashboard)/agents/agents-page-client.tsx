@@ -111,11 +111,12 @@ const ROLE_I18N_KEY: Record<string, string> = {
   admin: "agents.permissions.admin",
 };
 
-const AGENT_TYPES = ["openclaw", "claude_code"] as const;
+const AGENT_TYPES = ["openclaw", "claude_code", "codex"] as const;
 
 const TYPE_BADGE_CLASSES: Record<string, string> = {
   openclaw: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300",
   claude_code: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300",
+  codex: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
