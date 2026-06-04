@@ -270,22 +270,35 @@ export SYNAPSE_API_KEY="syn_your_api_key"
 
 #### Option 3: Codex Plugin
 
-Install the plugin from the marketplace:
+Codex currently supports only the **paper-search** phase. Create the agent in Synapse with type `codex`; the `codex` type is restricted to the `pre_research` role (the agent dialog enforces this). Broader phases (experiments, reports) are not yet wired for Codex.
+
+The MCP server is **not bundled** in the plugin (Codex cannot env-expand a plugin's `.mcp.json`), so you configure it yourself once. The steps differ slightly between the CLI and the desktop App.
+
+**Codex CLI**
 
 ```bash
 codex plugin marketplace add Vincentwei1021/Synapse
 codex plugin add synapse@synapse-plugins
-```
 
-Configure the Synapse MCP server. Codex does not expand `${VAR}` placeholders in a plugin's bundled `.mcp.json`, so the MCP server is registered at the user level (stored in `~/.codex/config.toml`) rather than bundled:
-
-```bash
 export SYNAPSE_URL="http://localhost:3000"
 export SYNAPSE_API_KEY="syn_your_api_key"
 codex mcp add synapse --url "$SYNAPSE_URL/api/mcp" --bearer-token-env-var SYNAPSE_API_KEY
 ```
 
-> Run `codex mcp add` **before** launching Codex. Create the agent in Synapse with type `codex`; Codex currently supports only the **paper-search** phase, so the `codex` type is restricted to the `pre_research` role (the agent dialog enforces this). Broader phases (experiments, reports) are not yet wired for Codex.
+Run `codex mcp add` **before** launching Codex (it writes `~/.codex/config.toml`, which is read at startup).
+
+**Codex App (desktop)**
+
+1. **Add the marketplace.** Open **Plugins → Built by OpenAI → Add more**, enter the source `https://github.com/Vincentwei1021/Synapse.git`, then switch the marketplace selector to **synapse-plugins**.
+2. **Install the plugin.** Under **Productivity → Synapse**, click the **+** to install, then open the plugin to configure it.
+3. **Configure the MCP server.** In the plugin's config, **Add server**:
+   - Name: `synapse`
+   - Transport: **Streamable HTTP**
+   - URL: `http://localhost:3000/api/mcp`
+   - Bearer token: paste your `syn_...` API key directly (the App takes the token value here, so no environment variable is needed).
+4. **Trim skills.** Keep only the **Research** skill enabled; uncheck the others (they target phases Codex does not support yet).
+
+> The App lets you paste the token value directly, so — unlike the CLI's `--bearer-token-env-var` flow — you do **not** need to export `SYNAPSE_API_KEY` or use `launchctl setenv`.
 
 #### Option 4: Manual MCP Configuration
 

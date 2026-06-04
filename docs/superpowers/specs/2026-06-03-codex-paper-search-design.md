@@ -238,7 +238,18 @@ codex
 
 Codex **copies** the plugin into `~/.codex/plugins/cache/<marketplace>/<plugin>/<version>/` (not symlinked). After editing local plugin files, re-run `codex plugin add …` and restart Codex to refresh the cache. There is **no `--plugin-dir` flag** in Codex (unlike Claude Code).
 
-A user creating a Codex agent in the Synapse UI selects type `codex`, grants `pre_research`, and copies the `syn_` key into `SYNAPSE_API_KEY`.
+### Codex App (desktop) — verified install path
+
+The desktop App has its own Plugins UI (the docs only describe sharing, but install works):
+
+1. **Plugins → Built by OpenAI → Add more** → enter source `https://github.com/Vincentwei1021/Synapse.git` → switch the marketplace selector to **synapse-plugins**.
+2. **Productivity → Synapse → +** to install; open the plugin to configure.
+3. **Add server** in the plugin's MCP config: name `synapse`, transport **Streamable HTTP**, URL `http://localhost:3000/api/mcp`, Bearer token = the `syn_...` value pasted **directly** (the App's field accepts the literal token).
+4. Keep only the **Research** skill enabled.
+
+**Key App difference:** the App's config UI accepts the token *value* directly, so App users do **not** need the env-var indirection. GUI apps don't inherit a shell's `export`s, so the CLI's `--bearer-token-env-var SYNAPSE_API_KEY` would otherwise require `launchctl setenv` (macOS) for App use; pasting the value sidesteps that entirely. CLI and App share `~/.codex/` (plugin cache + config), but the App's per-server config is the simpler path for desktop users.
+
+A user creating a Codex agent in the Synapse UI selects type `codex`, grants `pre_research`, and copies the `syn_` key into the MCP bearer-token config (env var for CLI, or pasted value for the App).
 
 ---
 
