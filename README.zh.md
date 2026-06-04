@@ -272,22 +272,35 @@ export SYNAPSE_API_KEY="syn_your_api_key"
 
 #### 方式三：Codex 插件
 
-从 marketplace 安装插件：
+Codex 当前仅支持**论文搜索**阶段。在 Synapse 中创建 `codex` 类型的 Agent;`codex` 类型被限定为 `pre_research` 角色(Agent 对话框会强制此限制)。更广阶段(实验、报告)尚未接入 Codex。
+
+MCP 服务器**不随插件打包**(Codex 不会展开插件 `.mcp.json` 中的 `${VAR}`),因此需自行配置一次。CLI 与桌面 App 的步骤略有不同。
+
+**Codex CLI**
 
 ```bash
 codex plugin marketplace add Vincentwei1021/Synapse
 codex plugin add synapse@synapse-plugins
-```
 
-配置 Synapse MCP 服务器。Codex 不会展开插件自带 `.mcp.json` 中的 `${VAR}` 占位符，因此 MCP 服务器在用户级别注册（保存在 `~/.codex/config.toml`），而非随插件打包：
-
-```bash
 export SYNAPSE_URL="http://localhost:3000"
 export SYNAPSE_API_KEY="syn_your_api_key"
 codex mcp add synapse --url "$SYNAPSE_URL/api/mcp" --bearer-token-env-var SYNAPSE_API_KEY
 ```
 
-> 请在启动 Codex **之前**运行 `codex mcp add`。在 Synapse 中创建 `codex` 类型的 Agent；Codex 当前仅支持**论文搜索**阶段,因此 `codex` 类型被限定为 `pre_research` 角色(Agent 对话框会强制此限制)。更广阶段(实验、报告)尚未接入 Codex。
+请在启动 Codex **之前**运行 `codex mcp add`(它写入 `~/.codex/config.toml`,启动时读取)。
+
+**Codex App(桌面版)**
+
+1. **添加插件市场。** 打开 **Plugins → Built by OpenAI → Add more**,来源填写 `https://github.com/Vincentwei1021/Synapse.git`,然后将市场选择器切换到 **synapse-plugins**。
+2. **安装插件。** 在 **Productivity → Synapse** 下点击 **+** 安装,然后打开该插件进行配置。
+3. **配置 MCP 服务器。** 在插件配置中**添加服务器**:
+   - 名称:`synapse`
+   - 传输方式:**流式 HTTP**
+   - URL:`http://localhost:3000/api/mcp`
+   - Bearer 令牌:直接粘贴你的 `syn_...` API key(App 在此处接受令牌值,无需环境变量)。
+4. **精简技能。** 仅保留 **Research** 技能,取消勾选其他技能(它们面向 Codex 尚不支持的阶段)。
+
+> App 允许直接粘贴令牌值,因此 —— 不同于 CLI 的 `--bearer-token-env-var` 流程 —— 你**无需** export `SYNAPSE_API_KEY` 或使用 `launchctl setenv`。
 
 #### 方式四：手动 MCP 配置
 
