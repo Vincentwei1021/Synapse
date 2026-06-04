@@ -1,6 +1,6 @@
 {
   "name": "synapse",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Synapse research orchestration plugin for Codex. Literature search and collection via MCP; expands to the full research workflow as agent roles are granted.",
   "author": { "name": "Vincentwei1021" },
   "homepage": "https://github.com/Vincentwei1021/Synapse",
