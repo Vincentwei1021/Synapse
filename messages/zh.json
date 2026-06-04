@@ -983,11 +983,13 @@
     },
     "type": {
       "openclaw": "OpenClaw",
-      "claude_code": "Claude Code"
+      "claude_code": "Claude Code",
+      "codex": "Codex"
     },
     "typeDesc": {
       "openclaw": "通过 SSE 通知实时接收任务",
-      "claude_code": "在会话启动时发现任务"
+      "claude_code": "在会话启动时发现任务",
+      "codex": "通过 HTTP MCP 连接，在会话启动时发现任务"
     },
     "detail": {
       "apiKeys": "API 密钥",
@@ -1812,6 +1814,8 @@
       "typeClaudeCodeDesc": "通过 checkin 在会话开始时获取任务",
       "typeOpenClaw": "OpenClaw",
       "typeOpenClawDesc": "通过 SSE 实时接收任务",
+      "typeCodex": "Codex",
+      "typeCodexDesc": "通过 HTTP MCP 连接；在会话开始时获取任务",
       "rolesLabel": "权限",
       "rolePreResearch": "文献搜索",
       "roleResearch": "研究问题",

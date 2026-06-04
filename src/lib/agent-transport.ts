@@ -4,6 +4,7 @@
 const AGENT_TRANSPORT_MAP: Record<string, "realtime" | "poll"> = {
   openclaw: "realtime",
   claude_code: "poll",
+  codex: "poll",
 };
 
 export const VALID_AGENT_TYPES = Object.keys(AGENT_TRANSPORT_MAP);

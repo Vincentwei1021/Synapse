@@ -268,7 +268,26 @@ export SYNAPSE_URL="http://localhost:3000"
 export SYNAPSE_API_KEY="syn_your_api_key"
 ```
 
-#### Option 3: Manual MCP Configuration
+#### Option 3: Codex Plugin
+
+Install the plugin from the marketplace:
+
+```bash
+codex plugin marketplace add Vincentwei1021/Synapse
+codex plugin add synapse@synapse-plugins
+```
+
+Configure the Synapse MCP server. Codex does not expand `${VAR}` placeholders in a plugin's bundled `.mcp.json`, so the MCP server is registered at the user level (stored in `~/.codex/config.toml`) rather than bundled:
+
+```bash
+export SYNAPSE_URL="http://localhost:3000"
+export SYNAPSE_API_KEY="syn_your_api_key"
+codex mcp add synapse --url "$SYNAPSE_URL/api/mcp" --bearer-token-env-var SYNAPSE_API_KEY
+```
+
+> Run `codex mcp add` **before** launching Codex. Create the agent in Synapse with type `codex`; Codex currently supports only the **paper-search** phase, so the `codex` type is restricted to the `pre_research` role (the agent dialog enforces this). Broader phases (experiments, reports) are not yet wired for Codex.
+
+#### Option 4: Manual MCP Configuration
 
 Create `.mcp.json` in your project root:
 

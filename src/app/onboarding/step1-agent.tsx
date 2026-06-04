@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Terminal, Radio } from "lucide-react";
+import { Loader2, Terminal, Radio, Sparkles } from "lucide-react";
 import { authFetch } from "@/lib/auth-client";
 
 interface Props {
@@ -24,6 +24,19 @@ const ROLES = [
 ] as const;
 
 const DEFAULT_ROLES = ["pre_research", "research", "experiment"];
+
+// Codex currently only supports the paper-search (pre_research) phase.
+// null = no restriction.
+const ALLOWED_ROLES_BY_TYPE: Record<string, readonly string[] | null> = {
+  openclaw: null,
+  claude_code: null,
+  codex: ["pre_research"],
+};
+
+function isRoleAllowedForType(role: string, type: string): boolean {
+  const allowed = ALLOWED_ROLES_BY_TYPE[type];
+  return allowed === null || allowed === undefined ? true : allowed.includes(role);
+}
 
 export function OnboardingStep1({ onComplete, onSkip }: Props) {
   const t = useTranslations("onboarding.step1");
@@ -86,15 +99,21 @@ export function OnboardingStep1({ onComplete, onSkip }: Props) {
         {/* Type */}
         <div>
           <Label>{t("typeLabel")}</Label>
-          <div className="mt-1.5 grid grid-cols-2 gap-3">
+          <div className="mt-1.5 grid grid-cols-3 gap-3">
             {[
               { value: "claude_code", label: t("typeClaudeCode"), desc: t("typeClaudeCodeDesc"), icon: Terminal },
               { value: "openclaw", label: t("typeOpenClaw"), desc: t("typeOpenClawDesc"), icon: Radio },
+              { value: "codex", label: t("typeCodex"), desc: t("typeCodexDesc"), icon: Sparkles },
             ].map((opt) => (
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => setType(opt.value)}
+                onClick={() => {
+                  setType(opt.value);
+                  setRoles((prev) =>
+                    prev.filter((r) => isRoleAllowedForType(r, opt.value)),
+                  );
+                }}
                 className={`flex flex-col items-start rounded-lg border p-3 text-left transition-colors ${
                   type === opt.value
                     ? "border-primary bg-primary/5"
@@ -115,15 +134,24 @@ export function OnboardingStep1({ onComplete, onSkip }: Props) {
         <div>
           <Label>{t("rolesLabel")}</Label>
           <div className="mt-1.5 space-y-2">
-            {ROLES.map((role) => (
-              <label key={role.value} className="flex items-center gap-2 text-sm">
+            {ROLES.map((role) => {
+              const allowed = isRoleAllowedForType(role.value, type);
+              return (
+              <label
+                key={role.value}
+                className={`flex items-center gap-2 text-sm ${
+                  allowed ? "" : "cursor-not-allowed opacity-40"
+                }`}
+              >
                 <Checkbox
                   checked={roles.includes(role.value)}
+                  disabled={!allowed}
                   onCheckedChange={() => toggleRole(role.value)}
                 />
                 <span className="text-foreground">{t(role.key)}</span>
               </label>
-            ))}
+              );
+            })}
           </div>
         </div>
 

@@ -983,11 +983,13 @@
     },
     "type": {
       "openclaw": "OpenClaw",
-      "claude_code": "Claude Code"
+      "claude_code": "Claude Code",
+      "codex": "Codex"
     },
     "typeDesc": {
       "openclaw": "Receives tasks in real-time via SSE notifications",
-      "claude_code": "Discovers tasks at session start"
+      "claude_code": "Discovers tasks at session start",
+      "codex": "Discovers tasks at session start via MCP over HTTP"
     },
     "detail": {
       "apiKeys": "API Keys",
@@ -1812,6 +1814,8 @@
       "typeClaudeCodeDesc": "Discovers tasks at session start via checkin",
       "typeOpenClaw": "OpenClaw",
       "typeOpenClawDesc": "Receives tasks in real-time via SSE",
+      "typeCodex": "Codex",
+      "typeCodexDesc": "Connects via MCP over HTTP; discovers tasks at session start",
       "rolesLabel": "Permissions",
       "rolePreResearch": "Literature Search",
       "roleResearch": "Research Questions",

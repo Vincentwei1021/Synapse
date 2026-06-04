@@ -1,0 +1,11 @@
+{
+  "name": "synapse-plugins",
+  "plugins": [
+    {
+      "name": "synapse",
+      "source": { "source": "local", "path": "./public/synapse-plugin" },
+      "category": "Productivity",
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
+    }
+  ]
+}

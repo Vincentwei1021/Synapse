@@ -85,6 +85,23 @@ interface ApiKeyEntry {
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const ROLES = ["pre_research", "research", "experiment", "report", "paper_feeds", "admin"] as const;
+
+// Roles each agent type is allowed to hold. Codex currently only supports the
+// paper-search (pre_research) phase; other phases are not yet wired for it.
+// null = no restriction (all ROLES allowed).
+const ALLOWED_ROLES_BY_TYPE: Record<string, readonly string[] | null> = {
+  openclaw: null,
+  claude_code: null,
+  codex: ["pre_research"],
+};
+
+function rolesAllowedForType(type: string): readonly string[] {
+  return ALLOWED_ROLES_BY_TYPE[type] ?? ROLES;
+}
+
+function isRoleAllowedForType(role: string, type: string): boolean {
+  return rolesAllowedForType(type).includes(role);
+}
 type Role = (typeof ROLES)[number];
 
 const ROLE_BADGE_CLASSES: Record<string, string> = {
@@ -111,11 +128,12 @@ const ROLE_I18N_KEY: Record<string, string> = {
   admin: "agents.permissions.admin",
 };
 
-const AGENT_TYPES = ["openclaw", "claude_code"] as const;
+const AGENT_TYPES = ["openclaw", "claude_code", "codex"] as const;
 
 const TYPE_BADGE_CLASSES: Record<string, string> = {
   openclaw: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300",
   claude_code: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300",
+  codex: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -606,7 +624,13 @@ export function AgentsPageClient({
                     </Label>
                     <select
                       value={createType}
-                      onChange={(e) => setCreateType(e.target.value)}
+                      onChange={(e) => {
+                        const nextType = e.target.value;
+                        setCreateType(nextType);
+                        setCreateRoles((prev) =>
+                          prev.filter((r) => isRoleAllowedForType(r, nextType)),
+                        );
+                      }}
                       className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
                     >
                       {AGENT_TYPES.map((agentType) => (
@@ -626,17 +650,22 @@ export function AgentsPageClient({
                       {t("agents.fields.permissions")}
                     </Label>
                     <div className="grid grid-cols-2 gap-2">
-                      {ROLES.map((role) => (
+                      {ROLES.map((role) => {
+                        const allowed = isRoleAllowedForType(role, createType);
+                        return (
                         <label
                           key={role}
-                          className={`flex cursor-pointer items-center gap-2.5 rounded-lg border p-3 transition-colors ${
-                            createRoles.includes(role)
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:border-primary/50"
+                          className={`flex items-center gap-2.5 rounded-lg border p-3 transition-colors ${
+                            !allowed
+                              ? "cursor-not-allowed border-border opacity-40"
+                              : createRoles.includes(role)
+                                ? "cursor-pointer border-primary bg-primary/5"
+                                : "cursor-pointer border-border hover:border-primary/50"
                           }`}
                         >
                           <Checkbox
                             checked={createRoles.includes(role)}
+                            disabled={!allowed}
                             onCheckedChange={() => toggleCreateRole(role)}
                           />
                           <span
@@ -649,7 +678,8 @@ export function AgentsPageClient({
                             {t(ROLE_I18N_KEY[role])}
                           </span>
                         </label>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -728,7 +758,13 @@ export function AgentsPageClient({
                   </Label>
                   <select
                     value={editType}
-                    onChange={(e) => setEditType(e.target.value)}
+                    onChange={(e) => {
+                      const nextType = e.target.value;
+                      setEditType(nextType);
+                      setEditRoles((prev) =>
+                        prev.filter((r) => isRoleAllowedForType(r, nextType)),
+                      );
+                    }}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
                   >
                     {AGENT_TYPES.map((agentType) => (
@@ -745,17 +781,22 @@ export function AgentsPageClient({
                     {t("agents.fields.permissions")}
                   </Label>
                   <div className="grid grid-cols-2 gap-2">
-                    {ROLES.map((role) => (
+                    {ROLES.map((role) => {
+                      const allowed = isRoleAllowedForType(role, editType);
+                      return (
                       <label
                         key={role}
-                        className={`flex cursor-pointer items-center gap-2.5 rounded-lg border p-3 transition-colors ${
-                          editRoles.includes(role)
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/50"
+                        className={`flex items-center gap-2.5 rounded-lg border p-3 transition-colors ${
+                          !allowed
+                            ? "cursor-not-allowed border-border opacity-40"
+                            : editRoles.includes(role)
+                              ? "cursor-pointer border-primary bg-primary/5"
+                              : "cursor-pointer border-border hover:border-primary/50"
                         }`}
                       >
                         <Checkbox
                           checked={editRoles.includes(role)}
+                          disabled={!allowed}
                           onCheckedChange={() => toggleEditRole(role)}
                         />
                         <span
@@ -768,7 +809,8 @@ export function AgentsPageClient({
                           {t(ROLE_I18N_KEY[role])}
                         </span>
                       </label>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
