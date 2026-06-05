@@ -18,6 +18,8 @@ export interface PaperResult {
   url: string;
   arxivId: string | null;
   doi: string | null;
+  /** Precise publication date as YYYY-MM-DD, when known. */
+  publishedDate: string | null;
   year: number | null;
   citationCount: number | null;
   source: "arxiv" | "deepxiv" | "semantic_scholar" | "openalex";
@@ -33,6 +35,8 @@ export interface DeepXivBrief {
   keywords: string[];
   citationCount: number | null;
   githubUrl: string | null;
+  /** Precise publication date as YYYY-MM-DD, when known. */
+  publishedDate: string | null;
   year: number | null;
 }
 
@@ -59,6 +63,27 @@ export interface DeepXivSectionContent {
 // ---------------------------------------------------------------------------
 
 const DEEPXIV_BASE = "https://data.rag.ac.cn/arxiv/";
+
+/**
+ * Normalize a DeepXiv date value (e.g. "2017-06-12T00:00:00", "2017-06-12",
+ * or "2017") into a precise YYYY-MM-DD string plus the year. DeepXiv returns
+ * the publication date in `date` (search) / `publish_at` (brief); it does NOT
+ * return a numeric `year`, so we derive it here. Returns nulls for missing or
+ * unparseable input.
+ */
+function parsePublishedDate(value: unknown): { publishedDate: string | null; year: number | null } {
+  if (typeof value !== "string" || value.trim() === "") {
+    return { publishedDate: null, year: null };
+  }
+  // Take the date portion before any time component.
+  const datePart = value.split("T")[0].trim();
+  const m = datePart.match(/^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?/);
+  if (!m) return { publishedDate: null, year: null };
+  const year = Number(m[1]);
+  // Only treat as a full date when month and day are present.
+  const publishedDate = m[2] && m[3] ? `${m[1]}-${m[2]}-${m[3]}` : null;
+  return { publishedDate, year: Number.isNaN(year) ? null : year };
+}
 
 // Auto-registration endpoint + public SDK secret. Mirrors the official DeepXiv
 // Python SDK, which silently registers a per-client token on first use when
@@ -237,7 +262,8 @@ interface DeepXivSearchResult {
   authors?: string;
   abstract?: string;
   url?: string;
-  year?: number;
+  /** Publication date, e.g. "2017-06-12T00:00:00". DeepXiv does not send `year`. */
+  date?: string;
   citation_count?: number;
 }
 
@@ -300,6 +326,7 @@ export async function searchDeepXiv(
 
   return data.map((item) => {
     const arxivId = item.arxiv_id ?? null;
+    const { publishedDate, year } = parsePublishedDate(item.date);
     return {
       title: item.title ?? "",
       abstract: item.abstract ?? null,
@@ -307,7 +334,8 @@ export async function searchDeepXiv(
       url: item.url ?? (arxivId ? `https://arxiv.org/abs/${arxivId}` : ""),
       arxivId,
       doi: null,
-      year: item.year ?? null,
+      publishedDate,
+      year,
       citationCount: item.citation_count ?? null,
       source: "deepxiv" as const,
     };
@@ -417,7 +445,7 @@ async function fetchArxivById(arxivId: string): Promise<PaperResult | null> {
     idRaw.replace(/^https?:\/\/arxiv\.org\/abs\//, "").replace(/v\d+$/, "") || arxivId;
   const doi = (entry.match(/<arxiv:doi[^>]*>([\s\S]*?)<\/arxiv:doi>/) ?? [])[1]?.trim() ?? null;
   const published = (entry.match(/<published>([\s\S]*?)<\/published>/) ?? [])[1]?.trim() ?? null;
-  const year = published ? new Date(published).getFullYear() : null;
+  const { publishedDate, year } = parsePublishedDate(published);
   if (!title) return null;
   return {
     title,
@@ -426,7 +454,8 @@ async function fetchArxivById(arxivId: string): Promise<PaperResult | null> {
     url: `https://arxiv.org/abs/${resolvedArxivId}`,
     arxivId: resolvedArxivId,
     doi,
-    year: year && !isNaN(year) ? year : null,
+    publishedDate,
+    year,
     citationCount: null,
     source: "arxiv" as const,
   };
@@ -454,6 +483,7 @@ export async function readPaperBrief(arxivId: string, companyUuid?: string): Pro
       keywords: [],
       citationCount: null,
       githubUrl: null,
+      publishedDate: arxivPaper.publishedDate,
       year: arxivPaper.year,
     };
   }
@@ -461,6 +491,9 @@ export async function readPaperBrief(arxivId: string, companyUuid?: string): Pro
   if (json === null) return null;
 
   const data = json as Record<string, unknown>;
+  // DeepXiv brief returns the date in `publish_at` and citations in `citations`
+  // (with `citation_count` as a legacy alias). It does not return a numeric year.
+  const { publishedDate, year } = parsePublishedDate(data.publish_at ?? data.date);
   return {
     arxivId: (data.arxiv_id as string) ?? arxivId,
     title: (data.title as string) ?? "",
@@ -468,9 +501,10 @@ export async function readPaperBrief(arxivId: string, companyUuid?: string): Pro
     abstract: (data.abstract as string) ?? null,
     tldr: (data.tldr as string) ?? null,
     keywords: Array.isArray(data.keywords) ? (data.keywords as string[]) : [],
-    citationCount: (data.citation_count as number) ?? null,
+    citationCount: (data.citations as number) ?? (data.citation_count as number) ?? null,
     githubUrl: (data.github_url as string) ?? null,
-    year: (data.year as number) ?? null,
+    publishedDate,
+    year,
   };
 }
 
@@ -593,7 +627,7 @@ export async function searchArxiv(
     const arxivId = idRaw.replace(/^https?:\/\/arxiv\.org\/abs\//, "").replace(/v\d+$/, "") || null;
     const doi = (entry.match(/<arxiv:doi[^>]*>([\s\S]*?)<\/arxiv:doi>/) ?? [])[1]?.trim() ?? null;
     const published = (entry.match(/<published>([\s\S]*?)<\/published>/) ?? [])[1]?.trim() ?? null;
-    const year = published ? new Date(published).getFullYear() : null;
+    const { publishedDate, year } = parsePublishedDate(published);
 
     return {
       title,
@@ -602,7 +636,8 @@ export async function searchArxiv(
       url: arxivId ? `https://arxiv.org/abs/${arxivId}` : idRaw,
       arxivId,
       doi,
-      year: (year && !isNaN(year)) ? year : null,
+      publishedDate,
+      year,
       citationCount: null,
       source: "arxiv" as const,
     };
