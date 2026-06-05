@@ -41,7 +41,7 @@ describe("searchDeepXiv", () => {
             authors: "Alice, Bob",
             abstract: "A paper about deep learning.",
             url: "https://arxiv.org/abs/2401.12345",
-            year: 2024,
+            date: "2024-03-15T00:00:00",
             citation_count: 42,
           },
         ]),
@@ -59,6 +59,7 @@ describe("searchDeepXiv", () => {
       url: "https://arxiv.org/abs/2401.12345",
       arxivId: "2401.12345",
       doi: null,
+      publishedDate: "2024-03-15",
       year: 2024,
       citationCount: 42,
       source: "deepxiv",
@@ -74,6 +75,47 @@ describe("searchDeepXiv", () => {
     expect(calledUrl).not.toContain("size=");
     // `search_mode` is deprecated and ignored by the unified retrieve endpoint.
     expect(calledUrl).not.toContain("search_mode");
+  });
+
+  it("maps DeepXiv `date` to publishedDate and derives year from it", async () => {
+    const { searchDeepXiv } = await import("@/services/paper-search.service");
+
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify([
+          {
+            arxiv_id: "0306.00001",
+            title: "Old Paper",
+            authors: "Carol",
+            date: "2003-06-20T00:00:00",
+            citation_count: 7,
+          },
+        ]),
+        { status: 200 },
+      ),
+    );
+
+    const results = await searchDeepXiv("anything", 5);
+
+    expect(results[0].publishedDate).toBe("2003-06-20");
+    // API returns `date`, not `year`; year must be derived from it.
+    expect(results[0].year).toBe(2003);
+    expect(results[0].citationCount).toBe(7);
+  });
+
+  it("leaves publishedDate null and year null when no date is present", async () => {
+    const { searchDeepXiv } = await import("@/services/paper-search.service");
+
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify([{ arxiv_id: "2401.0", title: "No Date", authors: "X" }]),
+        { status: 200 },
+      ),
+    );
+
+    const results = await searchDeepXiv("anything", 5);
+    expect(results[0].publishedDate).toBeNull();
+    expect(results[0].year).toBeNull();
   });
 
   it("includes auth header when DEEPXIV_TOKEN is set", async () => {
@@ -205,9 +247,9 @@ describe("readPaperBrief", () => {
           abstract: "Abstract text",
           tldr: "A short summary",
           keywords: ["ml", "nlp"],
-          citation_count: 10,
+          citations: 10,
           github_url: "https://github.com/test/repo",
-          year: 2024,
+          publish_at: "2024-01-09T00:00:00",
         }),
         { status: 200 },
       ),
@@ -222,12 +264,45 @@ describe("readPaperBrief", () => {
       keywords: ["ml", "nlp"],
       citationCount: 10,
       githubUrl: "https://github.com/test/repo",
+      publishedDate: "2024-01-09",
       year: 2024,
     });
 
     const calledUrl = mockFetch.mock.calls[0][0] as string;
     expect(calledUrl).toContain("type=brief");
     expect(calledUrl).toContain("arxiv_id=2401.12345");
+  });
+
+  it("maps real DeepXiv brief fields (publish_at -> publishedDate/year, citations)", async () => {
+    const { readPaperBrief } = await import("@/services/paper-search.service");
+
+    // Shape matches the live DeepXiv brief response (publish_at, citations, src_url).
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          arxiv_id: "1706.03762",
+          title: "Attention Is All You Need",
+          tldr: "Transformers.",
+          keywords: ["transformer"],
+          publish_at: "2017-06-12T00:00:00",
+          citations: 99,
+          github_url: "https://github.com/x/y",
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const result = await readPaperBrief("1706.03762");
+
+    expect(result).toMatchObject({
+      arxivId: "1706.03762",
+      title: "Attention Is All You Need",
+      tldr: "Transformers.",
+      publishedDate: "2017-06-12",
+      year: 2017,
+      citationCount: 99,
+      githubUrl: "https://github.com/x/y",
+    });
   });
 
   it("returns null on failure", async () => {
@@ -745,6 +820,7 @@ describe("deduplicatePapers", () => {
     url: "https://example.com",
     arxivId: null,
     doi: null,
+    publishedDate: null,
     year: null,
     citationCount: null,
     source: "deepxiv",

@@ -27,7 +27,7 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
     "synapse_search_papers",
     {
       description:
-        "Search for academic papers. Uses DeepXiv hybrid search (BM25 + vector) over arXiv (T+0 daily sync), with arXiv API as fallback. Returns titles, abstracts, authors, and URLs. Optional publication-date filter via `dateSearchType` + `dateStr` — useful for 'papers published today / yesterday / in a window'. When a date filter is supplied, results come exclusively from DeepXiv (no arXiv fallback, since arXiv search has no equivalent date predicate).",
+        "Search for academic papers. Uses DeepXiv hybrid search (BM25 + vector) over arXiv (T+0 daily sync), with arXiv API as fallback. Returns titles, abstracts, authors, URLs, citation counts, and `publishedDate` (YYYY-MM-DD) plus `year`. Optional publication-date filter via `dateSearchType` + `dateStr` — useful for 'papers published today / yesterday / in a window'. When a date filter is supplied, results come exclusively from DeepXiv (no arXiv fallback, since arXiv search has no equivalent date predicate).",
       inputSchema: z.object({
         query: z.string().describe("Search query, e.g. 'speech recognition Chinese accent'"),
         limit: z.number().int().min(1).max(20).default(10),
@@ -66,7 +66,7 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
   server.registerTool(
     "synapse_read_paper_brief",
     {
-      description: "Get a brief summary of an arXiv paper: TLDR, keywords, citation count, GitHub URL. ~500 tokens.",
+      description: "Get a brief summary of an arXiv paper: TLDR, keywords, citation count, GitHub URL, and `publishedDate` (YYYY-MM-DD) + `year`. ~500 tokens.",
       inputSchema: z.object({
         arxivId: z.string().describe("arXiv paper ID, e.g. '2301.07041'"),
       }),
