@@ -45,7 +45,7 @@ export async function PUT(request: NextRequest) {
     data: { deepxivToken: tokenValue },
   });
 
-  clearDeepxivTokenCache();
+  clearDeepxivTokenCache(auth.companyUuid);
 
   return NextResponse.json({ ok: true });
 }

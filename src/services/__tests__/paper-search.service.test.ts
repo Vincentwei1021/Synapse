@@ -5,6 +5,14 @@ import type { PaperResult } from "@/services/paper-search.service";
 // Shared mock setup
 // ---------------------------------------------------------------------------
 
+const mockPrisma = vi.hoisted(() => ({
+  company: {
+    findUnique: vi.fn(),
+    update: vi.fn(),
+  },
+}));
+vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
+
 const mockFetch = vi.fn<(input: string | URL | Request, init?: RequestInit) => Promise<Response>>();
 
 // ---------------------------------------------------------------------------
@@ -61,8 +69,11 @@ describe("searchDeepXiv", () => {
     expect(calledUrl).toContain("data.rag.ac.cn/arxiv/");
     expect(calledUrl).toContain("type=retrieve");
     expect(calledUrl).toContain("query=deep+learning");
-    expect(calledUrl).toContain("size=5");
-    expect(calledUrl).toContain("search_mode=hybrid");
+    // The upstream result-count param is `top_k` (the SDK contract); `size` is ignored.
+    expect(calledUrl).toContain("top_k=5");
+    expect(calledUrl).not.toContain("size=");
+    // `search_mode` is deprecated and ignored by the unified retrieve endpoint.
+    expect(calledUrl).not.toContain("search_mode");
   });
 
   it("includes auth header when DEEPXIV_TOKEN is set", async () => {
@@ -794,5 +805,137 @@ describe("deduplicatePapers", () => {
     const result = deduplicatePapers(papers);
 
     expect(result).toHaveLength(3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Per-company token resolution + auto-registration
+// ---------------------------------------------------------------------------
+
+describe("deepxiv token resolution (per company)", () => {
+  const COMPANY = "company-uuid-1";
+
+  beforeEach(() => {
+    vi.resetModules();
+    mockFetch.mockReset();
+    vi.stubGlobal("fetch", mockFetch);
+    vi.unstubAllEnvs();
+    mockPrisma.company.findUnique.mockReset();
+    mockPrisma.company.update.mockReset();
+    // The per-company token cache lives in module scope and is cleared by
+    // vi.resetModules() above (each test re-imports the service fresh).
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it("uses the stored per-company token in the Authorization header", async () => {
+    mockPrisma.company.findUnique.mockResolvedValue({ deepxivToken: "company-token-abc" });
+    const { searchDeepXiv } = await import("@/services/paper-search.service");
+
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }));
+
+    await searchDeepXiv("test", 5, { companyUuid: COMPANY });
+
+    expect(mockPrisma.company.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { uuid: COMPANY }, select: { deepxivToken: true } }),
+    );
+    const init = mockFetch.mock.calls[0][1] as RequestInit;
+    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer company-token-abc");
+    // Should NOT have attempted registration.
+    const registerCalls = mockFetch.mock.calls.filter((c) =>
+      String(c[0]).includes("/api/register/sdk"),
+    );
+    expect(registerCalls).toHaveLength(0);
+  });
+
+  it("auto-registers a token when the company has none, persists it, and uses it", async () => {
+    mockPrisma.company.findUnique.mockResolvedValue({ deepxivToken: null });
+    mockPrisma.company.update.mockResolvedValue({});
+    const { searchDeepXiv } = await import("@/services/paper-search.service");
+
+    // 1st fetch: registration endpoint returns a fresh token.
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ success: true, data: { token: "fresh-token-xyz", daily_limit: 1000 } }), {
+        status: 200,
+      }),
+    );
+    // 2nd fetch: the actual search, using the fresh token.
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }));
+
+    await searchDeepXiv("test", 5, { companyUuid: COMPANY });
+
+    // Registered against the SDK endpoint.
+    const registerCall = mockFetch.mock.calls.find((c) => String(c[0]).includes("/api/register/sdk"));
+    expect(registerCall).toBeDefined();
+    const regInit = registerCall![1] as RequestInit;
+    expect(regInit.method).toBe("POST");
+    const regBody = JSON.parse(regInit.body as string);
+    expect(regBody.sdk_secret).toBeTruthy();
+    expect(regBody.name).toMatch(/^deepxiv_/);
+    expect(regBody.email).toMatch(/@/);
+
+    // Persisted to the company.
+    expect(mockPrisma.company.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { uuid: COMPANY }, data: { deepxivToken: "fresh-token-xyz" } }),
+    );
+
+    // Search used the fresh token.
+    const searchCall = mockFetch.mock.calls.find((c) => String(c[0]).includes("type=retrieve"));
+    expect(searchCall).toBeDefined();
+    const searchInit = searchCall![1] as RequestInit;
+    expect((searchInit.headers as Record<string, string>).Authorization).toBe("Bearer fresh-token-xyz");
+  });
+
+  it("throws DeepXivTokenError when auto-registration fails", async () => {
+    mockPrisma.company.findUnique.mockResolvedValue({ deepxivToken: null });
+    const { searchDeepXiv, DeepXivTokenError } = await import("@/services/paper-search.service");
+
+    // Registration endpoint fails.
+    mockFetch.mockResolvedValue(new Response(JSON.stringify({ success: false }), { status: 500 }));
+
+    await expect(searchDeepXiv("test", 5, { companyUuid: COMPANY })).rejects.toBeInstanceOf(
+      DeepXivTokenError,
+    );
+  });
+
+  it("readPaperBrief threads companyUuid and throws DeepXivTokenError when registration fails", async () => {
+    mockPrisma.company.findUnique.mockResolvedValue({ deepxivToken: null });
+    const { readPaperBrief, DeepXivTokenError } = await import("@/services/paper-search.service");
+
+    // Registration endpoint fails -> no token available.
+    mockFetch.mockResolvedValue(new Response(JSON.stringify({ success: false }), { status: 500 }));
+
+    await expect(readPaperBrief("1706.03762", COMPANY)).rejects.toBeInstanceOf(DeepXivTokenError);
+  });
+
+  it("readPaperBrief uses the per-company token in the Authorization header", async () => {
+    mockPrisma.company.findUnique.mockResolvedValue({ deepxivToken: "company-token-abc" });
+    const { readPaperBrief } = await import("@/services/paper-search.service");
+
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ arxiv_id: "1706.03762", title: "Attention", tldr: "x" }), {
+        status: 200,
+      }),
+    );
+
+    const result = await readPaperBrief("1706.03762", COMPANY);
+    expect(result?.title).toBe("Attention");
+    const init = mockFetch.mock.calls[0][1] as RequestInit;
+    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer company-token-abc");
+  });
+
+  it("env DEEPXIV_TOKEN overrides per-company lookup (no DB hit, no registration)", async () => {
+    vi.stubEnv("DEEPXIV_TOKEN", "env-token");
+    const { searchDeepXiv } = await import("@/services/paper-search.service");
+
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }));
+
+    await searchDeepXiv("test", 5, { companyUuid: COMPANY });
+
+    expect(mockPrisma.company.findUnique).not.toHaveBeenCalled();
+    const init = mockFetch.mock.calls[0][1] as RequestInit;
+    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer env-token");
   });
 });

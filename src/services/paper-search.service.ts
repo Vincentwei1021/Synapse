@@ -60,6 +60,25 @@ export interface DeepXivSectionContent {
 
 const DEEPXIV_BASE = "https://data.rag.ac.cn/arxiv/";
 
+// Auto-registration endpoint + public SDK secret. Mirrors the official DeepXiv
+// Python SDK, which silently registers a per-client token on first use when
+// none is configured. The secret is a public constant shipped in the SDK; it
+// only identifies the caller as a legitimate SDK client (no privileged access).
+const DEEPXIV_REGISTER_ENDPOINT = "https://data.rag.ac.cn/api/register/sdk";
+const DEEPXIV_SDK_SECRET = "UuZp0i83svQU7_naUEexczc-X3NWv7lvNkD8e3sPyng";
+
+/**
+ * Raised when DeepXiv needs an authenticated request but no token is available
+ * and auto-registration failed. Callers (MCP tools) surface this to the agent
+ * so it knows to configure a token in Settings rather than seeing "no results".
+ */
+export class DeepXivTokenError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DeepXivTokenError";
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Fetch with retry (429 / 5xx)
 // ---------------------------------------------------------------------------
@@ -99,39 +118,113 @@ export async function fetchWithRetry(
 // DeepXiv auth helper
 // ---------------------------------------------------------------------------
 
-let _cachedToken: { value: string | null; expiresAt: number } | null = null;
+// Cache resolved tokens per company UUID for a short window to avoid a DB
+// lookup on every request. Keyed by company UUID; the env-token path bypasses
+// this entirely.
+const _tokenCache = new Map<string, { value: string | null; expiresAt: number }>();
 const TOKEN_CACHE_MS = 60_000; // cache DB lookup for 1 minute
 
-async function deepxivHeaders(): Promise<Record<string, string>> {
-  // 1. Env var takes precedence (operator override)
+/**
+ * Resolve a DeepXiv token for the given company, auto-registering one if the
+ * company has none yet (mirrors the official SDK's first-use behavior).
+ * Returns null only when no company context is supplied (anonymous reads).
+ * Throws {@link DeepXivTokenError} when a token is required but registration
+ * fails, so the caller can tell the agent to configure one manually.
+ */
+async function resolveCompanyToken(companyUuid: string): Promise<string> {
+  const now = Date.now();
+  const cached = _tokenCache.get(companyUuid);
+  if (cached && now < cached.expiresAt && cached.value) {
+    return cached.value;
+  }
+
+  const { prisma } = await import("@/lib/prisma");
+  const company = await prisma.company.findUnique({
+    where: { uuid: companyUuid },
+    select: { deepxivToken: true },
+  });
+
+  if (company?.deepxivToken) {
+    _tokenCache.set(companyUuid, { value: company.deepxivToken, expiresAt: now + TOKEN_CACHE_MS });
+    return company.deepxivToken;
+  }
+
+  // No token yet — auto-register one and persist it to the company.
+  const token = await autoRegisterDeepxivToken();
+  if (!token) {
+    throw new DeepXivTokenError(
+      "DeepXiv token is not configured and automatic registration failed. " +
+        "Set one in Settings > Integrations (register at data.rag.ac.cn).",
+    );
+  }
+  try {
+    await prisma.company.update({
+      where: { uuid: companyUuid },
+      data: { deepxivToken: token },
+    });
+  } catch {
+    // Persisting failed (e.g. race) — still use the token for this request.
+  }
+  _tokenCache.set(companyUuid, { value: token, expiresAt: now + TOKEN_CACHE_MS });
+  return token;
+}
+
+/**
+ * Build auth headers for a DeepXiv request.
+ * - With `companyUuid`: resolve (and if needed auto-register) the company token.
+ * - Without `companyUuid`: env token if present, otherwise anonymous (the
+ *   public-arXiv fallback path relies on this for unauthenticated reads).
+ */
+async function deepxivHeaders(companyUuid?: string): Promise<Record<string, string>> {
+  // 1. Env var takes precedence (operator override).
   const envToken = process.env.DEEPXIV_TOKEN;
   if (envToken) {
     return { Authorization: `Bearer ${envToken}` };
   }
 
-  // 2. DB-stored company token (cached)
-  const now = Date.now();
-  if (!_cachedToken || now > _cachedToken.expiresAt) {
-    try {
-      const { prisma } = await import("@/lib/prisma");
-      const company = await prisma.company.findFirst({
-        select: { deepxivToken: true },
-      });
-      _cachedToken = { value: company?.deepxivToken ?? null, expiresAt: now + TOKEN_CACHE_MS };
-    } catch {
-      _cachedToken = { value: null, expiresAt: now + TOKEN_CACHE_MS };
-    }
+  // 2. Per-company token (auto-registered on first use).
+  if (companyUuid) {
+    const token = await resolveCompanyToken(companyUuid);
+    return { Authorization: `Bearer ${token}` };
   }
 
-  if (_cachedToken.value) {
-    return { Authorization: `Bearer ${_cachedToken.value}` };
-  }
+  // 3. No company context: anonymous.
   return {};
 }
 
-/** Clear cached token (call after updating the token in DB). */
-export function clearDeepxivTokenCache(): void {
-  _cachedToken = null;
+/** Register a fresh DeepXiv token via the public SDK endpoint. Returns null on failure. */
+async function autoRegisterDeepxivToken(): Promise<string | null> {
+  // Random, opaque registration identity (matches the SDK's payload shape).
+  const suffix =
+    Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 4);
+  const payload = {
+    sdk_secret: DEEPXIV_SDK_SECRET,
+    name: `deepxiv_${suffix}`,
+    email: `${suffix}@example.com`,
+  };
+  try {
+    const resp = await fetch(DEEPXIV_REGISTER_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!resp.ok) return null;
+    const json = (await resp.json()) as { success?: boolean; data?: { token?: string } };
+    if (!json.success) return null;
+    return json.data?.token ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Clear cached token(s). Call after updating the token in DB. */
+export function clearDeepxivTokenCache(companyUuid?: string): void {
+  if (companyUuid) {
+    _tokenCache.delete(companyUuid);
+  } else {
+    _tokenCache.clear();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -159,6 +252,8 @@ export interface DeepXivDateFilter {
 
 export interface SearchPapersOptions {
   dateFilter?: DeepXivDateFilter;
+  /** Company context for per-company token resolution / auto-registration. */
+  companyUuid?: string;
 }
 
 export async function searchDeepXiv(
@@ -166,11 +261,12 @@ export async function searchDeepXiv(
   limit: number,
   options: SearchPapersOptions = {},
 ): Promise<PaperResult[]> {
+  // `top_k` is the upstream result-count param (the SDK contract); `size` is
+  // ignored by the endpoint. `search_mode` is deprecated and also ignored.
   const params = new URLSearchParams({
     type: "retrieve",
     query,
-    size: String(limit),
-    search_mode: "hybrid",
+    top_k: String(limit),
   });
   if (options.dateFilter) {
     params.set("date_search_type", options.dateFilter.dateSearchType);
@@ -185,7 +281,7 @@ export async function searchDeepXiv(
   }
   const url = `${DEEPXIV_BASE}?${params}`;
 
-  const resp = await fetchWithRetry(url, { headers: await deepxivHeaders() });
+  const resp = await fetchWithRetry(url, { headers: await deepxivHeaders(options.companyUuid) });
   if (!resp) return [];
 
   let data: DeepXivSearchResult[];
@@ -227,12 +323,18 @@ export async function searchDeepXiv(
  * Unlike `fetchWithRetry`, this preserves the final HTTP status so callers can
  * distinguish 404 "paper not found" from transient failures. Retries 429/5xx.
  */
-async function deepxivGet(url: string): Promise<{ status: number; json: unknown | null; authenticated: boolean }> {
+async function deepxivGet(
+  url: string,
+  companyUuid?: string,
+): Promise<{ status: number; json: unknown | null; authenticated: boolean }> {
+  // Resolve headers once, outside the retry loop, so a DeepXivTokenError from
+  // auto-registration propagates to the caller instead of being swallowed by
+  // the loop's catch (and so we don't re-register on every retry).
+  const headers = await deepxivHeaders(companyUuid);
+  const authenticated = "Authorization" in headers;
   let lastStatus = 0;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const headers = await deepxivHeaders();
-      const authenticated = "Authorization" in headers;
       const resp = await fetch(url, {
         signal: AbortSignal.timeout(15_000),
         headers,
@@ -331,11 +433,11 @@ async function fetchArxivById(arxivId: string): Promise<PaperResult | null> {
 }
 
 /** Get brief summary: TLDR, keywords, citation count, GitHub URL. */
-export async function readPaperBrief(arxivId: string): Promise<DeepXivBrief | null> {
+export async function readPaperBrief(arxivId: string, companyUuid?: string): Promise<DeepXivBrief | null> {
   const params = new URLSearchParams({ type: "brief", arxiv_id: arxivId });
   const url = `${DEEPXIV_BASE}?${params}`;
 
-  const { status, json, authenticated } = await deepxivGet(url);
+  const { status, json, authenticated } = await deepxivGet(url, companyUuid);
 
   // F-025: fall back to public arXiv when DeepXiv cannot answer (not-found, or
   // unauthenticated 401/403 when no token is configured). Real auth failures
@@ -373,11 +475,11 @@ export async function readPaperBrief(arxivId: string): Promise<DeepXivBrief | nu
 }
 
 /** Get paper structure with per-section TLDRs and token counts. */
-export async function readPaperHead(arxivId: string): Promise<DeepXivHead | null> {
+export async function readPaperHead(arxivId: string, companyUuid?: string): Promise<DeepXivHead | null> {
   const params = new URLSearchParams({ type: "head", arxiv_id: arxivId });
   const url = `${DEEPXIV_BASE}?${params}`;
 
-  const { status, json, authenticated } = await deepxivGet(url);
+  const { status, json, authenticated } = await deepxivGet(url, companyUuid);
 
   // F-025: on "not found" or unauthenticated-no-token, synthesize a minimal
   // head from the public arXiv abstract so agents can at least see the
@@ -415,6 +517,7 @@ export async function readPaperHead(arxivId: string): Promise<DeepXivHead | null
 export async function readPaperSection(
   arxivId: string,
   sectionName: string,
+  companyUuid?: string,
 ): Promise<DeepXivSectionContent | null> {
   const params = new URLSearchParams({
     type: "section",
@@ -423,7 +526,7 @@ export async function readPaperSection(
   });
   const url = `${DEEPXIV_BASE}?${params}`;
 
-  const resp = await fetchWithRetry(url, { headers: await deepxivHeaders() });
+  const resp = await fetchWithRetry(url, { headers: await deepxivHeaders(companyUuid) });
   if (!resp) return null;
 
   try {
@@ -441,11 +544,11 @@ export async function readPaperSection(
 }
 
 /** Get complete paper as raw Markdown. */
-export async function readPaperFull(arxivId: string): Promise<string | null> {
+export async function readPaperFull(arxivId: string, companyUuid?: string): Promise<string | null> {
   const params = new URLSearchParams({ type: "raw", arxiv_id: arxivId });
   const url = `${DEEPXIV_BASE}?${params}`;
 
-  const resp = await fetchWithRetry(url, { headers: await deepxivHeaders() });
+  const resp = await fetchWithRetry(url, { headers: await deepxivHeaders(companyUuid) });
   if (!resp) return null;
 
   try {

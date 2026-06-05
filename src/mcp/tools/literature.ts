@@ -50,7 +50,7 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
           dateSearchType && dateStr !== undefined
             ? { dateSearchType, dateStr }
             : undefined;
-        const papers = await searchPapers(query, limit, { dateFilter });
+        const papers = await searchPapers(query, limit, { dateFilter, companyUuid: auth.companyUuid });
         return {
           content: [{ type: "text" as const, text: JSON.stringify({ papers }, null, 2) }],
         };
@@ -74,7 +74,7 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
     async ({ arxivId }) => {
       try {
         const { readPaperBrief } = await import("@/services/paper-search.service");
-        const result = await readPaperBrief(arxivId);
+        const result = await readPaperBrief(arxivId, auth.companyUuid);
         if (!result) {
           return { content: [{ type: "text" as const, text: `Paper not found: ${arxivId}` }], isError: true };
         }
@@ -96,7 +96,7 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
     async ({ arxivId }) => {
       try {
         const { readPaperHead } = await import("@/services/paper-search.service");
-        const result = await readPaperHead(arxivId);
+        const result = await readPaperHead(arxivId, auth.companyUuid);
         if (!result) {
           return { content: [{ type: "text" as const, text: `Paper not found: ${arxivId}` }], isError: true };
         }
@@ -119,7 +119,7 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
     async ({ arxivId, sectionName }) => {
       try {
         const { readPaperSection } = await import("@/services/paper-search.service");
-        const result = await readPaperSection(arxivId, sectionName);
+        const result = await readPaperSection(arxivId, sectionName, auth.companyUuid);
         if (!result) {
           return { content: [{ type: "text" as const, text: `Section not found: "${sectionName}" in paper ${arxivId}` }], isError: true };
         }
@@ -141,7 +141,7 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
     async ({ arxivId }) => {
       try {
         const { readPaperFull } = await import("@/services/paper-search.service");
-        const result = await readPaperFull(arxivId);
+        const result = await readPaperFull(arxivId, auth.companyUuid);
         if (!result) {
           return { content: [{ type: "text" as const, text: `Paper not found: ${arxivId}` }], isError: true };
         }
