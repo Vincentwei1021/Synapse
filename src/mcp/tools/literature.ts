@@ -35,11 +35,15 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
           .enum(["exact", "after", "before", "between"])
           .optional()
           .describe("Optional DeepXiv publication-date filter mode."),
+        // Use array(2) rather than tuple: z.tuple emits `items: [..]` (positional
+        // schema) which some MCP clients (e.g. Codex) reject when building the tool
+        // spec, causing the whole tool to be silently dropped. array(2) emits
+        // `items: {..}` + minItems/maxItems, which is broadly compatible.
         dateStr: z
-          .union([z.string(), z.tuple([z.string(), z.string()])])
+          .union([z.string(), z.array(z.string()).length(2)])
           .optional()
           .describe(
-            "Date for the filter — 'YYYY', 'YYYY-MM', or 'YYYY-MM-DD'. Pass a [start, end] tuple when dateSearchType='between'.",
+            "Date for the filter — 'YYYY', 'YYYY-MM', or 'YYYY-MM-DD'. Pass a [start, end] 2-element array when dateSearchType='between'.",
           ),
       }),
     },
@@ -48,7 +52,7 @@ export function registerLiteratureTools(server: McpServer, auth: AgentAuthContex
         const { searchPapers } = await import("@/services/paper-search.service");
         const dateFilter =
           dateSearchType && dateStr !== undefined
-            ? { dateSearchType, dateStr }
+            ? { dateSearchType, dateStr: dateStr as string | [string, string] }
             : undefined;
         const papers = await searchPapers(query, limit, { dateFilter, companyUuid: auth.companyUuid });
         return {
