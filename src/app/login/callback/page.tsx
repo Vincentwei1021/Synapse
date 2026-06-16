@@ -10,6 +10,7 @@ import {
 } from "@/lib/oidc";
 import { initUserManager } from "@/lib/auth-client";
 import { clientLogger } from "@/lib/logger-client";
+import { BRAND_SPLASH_FLAG } from "@/components/brand-splash";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Music, Loader2 } from "lucide-react";
@@ -89,6 +90,8 @@ export default function OidcCallbackPage() {
       } catch {
         // Fall through to default redirect
       }
+      // Play the brand intro on the dashboard after a successful login.
+      sessionStorage.setItem(BRAND_SPLASH_FLAG, "1");
       router.push("/research-projects");
     } catch (err) {
       clientLogger.error("OIDC callback error:", err);

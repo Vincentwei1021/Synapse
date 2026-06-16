@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { createUserManager, storeOidcConfig, clearOidcConfig, type OidcConfig } from "@/lib/oidc";
 import { clearUserManager } from "@/lib/auth-client";
 import { clientLogger } from "@/lib/logger-client";
+import { BRAND_SPLASH_FLAG } from "@/components/brand-splash";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,6 +82,8 @@ export default function LoginPage() {
       } catch {
         // Fall through to default redirect
       }
+      // Play the brand intro on the dashboard after a successful login.
+      sessionStorage.setItem(BRAND_SPLASH_FLAG, "1");
       router.push("/research-projects");
     } catch {
       setError(t("login.networkError"));

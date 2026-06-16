@@ -37,6 +37,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { SidebarSectionFrame } from "@/components/sidebar-section-frame";
 import { useAgentActivity } from "@/hooks/use-agent-activity";
 import type { AgentSummary } from "@/services/agent-activity.service";
+import { BrandSplash, BRAND_SPLASH_FLAG } from "@/components/brand-splash";
 
 interface User {
   uuid: string;
@@ -135,6 +136,17 @@ export default function DashboardLayout({
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [showSplash, setShowSplash] = useState(false);
+
+  // One-shot brand intro after login success / onboarding completion.
+  // The auth flows set BRAND_SPLASH_FLAG right before navigating here; we
+  // consume it once so it never replays on subsequent navigation.
+  useEffect(() => {
+    if (sessionStorage.getItem(BRAND_SPLASH_FLAG)) {
+      sessionStorage.removeItem(BRAND_SPLASH_FLAG);
+      setShowSplash(true);
+    }
+  }, []);
 
   // Close mobile drawer on navigation
   useEffect(() => {
@@ -320,11 +332,21 @@ export default function DashboardLayout({
       .finally(() => setOnboardingChecked(true));
   }, [user, onboardingChecked, router]);
 
+  // Brand intro overlay, kept as a single element so it renders identically in
+  // the loading and loaded branches — React preserves the <video> across the
+  // loading flip instead of remounting it (a remount aborts playback early).
+  const splash = showSplash ? (
+    <BrandSplash onDone={() => setShowSplash(false)} />
+  ) : null;
+
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-muted-foreground">{t("common.loading")}</div>
-      </div>
+      <>
+        {splash}
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <div className="text-muted-foreground">{t("common.loading")}</div>
+        </div>
+      </>
     );
   }
 
@@ -510,6 +532,7 @@ export default function DashboardLayout({
   return (
     <ToastProvider>
     <NotificationProvider>
+    {splash}
     <NavigationProgress />
     <div className="flex min-h-screen bg-background">
       {/* Mobile Header - visible below md */}

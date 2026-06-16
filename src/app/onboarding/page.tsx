@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { authFetch } from "@/lib/auth-client";
 import { invalidateOnboardingCache } from "@/components/onboarding-progress";
+import { BRAND_SPLASH_FLAG } from "@/components/brand-splash";
 import { OnboardingStep1 } from "./step1-agent";
 import { OnboardingStep2 } from "./step2-connect";
 import { OnboardingStep3 } from "./step3-compute";
@@ -102,6 +103,8 @@ function OnboardingPageInner() {
   const handleStep3Complete = useCallback((poolUuid: string) => {
     setWizardState((prev) => ({ ...prev, poolUuid, nodeAdded: true }));
     invalidateOnboardingCache();
+    // Play the brand intro on the dashboard after onboarding completes.
+    sessionStorage.setItem(BRAND_SPLASH_FLAG, "1");
     setTimeout(() => {
       // Full page navigation to ensure server components re-fetch fresh data
       window.location.href = "/research-projects";
