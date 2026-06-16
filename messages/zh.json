@@ -1,4 +1,7 @@
 {
+  "splash": {
+    "skip": "跳过"
+  },
   "common": {
     "appName": "Synapse",
     "loading": "加载中...",

@@ -1,4 +1,7 @@
 {
+  "splash": {
+    "skip": "Skip"
+  },
   "common": {
     "appName": "Synapse",
     "loading": "Loading...",
