@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.0] - 2026-06-17
+
+### Added
+- **Brand splash on login / onboarding**: a fullscreen, white-background intro plays the Synapse logo animation (circuit-mark draw-on → "Synapse" wordmark cascade → tagline settle) after each login-success path — default-login, OIDC callback, and onboarding completion. Each sets a one-shot `sessionStorage` flag before navigating; the dashboard layout consumes it once and mounts `BrandSplash`. The overlay auto-dismisses when the video ends, is skippable (click or the Skip button), honors `prefers-reduced-motion`, and has a 6s safety timeout so it can never trap the user. Ships `public/synapse-logo-animation.{mp4,gif}`.
+
+### Changed
+- **Splash sizing**: the intro logo is presented at a centered ~44vh, capped at 420px wide, rather than a fullscreen takeover.
+- **Versions**: npm `@synapse-research/synapse` 0.4.5 → **0.5.0**; Docker `vincentwei1021/synapse:v0.5.0` (`:latest` advances together).
+
+---
+
 ## [0.8.0] - 2026-05-22
 
 ### Fixed
