@@ -64,7 +64,7 @@ export function BrandSplash({ onDone }: { onDone: () => void }) {
         playsInline
         autoPlay
         onEnded={finish}
-        className="max-h-[78vh] max-w-[88vw] object-contain"
+        className="max-h-[44vh] w-auto max-w-[min(420px,70vw)] object-contain"
       />
       <button
         type="button"
