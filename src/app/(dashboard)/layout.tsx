@@ -28,6 +28,7 @@ import {
 import { authFetch, logout as authLogout, clearUserManager, refreshAuthCookies } from "@/lib/auth-client";
 import { clientLogger } from "@/lib/logger-client";
 import { RealtimeProvider } from "@/contexts/realtime-context";
+import { AgentPresenceProvider } from "@/contexts/agent-presence-context";
 import { NotificationProvider } from "@/contexts/notification-context";
 import { ToastProvider } from "@/contexts/toast-context";
 import { NotificationBell } from "@/components/notification-bell";
@@ -35,6 +36,7 @@ import { NavigationProgress } from "@/components/navigation-progress";
 import { OnboardingProgress } from "@/components/onboarding-progress";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { SidebarSectionFrame } from "@/components/sidebar-section-frame";
+import { AgentOnlinePill } from "@/components/presence/agent-online-pill";
 import { useAgentActivity } from "@/hooks/use-agent-activity";
 import type { AgentSummary } from "@/services/agent-activity.service";
 import { BrandSplash, BRAND_SPLASH_FLAG } from "@/components/brand-splash";
@@ -500,6 +502,10 @@ export default function DashboardLayout({
       </div>
 
       <OnboardingProgress />
+      {/* Agent presence */}
+      <div className="px-6">
+        <AgentOnlinePill />
+      </div>
       {/* User Profile */}
       <div className="p-6">
         <div className="flex items-center gap-2">
@@ -532,6 +538,7 @@ export default function DashboardLayout({
   return (
     <ToastProvider>
     <NotificationProvider>
+    <AgentPresenceProvider>
     {splash}
     <NavigationProgress />
     <div className="flex min-h-screen bg-background">
@@ -587,6 +594,7 @@ export default function DashboardLayout({
         </>
       )}
     </div>
+    </AgentPresenceProvider>
     </NotificationProvider>
     </ToastProvider>
   );
