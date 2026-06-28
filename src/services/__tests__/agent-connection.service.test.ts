@@ -10,6 +10,7 @@ import { _resetRegistryForTest } from "@/lib/connection-registry";
 import {
   recordHeartbeat,
   listOwnerConnections,
+  countActiveExperimentsByAgent,
 } from "@/services/agent-connection.service";
 
 const companyUuid = "company-1";
@@ -94,5 +95,36 @@ describe("listOwnerConnections", () => {
     mockPrisma.experiment.findMany.mockResolvedValue([]);
     const views = await listOwnerConnections({ companyUuid, ownerUuid, now: 1_000 + 60_000 });
     expect(views[0].status).toBe("offline");
+  });
+});
+
+describe("countActiveExperimentsByAgent", () => {
+  it("returns a per-agent count of live experiments, company-scoped", async () => {
+    mockPrisma.experiment.findMany.mockResolvedValue([
+      { assigneeUuid: "agent-1" },
+      { assigneeUuid: "agent-1" },
+      { assigneeUuid: "agent-2" },
+    ]);
+    const map = await countActiveExperimentsByAgent("company-1", ["agent-1", "agent-2", "agent-3"]);
+    expect(map.get("agent-1")).toBe(2);
+    expect(map.get("agent-2")).toBe(1);
+    expect(map.get("agent-3") ?? 0).toBe(0);
+    expect(mockPrisma.experiment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          companyUuid: "company-1",
+          assigneeType: "agent",
+          assigneeUuid: { in: ["agent-1", "agent-2", "agent-3"] },
+          liveStatus: { not: null },
+        }),
+      }),
+    );
+  });
+
+  it("returns an empty map for no agents (no query)", async () => {
+    mockPrisma.experiment.findMany.mockClear();
+    const map = await countActiveExperimentsByAgent("company-1", []);
+    expect(map.size).toBe(0);
+    expect(mockPrisma.experiment.findMany).not.toHaveBeenCalled();
   });
 });

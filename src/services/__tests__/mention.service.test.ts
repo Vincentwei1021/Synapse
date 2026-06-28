@@ -36,6 +36,13 @@ vi.mock("@/services/notification.service", () => ({
   createBatch: (...args: unknown[]) => mockCreateBatch(...args),
 }));
 
+const mockCountActive = vi.hoisted(() => vi.fn());
+vi.mock("@/services/agent-connection.service", () => ({
+  countActiveExperimentsByAgent: mockCountActive,
+}));
+const mockHasLive = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/connection-registry", () => ({ hasLiveConnection: mockHasLive }));
+
 import { createMentions, searchMentionables } from "@/services/mention.service";
 
 // ===== Test Data (UUIDs must be valid hex for mention regex to match) =====
@@ -52,6 +59,8 @@ const SOURCE_UUID = "66666666-6666-6666-6666-666666666666";
 beforeEach(() => {
   vi.clearAllMocks();
   mockGetPreferences.mockResolvedValue({ mentioned: true });
+  mockCountActive.mockResolvedValue(new Map());
+  mockHasLive.mockReturnValue(false);
 });
 
 describe("createMentions", () => {
@@ -340,6 +349,39 @@ describe("searchMentionables", () => {
           ownerUuid,
         }),
       })
+    );
+  });
+
+  it("marks online agents and ranks them first with activeCount", async () => {
+    const AGENT_A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+    const AGENT_B = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+    // agent-A (offline) returned before agent-B (online) by the query order
+    mockPrisma.agent.findMany.mockResolvedValue([
+      { uuid: AGENT_A, name: "AgentA", roles: ["researcher_agent"] },
+      { uuid: AGENT_B, name: "AgentB", roles: ["researcher_agent"] },
+    ]);
+    mockHasLive.mockImplementation((uuid: string) => uuid === AGENT_B);
+    mockCountActive.mockResolvedValue(new Map([[AGENT_B, 2]]));
+
+    const results = await searchMentionables({
+      companyUuid: COMPANY_UUID,
+      query: "",
+      actorType: "user",
+      actorUuid: ACTOR_UUID,
+      ownerUuid: ACTOR_UUID,
+      limit: 10,
+    });
+
+    const agents = results.filter((r) => r.type === "agent");
+    const b = agents.find((a) => a.uuid === AGENT_B)!;
+    const a = agents.find((a) => a.uuid === AGENT_A)!;
+    expect(b.online).toBe(true);
+    expect(b.activeCount).toBe(2);
+    expect(a.online).toBe(false);
+    expect(a.activeCount).toBe(0);
+    // online agent ranked before offline among agents
+    expect(agents.findIndex((x) => x.uuid === AGENT_B)).toBeLessThan(
+      agents.findIndex((x) => x.uuid === AGENT_A),
     );
   });
 

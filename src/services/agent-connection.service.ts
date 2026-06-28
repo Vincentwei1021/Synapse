@@ -45,6 +45,34 @@ export async function recordHeartbeat(
   return { connectionKey: record.connectionKey };
 }
 
+/**
+ * Count live (running/queued) experiments assigned to each of the given agents,
+ * scoped to a company. Returns a Map of agentUuid -> count. Agents with no live
+ * experiments are simply absent from the map. An empty agentUuids list short-
+ * circuits with no DB round-trip.
+ */
+export async function countActiveExperimentsByAgent(
+  companyUuid: string,
+  agentUuids: string[],
+): Promise<Map<string, number>> {
+  const counts = new Map<string, number>();
+  if (agentUuids.length === 0) return counts;
+  const rows = await prisma.experiment.findMany({
+    where: {
+      companyUuid,
+      assigneeType: "agent",
+      assigneeUuid: { in: agentUuids },
+      liveStatus: { not: null },
+    },
+    select: { assigneeUuid: true },
+  });
+  for (const r of rows) {
+    if (!r.assigneeUuid) continue;
+    counts.set(r.assigneeUuid, (counts.get(r.assigneeUuid) ?? 0) + 1);
+  }
+  return counts;
+}
+
 export interface ExecutionView {
   experimentUuid: string;
   title: string;
