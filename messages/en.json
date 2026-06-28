@@ -2,6 +2,20 @@
   "splash": {
     "skip": "Skip"
   },
+  "presence": {
+    "title": "Agent connections",
+    "loading": "Checking agents…",
+    "agentsOnline": "{count, plural, =0 {No agents online} one {# agent online} other {# agents online}}",
+    "viewAll": "View all",
+    "noConnections": "No active connections",
+    "offline": "Offline",
+    "online": "Online",
+    "idle": "Idle",
+    "nActive": "{count, plural, one {# active} other {# active}}",
+    "running": "Running",
+    "uptime": "Uptime",
+    "connections": "Connections"
+  },
   "common": {
     "appName": "Synapse",
     "loading": "Loading...",

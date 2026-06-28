@@ -2,6 +2,20 @@
   "splash": {
     "skip": "跳过"
   },
+  "presence": {
+    "title": "智能体连接",
+    "loading": "正在检查智能体…",
+    "agentsOnline": "{count, plural, =0 {无在线智能体} other {# 个智能体在线}}",
+    "viewAll": "查看全部",
+    "noConnections": "暂无活跃连接",
+    "offline": "离线",
+    "online": "在线",
+    "idle": "空闲",
+    "nActive": "{count, plural, other {# 个进行中}}",
+    "running": "运行中",
+    "uptime": "在线时长",
+    "connections": "连接"
+  },
   "common": {
     "appName": "Synapse",
     "loading": "加载中...",
