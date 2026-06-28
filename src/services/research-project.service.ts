@@ -6,7 +6,8 @@ import { Prisma } from "@/generated/prisma/client";
 import { ApiError } from "@/lib/api-handler";
 import { eventBus } from "@/lib/event-bus";
 import { prisma } from "@/lib/prisma";
-import { isRealtimeAgent } from "@/lib/agent-transport";
+import { isRealtimeForAgent } from "@/lib/agent-transport";
+import { agentHasLiveConnection } from "@/services/agent-connection.service";
 import { getAgentByUuid } from "@/services/agent.service";
 import { getProjectMetricsSnapshot, getProjectMetricsSnapshots } from "@/services/project-metrics.service";
 
@@ -274,7 +275,7 @@ export async function updateResearchProject(
         { autonomousLoopAgentUuid: "Agent does not exist in this company" },
       );
     }
-    if (!isRealtimeAgent(agent.type)) {
+    if (!isRealtimeForAgent(agent.type, agentHasLiveConnection(agent.uuid))) {
       throw new ApiError(
         "VALIDATION_ERROR",
         "Autonomous loop requires a realtime (openclaw) agent",

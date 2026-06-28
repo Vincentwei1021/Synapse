@@ -82,6 +82,12 @@ export function listConnections(
   return result;
 }
 
+export function hasLiveConnection(agentUuid: string, now: number): boolean {
+  return listConnections(now, { agentUuids: [agentUuid] }).some(
+    (r) => livenessOf(r, now) === "online",
+  );
+}
+
 export function _resetRegistryForTest(): void {
   store.clear();
 }

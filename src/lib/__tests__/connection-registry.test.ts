@@ -6,6 +6,7 @@ import {
   removeConnection,
   livenessOf,
   listConnections,
+  hasLiveConnection,
   _resetRegistryForTest,
 } from "@/lib/connection-registry";
 
@@ -88,6 +89,14 @@ describe("connection-registry", () => {
     const allAtOriginalTime = listConnections(1_000);
     expect(allAtOriginalTime).toHaveLength(1);
     expect(allAtOriginalTime[0].agentUuid).toBe("agent-1");
+  });
+
+  it("hasLiveConnection true only when an online record exists", () => {
+    _resetRegistryForTest();
+    upsertConnection({ agentUuid: "agent-1", companyUuid: "c", host: "h", cwd: "/c", clientType: "claude_code", now: 1_000 });
+    expect(hasLiveConnection("agent-1", 1_000)).toBe(true);
+    expect(hasLiveConnection("agent-1", 1_000 + STALE_THRESHOLD_MS + 1)).toBe(false); // stale
+    expect(hasLiveConnection("agent-2", 1_000)).toBe(false); // no record
   });
 
   it("live records survive when a stale sibling is pruned", () => {

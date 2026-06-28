@@ -5,8 +5,13 @@ import {
   upsertConnection,
   listConnections,
   livenessOf,
+  hasLiveConnection,
   type ConnectionRecord,
 } from "@/lib/connection-registry";
+
+export function agentHasLiveConnection(agentUuid: string, now: number = Date.now()): boolean {
+  return hasLiveConnection(agentUuid, now);
+}
 
 export interface RecordHeartbeatParams {
   companyUuid: string;

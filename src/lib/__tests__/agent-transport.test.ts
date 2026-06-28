@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getAgentTransport, isRealtimeAgent, VALID_AGENT_TYPES, getTypesByTransport } from "@/lib/agent-transport";
+import { getAgentTransport, isRealtimeAgent, isRealtimeForAgent, VALID_AGENT_TYPES, getTypesByTransport } from "@/lib/agent-transport";
 
 describe("agent-transport", () => {
   describe("VALID_AGENT_TYPES", () => {
@@ -43,6 +43,19 @@ describe("agent-transport", () => {
 
     it("returns false for unknown types", () => {
       expect(isRealtimeAgent("unknown")).toBe(false);
+    });
+  });
+
+  describe("isRealtimeForAgent", () => {
+    it("openclaw is realtime regardless of connection", () => {
+      expect(isRealtimeForAgent("openclaw", false)).toBe(true);
+    });
+    it("claude_code is realtime only with a live connection", () => {
+      expect(isRealtimeForAgent("claude_code", false)).toBe(false);
+      expect(isRealtimeForAgent("claude_code", true)).toBe(true);
+    });
+    it("codex stays poll even with a connection", () => {
+      expect(isRealtimeForAgent("codex", true)).toBe(false);
     });
   });
 
