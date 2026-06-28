@@ -74,6 +74,9 @@ export async function injectInstruction(
   const { experiment, agentUuid } = await loadAgentExperiment(p.companyUuid, p.experimentUuid);
 
   // Comment must be created BEFORE the notification.
+  // Note: createComment also emits a `comment_added` wake event. The daemon
+  // intentionally ignores `comment_added` wakes, so do not try to suppress it
+  // here — the `experiment_instruction` notification below is what wakes the agent.
   await commentService.createComment({
     companyUuid: p.companyUuid,
     targetType: "experiment",

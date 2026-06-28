@@ -1175,7 +1175,9 @@
       "related_work_added": "收集到新论文",
       "experiment_completed": "实验已完成",
       "experiment_status_changed": "实验状态变更",
-      "experiment_progress": "实验进度更新"
+      "experiment_progress": "实验进度更新",
+      "experiment_instruction": "收到指令",
+      "experiment_interrupt": "收到中断请求"
     },
     "actions": {
       "experimentRevisionRequested": "请求修改"

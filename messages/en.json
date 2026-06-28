@@ -1175,7 +1175,9 @@
       "related_work_added": "New paper collected",
       "experiment_completed": "Experiment completed",
       "experiment_status_changed": "Experiment status changed",
-      "experiment_progress": "Experiment progress update"
+      "experiment_progress": "Experiment progress update",
+      "experiment_instruction": "Instruction received",
+      "experiment_interrupt": "Interrupt requested"
     },
     "actions": {
       "experimentRevisionRequested": "requested revisions on"
