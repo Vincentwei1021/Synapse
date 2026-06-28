@@ -11,6 +11,7 @@ export interface DaemonDeps {
   mcpConfigPath: string;
   spawn: SpawnDeps;
   logger: { info: (m: string) => void; warn: (m: string) => void; error: (m: string) => void };
+  interrupt: (experimentUuid: string) => boolean;
 }
 
 export class Daemon {
@@ -28,6 +29,14 @@ export class Daemon {
   handleEvent(event: SseNotificationEvent): Promise<unknown> | null {
     const decision = decideWake(event);
     if (!decision.wake || !decision.experimentUuid) return null;
+
+    if (decision.kind === "interrupt") {
+      const killed = this.deps.interrupt(decision.experimentUuid);
+      this.deps.logger.info(
+        `Interrupt for experiment ${decision.experimentUuid}: ${killed ? "killed in-flight turn" : "no in-flight turn"}`,
+      );
+      return null;
+    }
 
     const experimentUuid = decision.experimentUuid;
     const isResume = this.seen.has(experimentUuid);

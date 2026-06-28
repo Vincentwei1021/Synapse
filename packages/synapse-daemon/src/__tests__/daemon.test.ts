@@ -17,6 +17,7 @@ function makeDaemon(run: ReturnType<typeof vi.fn>) {
     mcpConfigPath: "/tmp/.mcp.json",
     spawn: { run, logger },
     logger,
+    interrupt: vi.fn(),
   });
 }
 
@@ -69,5 +70,39 @@ describe("Daemon.handleEvent", () => {
     expect(firstArgv).not.toContain("--resume");
     expect(secondArgv).toContain("--resume");
     expect(secondArgv).not.toContain("--session-id");
+  });
+
+  it("interrupt event calls deps.interrupt and does not spawn", async () => {
+    const run = vi.fn();
+    const interrupt = vi.fn().mockReturnValue(true);
+    const d = new Daemon({
+      config,
+      queue: new WakeQueue(),
+      mcpConfigPath: "/m",
+      spawn: { run, logger },
+      logger,
+      interrupt,
+    });
+    const ret = d.handleEvent(ev({ action: "experiment_interrupt", entityUuid: "exp-1" }));
+    expect(ret).toBeNull();
+    expect(interrupt).toHaveBeenCalledWith("exp-1");
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it("instruction event resumes (spawns --resume) after a prior turn", async () => {
+    const run = vi.fn().mockResolvedValue({ code: 0, stdout: JSON.stringify({ session_id: "exp-1" }), stderr: "" });
+    const interrupt = vi.fn();
+    const d = new Daemon({
+      config,
+      queue: new WakeQueue(),
+      mcpConfigPath: "/m",
+      spawn: { run, logger },
+      logger,
+      interrupt,
+    });
+    await d.handleEvent(ev({ action: "run_assigned", entityUuid: "exp-1" })); // first turn
+    await d.handleEvent(ev({ action: "experiment_instruction", entityUuid: "exp-1", message: "more" })); // resume
+    const secondArgv = run.mock.calls[1][0] as string[];
+    expect(secondArgv).toContain("--resume");
   });
 });

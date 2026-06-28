@@ -10,7 +10,7 @@ export interface SpawnResult {
 export interface SpawnDeps {
   run: (
     argv: string[],
-    opts: { cwd: string; env: Record<string, string | undefined> },
+    opts: { cwd: string; env: Record<string, string | undefined>; experimentUuid: string },
   ) => Promise<{ code: number | null; stdout: string; stderr: string }>;
   logger: { info: (m: string) => void; warn: (m: string) => void; error: (m: string) => void };
 }
@@ -21,7 +21,11 @@ export async function spawnClaudeTurn(
 ): Promise<SpawnResult> {
   const argv = buildClaudeArgv(params);
   try {
-    const { code, stdout, stderr } = await deps.run(argv, { cwd: params.cwd, env: params.env });
+    const { code, stdout, stderr } = await deps.run(argv, {
+      cwd: params.cwd,
+      env: params.env,
+      experimentUuid: params.sessionId,
+    });
     let sessionId: string | null = null;
     if (code === 0 && stdout) {
       try {
