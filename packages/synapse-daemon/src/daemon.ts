@@ -31,6 +31,7 @@ export class Daemon {
 
     const experimentUuid = decision.experimentUuid;
     const isResume = this.seen.has(experimentUuid);
+    if (!isResume) this.seen.add(experimentUuid); // claim immediately so a concurrent event resumes
 
     return this.deps.queue.enqueue(experimentUuid, async () => {
       const prompt = buildTurnPrompt({
@@ -54,9 +55,10 @@ export class Daemon {
         },
         this.deps.spawn,
       );
-      // Mark seen only when a session actually exists, so a failed first turn retries fresh.
-      if (result.ok && (result.sessionId || isResume)) {
-        this.seen.add(experimentUuid);
+      // Slot was claimed synchronously at enqueue time. Roll back only if a FIRST
+      // turn failed, so a retry starts fresh; resume turns and successes stay seen.
+      if (!result.ok && !isResume) {
+        this.seen.delete(experimentUuid);
       }
       return result;
     });

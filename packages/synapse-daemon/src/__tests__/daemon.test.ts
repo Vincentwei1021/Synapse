@@ -54,4 +54,20 @@ describe("Daemon.handleEvent", () => {
     await d.handleEvent(ev({ action: "run_assigned", entityUuid: "exp-9" }));
     expect(d.seenExperiment("exp-9")).toBe(false);
   });
+
+  it("two concurrent wakes for a new experiment: first --session-id, second --resume", async () => {
+    const run = vi.fn().mockResolvedValue({ code: 0, stdout: JSON.stringify({ session_id: "exp-1" }), stderr: "" });
+    const d = makeDaemon(run);
+    // Fire both events for the SAME brand-new experiment WITHOUT awaiting the first,
+    // simulating SSE redelivery / rapid re-assignment before the first task settles.
+    const p1 = d.handleEvent(ev({ action: "run_assigned", entityUuid: "exp-1", researchProjectUuid: "p1", entityTitle: "T" }));
+    const p2 = d.handleEvent(ev({ action: "run_assigned", entityUuid: "exp-1", message: "more" }));
+    await Promise.all([p1, p2]);
+    const firstArgv = run.mock.calls[0][0] as string[];
+    const secondArgv = run.mock.calls[1][0] as string[];
+    expect(firstArgv).toContain("--session-id");
+    expect(firstArgv).not.toContain("--resume");
+    expect(secondArgv).toContain("--resume");
+    expect(secondArgv).not.toContain("--session-id");
+  });
 });
