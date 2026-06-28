@@ -30,4 +30,19 @@ describe("decideWake", () => {
   it("uses notificationType when action absent", () => {
     expect(decideWake(ev({ notificationType: "run_assigned", entityUuid: "exp-4" })).wake).toBe(true);
   });
+
+  it("classifies experiment_instruction as a resume wake", () => {
+    const d = decideWake(ev({ action: "experiment_instruction", entityUuid: "exp-1", message: "go" }));
+    expect(d.wake).toBe(true);
+    expect(d.kind).toBe("resume");
+    expect(d.experimentUuid).toBe("exp-1");
+  });
+  it("classifies experiment_interrupt as an interrupt wake", () => {
+    const d = decideWake(ev({ action: "experiment_interrupt", entityUuid: "exp-1" }));
+    expect(d.wake).toBe(true);
+    expect(d.kind).toBe("interrupt");
+  });
+  it("run_assigned stays a resume wake", () => {
+    expect(decideWake(ev({ action: "run_assigned", entityUuid: "exp-1" })).kind).toBe("resume");
+  });
 });
