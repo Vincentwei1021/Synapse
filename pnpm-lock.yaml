@@ -223,6 +223,8 @@ importers:
         specifier: ^16.4.7
         version: 16.6.1
 
+  packages/synapse-daemon: {}
+
 packages:
 
   '@alloc/quick-lru@5.2.0':
