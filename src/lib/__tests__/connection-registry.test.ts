@@ -69,4 +69,49 @@ describe("connection-registry", () => {
     removeConnection(rec.connectionKey);
     expect(listConnections(1_000)).toHaveLength(0);
   });
+
+  it("pruneOffline is scoped to agentUuids filter", () => {
+    // Insert a stale record for agent-1 and agent-2
+    upsertConnection({ ...base, agentUuid: "agent-1", now: 1_000 });
+    upsertConnection({ ...base, agentUuid: "agent-2", now: 1_000 });
+    const staleTime = 1_000 + STALE_THRESHOLD_MS + 1;
+
+    // Call listConnections with both agentUuids filter and pruneOffline
+    // Only ask for agent-2 records, both are stale
+    const result = listConnections(staleTime, { agentUuids: ["agent-2"], pruneOffline: true });
+
+    // agent-2 was stale, so returned array is empty
+    expect(result).toHaveLength(0);
+
+    // BUT agent-1's record should still exist because it was outside the filter
+    // It should NOT have been pruned
+    const allAtOriginalTime = listConnections(1_000);
+    expect(allAtOriginalTime).toHaveLength(1);
+    expect(allAtOriginalTime[0].agentUuid).toBe("agent-1");
+  });
+
+  it("live records survive when a stale sibling is pruned", () => {
+    // Insert one record at time 1_000
+    upsertConnection({ ...base, now: 1_000 });
+
+    // Insert a second record with a different cwd at a fresh time so it stays live
+    const freshTime = 1_000 + STALE_THRESHOLD_MS - 100;
+    upsertConnection({ ...base, cwd: "/other", now: freshTime });
+
+    // Advance time so only the first (at 1_000) is stale, second is still live
+    const pruneTime = 1_000 + STALE_THRESHOLD_MS + 1;
+
+    // Call listConnections with pruneOffline (no agentUuids filter)
+    const result = listConnections(pruneTime, { pruneOffline: true });
+
+    // Only the live one should be returned
+    expect(result).toHaveLength(1);
+    expect(result[0].cwd).toBe("/other");
+    expect(result[0].lastSeenAt).toBe(freshTime);
+
+    // Confirm the stale one was actually pruned
+    const afterPrune = listConnections(pruneTime);
+    expect(afterPrune).toHaveLength(1);
+    expect(afterPrune[0].cwd).toBe("/other");
+  });
 });

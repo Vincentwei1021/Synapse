@@ -72,11 +72,11 @@ export function listConnections(
 ): ConnectionRecord[] {
   const result: ConnectionRecord[] = [];
   for (const record of store.values()) {
+    if (opts.agentUuids && !opts.agentUuids.includes(record.agentUuid)) continue;
     if (opts.pruneOffline && livenessOf(record, now) === "offline") {
       store.delete(record.connectionKey);
       continue;
     }
-    if (opts.agentUuids && !opts.agentUuids.includes(record.agentUuid)) continue;
     result.push(record);
   }
   return result;
