@@ -23,6 +23,21 @@
       "running": "Running"
     }
   },
+  "control": {
+    "instructionLabel": "Send instruction to agent",
+    "instructionPlaceholder": "Type an instruction and the assigned agent will resume…",
+    "send": "Send",
+    "interrupt": "Interrupt",
+    "interruptConfirm": "Interrupt the running turn for this experiment?",
+    "noAgent": "No agent is assigned to this experiment",
+    "sent": "Instruction sent",
+    "interruptSent": "Interrupt requested",
+    "sessionId": "Session ID",
+    "copy": "Copy",
+    "copied": "Copied",
+    "origin": "Origin",
+    "liveStatus": "Live status"
+  },
   "common": {
     "appName": "Synapse",
     "loading": "Loading...",

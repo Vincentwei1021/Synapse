@@ -23,6 +23,21 @@
       "running": "运行中"
     }
   },
+  "control": {
+    "instructionLabel": "向智能体发送指令",
+    "instructionPlaceholder": "输入指令，已分配的智能体将继续执行…",
+    "send": "发送",
+    "interrupt": "中断",
+    "interruptConfirm": "中断该实验正在运行的回合？",
+    "noAgent": "该实验未分配智能体",
+    "sent": "指令已发送",
+    "interruptSent": "已请求中断",
+    "sessionId": "会话 ID",
+    "copy": "复制",
+    "copied": "已复制",
+    "origin": "来源",
+    "liveStatus": "实时状态"
+  },
   "common": {
     "appName": "Synapse",
     "loading": "加载中...",
