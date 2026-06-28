@@ -1,7 +1,7 @@
-import { spawn } from "child_process";
+import { spawn, type ChildProcess } from "child_process";
 import { homedir, hostname, tmpdir } from "os";
 import { join } from "path";
-import { existsSync, readFileSync, mkdtempSync, writeFileSync } from "fs";
+import { existsSync, readFileSync, mkdtempSync, writeFileSync, rmSync } from "fs";
 import { resolveConfig, type DaemonConfig } from "./config.js";
 import { writeMcpConfig } from "./mcp-config.js";
 import { WakeQueue } from "./wake-queue.js";
@@ -26,17 +26,50 @@ export function printPosture(config: DaemonConfig, logger: Logger): void {
   }
 }
 
+const DEFAULT_TURN_TIMEOUT_MS = 600_000; // 10 minutes
+
+function resolveTurnTimeoutMs(): number {
+  const raw = process.env.SYNAPSE_DAEMON_TURN_TIMEOUT_MS;
+  if (raw === undefined) return DEFAULT_TURN_TIMEOUT_MS;
+  const parsed = parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_TURN_TIMEOUT_MS;
+}
+
 // Real child-process runner: invokes the `claude` binary with the given argv.
-function makeChildRunner() {
+// Tracks in-flight children in the shared `inflight` set so shutdown can kill
+// orphans, and enforces a per-turn timeout so a hung turn can never wedge its
+// WakeQueue key forever.
+function makeChildRunner(inflight: Set<ChildProcess>) {
   return (argv: string[], opts: { cwd: string; env: Record<string, string | undefined> }) =>
     new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve) => {
       const child = spawn("claude", argv, { cwd: opts.cwd, env: opts.env as NodeJS.ProcessEnv });
+      inflight.add(child);
       let stdout = "";
       let stderr = "";
+      let settled = false;
+      const timeoutMs = resolveTurnTimeoutMs();
+
+      const settle = (result: { code: number | null; stdout: string; stderr: string }) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        inflight.delete(child);
+        resolve(result);
+      };
+
+      const timer = setTimeout(() => {
+        child.kill("SIGTERM");
+        settle({
+          code: null,
+          stdout,
+          stderr: stderr + `\n[synapse-daemon] claude turn timed out after ${timeoutMs}ms`,
+        });
+      }, timeoutMs);
+
       child.stdout.on("data", (d) => (stdout += d.toString()));
       child.stderr.on("data", (d) => (stderr += d.toString()));
-      child.on("error", (err) => resolve({ code: null, stdout, stderr: stderr + String(err) }));
-      child.on("close", (code) => resolve({ code, stdout, stderr }));
+      child.on("error", (err) => settle({ code: null, stdout, stderr: stderr + String(err) }));
+      child.on("close", (code) => settle({ code, stdout, stderr }));
     });
 }
 
@@ -68,12 +101,13 @@ Usage: synapse daemon [options]
     writeFile: (p, c) => writeFileSync(p, c),
   });
 
+  const inflight = new Set<ChildProcess>();
   const queue = new WakeQueue();
   const daemon = new Daemon({
     config,
     queue,
     mcpConfigPath,
-    spawn: { run: makeChildRunner(), logger: consoleLogger },
+    spawn: { run: makeChildRunner(inflight), logger: consoleLogger },
     logger: consoleLogger,
   });
 
@@ -107,6 +141,20 @@ Usage: synapse daemon [options]
   const shutdown = () => {
     heartbeat.stop();
     listener.disconnect();
+    // Kill any in-flight claude turns so they don't outlive the daemon.
+    for (const child of inflight) {
+      try {
+        child.kill("SIGTERM");
+      } catch {
+        // best-effort; never block exit on a kill failure
+      }
+    }
+    // Clean up the temp dir holding the bearer-key .mcp.json.
+    try {
+      rmSync(dir, { recursive: true, force: true });
+    } catch {
+      // best-effort; never block exit on a cleanup failure
+    }
     process.exit(0);
   };
   process.on("SIGINT", shutdown);

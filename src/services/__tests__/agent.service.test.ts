@@ -33,6 +33,7 @@ vi.mock("@/lib/api-key", () => ({
 import {
   listAgents,
   listAgentSummaries,
+  listRealtimeAgentSummaries,
   getAgent,
   getAgentByUuid,
   createAgent,
@@ -47,6 +48,10 @@ import {
   getAgentsByRole,
   getCompanyUsers,
 } from "@/services/agent.service";
+import {
+  upsertConnection,
+  _resetRegistryForTest,
+} from "@/lib/connection-registry";
 
 // ===== Helpers =====
 const now = new Date("2026-03-13T00:00:00Z");
@@ -88,6 +93,7 @@ function makeApiKey(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  _resetRegistryForTest();
   mockGenerateApiKey.mockReturnValue({
     key: "syn_test_key_12345",
     hash: "hashed_value",
@@ -151,6 +157,155 @@ describe("listAgentSummaries", () => {
       select: { uuid: true, name: true, roles: true, type: true, color: true, lastActiveAt: true },
       orderBy: { createdAt: "asc" },
     });
+  });
+});
+
+describe("listRealtimeAgentSummaries", () => {
+  function seedLiveConnection(uuid: string) {
+    upsertConnection({
+      agentUuid: uuid,
+      companyUuid,
+      host: "host-a",
+      cwd: "/tmp/work",
+      pid: 1234,
+      clientType: "claude_code",
+      now: Date.now(),
+    });
+  }
+
+  it("should always include openclaw (realtime) agents", async () => {
+    mockPrisma.agent.findMany.mockResolvedValue([
+      makeAgent({ uuid: "agent-oc", name: "OpenClaw", type: "openclaw" }),
+    ]);
+
+    const result = await listRealtimeAgentSummaries(companyUuid);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].uuid).toBe("agent-oc");
+  });
+
+  it("should exclude claude_code agents without a live connection", async () => {
+    mockPrisma.agent.findMany.mockResolvedValue([
+      makeAgent({ uuid: "agent-cc", name: "Claude", type: "claude_code" }),
+    ]);
+
+    const result = await listRealtimeAgentSummaries(companyUuid);
+
+    expect(result).toHaveLength(0);
+  });
+
+  it("should include claude_code agents WITH a live connection", async () => {
+    seedLiveConnection("agent-cc");
+    mockPrisma.agent.findMany.mockResolvedValue([
+      makeAgent({ uuid: "agent-cc", name: "Claude", type: "claude_code" }),
+    ]);
+
+    const result = await listRealtimeAgentSummaries(companyUuid);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].uuid).toBe("agent-cc");
+  });
+
+  it("should query both realtime types and claude_code from prisma", async () => {
+    mockPrisma.agent.findMany.mockResolvedValue([]);
+
+    await listRealtimeAgentSummaries(companyUuid);
+
+    const callArgs = mockPrisma.agent.findMany.mock.calls[0][0] as {
+      where: { type: { in: string[] } };
+    };
+    expect(callArgs.where.type.in).toContain("openclaw");
+    expect(callArgs.where.type.in).toContain("claude_code");
+  });
+
+  it("should keep openclaw and live claude_code while dropping offline claude_code", async () => {
+    seedLiveConnection("agent-cc-live");
+    mockPrisma.agent.findMany.mockResolvedValue([
+      makeAgent({ uuid: "agent-oc", name: "OpenClaw", type: "openclaw" }),
+      makeAgent({ uuid: "agent-cc-live", name: "Live", type: "claude_code" }),
+      makeAgent({ uuid: "agent-cc-dead", name: "Dead", type: "claude_code" }),
+    ]);
+
+    const result = await listRealtimeAgentSummaries(companyUuid);
+
+    expect(result.map((a) => a.uuid).sort()).toEqual(["agent-cc-live", "agent-oc"]);
+  });
+});
+
+describe("listAgents (realtime transport)", () => {
+  function seedLiveConnection(uuid: string) {
+    upsertConnection({
+      agentUuid: uuid,
+      companyUuid,
+      host: "host-a",
+      cwd: "/tmp/work",
+      pid: 1234,
+      clientType: "claude_code",
+      now: Date.now(),
+    });
+  }
+
+  it("should broaden the prisma where.type to include claude_code", async () => {
+    mockPrisma.agent.findMany.mockResolvedValue([]);
+    mockPrisma.agent.count.mockResolvedValue(0);
+
+    await listAgents({ companyUuid, skip: 0, take: 20, transport: "realtime" });
+
+    const callArgs = mockPrisma.agent.findMany.mock.calls[0][0] as {
+      where: { type: { in: string[] } };
+    };
+    expect(callArgs.where.type.in).toContain("openclaw");
+    expect(callArgs.where.type.in).toContain("claude_code");
+  });
+
+  it("should post-filter out claude_code agents with no live connection and adjust total", async () => {
+    mockPrisma.agent.findMany.mockResolvedValue([
+      makeAgent({ uuid: "agent-oc", type: "openclaw", _count: { apiKeys: 0 } }),
+      makeAgent({ uuid: "agent-cc-dead", type: "claude_code", _count: { apiKeys: 0 } }),
+    ]);
+    mockPrisma.agent.count.mockResolvedValue(2);
+
+    const result = await listAgents({ companyUuid, skip: 0, take: 20, transport: "realtime" });
+
+    expect(result.agents.map((a) => a.uuid)).toEqual(["agent-oc"]);
+    expect(result.total).toBe(1);
+  });
+
+  it("should keep live claude_code agents in the realtime list", async () => {
+    seedLiveConnection("agent-cc-live");
+    mockPrisma.agent.findMany.mockResolvedValue([
+      makeAgent({ uuid: "agent-cc-live", type: "claude_code", _count: { apiKeys: 0 } }),
+    ]);
+    mockPrisma.agent.count.mockResolvedValue(1);
+
+    const result = await listAgents({ companyUuid, skip: 0, take: 20, transport: "realtime" });
+
+    expect(result.agents.map((a) => a.uuid)).toEqual(["agent-cc-live"]);
+    expect(result.total).toBe(1);
+  });
+
+  it("should NOT post-filter for poll transport", async () => {
+    mockPrisma.agent.findMany.mockResolvedValue([
+      makeAgent({ uuid: "agent-cc", type: "claude_code", _count: { apiKeys: 0 } }),
+    ]);
+    mockPrisma.agent.count.mockResolvedValue(1);
+
+    const result = await listAgents({ companyUuid, skip: 0, take: 20, transport: "poll" });
+
+    expect(result.agents).toHaveLength(1);
+    expect(result.total).toBe(1);
+  });
+
+  it("should NOT post-filter when an explicit type is given", async () => {
+    mockPrisma.agent.findMany.mockResolvedValue([
+      makeAgent({ uuid: "agent-cc", type: "claude_code", _count: { apiKeys: 0 } }),
+    ]);
+    mockPrisma.agent.count.mockResolvedValue(1);
+
+    const result = await listAgents({ companyUuid, skip: 0, take: 20, type: "claude_code" });
+
+    expect(result.agents).toHaveLength(1);
+    expect(result.total).toBe(1);
   });
 });
 

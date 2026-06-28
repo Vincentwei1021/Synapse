@@ -4,8 +4,17 @@
 
 import { prisma } from "@/lib/prisma";
 import { generateApiKey } from "@/lib/api-key";
-import { getTypesByTransport } from "@/lib/agent-transport";
+import { getTypesByTransport, isRealtimeAgent } from "@/lib/agent-transport";
+import { hasLiveConnection } from "@/lib/connection-registry";
 import { AGENT_COLOR_PALETTE, isValidAgentColorName } from "@/lib/agent-colors";
+
+// A claude_code agent is "realtime" only while it has a live daemon connection;
+// openclaw agents are always realtime. Used to surface connection-aware
+// claude_code agents in realtime dropdowns.
+function isRealtimeEligible(type: string, uuid: string, now: number): boolean {
+  if (isRealtimeAgent(type)) return true;
+  return type === "claude_code" && hasLiveConnection(uuid, now);
+}
 
 // Pick a deterministic default palette color based on the agent's name so that
 // two agents with the same name never collide and distinct names fan out
@@ -58,10 +67,20 @@ export interface ApiKeyCreateParams {
 // List agents query
 export async function listAgents({ companyUuid, skip, take, ownerUuid, type, transport }: AgentListParams) {
   const where: Record<string, unknown> = { companyUuid, ...(ownerUuid ? { ownerUuid } : {}) };
+  // Only the realtime transport branch (with no explicit type) is
+  // connection-aware: claude_code agents count as realtime only while they hold
+  // a live daemon connection. Broaden the DB query to include claude_code, then
+  // post-filter below. All other paths stay byte-for-byte identical.
+  const realtimeConnectionAware = !type && transport === "realtime";
   if (type) {
     where.type = type;
   } else if (transport) {
-    where.type = { in: getTypesByTransport(transport as "realtime" | "poll") };
+    const types = getTypesByTransport(transport as "realtime" | "poll");
+    where.type = {
+      in: realtimeConnectionAware && !types.includes("claude_code")
+        ? [...types, "claude_code"]
+        : types,
+    };
   }
   const [agents, total] = await Promise.all([
     prisma.agent.findMany({
@@ -84,6 +103,12 @@ export async function listAgents({ companyUuid, skip, take, ownerUuid, type, tra
     }),
     prisma.agent.count({ where }),
   ]);
+
+  if (realtimeConnectionAware) {
+    const now = Date.now();
+    const filtered = agents.filter((a) => isRealtimeEligible(a.type, a.uuid, now));
+    return { agents: filtered, total: filtered.length };
+  }
 
   return { agents, total };
 }
@@ -305,14 +330,23 @@ export async function listAgentSummaries(companyUuid: string) {
 }
 
 export async function listRealtimeAgentSummaries(companyUuid: string) {
-  return prisma.agent.findMany({
+  // Realtime agents are openclaw (always) plus claude_code agents that
+  // currently hold a live daemon connection. Query both, then post-filter the
+  // claude_code rows by live-connection state.
+  const realtimeTypes = getTypesByTransport("realtime");
+  const candidateTypes = realtimeTypes.includes("claude_code")
+    ? realtimeTypes
+    : [...realtimeTypes, "claude_code"];
+  const agents = await prisma.agent.findMany({
     where: {
       companyUuid,
-      type: { in: getTypesByTransport("realtime") },
+      type: { in: candidateTypes },
     },
     select: { uuid: true, name: true, roles: true, type: true, color: true, lastActiveAt: true },
     orderBy: { createdAt: "asc" },
   });
+  const now = Date.now();
+  return agents.filter((a) => isRealtimeEligible(a.type, a.uuid, now));
 }
 
 // Get Agents by role (for assignment)
