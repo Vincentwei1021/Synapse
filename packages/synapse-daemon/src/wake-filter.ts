@@ -1,4 +1,4 @@
-import type { SseNotificationEvent } from "./sse-listener";
+import type { SseNotificationEvent } from "./sse-listener.js";
 
 const WAKE_ACTIONS = new Set(["run_assigned", "task_assigned"]);
 
