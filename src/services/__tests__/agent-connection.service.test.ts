@@ -55,6 +55,7 @@ describe("listOwnerConnections", () => {
         uuid: "exp-1", title: "Run A", researchProjectUuid: "proj-1",
         liveStatus: "running", liveMessage: "epoch 3",
         liveUpdatedAt: new Date("2026-06-28T00:00:00Z"),
+        assigneeUuid: agentUuid,
       },
     ]);
 

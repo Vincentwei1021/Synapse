@@ -7,6 +7,11 @@ import { listOwnerConnections } from "@/services/agent-connection.service";
 
 export const dynamic = "force-dynamic";
 
+// The connection registry is in-memory and process-local: behind a
+// multi-instance / load-balanced deployment, a GET on one instance won't see
+// heartbeats received by another, so connections may read "offline"
+// intermittently. Acceptable for the current single-instance deployment; a
+// Redis-backed presence layer is the follow-up.
 export const GET = withErrorHandler(async (request: NextRequest) => {
   const auth = await getAuthContext(request);
   if (!auth) return errors.unauthorized();

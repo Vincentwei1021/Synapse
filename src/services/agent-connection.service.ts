@@ -101,9 +101,9 @@ export async function listOwnerConnections(params: {
     orderBy: { liveUpdatedAt: "desc" },
   });
 
-  // Group experiments by their assignee agent. The query is already owner-scoped
-  // (`assigneeUuid in ownedUuids`), so any row without an explicit assigneeUuid is
-  // attributed to every owned agent rather than dropped.
+  // Group experiments by their assignee agent. The query already filters on
+  // `assigneeUuid in ownedUuids` and selects assigneeUuid, so every row has one;
+  // defensively skip any row without an assigneeUuid rather than fanning it out.
   const execByAgent = new Map<string, ExecutionView[]>();
   const attach = (agentUuid: string, view: ExecutionView) => {
     const list = execByAgent.get(agentUuid) ?? [];
@@ -111,6 +111,7 @@ export async function listOwnerConnections(params: {
     execByAgent.set(agentUuid, list);
   };
   for (const e of experiments) {
+    if (!e.assigneeUuid) continue;
     const view: ExecutionView = {
       experimentUuid: e.uuid,
       title: e.title,
@@ -119,11 +120,7 @@ export async function listOwnerConnections(params: {
       liveMessage: e.liveMessage ?? null,
       liveUpdatedAt: e.liveUpdatedAt ? e.liveUpdatedAt.toISOString() : null,
     };
-    if (e.assigneeUuid) {
-      attach(e.assigneeUuid, view);
-    } else {
-      for (const uuid of ownedUuids) attach(uuid, view);
-    }
+    attach(e.assigneeUuid, view);
   }
 
   return records.map((r) => {
