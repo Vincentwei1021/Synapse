@@ -54,6 +54,8 @@ import type { SessionResponse } from "@/services/session.service";
 import { formatAgentApiKeyCreatedAt } from "./agents-page-client.helpers";
 import { AgentColorPicker } from "@/components/agent-color-picker";
 import { getAgentColor } from "@/lib/agent-colors";
+import { useAgentConnections } from "@/contexts/agent-presence-context";
+import { ConnectionList } from "@/components/presence/connection-list";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -1043,6 +1045,16 @@ export function AgentsPageClient({
                     </div>
                   )}
                 </div>
+
+                <div className="border-t border-border" />
+
+                {/* Connections */}
+                <div className="space-y-3">
+                  <h3 className="text-[13px] font-semibold text-foreground">
+                    {t("presence.connections")}
+                  </h3>
+                  <AgentConnectionsSection agentUuid={selectedAgent.uuid} />
+                </div>
                 {/* Delete Agent */}
                 <div className="border-t border-border pt-6">
                   <Button
@@ -1092,5 +1104,21 @@ export function AgentsPageClient({
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+// ── Connections subcomponent ─────────────────────────────────────────────────
+// Local subcomponent so the presence hook is called unconditionally (not inside
+// a conditional/loop). Reads the shared shell-level AgentPresenceProvider.
+function AgentConnectionsSection({ agentUuid }: { agentUuid: string }) {
+  const t = useTranslations();
+  const connections = useAgentConnections(agentUuid);
+  return (
+    <ConnectionList
+      connections={connections}
+      nowMs={Date.now()}
+      variant="inline"
+      emptyLabel={t("presence.noConnections")}
+    />
   );
 }
