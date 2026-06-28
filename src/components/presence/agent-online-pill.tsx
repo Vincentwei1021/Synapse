@@ -3,7 +3,6 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useAgentPresence } from "@/contexts/agent-presence-context";
 import { ConnectionList } from "@/components/presence/connection-list";
-import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
