@@ -14,7 +14,14 @@
     "nActive": "{count, plural, one {# active} other {# active}}",
     "running": "Running",
     "uptime": "Uptime",
-    "connections": "Connections"
+    "connections": "Connections",
+    "status": {
+      "sent": "Sent",
+      "ack": "Acknowledged",
+      "checking_resources": "Checking resources",
+      "queuing": "Queuing",
+      "running": "Running"
+    }
   },
   "common": {
     "appName": "Synapse",

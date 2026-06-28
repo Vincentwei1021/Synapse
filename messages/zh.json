@@ -14,7 +14,14 @@
     "nActive": "{count, plural, other {# 个进行中}}",
     "running": "运行中",
     "uptime": "在线时长",
-    "connections": "连接"
+    "connections": "连接",
+    "status": {
+      "sent": "已发送",
+      "ack": "已确认",
+      "checking_resources": "检查资源中",
+      "queuing": "排队中",
+      "running": "运行中"
+    }
   },
   "common": {
     "appName": "Synapse",

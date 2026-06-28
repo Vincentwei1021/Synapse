@@ -245,10 +245,11 @@ export async function searchMentionables(params: SearchMentionablesParams): Prom
       r.online = hasLiveConnection(r.uuid, now);
       r.activeCount = activeCounts.get(r.uuid) ?? 0;
     }
-    // Stable sort: online agents first; everything else keeps relative order.
     items.sort((a, b) => {
-      const ao = a.type === "agent" && a.online ? 1 : 0;
-      const bo = b.type === "agent" && b.online ? 1 : 0;
+      // Only reorder agents relative to each other; never move users.
+      if (a.type !== "agent" || b.type !== "agent") return 0;
+      const ao = a.online ? 1 : 0;
+      const bo = b.online ? 1 : 0;
       return bo - ao;
     });
     return items;

@@ -15,12 +15,6 @@ export function onlineAgentCount(connections: ConnectionViewLite[]): number {
   return agents.size;
 }
 
-export function totalActiveExecutions(connections: ConnectionViewLite[]): number {
-  let n = 0;
-  for (const c of connections) if (c.status === "online") n += c.executions.length;
-  return n;
-}
-
 export function groupByAgent(
   connections: ConnectionViewLite[],
 ): { agentUuid: string; agentName: string; connections: ConnectionViewLite[] }[] {

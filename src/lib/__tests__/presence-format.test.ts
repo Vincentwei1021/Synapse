@@ -1,6 +1,6 @@
 // src/lib/__tests__/presence-format.test.ts
 import { describe, it, expect } from "vitest";
-import { onlineAgentCount, totalActiveExecutions, groupByAgent, formatUptime, parseConnectionsResponse, type ConnectionViewLite } from "@/lib/presence-format";
+import { onlineAgentCount, groupByAgent, formatUptime, parseConnectionsResponse, type ConnectionViewLite } from "@/lib/presence-format";
 
 function conn(over: Partial<ConnectionViewLite>): ConnectionViewLite {
   return {
@@ -9,7 +9,6 @@ function conn(over: Partial<ConnectionViewLite>): ConnectionViewLite {
     lastSeenAt: "2026-06-28T00:00:10.000Z", executions: [], ...over,
   };
 }
-const exec = (uuid: string) => ({ experimentUuid: uuid, title: "T", researchProjectUuid: "p", liveStatus: "running", liveMessage: null, liveUpdatedAt: null });
 
 describe("onlineAgentCount", () => {
   it("counts distinct agents with an online connection", () => {
@@ -21,15 +20,6 @@ describe("onlineAgentCount", () => {
     ])).toBe(2); // a and c
   });
   it("is 0 for empty", () => expect(onlineAgentCount([])).toBe(0));
-});
-
-describe("totalActiveExecutions", () => {
-  it("sums executions across online connections only", () => {
-    expect(totalActiveExecutions([
-      conn({ status: "online", executions: [exec("e1"), exec("e2")] }),
-      conn({ status: "offline", executions: [exec("e3")] }), // excluded
-    ])).toBe(2);
-  });
 });
 
 describe("groupByAgent", () => {

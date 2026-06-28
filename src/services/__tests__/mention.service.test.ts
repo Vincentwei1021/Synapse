@@ -385,6 +385,36 @@ describe("searchMentionables", () => {
     );
   });
 
+  it("does not push a user below an online agent that follows it", async () => {
+    const ownerUuid = "77777777-7777-7777-7777-777777777777";
+    const AGENT_ONLINE = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+    // User precedes the online agent in input order (users path runs first).
+    mockPrisma.user.findMany.mockResolvedValue([
+      { uuid: USER_UUID, name: "Alice", email: "alice@example.com", avatarUrl: null },
+    ]);
+    mockPrisma.agent.findMany.mockResolvedValue([
+      { uuid: AGENT_ONLINE, name: "OnlineBot", roles: ["researcher_agent"] },
+    ]);
+    mockHasLive.mockImplementation((uuid: string) => uuid === AGENT_ONLINE);
+    mockCountActive.mockResolvedValue(new Map([[AGENT_ONLINE, 1]]));
+
+    const results = await searchMentionables({
+      companyUuid: COMPANY_UUID,
+      query: "a",
+      actorType: "agent",
+      actorUuid: ACTOR_UUID,
+      ownerUuid,
+      limit: 10,
+    });
+
+    const userIdx = results.findIndex((r) => r.uuid === USER_UUID);
+    const agentIdx = results.findIndex((r) => r.uuid === AGENT_ONLINE);
+    // User keeps its original position before the online agent.
+    expect(userIdx).toBeGreaterThanOrEqual(0);
+    expect(agentIdx).toBeGreaterThanOrEqual(0);
+    expect(userIdx).toBeLessThan(agentIdx);
+  });
+
   it("should enforce max limit of 50", async () => {
     mockPrisma.user.findMany.mockResolvedValue([]);
     mockPrisma.agent.findMany.mockResolvedValue([]);
