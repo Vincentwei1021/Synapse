@@ -17,6 +17,14 @@ const PKG_ROOT = resolve(__dirname, "..");
 
 // --- Parse CLI arguments ---
 const args = process.argv.slice(2);
+
+// --- Subcommand dispatch ---
+if (args[0] === "daemon") {
+  const { runDaemon } = await import("@synapse-research/synapse-daemon");
+  await runDaemon(args.slice(1));
+  process.exit(0);
+}
+
 let port = 13000;
 let dataDir = join(homedir(), ".synapse", "data");
 
@@ -33,6 +41,7 @@ Synapse — AI Research Orchestration Platform
 
 Usage:
   synapse [options]
+  synapse daemon       Wake local Claude Code on experiment assignment (run 'synapse daemon --help')
 
 Options:
   --port <number>      Port to listen on (default: 13000)

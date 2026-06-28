@@ -219,6 +219,9 @@ importers:
       '@electric-sql/pglite-socket':
         specifier: ^0.1.4
         version: 0.1.4(@electric-sql/pglite@0.4.4)
+      '@synapse-research/synapse-daemon':
+        specifier: workspace:*
+        version: link:../synapse-daemon
       dotenv:
         specifier: ^16.4.7
         version: 16.6.1

@@ -17,6 +17,7 @@
     "postinstall": "node -e \"try{require('fs').chmodSync(require('path').join(__dirname,'dist','.next','cache'),0o777)}catch{}\""
   },
   "dependencies": {
+    "@synapse-research/synapse-daemon": "workspace:*",
     "@electric-sql/pglite": "^0.4.4",
     "@electric-sql/pglite-socket": "^0.1.4",
     "dotenv": "^16.4.7"
