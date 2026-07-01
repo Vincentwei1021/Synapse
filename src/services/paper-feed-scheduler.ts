@@ -49,7 +49,7 @@ export async function tickPaperFeedScheduler(now: Date = new Date()): Promise<{
 
   const feedDate = currentFeedDate(now);
   const projects = await prisma.researchProject.findMany({
-    where: { paperFeedEnabled: true, paperFeedAgentUuid: { not: null } },
+    where: { paperFeedEnabled: true, paperFeedAgentUuid: { not: null }, status: "active" },
     select: { uuid: true, companyUuid: true },
   });
 

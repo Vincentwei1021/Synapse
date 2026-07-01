@@ -61,7 +61,7 @@ const STALE_RUN_MS = 30 * 60 * 1000;
 
 /**
  * Enable Paper Feeds on a project. Validates that the chosen agent is
- * a realtime (OpenClaw) agent and carries the `paper_feeds` role.
+ * realtime-capable and carries the `paper_feeds` role.
  */
 export async function enablePaperFeed(
   input: EnablePaperFeedInput
@@ -74,7 +74,7 @@ export async function enablePaperFeed(
     throw new Error("Agent not found");
   }
   if (!isRealtimeForAgent(agent.type, agentHasLiveConnection(input.agentUuid))) {
-    throw new Error("Paper Feeds requires a realtime (OpenClaw) agent.");
+    throw new Error("Paper Feeds requires a realtime-capable connected OpenClaw or Claude Code agent.");
   }
   if (!agent.roles.includes("paper_feeds")) {
     throw new Error("Selected agent is missing the paper_feeds role.");

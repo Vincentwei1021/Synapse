@@ -37,7 +37,7 @@ export const POST = withErrorHandler<{ uuid: string }>(
     if (!agent) return errors.notFound("Agent");
     if (!isRealtimeForAgent(agent.type, agentHasLiveConnection(parsed.data.agentUuid))) {
       return errors.validationError({
-        agentUuid: "This agent does not support real-time task dispatch. Select an OpenClaw agent.",
+        agentUuid: "This agent does not support real-time task dispatch. Select a connected OpenClaw or Claude Code agent.",
       });
     }
 

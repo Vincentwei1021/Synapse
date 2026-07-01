@@ -242,12 +242,12 @@
     "emptyDay": "{date} · 今日无相关论文",
     "emptyState": {
       "title": "启用论文订阅",
-      "body": "选择一个 OpenClaw Agent，它会每天审阅昨日的 HuggingFace 每日论文，挑出与本项目相关的内容，并附上要点和相关性说明。",
+      "body": "选择一个已连接的 OpenClaw 或 Claude Code Agent，它会每天审阅昨日的 HuggingFace 每日论文，挑出与本项目相关的内容，并附上要点和相关性说明。",
       "cta": "启用论文订阅"
     },
     "agentPicker": {
       "title": "选择 Agent",
-      "description": "只有具备 paper_feeds 角色的 OpenClaw Agent 可被分配。",
+      "description": "只有具备 paper_feeds 角色且已连接的 OpenClaw 或 Claude Code Agent 可被分配。",
       "confirm": "启用",
       "cancel": "取消"
     },

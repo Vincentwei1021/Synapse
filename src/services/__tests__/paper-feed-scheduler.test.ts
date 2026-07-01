@@ -97,7 +97,24 @@ describe("tickPaperFeedScheduler", () => {
 
     expect(mockPrisma.researchProject.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { paperFeedEnabled: true, paperFeedAgentUuid: { not: null } },
+        where: { paperFeedEnabled: true, paperFeedAgentUuid: { not: null }, status: "active" },
+      }),
+    );
+  });
+
+  it("does not trigger feeds for completed projects", async () => {
+    mockPrisma.researchProject.findMany.mockResolvedValue([]);
+    const after = new Date("2026-05-27T10:00:00.000Z");
+
+    await tickPaperFeedScheduler(after);
+
+    expect(mockPrisma.researchProject.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          paperFeedEnabled: true,
+          paperFeedAgentUuid: { not: null },
+          status: "active",
+        },
       }),
     );
   });

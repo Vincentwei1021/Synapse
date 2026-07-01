@@ -272,6 +272,9 @@ describe("completeResearchProject", () => {
       deepResearchStartedAt: null,
       synthesisActiveAgentUuid: null,
       synthesisStartedAt: null,
+      paperFeedEnabled: false,
+      paperFeedActiveAgentUuid: null,
+      paperFeedStartedAt: null,
     }));
 
     const result = await completeResearchProject({
@@ -323,12 +326,15 @@ describe("completeResearchProject", () => {
         completedAt,
         autonomousLoopEnabled: false,
         autoSearchEnabled: false,
+        paperFeedEnabled: false,
         autoSearchActiveAgentUuid: null,
         autoSearchStartedAt: null,
         deepResearchActiveAgentUuid: null,
         deepResearchStartedAt: null,
         synthesisActiveAgentUuid: null,
         synthesisStartedAt: null,
+        paperFeedActiveAgentUuid: null,
+        paperFeedStartedAt: null,
       },
       select: expect.any(Object),
     });

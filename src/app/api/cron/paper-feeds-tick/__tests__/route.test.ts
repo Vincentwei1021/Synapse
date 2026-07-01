@@ -46,7 +46,27 @@ describe("POST /api/cron/paper-feeds-tick", () => {
     // Verify it filters where paperFeedEnabled=true with non-null paperFeedAgentUuid
     expect(mockPrisma.researchProject.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { paperFeedEnabled: true, paperFeedAgentUuid: { not: null } },
+        where: { paperFeedEnabled: true, paperFeedAgentUuid: { not: null }, status: "active" },
+      }),
+    );
+  });
+
+  it("does not trigger feeds for completed projects", async () => {
+    mockPrisma.researchProject.findMany.mockResolvedValue([]);
+
+    const req = new Request("http://x/api/cron/paper-feeds-tick", {
+      method: "POST",
+      headers: { "X-Synapse-Cron-Token": "secret" },
+    });
+    await POST(req as never);
+
+    expect(mockPrisma.researchProject.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          paperFeedEnabled: true,
+          paperFeedAgentUuid: { not: null },
+          status: "active",
+        },
       }),
     );
   });

@@ -278,11 +278,11 @@ export async function updateResearchProject(
     if (!isRealtimeForAgent(agent.type, agentHasLiveConnection(agent.uuid))) {
       throw new ApiError(
         "VALIDATION_ERROR",
-        "Autonomous loop requires a realtime (openclaw) agent",
+        "Autonomous loop requires a realtime-capable agent",
         400,
         {
           autonomousLoopAgentUuid:
-            `Agent type '${agent.type}' uses poll transport; autonomous loop dispatch requires a realtime agent`,
+            `Agent type '${agent.type}' is not currently available for realtime dispatch; select OpenClaw or a connected Claude Code agent`,
         },
       );
     }
@@ -415,12 +415,15 @@ export async function completeResearchProject({
         completedAt,
         autonomousLoopEnabled: false,
         autoSearchEnabled: false,
+        paperFeedEnabled: false,
         autoSearchActiveAgentUuid: null,
         autoSearchStartedAt: null,
         deepResearchActiveAgentUuid: null,
         deepResearchStartedAt: null,
         synthesisActiveAgentUuid: null,
         synthesisStartedAt: null,
+        paperFeedActiveAgentUuid: null,
+        paperFeedStartedAt: null,
       },
       select: {
         uuid: true,
@@ -430,6 +433,8 @@ export async function completeResearchProject({
         autoSearchActiveAgentUuid: true,
         deepResearchActiveAgentUuid: true,
         synthesisActiveAgentUuid: true,
+        paperFeedEnabled: true,
+        paperFeedActiveAgentUuid: true,
       },
     }),
   ]);
