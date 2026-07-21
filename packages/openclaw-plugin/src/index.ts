@@ -1,10 +1,13 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type OpenClawPluginApi = any;
 
+import os from "os";
+
 import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 import { synapseConfigSchema, type SynapsePluginConfig, validateConfigWithWarnings } from "./config.js";
 import { SynapseMcpClient } from "./mcp-client.js";
 import { SynapseSseListener } from "./sse-listener.js";
+import { HeartbeatReporter } from "./heartbeat-reporter.js";
 import { SynapseEventRouter } from "./event-router.js";
 import { registerCommonTools } from "./tools/common-tools.js";
 import { registerSynapseCommands } from "./commands.js";
@@ -106,12 +109,24 @@ const plugin = definePluginEntry({
       },
     });
 
+    // --- Heartbeat Reporter (connection registry) ---
+    const heartbeatReporter = new HeartbeatReporter({
+      synapseUrl,
+      apiKey,
+      host: os.hostname(),
+      cwd: process.cwd(),
+      pid: process.pid,
+      clientType: "openclaw",
+      logger: { warn: (m) => logger.warn(m) },
+    });
+
     // --- SSE Listener (background service) ---
     let sseListener: SynapseSseListener | null = null;
 
     api.registerService({
       id: "synapse-sse",
       async start() {
+        heartbeatReporter.start();
         sseListener = new SynapseSseListener({
           synapseUrl,
           apiKey,
@@ -152,6 +167,7 @@ const plugin = definePluginEntry({
         await sseListener.connect();
       },
       async stop() {
+        heartbeatReporter.stop();
         sseListener?.disconnect();
         await mcpClient.disconnect();
       },

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { LayoutGroup, motion } from "framer-motion";
-import { CheckCircle2, ChevronRight, CornerUpLeft, FileText, GitBranch, Loader2, PenLine, Save, Send, Sparkles, Trash2, Wrench, Zap } from "lucide-react";
+import { CheckCircle2, ChevronRight, Copy, CornerUpLeft, FileText, GitBranch, Loader2, PenLine, Save, Send, Sparkles, Trash2, Wrench, Zap } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +25,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Textarea } from "@/components/ui/textarea";
 import { PresenceIndicator } from "@/components/ui/presence-indicator";
 import { useRealtimeEntityEvent, useRealtimeRefresh } from "@/contexts/realtime-context";
+import { useToast } from "@/contexts/toast-context";
 import { MarkdownContent } from "@/components/markdown-content";
 import { GlowBorder } from "@/components/glow-border";
 import { AgentTypeIcon } from "@/components/agent-type-icon";
@@ -199,6 +200,7 @@ export function ExperimentsBoard({
   researchQuestions: Array<{ uuid: string; title: string }>;
 }) {
   const t = useTranslations();
+  const { addToast } = useToast();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -255,6 +257,9 @@ export function ExperimentsBoard({
   const [revertTargetUuid, setRevertTargetUuid] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ExperimentResponse | null>(null);
   const [deletingExperiment, setDeletingExperiment] = useState(false);
+  const [instructionMessage, setInstructionMessage] = useState("");
+  const [sendingInstruction, setSendingInstruction] = useState(false);
+  const [interrupting, setInterrupting] = useState(false);
   useRealtimeRefresh();
 
   const getDetailPanelMaxWidth = useCallback(
@@ -471,6 +476,10 @@ export function ExperimentsBoard({
   const hiddenProgressLogCount = Math.max(progressLogs.length - visibleProgressLogs.length, 0);
 
   useEffect(() => {
+    setInstructionMessage("");
+  }, [selectedExperimentUuid]);
+
+  useEffect(() => {
     if (!selectedExperiment) {
       setDraftTitle("");
       setDraftDescription("");
@@ -602,6 +611,62 @@ export function ExperimentsBoard({
       }
     } catch {}
     setDeletingExperiment(false);
+  }
+
+  async function handleSendInstruction(experimentUuid: string) {
+    const message = instructionMessage.trim();
+    if (!message) return;
+    setSendingInstruction(true);
+    try {
+      const res = await fetch(`/api/experiments/${experimentUuid}/instruction`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+      if (res.ok) {
+        setInstructionMessage("");
+        addToast({ category: "Experiment", color: "#22c55e", message: t("control.sent") });
+      } else if (res.status === 409) {
+        addToast({ category: "Experiment", color: "#ef4444", message: t("control.noAgent") });
+      } else {
+        addToast({ category: "Experiment", color: "#ef4444", message: t("experiments.detail.saveFailed") });
+      }
+    } catch {
+      addToast({ category: "Experiment", color: "#ef4444", message: t("experiments.detail.saveFailed") });
+    } finally {
+      setSendingInstruction(false);
+    }
+  }
+
+  async function handleInterrupt(experimentUuid: string) {
+    if (!window.confirm(t("control.interruptConfirm"))) return;
+    setInterrupting(true);
+    try {
+      const res = await fetch(`/api/experiments/${experimentUuid}/interrupt`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) {
+        addToast({ category: "Experiment", color: "#22c55e", message: t("control.interruptSent") });
+      } else if (res.status === 409) {
+        addToast({ category: "Experiment", color: "#ef4444", message: t("control.noAgent") });
+      } else {
+        addToast({ category: "Experiment", color: "#ef4444", message: t("experiments.detail.saveFailed") });
+      }
+    } catch {
+      addToast({ category: "Experiment", color: "#ef4444", message: t("experiments.detail.saveFailed") });
+    } finally {
+      setInterrupting(false);
+    }
+  }
+
+  async function handleCopySessionId(sessionId: string) {
+    try {
+      await navigator.clipboard.writeText(sessionId);
+      addToast({ category: "Experiment", color: "#818cf8", message: t("control.copied") });
+    } catch {
+      addToast({ category: "Experiment", color: "#ef4444", message: t("experiments.detail.saveFailed") });
+    }
   }
 
   const renderActionBlock = (experiment: ExperimentResponse) => {
@@ -1097,6 +1162,16 @@ export function ExperimentsBoard({
                   </div>
                 </div>
 
+                {selectedExperiment.liveStatus ? (
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <span className="font-medium text-foreground">{t("control.liveStatus")}</span>
+                    {liveStatusBadge(t, selectedExperiment.liveStatus)}
+                    {selectedExperiment.liveMessage ? (
+                      <span className="text-muted-foreground">{selectedExperiment.liveMessage}</span>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 {(selectedExperiment.resultDocument || (selectedExperiment.experimentBranch && repoUrl)) ? (() => {
                   const cleanRepoUrl = repoUrl?.replace(/\.git$/, "") ?? null;
                   return (
@@ -1436,6 +1511,66 @@ export function ExperimentsBoard({
                     </Card>
                   </div>
                 ) : null}
+
+                {(() => {
+                  const hasAgentAssignee = selectedExperiment.assignee?.type === "agent";
+                  const sessionId = selectedExperiment.uuid;
+                  return (
+                    <div className="space-y-4">
+                      {hasAgentAssignee ? (
+                        <div className="space-y-2">
+                          <Label htmlFor="instruction-message">{t("control.instructionLabel")}</Label>
+                          <Textarea
+                            id="instruction-message"
+                            rows={3}
+                            value={instructionMessage}
+                            onChange={(event) => setInstructionMessage(event.target.value)}
+                            placeholder={t("control.instructionPlaceholder")}
+                          />
+                          <div className="flex flex-wrap justify-end gap-2">
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              disabled={interrupting}
+                              onClick={() => void handleInterrupt(selectedExperiment.uuid)}
+                            >
+                              {interrupting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                              {t("control.interrupt")}
+                            </Button>
+                            <Button
+                              type="button"
+                              disabled={sendingInstruction || !instructionMessage.trim()}
+                              onClick={() => void handleSendInstruction(selectedExperiment.uuid)}
+                            >
+                              {sendingInstruction ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <Send className="mr-2 h-4 w-4" />
+                              )}
+                              {t("control.send")}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : null}
+
+                      <div className="flex flex-wrap items-center gap-2 text-sm">
+                        <span className="font-medium text-foreground">{t("control.sessionId")}</span>
+                        <code className="rounded bg-secondary px-2 py-1 font-mono text-xs text-muted-foreground">
+                          {sessionId}
+                        </code>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void handleCopySessionId(sessionId)}
+                        >
+                          <Copy className="mr-2 h-4 w-4" />
+                          {t("control.copy")}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <ExperimentComments
                   experimentUuid={selectedExperiment.uuid}

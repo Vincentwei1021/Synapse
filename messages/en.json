@@ -2,6 +2,42 @@
   "splash": {
     "skip": "Skip"
   },
+  "presence": {
+    "title": "Agent connections",
+    "loading": "Checking agents…",
+    "agentsOnline": "{count, plural, =0 {No agents online} one {# agent online} other {# agents online}}",
+    "viewAll": "View all",
+    "noConnections": "No active connections",
+    "offline": "Offline",
+    "online": "Online",
+    "idle": "Idle",
+    "nActive": "{count, plural, one {# active} other {# active}}",
+    "running": "Running",
+    "uptime": "Uptime",
+    "connections": "Connections",
+    "status": {
+      "sent": "Sent",
+      "ack": "Acknowledged",
+      "checking_resources": "Checking resources",
+      "queuing": "Queuing",
+      "running": "Running"
+    }
+  },
+  "control": {
+    "instructionLabel": "Send instruction to agent",
+    "instructionPlaceholder": "Type an instruction and the assigned agent will resume…",
+    "send": "Send",
+    "interrupt": "Interrupt",
+    "interruptConfirm": "Interrupt the running turn for this experiment?",
+    "noAgent": "No agent is assigned to this experiment",
+    "sent": "Instruction sent",
+    "interruptSent": "Interrupt requested",
+    "sessionId": "Session ID",
+    "copy": "Copy",
+    "copied": "Copied",
+    "origin": "Origin",
+    "liveStatus": "Live status"
+  },
   "common": {
     "appName": "Synapse",
     "loading": "Loading...",
@@ -206,12 +242,12 @@
     "emptyDay": "{date} · No relevant papers today",
     "emptyState": {
       "title": "Enable Paper Feeds",
-      "body": "Pick an OpenClaw agent. It will review yesterday's HuggingFace Daily Papers each day and surface anything relevant to this project — with a TL;DR and why it matters.",
+      "body": "Pick a connected OpenClaw or Claude Code agent. It will review yesterday's HuggingFace Daily Papers each day and surface anything relevant to this project — with a TL;DR and why it matters.",
       "cta": "Enable Paper Feeds"
     },
     "agentPicker": {
       "title": "Pick an agent",
-      "description": "Only OpenClaw agents with the paper_feeds role can be assigned.",
+      "description": "Only connected OpenClaw or Claude Code agents with the paper_feeds role can be assigned.",
       "confirm": "Enable",
       "cancel": "Cancel"
     },
@@ -1139,7 +1175,9 @@
       "related_work_added": "New paper collected",
       "experiment_completed": "Experiment completed",
       "experiment_status_changed": "Experiment status changed",
-      "experiment_progress": "Experiment progress update"
+      "experiment_progress": "Experiment progress update",
+      "experiment_instruction": "Instruction received",
+      "experiment_interrupt": "Interrupt requested"
     },
     "actions": {
       "experimentRevisionRequested": "requested revisions on"

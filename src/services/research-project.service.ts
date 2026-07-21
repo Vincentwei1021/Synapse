@@ -6,7 +6,8 @@ import { Prisma } from "@/generated/prisma/client";
 import { ApiError } from "@/lib/api-handler";
 import { eventBus } from "@/lib/event-bus";
 import { prisma } from "@/lib/prisma";
-import { isRealtimeAgent } from "@/lib/agent-transport";
+import { isRealtimeForAgent } from "@/lib/agent-transport";
+import { agentHasLiveConnection } from "@/services/agent-connection.service";
 import { getAgentByUuid } from "@/services/agent.service";
 import { getProjectMetricsSnapshot, getProjectMetricsSnapshots } from "@/services/project-metrics.service";
 
@@ -274,14 +275,14 @@ export async function updateResearchProject(
         { autonomousLoopAgentUuid: "Agent does not exist in this company" },
       );
     }
-    if (!isRealtimeAgent(agent.type)) {
+    if (!isRealtimeForAgent(agent.type, agentHasLiveConnection(agent.uuid))) {
       throw new ApiError(
         "VALIDATION_ERROR",
-        "Autonomous loop requires a realtime (openclaw) agent",
+        "Autonomous loop requires a realtime-capable agent",
         400,
         {
           autonomousLoopAgentUuid:
-            `Agent type '${agent.type}' uses poll transport; autonomous loop dispatch requires a realtime agent`,
+            `Agent type '${agent.type}' is not currently available for realtime dispatch; select OpenClaw or a connected Claude Code agent`,
         },
       );
     }
@@ -414,12 +415,15 @@ export async function completeResearchProject({
         completedAt,
         autonomousLoopEnabled: false,
         autoSearchEnabled: false,
+        paperFeedEnabled: false,
         autoSearchActiveAgentUuid: null,
         autoSearchStartedAt: null,
         deepResearchActiveAgentUuid: null,
         deepResearchStartedAt: null,
         synthesisActiveAgentUuid: null,
         synthesisStartedAt: null,
+        paperFeedActiveAgentUuid: null,
+        paperFeedStartedAt: null,
       },
       select: {
         uuid: true,
@@ -429,6 +433,8 @@ export async function completeResearchProject({
         autoSearchActiveAgentUuid: true,
         deepResearchActiveAgentUuid: true,
         synthesisActiveAgentUuid: true,
+        paperFeedEnabled: true,
+        paperFeedActiveAgentUuid: true,
       },
     }),
   ]);

@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
   const feedDate = yesterdayUtc.toISOString().slice(0, 10);
 
   const projects = await prisma.researchProject.findMany({
-    where: { paperFeedEnabled: true, paperFeedAgentUuid: { not: null } },
+    where: { paperFeedEnabled: true, paperFeedAgentUuid: { not: null }, status: "active" },
     select: { uuid: true, companyUuid: true },
   });
 

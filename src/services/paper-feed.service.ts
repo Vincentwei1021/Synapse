@@ -3,7 +3,8 @@
 // All operations scoped by companyUuid for multi-tenancy.
 
 import { prisma } from "@/lib/prisma";
-import { isRealtimeAgent } from "@/lib/agent-transport";
+import { isRealtimeForAgent } from "@/lib/agent-transport";
+import { agentHasLiveConnection } from "@/services/agent-connection.service";
 import * as notificationService from "@/services/notification.service";
 
 // ===== Type Definitions =====
@@ -60,7 +61,7 @@ const STALE_RUN_MS = 30 * 60 * 1000;
 
 /**
  * Enable Paper Feeds on a project. Validates that the chosen agent is
- * a realtime (OpenClaw) agent and carries the `paper_feeds` role.
+ * realtime-capable and carries the `paper_feeds` role.
  */
 export async function enablePaperFeed(
   input: EnablePaperFeedInput
@@ -72,8 +73,8 @@ export async function enablePaperFeed(
   if (!agent) {
     throw new Error("Agent not found");
   }
-  if (!isRealtimeAgent(agent.type)) {
-    throw new Error("Paper Feeds requires a realtime (OpenClaw) agent.");
+  if (!isRealtimeForAgent(agent.type, agentHasLiveConnection(input.agentUuid))) {
+    throw new Error("Paper Feeds requires a realtime-capable connected OpenClaw or Claude Code agent.");
   }
   if (!agent.roles.includes("paper_feeds")) {
     throw new Error("Selected agent is missing the paper_feeds role.");

@@ -4,7 +4,8 @@ import { withErrorHandler } from "@/lib/api-handler";
 import { errors, success } from "@/lib/api-response";
 import { getAuthContext, isUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isRealtimeAgent } from "@/lib/agent-transport";
+import { isRealtimeForAgent } from "@/lib/agent-transport";
+import { agentHasLiveConnection } from "@/services/agent-connection.service";
 import * as notificationService from "@/services/notification.service";
 import { eventBus } from "@/lib/event-bus";
 
@@ -34,9 +35,9 @@ export const POST = withErrorHandler<{ uuid: string }>(
       select: { type: true },
     });
     if (!agent) return errors.notFound("Agent");
-    if (!isRealtimeAgent(agent.type)) {
+    if (!isRealtimeForAgent(agent.type, agentHasLiveConnection(parsed.data.agentUuid))) {
       return errors.validationError({
-        agentUuid: "This agent does not support real-time task dispatch. Select an OpenClaw agent.",
+        agentUuid: "This agent does not support real-time task dispatch. Select a connected OpenClaw or Claude Code agent.",
       });
     }
 

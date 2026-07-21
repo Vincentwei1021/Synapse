@@ -1,0 +1,16 @@
+{
+  "name": "@synapse-research/synapse-daemon",
+  "version": "0.1.0",
+  "description": "Synapse daemon — wakes local Claude Code on experiment assignment",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "rm -rf dist && pnpm run build",
+    "typecheck": "tsc --noEmit",
+    "test": "cd ../.. && pnpm exec vitest run packages/synapse-daemon/src/__tests__"
+  }
+}

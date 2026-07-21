@@ -17,6 +17,11 @@ export function isRealtimeAgent(agentType: string): boolean {
   return getAgentTransport(agentType) === "realtime";
 }
 
+export function isRealtimeForAgent(agentType: string, hasLiveConnection: boolean): boolean {
+  if (isRealtimeAgent(agentType)) return true;
+  return agentType === "claude_code" && hasLiveConnection;
+}
+
 /** Returns all agent types that map to the given transport. */
 export function getTypesByTransport(transport: "realtime" | "poll"): string[] {
   return Object.entries(AGENT_TRANSPORT_MAP)

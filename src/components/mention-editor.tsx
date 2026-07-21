@@ -5,9 +5,11 @@ import React, {
   useEffect,
   useCallback,
   useRef,
+  useMemo,
   forwardRef,
   useImperativeHandle,
 } from "react";
+import { useTranslations } from "next-intl";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Mention from "@tiptap/extension-mention";
@@ -39,6 +41,8 @@ interface Mentionable {
   name: string;
   email?: string;
   roles?: string[];
+  online?: boolean; // agents only
+  activeCount?: number; // agents only
 }
 
 export interface MentionEditorProps {
@@ -187,7 +191,8 @@ function createSuggestionPopupRenderer(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   command: (attrs: any) => void,
   keyDownRef: React.MutableRefObject<KeyDownHandler | null>,
-  container: HTMLDivElement
+  container: HTMLDivElement,
+  labels: { idle: string; active: (count: number) => string }
 ) {
   container.innerHTML = "";
 
@@ -233,7 +238,7 @@ function createSuggestionPopupRenderer(
       btn.onclick = () => doCommand(item);
 
       const avatar = document.createElement("div");
-      avatar.className = `flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+      avatar.className = `relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
         item.type === "agent"
           ? "bg-[#C67A52] text-white"
           : "bg-[#E5E0D8] text-[#6B6B6B]"
@@ -242,6 +247,13 @@ function createSuggestionPopupRenderer(
         item.type === "agent"
           ? '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>'
           : '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+
+      if (item.type === "agent" && item.online) {
+        const dot = document.createElement("span");
+        dot.className =
+          "absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-1 ring-white";
+        avatar.appendChild(dot);
+      }
 
       const info = document.createElement("div");
       info.className = "min-w-0 flex-1";
@@ -258,7 +270,15 @@ function createSuggestionPopupRenderer(
         info.appendChild(emailEl);
       }
 
-      if (item.type === "agent" && item.roles && item.roles.length > 0) {
+      if (item.type === "agent" && item.online) {
+        const statusEl = document.createElement("div");
+        statusEl.className = "truncate text-[10px] text-[#9A9A9A]";
+        statusEl.textContent =
+          (item.activeCount ?? 0) > 0
+            ? labels.active(item.activeCount ?? 0)
+            : labels.idle;
+        info.appendChild(statusEl);
+      } else if (item.type === "agent" && item.roles && item.roles.length > 0) {
         const rolesEl = document.createElement("div");
         rolesEl.className = "truncate text-[10px] text-[#9A9A9A]";
         rolesEl.textContent = item.roles.join(", ");
@@ -304,6 +324,14 @@ function createSuggestionPopupRenderer(
 
 export const MentionEditor = forwardRef<MentionEditorRef, MentionEditorProps>(
   ({ value, onChange, placeholder, className, disabled, onSubmit }, ref) => {
+    const t = useTranslations();
+    const presenceLabels = useMemo(
+      () => ({
+        idle: t("presence.idle"),
+        active: (count: number) => t("presence.nActive", { count }),
+      }),
+      [t]
+    );
     const suggestionItemsRef = useRef<Mentionable[]>([]);
     const suggestionLoadingRef = useRef(false);
     const keyDownRef = useRef<KeyDownHandler | null>(null);
@@ -361,7 +389,8 @@ export const MentionEditor = forwardRef<MentionEditorRef, MentionEditorProps>(
           suggestionLoadingRef.current,
           currentCommandRef.current,
           keyDownRef,
-          popupRef.current
+          popupRef.current,
+          presenceLabels
         );
       }
     });
@@ -429,7 +458,8 @@ export const MentionEditor = forwardRef<MentionEditorRef, MentionEditorProps>(
                     suggestionLoadingRef.current,
                     props.command,
                     keyDownRef,
-                    popup
+                    popup,
+                    presenceLabels
                   );
                 },
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -459,7 +489,8 @@ export const MentionEditor = forwardRef<MentionEditorRef, MentionEditorProps>(
                       suggestionLoadingRef.current,
                       props.command,
                       keyDownRef,
-                      popupRef.current
+                      popupRef.current,
+                      presenceLabels
                     );
                   }
                 },

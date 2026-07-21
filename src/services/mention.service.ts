@@ -6,6 +6,8 @@
 import { prisma } from "@/lib/prisma";
 import { getActorName } from "@/lib/uuid-resolver";
 import * as notificationService from "@/services/notification.service";
+import { hasLiveConnection } from "@/lib/connection-registry";
+import { countActiveExperimentsByAgent } from "@/services/agent-connection.service";
 
 // ===== Constants =====
 
@@ -29,6 +31,8 @@ export interface Mentionable {
   email?: string | null;
   avatarUrl?: string | null;
   roles?: string[];
+  online?: boolean;       // agents only; true if a live daemon connection exists
+  activeCount?: number;   // agents only; count of running/queued experiments
 }
 
 export interface CreateMentionsParams {
@@ -228,6 +232,29 @@ export async function searchMentionables(params: SearchMentionablesParams): Prom
   const effectiveLimit = Math.min(limit, 50);
   const results: Mentionable[] = [];
 
+  // Enrich agent candidates with presence (online + activeCount) and stable-sort
+  // online agents first. Applied to BOTH return paths (empty-query starter set
+  // and the main search path) BEFORE any slice so online agents survive the
+  // limit. Users keep their relative order.
+  const enrich = async (items: Mentionable[]): Promise<Mentionable[]> => {
+    const agentUuids = items.filter((r) => r.type === "agent").map((r) => r.uuid);
+    const activeCounts = await countActiveExperimentsByAgent(companyUuid, agentUuids);
+    const now = Date.now();
+    for (const r of items) {
+      if (r.type !== "agent") continue;
+      r.online = hasLiveConnection(r.uuid, now);
+      r.activeCount = activeCounts.get(r.uuid) ?? 0;
+    }
+    items.sort((a, b) => {
+      // Only reorder agents relative to each other; never move users.
+      if (a.type !== "agent" || b.type !== "agent") return 0;
+      const ao = a.online ? 1 : 0;
+      const bo = b.online ? 1 : 0;
+      return bo - ao;
+    });
+    return items;
+  };
+
   // Determine the owner UUID for agent scoping (computed once, reused below)
   let agentOwnerUuid: string | undefined;
   if (actorType === "user") {
@@ -290,6 +317,7 @@ export async function searchMentionables(params: SearchMentionablesParams): Prom
       });
     }
 
+    await enrich(results);
     return results.slice(0, starterLimit);
   }
 
@@ -357,6 +385,7 @@ export async function searchMentionables(params: SearchMentionablesParams): Prom
     });
   }
 
+  await enrich(results);
   return results.slice(0, effectiveLimit);
 }
 
